@@ -30,7 +30,7 @@
 // in, not the stale local t.members (that mismatch was «3 снаружи / 0 внутри»). AvatarStack
 // already caps at 5 faces + a «+N» overflow chip (iOS-style) and uses each member's real
 // avatar. Local-only teams fall back to their own members; empty cloud team = honest «ты один».
-function LiveTeamCard({ t, navigate }) {
+function LiveTeamCard({ t, navigate, rhythm }) {
   // Карточка круга теперь БЕЛАЯ как привычки/цели (David: «в целях карточки того же цвета — единый
   // стиль»). Круги живут среди целей, поэтому делим единый белый вид; эмблема-watermark + чипы-стекло.
   const tgt = t.target || 0;
@@ -60,6 +60,20 @@ function LiveTeamCard({ t, navigate }) {
     }).catch(() => { if (on) setRoster([]); });
     return () => { on = false; };
   }, [t.cloudId]);
+  // РИТМ СЕГОДНЯ (opt-in, для «Мои круги»): сколько РАЗНЫХ людей закрыли привычку круга сегодня
+  // = объединение todayUsers по общим привычкам (честно из облака). 0/нет данных → чип не показан.
+  const [rhythmN, setRhythmN] = React.useState(null);
+  React.useEffect(() => {
+    if (!rhythm || !_cloud || !window.bosCloud.teamHabitsFull) return;
+    let on = true;
+    window.bosCloud.teamHabitsFull(t.cloudId).then((hs) => {
+      if (!on || !Array.isArray(hs)) return;
+      const set = {};
+      hs.forEach((h) => { if (h && Array.isArray(h.todayUsers)) h.todayUsers.forEach((u) => { set[u] = true; }); });
+      setRhythmN(Object.keys(set).length);
+    }).catch(() => {});
+    return () => { on = false; };
+  }, [rhythm, t.cloudId]);
   const _loading = _cloud && roster === null; // cloud roster not back yet → skeleton, never «ты один»
   const members = _cloud ? (roster || []) : (t.members || []);
   const count = members.length;
@@ -72,6 +86,7 @@ function LiveTeamCard({ t, navigate }) {
       <div style={{ position: "relative" }}>
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+          {rhythm && rhythmN > 0 && <span style={{ ...chipS, color: "#1E8E4E", background: "rgba(52,199,89,0.13)", boxShadow: "none" }}>● сегодня {rhythmN} в ритме</span>}
           {t.goal && <span style={chipS}>🎯 {t.goal}</span>}
           {t.date && <span style={chipS}>📅 {t.date}</span>}
           {!_loading && count > 0 && <span style={chipS}>👥 {count}</span>}
@@ -655,6 +670,187 @@ function DiscoveryVeil({ gate, level, label, isDark, children }) {
   );
 }
 
+/* ═══════════ СООБЩЕСТВО v2 · Э1 «Одно окно» ══════════════════════════════════════
+   Блоки главной «Все», собранные из ЖИВЫХ данных (арх. community-architecture-v2.md):
+   • Подходит сейчас — рекомендация из ПУБЛИЧНЫХ кругов (нет публичных → блок скрыт);
+   • Мои круги — карточки твоих кругов + сводка ритма «сегодня N в ритме»;
+   • Помощь круга — вклады людей ИЗ ТВОИХ КРУГОВ (свои — без замка L10), с лицами и именами;
+   • Мой вклад — статус-карточка (нет → добавить · есть → форматы/места).
+   Принцип «без бутафории»: ноль выдуманных людей/цифр, пусто = блок скрыт. Ноль новых таблиц. */
+
+// RU-склонение «место/места/мест» и «формат/формата/форматов».
+function bosSlotsWord(n) { var a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "место" : ((a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "места" : "мест"); }
+function bosFormatsWord(n) { var a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "формат" : ((a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "формата" : "форматов"); }
+
+// Хук: карта участников моих кругов (owner_id → {name, avatar, teamName}) + мой cloud-id.
+// Один проход по teamMembers всех моих облачных кругов; пусто/оффлайн → {} (без вспышки).
+function bosUseCircleMembers(app) {
+  var teams = ((app && app.teams) || []).filter(function (t) { return t && t.cloudId; });
+  var sig = teams.map(function (t) { return t.cloudId; }).join(",");
+  var _m = React.useState(null), map = _m[0], setMap = _m[1];
+  var _i = React.useState(null), meId = _i[0], setMeId = _i[1];
+  React.useEffect(function () {
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers) || !teams.length) { setMap({}); return; }
+    var on = true;
+    window.bosCloud.uid().then(function (id) { if (on) setMeId(id || null); }).catch(function () {});
+    Promise.all(teams.map(function (t) { return window.bosCloud.teamMembers(t.cloudId).then(function (mem) { return { t: t, mem: Array.isArray(mem) ? mem : [] }; }).catch(function () { return { t: t, mem: [] }; }); }))
+      .then(function (res) {
+        if (!on) return;
+        var m = {};
+        res.forEach(function (r) { r.mem.forEach(function (p) { if (p && p.id && !m[p.id]) m[p.id] = { name: p.name || "Участник", avatar: p.avatar, teamName: r.t.name }; }); });
+        setMap(m);
+      });
+    return function () { on = false; };
+  }, [sig]);
+  return { map: map, meId: meId };
+}
+
+// ── «ПОДХОДИТ СЕЙЧАС» — рекомендация из публичных кругов, ВСЕГДА с причиной ──
+// Двигатель Э1: первый публичный круг, в котором тебя ещё нет. Причина — из реальных данных
+// (твой ритм сегодня). Нет публичных кругов → return null (блок скрыт, не заглушка).
+// Умный подбор по состоянию/времени — Э4; здесь честный минимум с настоящей строкой «почему».
+function CommunitySuggestLive({ app, navigate, isDark, onOpen }) {
+  var _p = React.useState(null), pub = _p[0], setPub = _p[1];
+  React.useEffect(function () {
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.discoverTeams)) { setPub([]); return; }
+    var on = true;
+    window.bosCloud.discoverTeams().then(function (ts) { if (on) setPub(Array.isArray(ts) ? ts : []); }).catch(function () { if (on) setPub([]); });
+    return function () { on = false; };
+  }, []);
+  if (pub === null) return null;
+  var mineIds = {}; ((app && app.teams) || []).forEach(function (t) { if (t && t.cloudId) mineIds[t.cloudId] = 1; });
+  var cand = pub.filter(function (t) { return t && !mineIds[t.id]; })[0];
+  if (!cand) return null;
+  var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved && !h.goalOnly; });
+  var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+  var doneT = habits.filter(function (h) { return h.log && h.log[todayK]; }).length;
+  var why = habits.length ? ("вечер · ты сегодня в ритме " + doneT + " из " + habits.length) : "открытый круг рядом";
+  return (
+    <div>
+      <CommSectionHeadLive title="✨ Подходит сейчас" onAll={null} />
+      <div style={{ marginTop: 10, background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0, boxShadow: "0 4px 12px rgba(239,159,20,0.28)" }}>{bosIcon(cand.emblem || "🌙", 21, "#0a0a0a")}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cand.name}</div>
+            <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>Открытый круг · {cand.members || 0} участ.</div>
+          </div>
+          <button onClick={onOpen} className="tap" data-haptic="selection" style={{ flexShrink: 0, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Смотреть</button>
+        </div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 11, background: "var(--surface-3)", borderRadius: 999, padding: "6px 11px", fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" /></svg>
+          {why}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── «МОИ КРУГИ» — твои круги карточками + сводка ритма (в LiveTeamCard rhythm) ──
+function MyCirclesLive({ app, navigate, isDark, onAll }) {
+  var teams = ((app && app.teams) || []).filter(function (t) { return t && (t.cloudId || (t.members && t.members.length) || t.seedId); });
+  if (!teams.length) return null;
+  return (
+    <div>
+      <CommSectionHeadLive title="🫂 Мои круги" onAll={onAll} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
+        {teams.map(function (t) { return <LiveTeamCard key={t._id || t.cloudId} t={t} navigate={navigate} rhythm />; })}
+      </div>
+    </div>
+  );
+}
+
+// ── «ПОМОЩЬ КРУГА» — вклады людей ИЗ ТВОИХ КРУГОВ (свои без замка L10), лица + имена ──
+// netOffers читается всеми (RLS using(true)); фильтруем по owner_id ∈ участники моих кругов.
+// Факты доверия ✓подтверждения/✦следы появятся в Э2/Э4 — пока показываем ТОЛЬКО реальное
+// (время/онлайн, места, «показана: круг …»), без выдуманных чисел. Пусто → блок скрыт.
+function CircleHelpLive({ app, navigate, isDark }) {
+  var cm = bosUseCircleMembers(app), map = cm.map, meId = cm.meId;
+  var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
+  React.useEffect(function () {
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netOffers)) { setOffers([]); return; }
+    var on = true;
+    window.bosCloud.netOffers(200).then(function (all) { if (on) setOffers(Array.isArray(all) ? all : []); }).catch(function () { if (on) setOffers([]); });
+    return function () { on = false; };
+  }, []);
+  if (!map || offers === null) return null;
+  var mine = offers.filter(function (o) { return o && o.owner_id && o.owner_id !== meId && map[o.owner_id] && o.active !== false; }).slice(0, 3);
+  if (!mine.length) return null;
+  return (
+    <div>
+      <CommSectionHeadLive title="🤝 Помощь круга" onAll={null} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+        {mine.map(function (o) {
+          var p = map[o.owner_id];
+          var slots = Math.max(1, o.slots_week || 1);
+          var person = { ownerId: o.owner_id, avatar: p.avatar, level: null, offers: [o] };
+          return (
+            <button key={o.id} onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap"
+              style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "13px 14px", boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
+              <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || "").split(" ")[0]} · {o.title}</div>
+                <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>{[o.when_text, slots + " " + bosSlotsWord(slots)].filter(Boolean).join(" · ")}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>Показана: круг «{p.teamName}»</div>
+              </div>
+              <span style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700 }}>Попросить</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── «МОЙ ВКЛАД» — статус-карточка (нет → добавить · есть → форматы/места). Все уровни. ──
+// Открывает ЖИВОЙ редактор вклада (NetOfferEditSheetLive → network_offers). Полная шторка
+// «Добавить формат помощи» с каталогом и подтверждениями роли — Э2.
+function MyContributionStatusLive({ app, navigate, isDark }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  React.useEffect(function () {
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) { setOffers([]); return; }
+    var on = true;
+    window.bosCloud.netMyOffers().then(function (mine) { if (on) setOffers(Array.isArray(mine) ? mine : []); }).catch(function () { if (on) setOffers([]); });
+    return function () { on = false; };
+  }, [tick]);
+  if (offers === null) return null;
+  var edit = function (offer) { if (typeof NetOfferEditSheetLive === "function") s.open(<NetOfferEditSheetLive offer={offer} onDone={function () { setTick(function (n) { return n + 1; }); }} />); };
+  var active = offers.filter(function (o) { return o && o.active !== false; });
+  var goldCard = { background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)", border: "1px solid rgba(239,159,20,0.35)" };
+  var kick = (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, color: "#9a6800", textTransform: "uppercase" }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 2l8 3.5v5.2c0 5-3.4 9.6-8 11.3-4.6-1.7-8-6.3-8-11.3V5.5L12 2z" /></svg>
+      Мой вклад
+    </div>
+  );
+  if (!active.length) {
+    return (
+      <div style={goldCard}>
+        {kick}
+        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 7, letterSpacing: "-0.2px" }}>Поделись, чем можешь помочь</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Один формат для своих — и круг увидит, что ты рядом.</div>
+        <button onClick={function () { edit(null); }} className="tap" data-haptic="selection" style={{ width: "100%", marginTop: 12, border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 14, fontWeight: 800, borderRadius: 14, padding: "12px 16px", cursor: "pointer", boxShadow: "0 4px 12px rgba(239,159,20,0.3)" }}>Добавить формат помощи</button>
+      </div>
+    );
+  }
+  var first = active[0];
+  var totalSlots = active.reduce(function (a, o) { return a + Math.max(1, o.slots_week || 1); }, 0);
+  return (
+    <div style={goldCard}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {kick}
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.emoji ? bosIcon(first.emoji, 16, null) : null} {first.title}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3 }}>{active.length} {bosFormatsWord(active.length)} · {totalSlots} {bosSlotsWord(totalSlots)} в неделю</div>
+        </div>
+        <button onClick={function () { edit(first); }} className="tap" data-haptic="selection" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Изменить</button>
+      </div>
+    </div>
+  );
+}
+
 function CommunityLive() {
   const { navigate } = useNav();
   const app = useApp();
@@ -894,6 +1090,13 @@ function CommunityLive() {
                 открывает СВОЮ шторку про механику. Гид (GuideLive) пока жив, но здесь его баннер
                 (CommunityGuideBannerLive) заменён лентой. Кромка ленты — по общей сетке страницы. */}
             <DiscoveryFeedLive app={app} navigate={navigate} isDark={isDark} />
+            {/* ── СООБЩЕСТВО v2 · Э1 «Одно окно» (ЖИВЫЕ данные, пусто = скрыто): Подходит сейчас →
+                Мои круги → Помощь круга → Мой вклад. Ставятся сразу под лентой открытий, партнёры
+                и витрина кругов остаются ниже (не трогаем проверенную механику). */}
+            <CommunitySuggestLive app={app} navigate={navigate} isDark={isDark} onOpen={() => setFilter("circles")} />
+            <MyCirclesLive app={app} navigate={navigate} isDark={isDark} onAll={() => setFilter("circles")} />
+            <CircleHelpLive app={app} navigate={navigate} isDark={isDark} />
+            <MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} />
             {/* КАРТА партнёров — под замком до BOS_DISC_GATES.map уровня (David 2026-07-10: «карта
                 партнёров тоже должна быть закрыта под замочком»). Порог правится в BOS_DISC_GATES. */}
             {typeof PartnersMapLive === "function" && (
