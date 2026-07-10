@@ -235,9 +235,9 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
     linear-gradient(to bottom, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.05) 36%, rgba(255,255,255,0) 70%);
 }
 .bos-tabbar.dark {
-  background: linear-gradient(to bottom, rgba(64,64,72,0.28), rgba(14,14,18,0.18));
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  backdrop-filter: blur(32px) saturate(180%);
+  background: linear-gradient(to bottom, rgba(84,84,94,0.30), rgba(26,26,32,0.19));
+  -webkit-backdrop-filter: blur(32px) saturate(188%) brightness(1.10);
+  backdrop-filter: blur(32px) saturate(188%) brightness(1.10);
   border: 0.5px solid rgba(255,255,255,0.13);
   box-shadow:
     0 18px 50px rgba(0,0,0,0.5),

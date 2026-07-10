@@ -876,7 +876,7 @@ function AIChatLive() {
           return (typeof bosMixPillsLive === "function") ? bosMixPillsLive(raw, app) : raw;
         })().map((s, i) => (
           <button key={i} onClick={() => tapPill(s)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, boxShadow: TH.bubbleShadow, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span>{s.i}</span> {s.label || s.t}
+            <span style={{ display: "inline-flex", flexShrink: 0 }}>{typeof bosPillGlyphLive === "function" ? bosPillGlyphLive(s, { size: 13, color: TH.text }) : s.i}</span> {s.label || s.t}
           </button>
         ))}
       </div>

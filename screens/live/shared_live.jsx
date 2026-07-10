@@ -443,6 +443,24 @@ function bosChipGlass(isDark) {
       : "inset 0 1px 0.5px rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(0,0,0,0.05)",
   };
 }
+
+/* Стекло ФУНКЦИОНАЛЬНОГО чрома (верхние кнопки +/колокол) — НАСТОЯЩЕЕ frosted-стекло
+   (blur + vibrancy + светлый specular-кант), светлее и «морознее» плоского bosChipGlass,
+   как в референсе (David 2026-07-10: стекло только на функциональных элементах). brightness
+   на тёмной приподнимает преломлённое содержимое → читается стеклом, а не тёмным пластиком.
+   Внутренние чипы/карточки остаются матовыми — материал НЕ путаем. */
+function bosGlassChrome(isDark) {
+  return {
+    background: isDark
+      ? "linear-gradient(to bottom, rgba(78,78,88,0.34), rgba(20,20,26,0.22))"
+      : "linear-gradient(to bottom, rgba(255,255,255,0.66), rgba(255,255,255,0.42))",
+    backdropFilter: isDark ? "blur(20px) saturate(180%) brightness(1.14)" : "blur(20px) saturate(180%) brightness(1.04)",
+    WebkitBackdropFilter: isDark ? "blur(20px) saturate(180%) brightness(1.14)" : "blur(20px) saturate(180%) brightness(1.04)",
+    boxShadow: isDark
+      ? "inset 0 1px 0.5px rgba(255,255,255,0.22), inset 0 0 0 0.5px rgba(255,255,255,0.10), 0 4px 14px rgba(0,0,0,0.34)"
+      : "inset 0 1px 0.5px rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(0,0,0,0.05), 0 4px 14px rgba(0,0,0,0.10)",
+  };
+}
 // Метрика цели/круга — СТАНДАРТНЫЙ iOS-выбор (нативный <select> = колесо на iPhone), чтобы единицу
 // ВЫБИРАЛИ, а не печатали (David: «дай выбор маленьким стандартным ios-меню, не чтобы я сам писал»).
 // Если у объекта единица не из списка (старые данные) — она добавляется первой, чтобы не потерялась.
