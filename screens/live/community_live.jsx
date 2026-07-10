@@ -178,6 +178,17 @@ function CommunityGuideBannerLive({ navigate, isDark }) {
    облачный union-merge (через extras в shell.jsx, тем же путём, что claimedChallenges).
    Палитра хрома: белый · чёрный · золото. GuideLive пока НЕ трогаем (переезд позже). */
 var BOS_GOLD = "#FEDE34";
+
+/* Изоляция блоков «Сообщества»: если один блок падает на неожиданных данных, он ТИХО
+   скрывается (или показывает fallback), а страница живёт дальше — вместо общего «Что-то
+   сбилось». Имя блока пишется в консоль → точечная диагностика с устройства пользователя. */
+var BosBlockBoundary = class extends React.Component {
+  constructor(p) { super(p); this.state = { dead: false }; }
+  static getDerivedStateFromError() { return { dead: true }; }
+  componentDidCatch(err, info) { try { console.error("BalanceOS community block crash [" + (this.props.name || "?") + "]:", (err && (err.stack || err.message)) || err, info && info.componentStack); } catch (e) {} }
+  render() { return this.state.dead ? (this.props.fallback || null) : this.props.children; }
+};
+function BosBlock(props) { return <BosBlockBoundary name={props.name} fallback={props.fallback || null}>{props.children}</BosBlockBoundary>; }
 // Пороги «лесенки» замочков на странице — легко правимые (David ещё не уверен в точных цифрах).
 var BOS_DISC_GATES = { showcase: 3, people: 10, map: 3 };
 // Шторки колоды — обложка «прожита», когда открыты все.
@@ -1440,15 +1451,15 @@ function CommunityLive() {
             {/* ЛЕНТА «ОТКРЫТИЙ» вместо баннера гида (David 2026-07-10): свайп-карточки, каждая
                 открывает СВОЮ шторку про механику. Гид (GuideLive) пока жив, но здесь его баннер
                 (CommunityGuideBannerLive) заменён лентой. Кромка ленты — по общей сетке страницы. */}
-            <DiscoveryFeedLive app={app} navigate={navigate} isDark={isDark} />
+            <BosBlock name="discovery"><DiscoveryFeedLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             {/* ── СООБЩЕСТВО v2 · Э1 «Одно окно» (ЖИВЫЕ данные, пусто = скрыто): Подходит сейчас →
-                Мои круги → Помощь круга → Мой вклад. Ставятся сразу под лентой открытий, партнёры
-                и витрина кругов остаются ниже (не трогаем проверенную механику). */}
-            <CommunitySuggestLive app={app} navigate={navigate} isDark={isDark} onOpen={() => setFilter("circles")} />
-            <MyCirclesLive app={app} navigate={navigate} isDark={isDark} onAll={() => setFilter("circles")} />
-            <CircleRequestsLive app={app} navigate={navigate} isDark={isDark} />
-            <CircleHelpLive app={app} navigate={navigate} isDark={isDark} />
-            <MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} />
+                Мои круги → Помощь круга → Мой вклад. Каждый блок изолирован BosBlock — сбой одного
+                не роняет страницу. Ставятся под лентой открытий, партнёры/круги остаются ниже. */}
+            <BosBlock name="suggest"><CommunitySuggestLive app={app} navigate={navigate} isDark={isDark} onOpen={() => setFilter("circles")} /></BosBlock>
+            <BosBlock name="my-circles"><MyCirclesLive app={app} navigate={navigate} isDark={isDark} onAll={() => setFilter("circles")} /></BosBlock>
+            <BosBlock name="circle-requests"><CircleRequestsLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
+            <BosBlock name="circle-help"><CircleHelpLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
+            <BosBlock name="my-contribution"><MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             {/* КАРТА партнёров — под замком до BOS_DISC_GATES.map уровня (David 2026-07-10: «карта
                 партнёров тоже должна быть закрыта под замочком»). Порог правится в BOS_DISC_GATES. */}
             {typeof PartnersMapLive === "function" && (
@@ -1584,7 +1595,7 @@ function CommunityLive() {
               <React.Fragment>
                 {/* Э2 · «Твой путь помощника» — валидация видна ДО L10 (свои — без замка): формат →
                     подтверждения круга → первое дело → следы → Нетворк L10. */}
-                <div style={{ marginBottom: 12 }}><HelperPathLive app={app} navigate={navigate} isDark={isDark} /></div>
+                <BosBlock name="helper-path"><div style={{ marginBottom: 12 }}><HelperPathLive app={app} navigate={navigate} isDark={isDark} /></div></BosBlock>
                 {/* Подарок «Основатель» первому дошедшему (8–9 ур.): прыжок на 10 + открытый Нетворк. */}
                 {userLevel >= 8 && !founderClaimed && typeof FounderUnlockLive === "function" && (
                   <div style={{ marginBottom: 12 }}><FounderUnlockLive app={app} isDark={isDark} /></div>
@@ -2185,8 +2196,10 @@ function TeamDetailLive() {
           ролями → выбранный человек → его календарь кольцами. Заменяет секции «Люди»/«Календарь»
           из аккордеона ниже. Живой ростер + mainProg; для соло-круга показывает тебя. */}
       {_rosterLive && (
-        <TeamPeopleCalendarLive mainProg={mainProg} members={members} meId={meId} navigate={navigate}
-          teamName={t.name} isDark={isDark} accent={ringInk} onInvite={() => openSheet(<TeamShareSheetLive team={t} />)} />
+        <BosBlock name="team-people-calendar">
+          <TeamPeopleCalendarLive mainProg={mainProg} members={members} meId={meId} navigate={navigate}
+            teamName={t.name} isDark={isDark} accent={ringInk} onInvite={() => openSheet(<TeamShareSheetLive team={t} />)} />
+        </BosBlock>
       )}
 
       {/* СТАВКА/БАНК — карточкой под статами (перенесено из бывшей мега-карточки, логика та же). */}
