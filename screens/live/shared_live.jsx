@@ -4755,15 +4755,18 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
     } catch (e) { if (isSearch) { setList([]); if (onCount) onCount(0); } }
     return () => { on = false; };
   }, [query]);
-  // Круги, где я уже состою (владелец/участник) — по cloudId: их не зову вступать, а даю «Открыть».
+  // Круги, где я уже состою (участник/владелец) — по cloudId: их в витрине «Открытые круги» НЕ
+  // показываем (они на главной; витрина — чтобы находить ЧУЖОЕ). Владельца отсекает discoverTeams
+  // на бэке (owner_id), здесь дочищаем ЧЛЕНСТВО по локальному app.teams (без race).
   const mineById = {}; ((app && app.teams) || []).forEach((t) => { if (t && t.cloudId) mineById[t.cloudId] = t; });
+  const shownList = (list || []).filter((t) => !mineById[t.id]);
   // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
   // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
   // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
   // В режиме поиска пустышка не нужна — родитель показывает общую «ничего не нашлось».
   if (!list) return null;
-  if (query && !list.length) return null;
-  if (!list.length) return (
+  if (query && !shownList.length) return null;
+  if (!shownList.length) return (
     <div style={{ marginTop: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
@@ -4799,21 +4802,16 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
     <div style={{ marginTop: 10 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {list.map((t) => {
-          const mineT = mineById[t.id];
-          return (
+        {shownList.map((t) => (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
             <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
               <div style={{ marginTop: 5 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span></div>
             </div>
-            {mineT
-              ? <button onClick={() => { if (navigate) navigate("team-detail", { team: mineT, from: "community" }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>Открыть</button>
-              : <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>}
+            <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
           </div>
-          );
-        })}
+        ))}
       </div>
     </div>
   );
