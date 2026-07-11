@@ -232,6 +232,13 @@ button { font: inherit; cursor: pointer; }
 }
 .bos-input:focus { border-color: var(--ink); }
 
+/* Курсор ввода (caret) — ВСЕГДА цвет текста поля (David 2026-07-11: «мигающая палочка всегда белая,
+   нихера не видно, и так почти везде»). Причина: caret-color не задавался, и вебвью рисовал системный
+   (часто белый). currentColor привязывает курсор к цвету текста поля — где текст читается, там виден и
+   курсор — в любой теме и в шторках (они рендерятся вне .theme-обёртки, поэтому фикс на currentColor, а
+   не на var(--text)). Одно правило на все поля приложения (input/textarea/выбор/редактируемый текст). */
+input, textarea, select, [contenteditable] { caret-color: currentColor; }
+
 /* big black button */
 .bos-btn {
   width: 100%;
