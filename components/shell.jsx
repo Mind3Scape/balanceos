@@ -1655,20 +1655,24 @@ function AppProvider({ children }) {
                   });
               });
             } catch (e) {}
-            // ?team= invite link → join that team instantly («по ссылке — сразу»),
-            // append it on top of whatever teams we just hydrated, and clean the URL.
+            // ?team= invite link → БОЛЬШЕ НЕ вступаем молча (brief 2026-07-11, Слой 0):
+            // сначала ПРЕВЬЮ круга и явное «Вступить» (JoinWelcomeLive kind="team-invite" →
+            // acceptTeamInvite). Членство появляется только после согласия человека.
             if (_joinTeamId) {
-              window.bosCloud.joinViaLink(_joinTeamId).then(function (row) {
-                if (!row) return;
-                // Своя же ссылка на СВОЙ круг (владелец открыл собственный team-линк) — просто чистим
-                // URL: ты уже владелец, не заводим «joined»-плитку и не показываем «тебя зовут вступить».
-                if (row.owner_id && _myUid && row.owner_id === _myUid) { try { history.replaceState(null, "", window.location.pathname); } catch (e) {} return; }
-                var lt = { _id: "cloud-" + row.id, cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: "", members: [], target: row.goal_target || 0, current: 0, progress: 0 };
-                var _already = (teams || []).some(function (x) { return x.cloudId === row.id; });
-                setTeams(function (prev) { return (prev || []).some(function (x) { return x.cloudId === row.id; }) ? prev : [lt].concat(prev || []); });
-                if (!_already) setPendingJoinWelcome({ kind: "team", name: row.name || "Совместная цель", emoji: row.emblem || "✨", color: "#84A4B8" });
-                try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
-              });
+              (window.bosCloud.myTeamIds ? window.bosCloud.myTeamIds() : Promise.resolve([])).then(function (ids) {
+                if ((ids || []).indexOf(_joinTeamId) >= 0) { try { history.replaceState(null, "", window.location.pathname); } catch (e) {} return; }
+                var _preview = function (row) {
+                  setPendingJoinWelcome({ kind: "team-invite", teamId: _joinTeamId, name: (row && row.name) || "Круг в BalanceOS", emoji: (row && (row.emblem || row.emoji)) || "✨", membersN: row ? ((row.members_n | 0) || null) : null });
+                };
+                window.bosCloud.teamById(_joinTeamId).then(function (row) {
+                  if (row) { _preview(row); return; }
+                  // приватный круг до вступления не читается (RLS) → безопасное серверное превью
+                  // (bos_team_preview из patch_help_trust_p0.sql); до патча — общая карточка.
+                  var c = window.bosCloud._client && window.bosCloud._client();
+                  if (c) c.rpc("bos_team_preview", { t: _joinTeamId }).then(function (r) { _preview((r && !r.error && r.data) || null); }).catch(function () { _preview(null); });
+                  else _preview(null);
+                }).catch(function () { _preview(null); });
+              }).catch(function () {});
             }
             // ── СВЕРКА С ЧЛЕНСТВОМ (v594, после пропажи «Крипто монстров») ──────────
             // Список кругов на экране мог разойтись с правдой облака (отравленный пустой
@@ -1711,6 +1715,23 @@ function AppProvider({ children }) {
   const clearPendingAch = () => setPendingAch(null);
   const clearPendingDayClose = () => setPendingDayClose(null);
   const clearPendingJoinWelcome = () => setPendingJoinWelcome(null);
+  // Инвайт в круг (kind="team-invite"): вступление ТОЛЬКО по явному «Вступить» с превью
+  // (brief 2026-07-11). Отказ ничего не публикует и не оставляет заявки.
+  const acceptTeamInvite = (teamId) => {
+    setPendingJoinWelcome(null);
+    try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+    if (!(teamId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.joinViaLink)) return;
+    window.bosCloud.joinViaLink(teamId).then(function (row) {
+      if (!row) return;
+      var lt = { _id: "cloud-" + row.id, cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: "", members: [], target: row.goal_target || 0, current: 0, progress: 0 };
+      setTeams(function (prev) { return (prev || []).some(function (x) { return x.cloudId === row.id; }) ? prev : [lt].concat(prev || []); });
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    }).catch(function () {});
+  };
+  const declineTeamInvite = () => {
+    setPendingJoinWelcome(null);
+    try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+  };
 
   // ── Daily Balance: one calm completion reveal per real day ──────────────────
   // The XP bonus for a perfect day is still handled by claimedChallenges above. This
@@ -1850,7 +1871,7 @@ function AppProvider({ children }) {
     claimedChallenges, spentXP, spendXP, grantBonusXP, noteSpentXP,
     pendingAch, clearPendingAch,
     pendingDayClose, clearPendingDayClose,
-    pendingJoinWelcome, clearPendingJoinWelcome,
+    pendingJoinWelcome, clearPendingJoinWelcome, acceptTeamInvite, declineTeamInvite,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,

@@ -1099,12 +1099,17 @@ function ContactDetailLive() {
   const [notes, setNotes] = React.useState([]);         // тексты следов пользы
   const [booked, setBooked] = React.useState({});       // offerId -> true (моя бронь на неделю)
   const [tick, setTick] = React.useState(0);
+  // Общий круг с этим человеком? Черновики/circle-only вкладов видят ТОЛЬКО свои по кругу —
+  // человеку «снаружи» показываем лишь подтверждённое и открытое всем (brief 2026-07-11, P0-3).
+  const sharedCircle = !!(pid && cm.map && cm.map[pid]);
+  const cmReady = !!cm.map;
   React.useEffect(() => {
     if (!(pid && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netOffers)) { setOffers([]); return; }
     let on = true;
     window.bosCloud.netOffers(200).then((all) => {
       if (!on) return;
-      const mine = (Array.isArray(all) ? all : []).filter((o) => o && o.owner_id === pid && o.active !== false);
+      const mine = (Array.isArray(all) ? all : []).filter((o) => o && o.owner_id === pid && o.active !== false)
+        .filter((o) => sharedCircle || ((!o.status || o.status === "confirmed") && (!o.visibility || o.visibility === "all")));
       setOffers(mine);
       Promise.all(mine.map((o) => (window.bosCloud.netRoleConfirmations ? window.bosCloud.netRoleConfirmations(o.id) : Promise.resolve([])).then((rc) => rc || []).catch(() => []))).then((arr) => {
         if (!on) return; const ids = {}; arr.forEach((rc) => rc.forEach((x) => { ids[x.confirmer_id] = true; })); setConfIds(Object.keys(ids));
@@ -1116,7 +1121,7 @@ function ContactDetailLive() {
     if (window.bosCloud.netUserThanks) window.bosCloud.netUserThanks(pid).then((n) => { if (on) setHelped(n || 0); });
     if (window.bosCloud.netMyBookings) window.bosCloud.netMyBookings().then((bk) => { if (!on) return; const m = {}; (bk || []).forEach((b) => { if (b && b.week === week) m[b.offer_id] = true; }); setBooked(m); });
     return () => { on = false; };
-  }, [pid, tick]);
+  }, [pid, tick, cmReady, sharedCircle]);
 
   const book = (o) => {
     if (!window.bosCloud.netBook || booked[o.id]) return;
@@ -1209,7 +1214,7 @@ function ContactDetailLive() {
                       <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{o.title}</span>
                       {locked && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>🔒 L{lvl}</span>}
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{[o.when_text, priceTxt].filter(Boolean).join(" · ")}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{[o.when_text, priceTxt, (o.status === "draft" ? "черновик" : null)].filter(Boolean).join(" · ")}</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     {locked
@@ -1240,13 +1245,10 @@ function ContactDetailLive() {
         </div>
       )}
 
-      {/* CTA — «Написать · после принятия» + «Попросить помощь» */}
-      <div style={{ padding: "22px 16px 0", display: "flex", gap: 8 }}>
-        <div style={{ flex: 1, background: "var(--card)", borderRadius: 999, padding: "12px 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, color: "var(--text-4)", boxShadow: "var(--card-shadow)" }}>
-          <I.MessageCircle size={15} /> Написать · после принятия
-        </div>
-        <button onClick={() => { const o = list.filter((x) => (viewerLevel >= (x.min_level || 1)) && !booked[x.id])[0]; if (o) book(o); }} disabled={!list.some((x) => (viewerLevel >= (x.min_level || 1)) && !booked[x.id])} className="tap"
-          style={{ flex: 1, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "12px 14px", fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: list.some((x) => (viewerLevel >= (x.min_level || 1)) && !booked[x.id]) ? 1 : 0.5, cursor: "pointer" }}>Попросить помощь</button>
+      {/* Ложных CTA нет (brief 2026-07-11, Слой 0): не обещаем чат, которого нет, и не бронируем
+          «первое попавшееся» молча — помощь просят выбором КОНКРЕТНОГО формата выше. */}
+      <div style={{ padding: "20px 24px 0", fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center" }}>
+        {list.length > 0 ? ("Выбери формат выше — запись увидите только вы двое." + (sharedCircle ? " Договориться можно в чате вашего круга." : "")) : ""}
       </div>
     </div>
   );

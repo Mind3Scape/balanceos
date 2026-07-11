@@ -805,10 +805,21 @@
       return (!r.error && r.data) ? r.data : null;
     } catch (e) { return null; }
   }
-  // Откликнуться на просьбу (volunteer_id = я) / снять отклик (null). RLS: участник круга.
+  // Откликнуться на просьбу / снять отклик. «Я вызвался» ≠ «меня выбрали» (brief 2026-07-11):
+  // атомарный RPC bos_claim_request берёт просьбу ТОЛЬКО если она ещё свободна — последний
+  // тап не перезаписывает первого. До patch_help_trust_p0.sql RPC нет → фолбэк на прежний
+  // update (там гонка остаётся, но клиент хотя бы честно перечитает список по false).
   async function claimTeamRequest(taskId, on) {
     var c = client(); var me = await uid(); if (!c || !me || !taskId) return false;
-    try { var r = await c.from("team_tasks").update({ volunteer_id: on ? me : null }).eq("id", taskId); return !(r && r.error); } catch (e) { return false; }
+    try {
+      var rpc = await c.rpc("bos_claim_request", { p_task: taskId, p_on: !!on });
+      if (!rpc.error) { var d = rpc.data || {}; return d.ok === true; }
+    } catch (e) {}
+    try {
+      var q = c.from("team_tasks").update({ volunteer_id: on ? me : null }).eq("id", taskId);
+      q = on ? q.is("volunteer_id", null) : q.eq("volunteer_id", me); // не перезаписывать и не снимать ЧУЖОЙ отклик
+      var r = await q; return !(r && r.error);
+    } catch (e) { return false; }
   }
   // Владелец удаляет задание (его отметки каскадом). RLS: delete только owner.
   async function removeTeamTask(taskId) {

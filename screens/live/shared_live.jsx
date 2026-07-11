@@ -1032,12 +1032,6 @@ function NetworkLive({ navigate, app, level, isDark }) {
   const myName = (app && app.userName) || "Ты";
   const myAvatar = app && app.avatar;
 
-  // Подпись одной строкой (то же поле offer, что в Балансе окружения).
-  const offSt = React.useState(function () { try { return localStorage.getItem("bos:myOffer") || ""; } catch (e) { return ""; } });
-  const myOffer = offSt[0], setMyOffer = offSt[1];
-  const onOfferChange = function (e) { var v = (e.target.value || "").slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} };
-  const onOfferBlur = function (e) { var v = (e.target.value || "").trim().slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} try { if (window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.saveOffer) window.bosCloud.saveOffer(v); } catch (er2) {} };
-
   const [tick, setTick] = React.useState(0);
   const [myOffers, setMyOffers] = React.useState(null);
   const [people, setPeople] = React.useState(null);
@@ -1056,7 +1050,15 @@ function NetworkLive({ navigate, app, level, isDark }) {
       var cnt = {};
       try { for (var m = 0; m < mine.length; m++) { var bk = (await C.netOfferBookings(mine[m].id)) || []; cnt[mine[m].id] = bk.filter(function (b) { return b.week === week; }).length; } } catch (e) {}
       if (on) setCounts(cnt);
-      var others = all.filter(function (o) { return o.owner_id && o.owner_id !== myId; });
+      // Слой 0 (brief 2026-07-11): в общий Нетворк попадают ТОЛЬКО подтверждённые и открытые
+      // владельцем «всем» вклады. Черновики и circle-only живут в «Помощи круга» у своих.
+      // До SQL-патча (нет колонок status/visibility) — прежнее поведение, поля undefined.
+      var others = all.filter(function (o) {
+        if (!o.owner_id || o.owner_id === myId) return false;
+        if (o.status && o.status !== "confirmed") return false;
+        if (o.visibility && o.visibility !== "all") return false;
+        return true;
+      });
       var pub = {}; try { var pv = (await C.allPublic(240)) || []; pv.forEach(function (p) { pub[p.id] = p; }); } catch (e) {}
       var byOwner = {}; others.forEach(function (o) { (byOwner[o.owner_id] = byOwner[o.owner_id] || []).push(o); });
       var ppl = Object.keys(byOwner).map(function (oid) { var pr = pub[oid] || {}; return { ownerId: oid, avatar: pr.avatar || "default", level: pr.level || 10, offers: byOwner[oid] }; });
@@ -1065,7 +1067,9 @@ function NetworkLive({ navigate, app, level, isDark }) {
     return function () { on = false; };
   }, [tick]);
 
-  const openEditor = function (offer) { if (typeof NetOfferEditSheetLive === "function") _openSheet(<NetOfferEditSheetLive offer={offer || null} onDone={function () { setTick(function (t) { return t + 1; }); }} />); };
+  // Один доменный объект «формат помощи» (brief 2026-07-11, Слой 0): и тут, и в «Моём вкладе»
+  // предложение создаётся ТОЛЬКО из безопасного каталога — свободный редактор убран.
+  const openEditor = function (offer) { if (typeof AddHelpFormatSheetLive === "function") _openSheet(<AddHelpFormatSheetLive app={app} offer={offer || null} onDone={function () { setTick(function (t) { return t + 1; }); }} />); };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
@@ -1093,11 +1097,6 @@ function NetworkLive({ navigate, app, level, isDark }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 14 }}>
-          <input value={myOffer} onChange={onOfferChange} onBlur={onOfferBlur} maxLength={200} placeholder="Коротко о себе: чем можешь быть полезен"
-            style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "rgba(255,255,255,0.08)", borderRadius: 13, padding: "11px 13px", fontSize: 13.5, color: "#fff", fontFamily: "inherit" }} />
-        </div>
-
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 9 }}>Твоя польза окружению</div>
           {myOffers === null ? (
@@ -1105,7 +1104,7 @@ function NetworkLive({ navigate, app, level, isDark }) {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {myOffers.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>Опубликуй, что готов делать для окружения — с ценой в XP, временем и числом мест в неделю.</div>
+                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>Выбери формат из безопасного каталога — сначала он живёт у твоих кругов, потом открывается шире.</div>
               ) : myOffers.map(function (o) {
                 var c = counts[o.id] | 0; var full = c >= ((o.slots_week | 0) || 1);
                 return (
@@ -1119,7 +1118,7 @@ function NetworkLive({ navigate, app, level, isDark }) {
                   </button>
                 );
               })}
-              <button onClick={function () { openEditor(null); }} className="tap" style={{ border: "1px dashed rgba(255,255,255,0.22)", cursor: "pointer", background: "transparent", borderRadius: 14, padding: "10px 12px", color: "#FEDE34", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>＋ Добавить предложение</button>
+              <button onClick={function () { openEditor(null); }} className="tap" style={{ border: "1px dashed rgba(255,255,255,0.22)", cursor: "pointer", background: "transparent", borderRadius: 14, padding: "10px 12px", color: "#FEDE34", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>＋ Добавить формат помощи</button>
             </div>
           )}
         </div>
@@ -1149,65 +1148,9 @@ function NetworkLive({ navigate, app, level, isDark }) {
   );
 }
 
-/* Редактор предложения (шторка): значок, что, пара слов, цена XP, места/неделю, когда. */
-function NetOfferEditSheetLive({ offer, onDone }) {
-  const editing = !!(offer && offer.id);
-  const { close } = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
-  const [emoji, setEmoji] = React.useState((offer && offer.emoji) || "🤝");
-  const [title, setTitle] = React.useState((offer && offer.title) || "");
-  const [descr, setDescr] = React.useState((offer && offer.descr) || "");
-  const [price, setPrice] = React.useState(String((offer && offer.price_xp != null) ? offer.price_xp : 0));
-  const [when, setWhen] = React.useState((offer && offer.when_text) || "");
-  const [slots, setSlots] = React.useState(String((offer && offer.slots_week) || 1));
-  const [busy, setBusy] = React.useState(false);
-  const EMO = ["🤝", "🧠", "🧘", "🌬️", "🏃", "💼", "🎯", "📚", "🎨", "💬", "🌍", "💡", "🎧", "🍳"];
-  const save = async function () {
-    if (busy || !title.trim()) return; setBusy(true);
-    try { await window.bosCloud.netUpsertOffer({ id: offer && offer.id, emoji: emoji, title: title.trim(), descr: descr.trim(), price_xp: parseInt(price, 10) || 0, slots_week: Math.max(1, parseInt(slots, 10) || 1), when_text: when.trim(), min_level: (offer && offer.min_level) || 10, active: true }); } catch (e) {}
-    setBusy(false); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } if (onDone) onDone(); close();
-  };
-  const del = async function () {
-    if (busy || !editing) return; setBusy(true);
-    try { await window.bosCloud.netDeleteOffer(offer.id); } catch (e) {}
-    setBusy(false); if (onDone) onDone(); close();
-  };
-  const inp = { width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "12px 13px", fontSize: 15, color: "var(--text)", fontFamily: "inherit" };
-  const lbl = { fontSize: 12, fontWeight: 700, color: "var(--text-3)", margin: "14px 2px 6px" };
-  return (
-    <div style={{ padding: "4px 2px 8px" }}>
-      <div style={{ fontSize: 19, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px" }}>{editing ? "Твоё предложение" : "Новое предложение"}</div>
-      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>Пользу увидят в Нетворке и запишутся за XP. Мест в неделю — жёсткий лимит.</div>
-
-      <div style={lbl}>Значок</div>
-      <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2 }}>
-        {EMO.map(function (e) { return <button key={e} onClick={function () { setEmoji(e); }} className="tap" style={{ flexShrink: 0, width: 42, height: 42, borderRadius: 13, border: emoji === e ? "2px solid var(--text)" : "1px solid var(--line)", background: emoji === e ? "var(--surface-3)" : "var(--card)", fontSize: 20, cursor: "pointer" }}>{e}</button>; })}
-      </div>
-
-      <div style={lbl}>Что предлагаешь</div>
-      <input value={title} onChange={function (e) { setTitle(e.target.value); }} maxLength={80} placeholder="Напр.: Консультация по маркетингу" style={inp} />
-
-      <div style={lbl}>Пара слов (не обязательно)</div>
-      <input value={descr} onChange={function (e) { setDescr(e.target.value); }} maxLength={300} placeholder="Напр.: 1 час · разбор бренда и роста" style={inp} />
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div style={lbl}>Цена, XP</div>
-          <input value={price} onChange={function (e) { setPrice(e.target.value.replace(/[^0-9]/g, "")); }} inputMode="numeric" placeholder="0" style={inp} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={lbl}>Мест в неделю</div>
-          <input value={slots} onChange={function (e) { setSlots(e.target.value.replace(/[^0-9]/g, "")); }} inputMode="numeric" placeholder="1" style={inp} />
-        </div>
-      </div>
-
-      <div style={lbl}>Когда готов</div>
-      <input value={when} onChange={function (e) { setWhen(e.target.value); }} maxLength={60} placeholder="Напр.: Воскресенье 18:00" style={inp} />
-
-      <button onClick={save} disabled={busy || !title.trim()} className="tap" style={{ width: "100%", marginTop: 18, background: title.trim() ? "#0a0a0a" : "var(--surface-3)", color: title.trim() ? "#fff" : "var(--text-4)", border: 0, borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>{editing ? "Сохранить" : "Опубликовать"}</button>
-      {editing ? <button onClick={del} disabled={busy} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", color: "var(--text-4)", border: 0, borderRadius: 14, padding: 12, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Удалить предложение</button> : null}
-    </div>
-  );
-}
+/* Свободный редактор предложения УДАЛЁН (brief 2026-07-11, Слой 0): произвольный текст +
+   произвольная цена = обходной путь мимо безопасного каталога. Единственная дверь —
+   AddHelpFormatSheetLive (community_live.jsx): каталог, границы, подтверждение кругом. */
 
 /* Карточка человека в Нетворке (reuse дизайна): аватар, уровень, превью предложений.
    Тап → детали с бронью. Аноним (имён пока нет — честно). */
@@ -1363,35 +1306,9 @@ function NetPersonDetailLive() {
   );
 }
 
-/* Разовый подарок «Основатель»: до-порога (8–9 ур.) первому дошедшему — прыжок на 10 и
-   открытый Нетворк. Постоянный (копилка XP, не сгорает). Гейт по уровню≥8 — до запуска это
-   только David; после запуска карточку можно убрать. */
-function FounderUnlockLive({ app, isDark }) {
-  const claim = function () {
-    try {
-      var cur = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
-      var need = Math.max(1, 2760 - cur);                 // 2760 = уверенно внутри 10-го уровня
-      if (app && typeof app.grantBonusXP === "function") app.grantBonusXP("founder", need);
-      try { localStorage.setItem("bos:founder", "1"); } catch (e) {}
-      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
-    } catch (e) {}
-  };
-  return (
-    <button onClick={claim} className="tap" data-haptic="success" style={{ position: "relative", width: "100%", border: 0, borderRadius: 22, padding: "17px 16px", textAlign: "left", overflow: "hidden", cursor: "pointer",
-      background: "linear-gradient(140deg, #FEDE34 0%, #F6B31E 48%, #EF9F14 100%)", boxShadow: "0 10px 26px rgba(239,159,20,0.34)" }}>
-      <div aria-hidden style={{ position: "absolute", top: -46, right: -28, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
-      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
-        <span aria-hidden style={{ fontSize: 34, flexShrink: 0 }}>🏛</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(70,45,0,0.62)" }}>Ты дошёл первым</div>
-          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px", color: "#3a2600", marginTop: 3, lineHeight: 1.18 }}>Стать Основателем</div>
-          <div style={{ fontSize: 12.5, color: "rgba(58,38,0,0.74)", marginTop: 4, lineHeight: 1.4 }}>Прыжок на 10 уровень и открытый Нетворк — навсегда.</div>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 11, fontSize: 12.5, fontWeight: 800, color: "#3a2600", background: "rgba(255,255,255,0.5)", borderRadius: 999, padding: "7px 14px" }}>Открыть Нетворк ›</span>
-        </div>
-      </div>
-    </button>
-  );
-}
+/* «Основатель» (само-прыжок на L10) УДАЛЁН (brief 2026-07-11, Слой 0): кнопка начисляла себе
+   XP до 10 уровня и открывала публикацию «всем» — обход лестницы доверия. Бейдж 🏛 у уже
+   забравших (bos:founder=1) остаётся — см. isFounder в NetworkLive. */
 
 /* ShareAppSheet → live-only: the user's REAL referral circle + ?ref=<uid> invite link
    (no demo sample faces, no demo "истории/ещё" share targets). */
@@ -1959,16 +1876,25 @@ try { window.addEventListener("bos:notifSeenChanged", function () { _bosTeamUnre
 function JoinWelcomeLive({ info, onClose }) {
   const [open, setOpen] = React.useState(false);
   const closingRef = React.useRef(false);
+  const app = (typeof useApp === "function") ? useApp() : null;
   React.useEffect(() => { const t = window.setTimeout(() => setOpen(true), 10); return () => window.clearTimeout(t); }, []);
   if (!info) return null;
   const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   const isTeam = info.kind === "team";
   const isApp = info.kind === "app"; // «X зовёт тебя» — пришёл по ссылке друга просто в приложение
+  const isInvite = info.kind === "team-invite"; // превью ДО вступления (brief 2026-07-11): членство только после явного «Вступить»
   const inviter = (info.inviterName || "").trim();
   const close = () => {
     if (closingRef.current) return; closingRef.current = true;
     setOpen(false);
-    window.setTimeout(() => { try { onClose && onClose(); } catch (e) {} }, 340);
+    // свайп-вниз/закрытие превью-приглашения = «не сейчас»: чистим ссылку, ничего не вступаем
+    const done = (isInvite && app && app.declineTeamInvite) ? app.declineTeamInvite : onClose;
+    window.setTimeout(() => { try { done && done(); } catch (e) {} }, 340);
+  };
+  const closeThen = (fn) => () => {
+    if (closingRef.current) return; closingRef.current = true;
+    setOpen(false);
+    window.setTimeout(() => { try { fn && fn(); } catch (e) {} }, 340);
   };
   // Standardized GREY glass tile — never the habit's random colour (David: «серенькая, с эффектом
   // стекла, никакой отсебятины»). The inviter's STANDARD avatar (real photo or initial) rides the
@@ -1987,7 +1913,7 @@ function JoinWelcomeLive({ info, onClose }) {
           ) : (
             <div style={{ position: "relative", width: 76, height: 76 }}>
               <div style={{ width: 76, height: 76, borderRadius: 21, background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "0 6px 16px rgba(0,0,0,0.10)"), display: "grid", placeItems: "center", fontSize: 37 }}>{glyph}</div>
-              {!isTeam && (
+              {!isTeam && !isInvite && (
                 <div style={{ position: "absolute", right: -8, bottom: -6, borderRadius: "50%", boxShadow: "0 0 0 3px var(--card, #fff)" }}>
                   <BuddyFaceLive avatar={info.inviterAvatar || "default"} name={inviter} size={34} />
                 </div>
@@ -1995,16 +1921,18 @@ function JoinWelcomeLive({ info, onClose }) {
             </div>
           )}
         </div>
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>{isApp ? "Тебя пригласили" : isTeam ? "Совместная цель" : "Совместная привычка"}</div>
+        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>{isInvite ? "Тебя зовут в круг" : isApp ? "Тебя пригласили" : isTeam ? "Совместная цель" : "Совместная привычка"}</div>
         <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", marginTop: 3 }}>{info.name}</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5, padding: "0 6px", textWrap: "balance" }}>
-          {isApp
-            ? ((inviter || "Друг") + " зовёт вести привычки и цели вместе. Вы уже на одной орбите — начни со своей первой привычки.")
-            : isTeam
-              ? ((inviter ? inviter + " зовёт вести цель вместе" : "Тебя позвали вести цель вместе") + " — виден прогресс каждого.")
-              : ((inviter ? inviter + " зовёт вести вместе" : "Тебя позвали вести вместе") + " — будете видеть отметки друг друга и держать ритм.")}
+          {isInvite
+            ? ("Вступишь — увидишь людей, общие привычки и чат" + (info.membersN ? (" · сейчас тут " + info.membersN + " " + (info.membersN === 1 ? "человек" : (info.membersN < 5 ? "человека" : "человек"))) : "") + ". Пока ты снаружи, круг о тебе ничего не видит.")
+            : isApp
+              ? ((inviter || "Друг") + " зовёт вести привычки и цели вместе. Вы уже на одной орбите — начни со своей первой привычки.")
+              : isTeam
+                ? ((inviter ? inviter + " зовёт вести цель вместе" : "Тебя позвали вести цель вместе") + " — виден прогресс каждого.")
+                : ((inviter ? inviter + " зовёт вести вместе" : "Тебя позвали вести вместе") + " — будете видеть отметки друг друга и держать ритм.")}
         </div>
-        {!isTeam && !isApp && (
+        {!isTeam && !isApp && !isInvite && (
           <div style={{ display: "flex", alignItems: "center", gap: 13, background: isDark ? "rgba(255,255,255,0.06)" : "#f4f4f6", borderRadius: 17, padding: "13px 15px", marginTop: 18, textAlign: "left" }}>
             <span style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 5px 13px rgba(239,159,20,0.34), inset 0 1px 0.5px rgba(255,255,255,0.6)" }}>
               <I.Bolt size={22} color="#fff" filled />
@@ -2015,7 +1943,14 @@ function JoinWelcomeLive({ info, onClose }) {
             </div>
           </div>
         )}
-        <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>{isApp ? "Начали!" : isTeam ? "Отлично!" : "Веду вместе!"}</button>
+        {isInvite ? (
+          <React.Fragment>
+            <button onClick={closeThen(function () { if (app && app.acceptTeamInvite) app.acceptTeamInvite(info.teamId); })} className="bos-btn" style={{ marginTop: 20 }}>Вступить в круг</button>
+            <button onClick={close} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", color: "var(--text-4)", border: 0, borderRadius: 14, padding: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Не сейчас</button>
+          </React.Fragment>
+        ) : (
+          <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>{isApp ? "Начали!" : isTeam ? "Отлично!" : "Веду вместе!"}</button>
+        )}
       </div>
     </BottomSheet>
   );

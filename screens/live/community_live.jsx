@@ -309,7 +309,7 @@ function DiscoveryXPSheetLive({ app, navigate, isDark }) {
       </div>
       <div style={_dSKick}>ДВЕ РОЛИ ОПЫТА</div>
       <div style={{ ..._dSCard, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div><div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Уровень</div><div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Путь. Только растёт, открывает двери — Люди, Основатель, Нетворк.</div></div>
+        <div><div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Уровень</div><div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Путь. Только растёт, открывает двери — Люди, Нетворк.</div></div>
         <div><div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Копилка ✦</div><div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Топливо. Трать у партнёров и людей — уровень от траты не падает.</div></div>
       </div>
       <button className="tap" style={_dGbtn} onClick={() => { close(); navigate("home"); }}>Отметить сегодняшний ход</button>
@@ -432,7 +432,7 @@ function DiscoveryPeopleSheetLive({ app, navigate, isDark }) {
     { lvl: 1, t: "Партнёры рядом", d: "впечатления за опыт — с первого дня" },
     { lvl: 3, t: "Разбор привычек", d: "твоя первая публикация" },
     { lvl: 5, t: "Практика для группы", d: "собери людей на своё" },
-    { lvl: 8, t: "Основатель", d: "подарок: прыжок сразу на 10", lock: true },
+    { lvl: 8, t: "Поддержка по темпу", d: "держи кого-то в ритме" },
     { lvl: 10, t: "Люди", d: "рынок пользы · наставники · встречи", lock: true, big: true },
     { lvl: 15, t: "Наставничество · Собрать своих", d: "веди других · живая встреча под твоим флагом", lock: true },
   ];
@@ -572,7 +572,7 @@ function _DiscCard({ id, accent, iconKey, title, desc, onOpen, onDismiss, isDark
 
 // ═════ ЛЕНТА ═════
 // Что открывается на уровне — для празднующей карточки level-up (fixes «уровень не празднуется»).
-var BOS_LEVEL_UNLOCKS = { 3: "Первая публикация · Разбор привычек", 5: "Карточка «Люди» в ленте", 8: "Подарок «Основатель» — прыжок на 10", 10: "Нетворк · рынок пользы" };
+var BOS_LEVEL_UNLOCKS = { 3: "Первая публикация · Разбор привычек", 5: "Карточка «Люди» в ленте", 10: "Нетворк · рынок пользы" };
 
 // обложка «звёздное небо» → шторка «Суть» (без крестика)
 function DiscoveryCoverCard({ onOpen }) {
@@ -607,30 +607,9 @@ function DiscoveryLevelUpCard({ level, unlock, onOpen, onDismiss }) {
   );
 }
 
-// «Основатель»: тизер-замок (L6-7) ИЛИ живая карточка «Забрать» (L8-9 → FounderUnlockLive в «Люди»)
-function DiscoveryFounderCard({ actionable, onTap, userLevel, founderLeft, founderW }) {
-  if (actionable) {
-    return (
-      <button onClick={onTap} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, border: "1px solid " + BOS_GOLD, background: "var(--card)", boxShadow: "0 6px 18px rgba(254,222,52,0.28)", padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit" }}>
-        <span style={{ width: 36, height: 36, borderRadius: "50%", background: BOS_GOLD, display: "grid", placeItems: "center", marginBottom: 9 }}><svg width="18" height="18" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11z" /></svg></span>
-        <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px", lineHeight: 1.2 }}>Основатель</span>
-        <span style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.35, marginTop: 4 }}>Подарок открыт — прыжок сразу на 10 уровень</span>
-        <span style={{ marginTop: "auto", fontSize: 11, fontWeight: 800, background: BOS_GOLD, color: "#0a0a0a", borderRadius: 999, padding: "3.5px 9px" }}>Забрать ›</span>
-      </button>
-    );
-  }
-  return (
-    <div style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", overflow: "hidden", color: "var(--text)" }}>
-      <span style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 9, opacity: 0.55 }}>{_discIcon("lock", 18, "var(--text)")}</span>
-      <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, opacity: 0.55 }}>Основатель</span>
-      <span style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.35, marginTop: 4, opacity: 0.55 }}>Подарок на 8 уровне: прыжок сразу на 10</span>
-      <span style={{ marginTop: "auto", width: "100%" }}>
-        <span style={{ display: "block", height: 4, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: founderW + "%", borderRadius: 99, background: BOS_GOLD }} /></span>
-        <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: "var(--text-4)", marginTop: 6 }}>Ты на {userLevel} · осталось {founderLeft} {founderLeft === 1 ? "уровень" : (founderLeft >= 2 && founderLeft <= 4 ? "уровня" : "уровней")}</span>
-      </span>
-    </div>
-  );
-}
+// Карточки «Основатель» УДАЛЕНЫ (brief 2026-07-11, Слой 0): само-объявление себя Основателем
+// с прыжком на L10 — обход лестницы доверия (уровень открывал публикацию «всем»). Бейдж у тех,
+// кто уже забрал подарок, остаётся (bos:founder в localStorage).
 
 // ═════ ЛЕНТА — живая колода (Б2): появление/уход по уровню и прожитости, кап ≤6 ═════
 function DiscoveryFeedLive({ app, navigate, isDark }) {
@@ -649,7 +628,6 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
   const hasTogether = ((app && app.teams) || []).length > 0 || ((app && app.habits) || []).some((h) => h && (h.shareCode || h.teamHabitId));
   const hasChallenge = ((app && app.habits) || []).some((h) => h && h.challenge) || ((app && app.goals) || []).some((g) => g && g.challenge) || ((app && app.teams) || []).some((t) => t && t.challenge);
   const hasSpent = ((app && app.spentXP) | 0) > 0;
-  const founderClaimed = (function () { try { return localStorage.getItem("bos:founder") === "1"; } catch (e) { return false; } })();
 
   // level-up: празднуем достижение уровня. Для существующих юзеров init = текущий (без ложной карточки).
   const _lvlSeenRaw = (function () { try { return localStorage.getItem("bos:discoveryLevelSeen"); } catch (e) { return null; } })();
@@ -668,7 +646,6 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
     bosDiscMark("bos:discoveryDismissed", key);
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
   };
-  const goPeople = () => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } try { app && app.setCommunityView && app.setCommunityView({ filter: "people", section: "community", commTab: "network" }); } catch (e) {} };
 
   // колода по правилам: стартовые с L1, «Люди» с L5; уход по прожитости. У каждой — свой цвет
   // (David: «разные карточки разного цвета — сразу обращаешь внимание»).
@@ -680,19 +657,12 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
     { key: "partners", id: "partners", iconKey: "partners", accent: "#BF5AF2", title: "Партнёры", desc: "Впечатления за твой опыт", show: !hasSpent },
     { key: "people", id: "people", iconKey: "people", accent: "#30C08B", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5 },
   ];
-  const founderLeft = Math.max(0, 8 - userLevel);
-  const founderW = Math.max(4, Math.min(100, (userLevel / 8) * 100));
-  const founderActionable = !founderClaimed && userLevel >= 8 && userLevel < 10;
-  const founderTeaser = !founderClaimed && userLevel >= 6 && userLevel < 8;
-
   // порядок приоритета → кап ≤6 карточек одновременно (обложка «Суть» убрана — David: про механики
   // рассказываем отдельными карточками, отдельный «как устроено» не нужен).
   const nodes = [];
   if (showLevelUp) nodes.push(<DiscoveryLevelUpCard key={"lvl" + userLevel} level={userLevel} unlock={BOS_LEVEL_UNLOCKS[userLevel]} onOpen={() => { ackLevel(); openDisc("xp"); }} onDismiss={(ev) => { ev.stopPropagation(); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } ackLevel(); }} />);
-  if (founderActionable) nodes.push(<DiscoveryFounderCard key="founder-go" actionable onTap={goPeople} />);
   let _di = 0;
   deckDefs.forEach((c) => { if (c.show && !dismissed[c.key]) { nodes.push(<_DiscCard key={c.key} {...c} isDark={isDark} animDelay={_di * 0.25} onOpen={() => openDisc(c.id)} onDismiss={(ev) => doDismiss(ev, c.key)} />); _di++; } });
-  if (founderTeaser) nodes.push(<DiscoveryFounderCard key="founder-teaser" userLevel={userLevel} founderLeft={founderLeft} founderW={founderW} />);
   const shown = nodes.slice(0, 6);
 
   return (
@@ -1296,8 +1266,6 @@ function CommunityLive() {
   const xpForNext = _commLvl ? _commLvl.span : 2000;
   const levelsLeft = Math.max(0, 10 - userLevel);
   const weeksToUnlock = Math.max(1, levelsLeft);
-  // «Основатель» уже получен? (разовый подарок первому дошедшему — прыжок на 10 + Нетворк).
-  const founderClaimed = (function () { try { return localStorage.getItem("bos:founder") === "1"; } catch (e) { return false; } })();
 
   const teams = app?.teams || []; // shared store — "Создать команду" adds here
 
@@ -1519,10 +1487,7 @@ function CommunityLive() {
                 {/* Э2 · «Твой путь помощника» — валидация видна ДО L10 (свои — без замка): формат →
                     подтверждения круга → первое дело → следы → Нетворк L10. */}
                 <BosBlock name="helper-path"><div style={{ marginBottom: 12 }}><HelperPathLive app={app} navigate={navigate} isDark={isDark} /></div></BosBlock>
-                {/* Подарок «Основатель» первому дошедшему (8–9 ур.): прыжок на 10 + открытый Нетворк. */}
-                {userLevel >= 8 && !founderClaimed && typeof FounderUnlockLive === "function" && (
-                  <div style={{ marginBottom: 12 }}><FounderUnlockLive app={app} isDark={isDark} /></div>
-                )}
+                {/* «Основатель» (прыжок на 10) убран — brief 2026-07-11: уровень не покупает доверие. */}
                 {/* Честный замок — реальные пути XP, без выдуманных людей. */}
                 <NetworkLockedLive
                   navigate={navigate}
