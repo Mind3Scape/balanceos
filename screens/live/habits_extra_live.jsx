@@ -500,8 +500,9 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // По умолчанию ВКЛ; владелец может выключить. Хранится на команде (teams.circle_balance_on).
   const [circleBalanceOn, setCircleBalanceOn] = useHS(g0?.circleBalanceOn !== false);
   const CIRCLE_MODES = [
-    { id: "collective", e: "🌊", t: "Общий счёт",     d: "Отметки всех складываются в одно число." },
-    { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — засчитывается, только если прошли все." },
+    // Иконки режимов — монохромные SVG (David: «все системные модики у нас чёрно-белые SVG»): счёт = столбики, серия = пламя.
+    { id: "collective", icon: I.ChartBar, t: "Общий счёт",     d: "Отметки всех складываются в одно число." },
+    { id: "streak",     icon: I.Flame,    t: "Серия у каждого", d: "Каждый держит серию — засчитывается, только если прошли все." },
     // «Гонка» временно скрыта (David: «может вернём позже») — вернуть = раскомментировать.
     // { id: "race",    e: "🏁", t: "Гонка",           d: "Первый до цели побеждает, остальные получают часть XP." },
   ];
@@ -581,7 +582,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           return (
             <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap" data-no-haptic
               style={{ background: active ? "transparent" : "var(--surface-2, #f2f2f4)", boxShadow: active ? ("inset 0 0 0 2px " + (isDark ? "#f2f2f5" : "#0a0a0a")) : "none", border: 0, borderRadius: 15, padding: 11, display: "flex", alignItems: "center", gap: 11, textAlign: "left", width: "100%", cursor: "pointer" }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "#fff", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text)", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0, boxShadow: active ? "none" : "0 1px 3px rgba(0,0,0,0.08)" }}>{m.e}</div>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "#fff", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text)", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0, boxShadow: active ? "none" : "0 1px 3px rgba(0,0,0,0.08)" }}>{m.icon ? React.createElement(m.icon, { size: 17, color: active ? (isDark ? "#0a0a0a" : "#fff") : (isDark ? "#f2f2f5" : "#0a0a0a"), strokeWidth: 1.9 }) : m.e}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
                 <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>{m.d}</div>

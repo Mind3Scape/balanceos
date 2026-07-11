@@ -53,7 +53,9 @@ function bosMixPillsLive(pills, app) {
    монохромном чроме — палитра бел/чёрн/золото). Иконки — одноцветные линии из набора I.
    МАРШРУТ важнее эмодзи: «Отметить состояние» и «Как всё устроено» делят 🧭, но зовут
    разные иконки (Smile / Compass). Демо не трогаем — меняем только live-рендеры чипов. */
-var BOS_PILL_ICON_BY_ROUTE = { mood: "Smile", "habit-settings": "Plus", "goal-settings": "Target", guide: "Compass", "ai-chat": "Sparkles" };
+// mood: раньше «Smile» — ЗАЛИВНАЯ морда-лицо, David: «ужасно, целиком заливка выскакивает». Заменено на
+// «Sun» (свет — под «свет орба»), чистый залив-силуэт без лица.
+var BOS_PILL_ICON_BY_ROUTE = { mood: "Sun", "habit-settings": "Plus", "goal-settings": "Target", guide: "Compass", "ai-chat": "Sparkles" };
 var BOS_PILL_ICON_BY_EMOJI = {
   "✨": "Sparkles", "🔮": "Bulb", "🧭": "Compass", "➕": "Plus", "🌟": "Target", "🙋": "Person",
   "📖": "Book", "📚": "Book", "🧘": "Moon", "🧘🏼‍♀️": "Moon", "🔥": "Flame", "💪": "Dumbbell",
@@ -3553,6 +3555,18 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
 // sym — монохромный SVG-символ (sf:) для ЧЁРНО-БЕЛОГО показа иконок виджетов в галерее «+»
 // (David: «иконки виджетов, кроме привычек, чёрно-белые, в одном стиле как плюсик»). Сам виджет
 // на доске рисуется как прежде; символ используется только в списке добавления.
+// Иконка «Состояние» — ОРБ, а не лицо (David 2026-07-11: «иконка состояния — человечек, морда,
+// ужасно, целиком заливка выскакивает; замени на адекватное»). Сфера-орб = визуальный язык состояния
+// в приложении: круг + мягкий блик-полумесяц сверху. Монохром, принимает {size,color,strokeWidth}.
+function BosStateGlyph({ size = 20, color = "currentColor", strokeWidth = 1.8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.4" />
+      <path d="M7.8 9.2a5.4 5.4 0 0 1 5-1.7" opacity="0.55" />
+    </svg>
+  );
+}
+
 // Icon — МОНОХРОМНАЯ line-иконка из набора I (David 2026-07-11: «во вкладке виджеты все иконки должны
 // быть svg одноцветные, эмодзи тут плохо смотрятся»). emoji/sym оставлены как фолбэк.
 var BOS_HOME_WIDGETS = [
@@ -3566,7 +3580,7 @@ var BOS_HOME_WIDGETS = [
   { id: "tasks",   t: "Дела",         d: "Списки задач с вкладками", Icon: I.Check,        emoji: "✅" },
   // «Состояние» — виджет-орб (редизайн 2026-07-04): не отмечено → приглашение StateInviteLive,
   // отмечено → MoodWidgetLive (орб в цвете + след недели). Тап → Момент (жест A, route "mood").
-  { id: "mood",    t: "Состояние",    d: "Как ты сейчас — свет орба", Icon: I.Smile,       emoji: "☀️" },
+  { id: "mood",    t: "Состояние",    d: "Как ты сейчас — свет орба", Icon: BosStateGlyph, emoji: "☀️" },
   // «Баланс окружения» — общий тон твоих своих (светило, гибрид A+B 2026-07-09). ВЫКЛ по
   // умолчанию: включается из галереи «+», чтобы главная не перегружалась.
   { id: "env",     t: "Баланс окружения", d: "Общий тон твоих своих", Icon: I.OrbitPeople, emoji: "🌤" },

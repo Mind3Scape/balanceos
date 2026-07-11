@@ -117,7 +117,7 @@ function TeamCreateLive() {
                 borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12,
                 textAlign: "left", boxShadow: "var(--card-shadow)",
               }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{gt.e}</div>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{gt.icon ? React.createElement(gt.icon, { size: 19, color: active ? "#fff" : "#0a0a0a", strokeWidth: 1.9 }) : gt.e}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{gt.t}</div>
                 <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{gt.d}</div>
@@ -348,8 +348,9 @@ function TeamSettingsLive() {
   const del = () => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet, returnTo: backFrom });
   const card = { background: "var(--card, #fff)", borderRadius: 22, marginTop: 8, boxShadow: "var(--card-shadow)" };
   const goalTypes = [
-    { id: "collective", e: "🌊", t: "Общий счёт", d: "Отметки всех складываются в одно число." },
-    { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — засчитывается, только если прошли все." },
+    // Монохромные SVG-иконки режимов (David: «все системные модики чёрно-белые SVG»): счёт=столбики, серия=пламя.
+    { id: "collective", icon: I.ChartBar, t: "Общий счёт", d: "Отметки всех складываются в одно число." },
+    { id: "streak",     icon: I.Flame,    t: "Серия у каждого", d: "Каждый держит серию — засчитывается, только если прошли все." },
     // «Гонка» временно скрыта (David: «может вернём позже») — вернуть = раскомментировать.
     // { id: "race",    e: "🏁", t: "Гонка", d: "Бок о бок — первый до цели побеждает, остальные получают часть XP." },
   ];
@@ -376,7 +377,7 @@ function TeamSettingsLive() {
           return (
             <button key={gt.id} onClick={() => setGoalType(gt.id)} className="tap"
               style={{ background: "var(--card)", border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{gt.e}</div>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{gt.icon ? React.createElement(gt.icon, { size: 19, color: active ? "#fff" : "#0a0a0a", strokeWidth: 1.9 }) : gt.e}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{gt.t}</div>
                 <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{gt.d}</div>
