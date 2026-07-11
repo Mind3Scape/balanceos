@@ -341,7 +341,9 @@ function HomeCardMenuLive({ state, onClose, isDark, preview, kind, onShare, onRe
     </button>
   );
   const frost = isDark ? "rgba(28,29,34,0.95)" : "rgba(252,252,254,0.95)";
-  const hardDelete = (kind === "habit" || kind === "goal");
+  // Корзина (удаление) у всего, кроме виджетов — привычка/цель/круг удаляются по-настоящему
+  // (David: «со всем кроме виджетов логика удаления как у привычки»); виджет — просто минус (с доски).
+  const hardDelete = (kind !== "widget");
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8200, background: "rgba(18,22,38,0.30)", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)", animation: "dimIn 0.18s ease both" }}>
       {/* Превью карточки на её месте — iOS «карточка приподнялась» (визуально, без событий). */}
@@ -415,7 +417,10 @@ function HomeLive() {
   // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
   const cardStyle = useBosCardStyle();
   const goalStyle = useBosGoalStyle();
-  const teams = app?.teams || [];
+  // Круги фильтруются архивом ТАК ЖЕ, как привычки/цели (David 2026-07-11: у круга должна быть та же
+  // логика удаления/архива, что у привычки — раньше «Убрать» просто прятал круг с доски через hidden,
+  // а сам круг оставался на сервере; теперь архив реально прячет, а удаление зовёт bosConfirmExitTeam).
+  const teams = (app?.teams || []).filter((t) => !bosIsArch(_arch, "t", t));
   // Универсальная кнопка «+» в шапке главной (David: «нужна явная кнопка создать привычку») —
   // открывает то же меню Привычку/Цель/Круг, что и «+» на странице Привычки. Плюс простой
   // СТАРТ для нового юзера ниже (0 привычек/целей/кругов → один понятный шаг).
@@ -820,8 +825,10 @@ function HomeLive() {
     const kind = k.indexOf("h:") === 0 ? "habit" : k.indexOf("g:") === 0 ? "goal" : k.indexOf("t:") === 0 ? "circle" : "widget";
     setCardMenu({ k, rect: rect || null, kind });
   };
-  // Минус в тряске: виджет/круг — просто убрать с доски; привычка/цель — шторка «Архивировать /
-  // Удалить» (David: «если не виджет, а привычка или цель — спрашивает удалить/архивировать»).
+  // «Убрать» = та же шторка «Архивировать / Удалить» для ВСЕГО, кроме виджетов (David 2026-07-11:
+  // «с целями и кругами точно такая же логика удаления, как с привычками; виджеты — исключение»).
+  // Круг важнее — там люди: удаление зовёт bosConfirmExitTeam (владелец удаляет для всех с
+  // предупреждением, участник выходит), архив прячет круг только с моей доски (в «Сообществе» цел).
   const onMinus = (k) => {
     if (k.indexOf("h:") === 0) {
       const h = habits.find((x) => _khHome(x) === k); if (!h) { hideKey(k); return; }
@@ -839,7 +846,17 @@ function HomeLive() {
         onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => (app?.removeGoal || (() => {}))(g.id) })} />);
       return;
     }
-    // виджеты и круги — просто убрать с доски (круг живёт на «Привычках»/в «Сообществе»).
+    if (k.indexOf("t:") === 0) {
+      const t = teams.find((x) => teamKey(x) === k); if (!t) { hideKey(k); return; }
+      const iAmOwner = !t.joined; // создатель ещё не «joined» → он владелец
+      openSheet(<ArchiveOrDeleteSheetLive name={t.name} emoji={t.emblem || "👥"} color={t.accent || t.color} dark={isDark}
+        onArchive={() => bosSetArchived(bosArchKey("t", t), true)}
+        deleteLabel={iAmOwner ? "Удалить круг" : "Покинуть круг"}
+        deleteHint={iAmOwner ? "Круг исчезнет у ВСЕХ участников — вы потеряете общую цель и переписку. Навсегда." : "Ты выйдешь из круга; у остальных он останется."}
+        onDelete={() => bosConfirmExitTeam({ app, team: t, isOwner: iAmOwner, navigate, openSheet, returnTo: "home" })} />);
+      return;
+    }
+    // Виджеты — просто убрать с доски (это не сущность, а блок; вернуть — в галерее «+»).
     hideKey(k);
   };
 
