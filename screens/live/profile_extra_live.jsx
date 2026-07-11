@@ -97,6 +97,9 @@ function FriendsLive() {
   const { open: openSheet } = useSheet();
   const isDark = app?.themeOverride === "dark";
   const back = (params && params.from) || "profile";
+  // «Близкие» (David 11.07): сердечко на карточке отмечает друга близким; список учитывает баланс
+  // окружения на вкладке ИИ в режиме «только близкие». Хук перерисовывает страницу при отметке.
+  const closeH = (typeof bosUseClose === "function") ? bosUseClose() : { isClose: function () { return false; }, toggle: function () {} };
   // Кэш страницы ПЕРЕЖИВАЕТ перезапуск Telegram («Друзья открываются долго»): показываем прошлый
   // список МГНОВЕННО, сеть ревалидирует фоном. Память → localStorage → null (скелетон остаётся
   // только на самый первый вход в жизни).
@@ -178,6 +181,11 @@ function FriendsLive() {
 
       {/* ТВОИ ЛЮДИ — карточки друзей; тап → шторка-превью профиля. */}
       <div className="section-label" style={{ marginTop: 22 }}>Твои люди{people && people.length ? " · " + people.length : ""}</div>
+      {people && people.length > 0 && (
+        <div className="bos-sys-text-3" style={{ fontSize: 11.5, lineHeight: 1.4, padding: "2px 4px 0" }}>
+          Отметь <I.Heart size={12} filled color="#EF9F14" style={{ verticalAlign: "-2px", margin: "0 1px" }} /> близких — баланс окружения на вкладке ИИ сможет считать только их.
+        </div>
+      )}
       <div className="bos-sys-card" style={{ marginTop: 8, padding: 0, overflow: "hidden" }}>
         {people === null && [0, 1, 2].map((i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: i ? "0.5px solid var(--line)" : 0 }}>
@@ -223,6 +231,16 @@ function FriendsLive() {
                   {hb.map((hx, j) => <span key={j} style={{ width: 24, height: 24, borderRadius: 8, background: (hx && hx.c) ? hx.c + "26" : "var(--card-2)", display: "grid", placeItems: "center", fontSize: 12, marginLeft: j ? -6 : 0, border: "1.5px solid var(--card)" }}>{(hx && hx.e) || "✨"}</span>)}
                 </div>
               ) : (f.teams.length > 0 && <span style={{ fontSize: 15, marginRight: 2 }}>{bosIcon(f.teams[0].emblem || "✨", 15, null)}</span>)}
+              {/* Сердечко «близкий» (David 11.07) — золотое залитое, если отмечен; иначе тихий контур.
+                  role=button + stopPropagation: тап по сердцу не открывает карточку друга. */}
+              {(() => { const close = closeH.isClose(f.id); return (
+                <span role="button" aria-label={close ? "Убрать из близких" : "Отметить близким"} aria-pressed={close}
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); closeH.toggle(f.id); }}
+                  className="tap hit44" data-no-haptic
+                  style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", cursor: "pointer", marginLeft: 2 }}>
+                  <I.Heart size={19} filled={close} color={close ? "#EF9F14" : (isDark ? "rgba(255,255,255,0.34)" : "rgba(0,0,0,0.26)")} strokeWidth={1.9} />
+                </span>
+              ); })()}
               <I.ChevronRight size={16} className="bos-sys-text-2" />
             </button>
           );

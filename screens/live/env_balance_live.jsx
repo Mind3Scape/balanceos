@@ -17,6 +17,38 @@
 var _bosEnvPeopleCache;
 var BOS_ENV_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
 
+/* ═══════════ БЛИЗКИЕ (пересмотр David 11.07) ═══════════
+   Ручной список «близких» среди друзей. Балансом окружения по умолчанию считаются ВСЕ друзья;
+   на подробном экране можно переключиться на «только близких» — это те, кого пользователь сам
+   отметил сердечком на странице «Друзья». Никакой автоматики/свежести — просто ручной выбор.
+   Хранение: local-first (мгновенно и надёжно на устройстве, как bos:balTab/bos:pulseFaces).
+   Кросс-девайс — отдельный лёгкий шаг позже (нужен столбец в БД). Ключ списка = user id друга.
+   Изменения транслируются событием «bos:close-changed» → все открытые экраны перерисовываются. */
+var BOS_CLOSE_KEY = "bos:closeFriends";
+function bosCloseSet() { try { var a = JSON.parse(localStorage.getItem(BOS_CLOSE_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function bosIsClose(id) { return !!id && bosCloseSet().indexOf(id) >= 0; }
+function bosCloseCount() { return bosCloseSet().length; }
+function bosToggleClose(id) {
+  if (!id) return false;
+  var a = bosCloseSet(), i = a.indexOf(id), on;
+  if (i >= 0) { a.splice(i, 1); on = false; } else { a.push(id); on = true; }
+  try { localStorage.setItem(BOS_CLOSE_KEY, JSON.stringify(a)); } catch (e) {}
+  try { window.dispatchEvent(new CustomEvent("bos:close-changed")); } catch (e) {}
+  try { if (window.tgHaptic) window.tgHaptic(on ? "light" : "selection"); } catch (e) {}
+  return on;
+}
+// hook: перерисовать компонент при изменении списка близких (в т.ч. с другого экрана/вкладки)
+function bosUseClose() {
+  var st = React.useState(0);
+  React.useEffect(function () {
+    var h = function () { st[1](function (n) { return n + 1; }); };
+    window.addEventListener("bos:close-changed", h);
+    window.addEventListener("storage", h);
+    return function () { window.removeEventListener("bos:close-changed", h); window.removeEventListener("storage", h); };
+  }, []);
+  return { isClose: bosIsClose, toggle: bosToggleClose, count: bosCloseCount, tick: st[0] };
+}
+
 function bosEnvBond(s) {
   if (!s) return 0.30;
   var lvl = Math.min(s.level || 0, 10), pct = Math.min(Math.max(s.lvlPct || 0, 0), 100);
@@ -49,8 +81,6 @@ function bosEnvSupportTarget(people) {
   if (dip && dip.b < 0.42 && dip.name) return { p: dip, reason: "dip" };
   return null;
 }
-// Ближний с предложением помощи (offer) — для тёплой подсказки «{Имя} может помочь: …».
-function bosEnvOfferer(people) { return people.filter(function (p) { return p.offer && p.name; })[0] || null; }
 
 // глянцевый СТАНДАРТНЫЙ диск (как во Вселенной) + лицо (мемоджи→эмодзи→инициал→силуэт)
 function bosEnvNode(avatar, name, size, dark, youRing) {
@@ -129,6 +159,63 @@ function bosEnvUsePeople() {
     return function () { on = false; };
   }, []);
   return people;
+}
+
+// Вклад людей из ЕДИНОГО каталога (network_offers) — карта owner_id → {emoji,title,when}. Заменяет
+// старое свободное поле profiles.offer (§17.3 конституции: один вклад, а не параллельная сущность).
+// «Пусто=правда»-кэш переживает перезапуск; graceful без облака/таблицы → {}.
+var _bosNetOffersMapCache = null;
+function bosNetOffersMapUse() {
+  var st = React.useState(function () {
+    if (_bosNetOffersMapCache) return _bosNetOffersMapCache;
+    try { var c = JSON.parse(localStorage.getItem("bos:cache:offersMap") || "null"); if (c && typeof c === "object") { _bosNetOffersMapCache = c; return c; } } catch (e) {}
+    return {};
+  });
+  var map = st[0], setMap = st[1];
+  React.useEffect(function () {
+    var on = true;
+    try {
+      if (!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.netOffers)) return;
+      window.bosCloud.netOffers(200).then(function (rows) {
+        if (!on) return;
+        var m = {};
+        (Array.isArray(rows) ? rows : []).forEach(function (o) {
+          if (!o || !o.owner_id || o.active === false) return;
+          if (!m[o.owner_id]) m[o.owner_id] = { emoji: o.emoji || "🤝", title: o.title || "", when: o.when_text || "" };
+        });
+        _bosNetOffersMapCache = m;
+        try { localStorage.setItem("bos:cache:offersMap", JSON.stringify(m)); } catch (e) {}
+        setMap(function (prev) { return JSON.stringify(prev) === JSON.stringify(m) ? prev : m; });
+      }).catch(function () {});
+    } catch (e) {}
+    return function () { on = false; };
+  }, []);
+  return map;
+}
+// Мои вклады из каталога — для карточки «Расти вместе» (показать, чем я уже полезен + дверь к правке).
+var _bosMyOffersCache = null;
+function bosMyOffersUse() {
+  var st = React.useState(function () {
+    if (Array.isArray(_bosMyOffersCache)) return _bosMyOffersCache;
+    try { var c = JSON.parse(localStorage.getItem("bos:cache:myOffers") || "null"); if (Array.isArray(c)) { _bosMyOffersCache = c; return c; } } catch (e) {}
+    return null;
+  });
+  var offers = st[0], setOffers = st[1];
+  React.useEffect(function () {
+    var on = true;
+    try {
+      if (!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) return;
+      window.bosCloud.netMyOffers().then(function (rows) {
+        if (!on) return;
+        var out = (Array.isArray(rows) ? rows : []).filter(function (o) { return o && o.active !== false; });
+        _bosMyOffersCache = out;
+        try { localStorage.setItem("bos:cache:myOffers", JSON.stringify(out)); } catch (e) {}
+        setOffers(function (prev) { return JSON.stringify(prev) === JSON.stringify(out) ? prev : out; });
+      }).catch(function () {});
+    } catch (e) {}
+    return function () { on = false; };
+  }, []);
+  return offers;
 }
 
 // «Пульс дня» круга: {marked, avg?, faces:[uid]} из серверного агрегата bos_env_pulse.
@@ -228,7 +315,7 @@ function BosEnvSunLive(props) {
     var inF = faces.indexOf(p.id) >= 0;
     var base = 150 + ((i + 0.5) / Math.max(1, nShown)) * 240;   // подкова 150°→390°, «я» в нижнем окне
     var ang = base + (jit(i + 3) * 22 - 11);                     // неравномерный джиттер → нет звезды
-    return { id: p.id, avatar: p.avatar, name: p.name, offer: p.offer, inviter: p.inviter, b: p.b, habits: p.habits,
+    return { id: p.id, avatar: p.avatar, name: p.name, contribution: p.contribution, inviter: p.inviter, b: p.b, habits: p.habits,
       you: false, inF: inF, ang: ang, rNear: 62 + jit(i + 7) * 6, rFar: 92 + jit(i + 13) * 8, size: inF ? 32 : 26 };
   });
   var meNode = { id: "__me", avatar: app.avatar, name: app.userName || "Ты", you: true, inF: meIn, ang: 90, rNear: 70, rFar: 70, size: 36 };
@@ -393,7 +480,7 @@ function BosEnvPersonCardLive(props) {
           </span>
         </div>
       ) : null}
-      {p.offer ? <div style={{ fontSize: 13.5, color: dark ? "rgba(255,255,255,0.78)" : "var(--text-2)", lineHeight: 1.45, textAlign: "center", marginTop: 12 }}>🤝 может помочь: {p.offer}</div> : null}
+      {(p.contribution && p.contribution.title) ? <div style={{ fontSize: 13.5, color: dark ? "rgba(255,255,255,0.78)" : "var(--text-2)", lineHeight: 1.45, textAlign: "center", marginTop: 12 }}>{(p.contribution.emoji || "🤝")} может помочь: {p.contribution.title}</div> : null}
       <div style={{ marginTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
           <span style={{ fontSize: 12.5, color: sub }}>Орбита</span>
@@ -619,7 +706,7 @@ function BosSupportLupaSheetLive(props) {
       <div style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: "4px 14px", marginBottom: 10 }}>
         {fnRow(ic("M8.4 4.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zM2.8 18.4c0-3 2.5-5.2 5.6-5.2s5.6 2.2 5.6 5.2c0 .74-.6 1.34-1.34 1.34H4.14c-.74 0-1.34-.6-1.34-1.34zM16.6 6.1a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"), "Сделать вместе", "совместная привычка или круг в сфере", together.length ? status(row.fragile ? "frag" : "ok", (row.fragile ? "хрупко · " : "есть · ") + together.length) : status("no", "нет"), 0)}
         {fnRow(ic("M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 4a.6.6 0 0 1-1-.45V5.5z"), "Поговорить", "живой чат круга в этой сфере", chatLive ? status("ok", "есть чат") : (chatQuiet ? status("no", "тихо") : status("no", "нет")), 1)}
-        {fnRow(ic("M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z"), "Попросить о помощи", "рынок пользы за ✦", locked ? status("lock", "с 10 ур.") : (offers.length ? status("ok", offers.length + " предл.") : status("no", "нет")), 2)}
+        {fnRow(ic("M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z"), "Попросить о помощи", "кто может помочь · за ✦", locked ? status("lock", "с 10 ур.") : (offers.length ? status("ok", offers.length + " предл.") : status("no", "нет")), 2)}
         {fnRow(ic("M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm3.5 5.5l-2 5-5 2 2-5z"), "Получить ориентир", "наставники и разборы", locked ? status("lock", "с 10 ур.") : status("no", "скоро"), 3)}
       </div>
       <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "1.2px", color: "var(--text-4)", padding: "4px 4px 8px" }}>ПОЧЕМУ ТАК</div>
@@ -785,15 +872,28 @@ function BosEnvBalanceFullLive() {
   var dark = app.themeOverride === "dark";
   var people = bosEnvUsePeople();
   var myLight = bosEnvMyLight(app);
+  var closeH = (typeof bosUseClose === "function") ? bosUseClose() : { count: function () { return 0; } };
 
-  // «Чем могу быть полезен» (offer) — моё предложение помощи, которое видит круг. Прелоад из
-  // localStorage (мгновенно + graceful до колонки); пишем в localStorage на ввод и в облако на blur.
-  var offerSt = React.useState(function () { try { return localStorage.getItem("bos:myOffer") || ""; } catch (e) { return ""; } });
-  var myOffer = offerSt[0], setMyOffer = offerSt[1];
-  var onOfferChange = function (e) { var v = (e.target.value || "").slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} };
-  var onOfferBlur = function (e) { var v = (e.target.value || "").trim().slice(0, 200); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} try { if (window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.saveOffer) window.bosCloud.saveOffer(v); } catch (er2) {} };
+  // Вклад каждого человека — из ЕДИНОГО каталога (network_offers), не из старого свободного поля
+  // profiles.offer (§17.3 конституции). Карта owner_id → {emoji,title,when} + мои вклады для карточки.
+  var offersMap = bosNetOffersMapUse();
+  var myOffers = bosMyOffersUse();
+  var allList = (Array.isArray(people) ? people : []).map(function (p) {
+    var o = offersMap && offersMap[p.id]; return o ? Object.assign({}, p, { contribution: o }) : p;
+  });
 
-  var list = Array.isArray(people) ? people : [];
+  // Охват баланса (David 11.07): по умолчанию ВСЕ друзья; «Только близкие» = кого отметил сердечком
+  // на странице «Друзья». Хранение локальное (bos:envScope). Если близких нет — показываем подсказку,
+  // а не пустоту (список остаётся честным: считаем ровно то, что написано в пилюле).
+  var scopeSt = React.useState(function () { try { return localStorage.getItem("bos:envScope") === "close" ? "close" : "all"; } catch (e) { return "all"; } });
+  var scope = scopeSt[0], setScope = scopeSt[1];
+  var pickScope = function (v) { setScope(v); try { localStorage.setItem("bos:envScope", v); } catch (e) {} };
+  var closeList = allList.filter(function (p) { return bosIsClose(p.id); });
+  var isClose = scope === "close";
+  var noClose = isClose && closeList.length === 0;
+  var list = isClose ? closeList : allList;
+  var whoWord = isClose ? "близких" : "друзей";
+
   var total = list.length;
   var pulse = bosEnvUsePulse(list);
   var meInF = false;
@@ -828,6 +928,31 @@ function BosEnvBalanceFullLive() {
     <div className="page-in" style={{ padding: "0 16px 28px" }}>
       {typeof PageHeader === "function" ? <PageHeader onBack={function () { navigate("ai"); }} title="Баланс окружения" /> : null}
 
+      {/* ОХВАТ: все друзья / только близкие (David 11.07) — стеклянные пилюли в языке балансов v612.
+          Одна подпись честно говорит, кого сейчас считаем. Источник (друзья) не меняется. */}
+      <div style={{ marginTop: 4, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", boxShadow: dark ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
+          {[["all", "Все друзья"], ["close", "Близкие" + (closeList.length ? " · " + closeList.length : "")]].map(function (o) {
+            var on = scope === o[0];
+            return (
+              <button key={o[0]} onClick={function () { pickScope(o[0]); }} className="tap" data-no-haptic aria-pressed={on}
+                style={{ flex: 1, border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 6px", fontSize: 12.5, fontWeight: 700, letterSpacing: "-0.2px", whiteSpace: "nowrap",
+                  color: on ? "var(--text)" : "var(--text-4)",
+                  background: on ? (dark ? "rgba(255,255,255,0.15)" : "#fff") : "transparent",
+                  boxShadow: on ? (dark ? "0 1px 3px rgba(0,0,0,0.4)" : "0 1px 3px rgba(0,0,0,0.12), inset 0 0 0 0.5px rgba(0,0,0,0.04)") : "none",
+                  transition: "color .18s, background .18s, box-shadow .18s" }}>{o[1]}</button>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", textAlign: "center", lineHeight: 1.4, marginTop: 8, padding: "0 8px" }}>
+          {noClose
+            ? <span>Ты ещё не отметил близких. Открой <b style={{ color: "var(--text)" }}>Друзей</b> и коснись {typeof I !== "undefined" && I.Heart ? <I.Heart size={11} filled color="#EF9F14" style={{ verticalAlign: "-1px" }} /> : "♥"} у тех, кто ближе всего.</span>
+            : (isClose
+              ? <span>Считаем <b style={{ color: "var(--text)" }}>только твоих близких</b> · {closeList.length}.</span>
+              : <span>Считаем <b style={{ color: "var(--text)" }}>всех твоих друзей</b>{allList.length ? " · " + allList.length : ""}. Отметь близких — и переключись.</span>)}
+        </div>
+      </div>
+
       {/* герой: светило — общий тон круга (гибрид A+B) */}
       <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "18px 16px 15px" }}>
         <BosEnvSunLive app={app} people={list} pulse={pulse} dark={dark} size={340} />
@@ -849,7 +974,7 @@ function BosEnvBalanceFullLive() {
       {total > 0 && (
         <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px", marginTop: 12 }}>
           <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text)" }}>Где окружение сильно</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>По сферам жизни твоих близких — что держат вместе, а что просело.</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>По сферам жизни твоих {whoWord} — что держат вместе, а что просело.</div>
           <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 2px" }}>
             <svg width={S} height={S} viewBox={"0 0 " + S + " " + S} style={{ overflow: "visible" }}>
               <defs><radialGradient id="envw" cx="50%" cy="46%" r="60%"><stop offset="0%" stopColor="#7EA8FF" stopOpacity="0.4" /><stop offset="100%" stopColor="#4d6f9e" stopOpacity="0.1" /></radialGradient></defs>
@@ -866,16 +991,17 @@ function BosEnvBalanceFullLive() {
 
       {/* люди окружения — с их состоянием */}
       <div style={{ marginTop: 12 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "var(--text-4)", padding: "0 4px 3px" }}>Твои близкие · {total}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "var(--text-4)", padding: "0 4px 3px" }}>{isClose ? "Твои близкие" : "Твои друзья"} · {total}</div>
         <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.4, padding: "0 4px 8px" }}>Полоска — насколько живёт их орбита{list.some(function (p) { var d = bosEnvStaleDays(p.lastActive); return d != null && d >= 3; }) ? "; 🌙 — кто затих" : ""}. Слабее сверху.</div>
         <div style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
           {list.slice().sort(function (a, b) { return a.b - b.b; }).map(function (p, i, arr) {
             var pct = Math.round(p.b * 100);
             // Честная мета под полоской: если реально давно молчит (есть свежесть) → «давно тихо»;
-            // иначе, если предлагает помощь → его offer. Без данных свежести — ничего не выдумываем.
+            // иначе, если у человека есть вклад в каталоге → показываем его формат помощи. Без данных
+            // свежести — ничего не выдумываем.
             var staleDays = bosEnvStaleDays(p.lastActive);
             var quiet = staleDays != null && staleDays >= 3;
-            var meta = quiet ? ("🌙 давно тихо · " + Math.round(staleDays) + " дн.") : (p.offer ? ("🤝 " + p.offer) : null);
+            var meta = quiet ? ("🌙 давно тихо · " + Math.round(staleDays) + " дн.") : ((p.contribution && p.contribution.title) ? ((p.contribution.emoji || "🤝") + " " + p.contribution.title) : null);
             return (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 13px", borderBottom: i < arr.length - 1 ? "0.5px solid var(--line)" : "none" }}>
                 {bosEnvNode(p.avatar, p.name, 38, dark, false)}
@@ -898,10 +1024,29 @@ function BosEnvBalanceFullLive() {
         {/* «Чем могу быть полезен» — ЕДИНЫЙ вклад из «Сообщества» (network_offers), не отдельная
             локальная строка (Сообщество v2 §6): открывает ту же шторку «Добавить формат помощи». */}
         <div style={{ marginTop: 13 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Чем ты можешь быть полезен</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Чем ты можешь помочь</div>
+          {/* Мои вклады из каталога (network_offers) — не свободный текст. Тап по вкладу → правка в той
+              же шторке; «Добавить» открывает пустую форму. Graceful: нет вкладов → только дверь. */}
+          {(myOffers && myOffers.length) ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+              {myOffers.map(function (o) {
+                return (
+                  <button key={o.id} className="tap" onClick={function () { if (typeof AddHelpFormatSheetLive === "function") openSheet(<AddHelpFormatSheetLive app={app} offer={o} onDone={function () {}} />); }}
+                    style={{ width: "100%", boxSizing: "border-box", border: 0, background: "var(--surface-3)", borderRadius: 12, padding: "11px 13px", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{o.emoji || "🤝"}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.title || "Мой вклад"}</span>
+                      {o.when_text ? <span style={{ display: "block", fontSize: 11, color: "var(--text-4)", marginTop: 1 }}>{o.when_text}</span> : null}
+                    </span>
+                    <span style={{ color: "var(--text-4)", fontWeight: 700 }}>›</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <button className="tap" onClick={function () { if (typeof AddHelpFormatSheetLive === "function") openSheet(<AddHelpFormatSheetLive app={app} offer={null} onDone={function () {}} />); }}
-            style={{ width: "100%", boxSizing: "border-box", border: 0, background: "var(--surface-3)", borderRadius: 12, padding: "12px 13px", fontSize: 14, color: "var(--text-2)", fontFamily: "inherit", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <span>Добавить формат помощи для своих</span>
+            style={{ width: "100%", boxSizing: "border-box", border: 0, background: (myOffers && myOffers.length) ? "transparent" : "var(--surface-3)", borderRadius: 12, padding: "12px 13px", fontSize: 14, color: "var(--text-2)", fontFamily: "inherit", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>{typeof I !== "undefined" && I.Plus ? <I.Plus size={15} color="var(--text-3)" /> : "＋"}{(myOffers && myOffers.length) ? "Ещё формат помощи" : "Добавить формат помощи для своих"}</span>
             <span style={{ color: "var(--text-4)", fontWeight: 700 }}>›</span>
           </button>
           <div style={{ fontSize: 11, color: "var(--text-5)", lineHeight: 1.4, marginTop: 6 }}>Единый вклад — тот же, что в «Сообществе». Круг подтвердит роль и увидит твою помощь.</div>
