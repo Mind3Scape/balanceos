@@ -514,7 +514,13 @@ function bosSupportPlural(n) { var a = n % 100, b = n % 10; if (a > 10 && a < 20
 // Без облака (браузер-тест) остаётся []. Собирает buddy-привычки, круги+чаты, предложения (с 10 ур.).
 var _bosSupportCache = null;
 function bosSupportChannelsUse(app, level) {
-  var st = React.useState(function () { return Array.isArray(_bosSupportCache) ? _bosSupportCache : []; });
+  // Кэш ПЕРЕЖИВАЕТ перезапуск (localStorage), иначе после каждого запуска первый заход на «Баланс
+   // окружения» рисует пусто → потом дозагрузка = скачок (David: «мне этот скачок не нравится»).
+  var st = React.useState(function () {
+    if (Array.isArray(_bosSupportCache)) return _bosSupportCache;
+    try { var c = JSON.parse(localStorage.getItem("bos:cache:support") || "null"); if (Array.isArray(c)) { _bosSupportCache = c; return c; } } catch (e) {}
+    return [];
+  });
   var channels = st[0], setChannels = st[1];
   var habits = (app && app.habits) || [], teams = (app && app.teams) || [];
   var sig = habits.filter(function (h) { return h && h.shareCode; }).map(function (h) { return h.shareCode; }).join(",") + "|" + teams.filter(function (t) { return t && t.cloudId; }).map(function (t) { return t.cloudId; }).join(",") + "|" + (level | 0);
@@ -558,7 +564,10 @@ function bosSupportChannelsUse(app, level) {
         });
       }
       if (!on) return;
+      // «Пусто = правда»-защита: пустой ответ ПРИ живом непустом кэше = вероятный обрыв → не гасим в пустоту.
+      if (!out.length) { var lc = _bosSupportCache; if (!lc) { try { lc = JSON.parse(localStorage.getItem("bos:cache:support") || "null"); } catch (e) {} } if (Array.isArray(lc) && lc.length) return; }
       _bosSupportCache = out;
+      try { localStorage.setItem("bos:cache:support", JSON.stringify(out)); } catch (e) {}
       setChannels(function (prev) { return JSON.stringify(prev) === JSON.stringify(out) ? prev : out; });
     })();
     return function () { on = false; };
@@ -717,6 +726,24 @@ function BosEnvBalanceLive(props) {
           {!anyChan ? <button onClick={mainGap ? function () { openLupa(mainGap); } : invite} className="tap" style={{ width: "100%", border: 0, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, borderRadius: 14, padding: 12, cursor: "pointer", marginTop: 11 }}>Начать с совместной привычки</button> : null}
         </div>
       )}
+
+      {/* МОСТ В ПОМОЩЬ (David: баланс окружения ВОВЛЕКАЕТ — чем полезен ТЫ / кто поможет ТЕБЕ; дальше
+          это живёт в «Сообществе», но начинается здесь, с ближнего круга). */}
+      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "1.2px", color: "var(--text-4)", padding: "16px 2px 8px" }}>ПОМОЩЬ РЯДОМ</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={function () { if (typeof AddHelpFormatSheetLive === "function") openSheet(<AddHelpFormatSheetLive app={app} offer={null} onDone={function () {}} />); }} className="tap"
+          style={{ flex: 1, border: 0, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", borderRadius: 16, padding: "12px 12px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, textAlign: "left" }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", fontSize: 15 }}>🤝</span>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>Чем помочь своим</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", lineHeight: 1.3 }}>Добавь формат помощи</span>
+        </button>
+        <button onClick={function () { try { navigate("community"); if (app && app.setCommunityView) app.setCommunityView({ filter: "people", section: "community", commTab: "network" }); } catch (e) {} }} className="tap"
+          style={{ flex: 1, border: 0, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", borderRadius: 16, padding: "12px 12px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, textAlign: "left" }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.1)" : "#eef0f3", display: "grid", placeItems: "center", fontSize: 15 }}>🙌</span>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>Кто поможет тебе</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", lineHeight: 1.3 }}>Помощь твоих кругов</span>
+        </button>
+      </div>
 
       {/* приватность */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 11, fontSize: 10.5, fontWeight: 600, color: "var(--text-4)" }}>

@@ -2474,26 +2474,41 @@ function BosBalanceWheelLive(props) {
   var chips = bosWheelChips(data, app);
   var askWheel = function () { if (navigate) navigate("ai-chat", { prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть." }); };
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
-  // Зона внимания = самая слабая НЕ пустая сфера (есть привычки, но проседает).
-  var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
+  // Общий баланс = среднее по сферам (центр колеса). Тренд — куда движется большинство.
+  var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
+  var _up = 0, _dn = 0; SPH.forEach(function (s) { if (s.n) { if (s.tr === "up") _up++; else if (s.tr === "dn") _dn++; } });
+  var overallTr = _up > _dn ? "up" : (_dn > _up ? "dn" : "flat");
+  var MIN_LEVEL = 0.5; // «адекватная средняя» — зелёный пунктир, куда стоит дотянуть каждую сферу
   var trGlyph = function (tr) { return tr === "up" ? "▲" : tr === "dn" ? "▼" : "—"; };
-  var trColor = function (tr) { return tr === "up" ? "#E8C412" : (dark ? "#8e8e93" : "#9c9ca3"); };
+  var trColor = function (tr) { return tr === "up" ? "#34C759" : tr === "dn" ? "#FF8A3D" : (dark ? "#8e8e93" : "#9c9ca3"); };
+  // Единые подсказки: слабая сфера + пустые сферы, ОДНИМ языком (тап → разбор сферы). Без тройного «разобрать с ИИ».
+  var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
+  var emptySph = SPH.filter(function (s) { return !s.n; });
+  var hints = [];
+  if (weak) hints.push({ s: weak, t: weak.l + " · " + Math.round(weak.v * 100) + "% — ниже остальных", dot: "#FF8A3D" });
+  emptySph.slice(0, 3).forEach(function (s) { hints.push({ s: s, t: "Пусто в «" + s.l.toLowerCase() + "» — заведи первую привычку", dot: "#C7C7CC" }); });
+  var eyeBtn = (
+    <button onClick={function () { var nv = !expanded; setExpanded(nv); try { localStorage.setItem("bos:wheelExpanded", nv ? "1" : "0"); } catch (e) {} }} className="tap" data-no-haptic aria-label={expanded ? "Скрыть проценты и разбор" : "Показать проценты и разбор"} aria-pressed={expanded}
+      style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: expanded ? (dark ? "rgba(255,255,255,0.12)" : "#eef0f3") : "var(--surface-3)", color: "var(--text-3)", transition: "background 0.15s" }}>
+      <I.Eye size={17} filled={expanded} />
+    </button>
+  );
 
   return (
     <div style={bare ? { padding: "0" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
-      {/* Шапка: (название — только если не hideTitle) + «за всё время» + ГЛАЗИК компакт↔развёрнуто. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 4 }}>
-        {hideTitle
-          ? <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.6px", color: "var(--text-4)", textTransform: "uppercase" }}>за всё время</div>
-          : (<div style={{ minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div><div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.5px", color: "var(--text-4)", marginTop: 2, textTransform: "uppercase" }}>за всё время</div></div>)}
-        <button onClick={function () { var nv = !expanded; setExpanded(nv); try { localStorage.setItem("bos:wheelExpanded", nv ? "1" : "0"); } catch (e) {} }} className="tap" data-no-haptic aria-label={expanded ? "Свернуть" : "Развернуть"} aria-pressed={expanded}
-          style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: expanded ? (dark ? "rgba(255,255,255,0.10)" : "#eef0f3") : "var(--surface-3)", color: "var(--text-3)", transition: "background 0.15s" }}>
-          <I.Eye size={18} filled={expanded} />
-        </button>
-      </div>
+      {/* Шапка — только когда есть название (иначе глазик плавает у радара, не в пустой строке). */}
+      {!hideTitle && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 6 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
+          {eyeBtn}
+        </div>
+      )}
 
-      {/* РАДАР: SVG-сетка + золотой РАДИАЛЬНЫЙ градиент от центра + свечение кромки; ярлыки осей — HTML поверх. */}
+      {/* РАДАР: SVG-сетка + золотой радиальный градиент; зелёный пунктир — «адекватная средняя»;
+          В ЦЕНТРЕ — золотая область с ОБЩИМ процентом; ярлыки осей — HTML поверх (проценты по глазику). */}
       <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "2px auto 0" }}>
+        {/* Глазик — в правом верхнем углу РАДАРА (рядом с тем, чем управляет), когда шапки нет. */}
+        {hideTitle && <div style={{ position: "absolute", top: 2, right: 2, zIndex: 3 }}>{eyeBtn}</div>}
         <svg width="100%" viewBox={"0 0 " + W + " " + H} style={{ display: "block", overflow: "visible" }}>
           <defs>
             <radialGradient id={uid} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
@@ -2508,15 +2523,21 @@ function BosBalanceWheelLive(props) {
           {[0.25, 0.5, 0.75, 1].map(function (lv, idx) { return <path key={"r" + idx} d={ringPath(lv)} fill="none" stroke={grid(idx === 3 ? 1 : 0)} strokeWidth="1" />; })}
           {/* спицы */}
           {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spoke} strokeWidth="1" />; })}
-          {/* деления на верхней оси — проценты */}
-          <text x={cx + 5} y={cy - R * 0.5 + 3} fontSize="8" fontWeight="700" fill={tickCol}>50</text>
-          <text x={cx + 5} y={cy - R + 3} fontSize="8" fontWeight="700" fill={tickCol}>100%</text>
           {/* полигон данных: свечение → градиентная заливка → обводка → золотые узлы */}
           <path d={poly} fill="none" stroke="#FEDE34" strokeWidth="6" opacity="0.35" filter={"url(#" + uid + "g)"} />
           <path d={poly} fill={"url(#" + uid + ")"} stroke={dark ? "#E8C412" : "#E0B90B"} strokeWidth="2.2" strokeLinejoin="round" />
+          {/* ЗЕЛЁНЫЙ ПУНКТИР — «адекватная средняя», куда стоит дотянуть (David: вернуть) */}
+          <path d={ringPath(MIN_LEVEL)} fill="none" stroke="#34C759" strokeWidth="1.5" strokeDasharray="3 3.5" opacity={dark ? 0.7 : 0.6} />
           {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4" fill="#FEDE34" stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="2" />; })}
         </svg>
-        {/* ярлыки осей: иконка + название + ПРОЦЕНТ + стрелка направления (тап → лупа сферы) */}
+        {/* ЦЕНТР — золотая область с ОБЩИМ процентом + тренд (David: вернуть в центр с цифрой) */}
+        <div style={{ position: "absolute", left: "50%", top: ((cy / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 66, height: 66, borderRadius: "50%", background: "radial-gradient(circle at 50% 38%, #FEDE34, #EFC30A)", boxShadow: "0 5px 16px rgba(239,195,10,0.42), inset 0 1px 2px rgba(255,255,255,0.5)", display: "grid", placeItems: "center", pointerEvents: "none" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
+            <span style={{ fontSize: 23, fontWeight: 900, color: "#0a0a0a", letterSpacing: "-0.6px" }}>{total}<span style={{ fontSize: 12, fontWeight: 800 }}>%</span></span>
+            <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(0,0,0,0.55)", marginTop: 3, display: "flex", alignItems: "center", gap: 2, textTransform: "uppercase", letterSpacing: "0.4px" }}>{overallTr !== "flat" && <span style={{ color: overallTr === "up" ? "#0a7d34" : "#a34a00" }}>{overallTr === "up" ? "▲" : "▼"}</span>}баланс</span>
+          </div>
+        </div>
+        {/* ярлыки осей: иконка + название (+ ПРОЦЕНТ и стрелка — только по глазику; тап → лупа сферы) */}
         {SPH.map(function (s, i) {
           var lp = pol(ang(i), labelR), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
@@ -2525,47 +2546,33 @@ function BosBalanceWheelLive(props) {
               style={{ position: "absolute", left: ((lp[0] / W) * 100) + "%", top: ((lp[1] / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 76, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>
               <span style={{ width: 26, height: 26, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: dark ? "#c8c8cf" : "#0a0a0a" })) || s.e}</span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "-0.2px" }}>{s.l}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)", display: "flex", alignItems: "center", gap: 2 }}>{s.n ? pct + "%" : "—"}<span style={{ fontSize: 8.5, fontWeight: 800, color: trColor(s.tr) }}>{s.n ? trGlyph(s.tr) : ""}</span></span>
+              {expanded && <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)", display: "flex", alignItems: "center", gap: 2 }}>{s.n ? pct + "%" : "—"}<span style={{ fontSize: 8, fontWeight: 800, color: trColor(s.tr) }}>{s.n ? trGlyph(s.tr) : ""}</span></span>}
             </button>
           );
         })}
       </div>
 
       {expanded && (<>
-      {/* зона внимания — самая слабая сфера одной капсулой (тап → лупа) */}
-      {weak ? (
-        <button onClick={function () { openLupa(weak); }} className="tap" data-no-haptic
-          style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, width: "100%", background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"), borderRadius: 999, padding: "8px 12px 8px 8px", cursor: "pointer", textAlign: "left" }}>
-          <span style={{ width: 34, height: 34, borderRadius: "50%", background: "#FEDE34", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[weak.id]) || "Sparkles", { size: 16, color: "#0a0a0a" })) || weak.e}</span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text)" }}>{weak.l} · {Math.round(weak.v * 100)}% — ниже остальных<span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginTop: 1 }}>{weak.tr === "dn" ? "и продолжает снижаться · тап — разобрать" : "тап — разобрать, из чего сложилось"}</span></span>
-          {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={14} color={dark ? "#8e8e93" : "#9c9ca3"} /> : null}
-        </button>
-      ) : null}
-
-      {/* Чипы «ИИ заметил» — живые (из aiBrief или выведены из колеса), каждый тапаемый → разбор с ИИ. */}
-      <div style={{ marginTop: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
-          <span style={{ width: 22, height: 22, display: "grid", placeItems: "center", flexShrink: 0 }}><BosHeroOrbMini tint={tint} size={22} /></span>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ИИ заметил</span>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {chips.map(function (ch, ci) {
-            var dot = ch.tone === "low" ? "#FF8A3D" : ch.tone === "good" ? "#34C759" : ch.tone === "empty" ? "#C7C7CC" : "#4d6f9e";
+      {/* ЕДИНЫЕ ПОДСКАЗКИ — все одним видом (слабая + пустые сферы), тап → разбор сферы. Без тройного «разобрать с ИИ». */}
+      {hints.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12 }}>
+          {hints.map(function (h, hi) {
             return (
-              <button key={ci} onClick={function () { if (navigate) navigate("ai-chat", { prompt: ch.prompt || ("Разбери мой баланс: " + ch.t) }); }} className="tap" data-no-haptic
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-2)", background: dark ? "rgba(255,255,255,0.06)" : "#f4f5f7", border: "0.5px solid var(--line)", borderRadius: 999, padding: "6px 11px", cursor: "pointer" }}>
-                <span style={{ width: 7, height: 7, borderRadius: 999, background: dot, flexShrink: 0 }} />{ch.t}
+              <button key={hi} onClick={function () { openLupa(h.s); }} className="tap" data-no-haptic
+                style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"), borderRadius: 14, padding: "9px 11px", cursor: "pointer", textAlign: "left" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: h.dot, flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{h.t}</span>
+                {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={14} color={dark ? "#8e8e93" : "#9c9ca3"} /> : null}
               </button>
             );
           })}
         </div>
-        <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "center", cursor: "pointer", marginTop: 11, padding: "10px 12px", fontSize: 12.7, fontWeight: 700, color: "#4d6f9e", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 14 }}>Разобрать баланс с ИИ →</button>
-      </div>
+      )}
 
-      {/* строка методики (David: научная серьёзность — «что и из чего считается») */}
+      {/* строка методики (научная серьёзность — «что и из чего считается»). */}
       <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, padding: "0 2px" }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
-        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Заполненность сферы копится за всё время из твоих ходов по её привычкам и целям — свежие ходы весят больше. Стрелка — куда сфера движется за последние дни.</div>
+        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Заполненность сферы копится из твоих ходов по её привычкам и целям — свежие весят больше. Зелёный пунктир — уровень, до которого стоит дотянуть каждую сферу.</div>
       </div>
       </>)}
     </div>
