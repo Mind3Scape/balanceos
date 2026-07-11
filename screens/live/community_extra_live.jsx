@@ -338,7 +338,7 @@ function TeamSettingsLive() {
     // survive a reload and feed teamGoalProgress for everyone — was local-only («бутафорски»).
     try {
       if (team.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
-        window.bosCloud.updateTeam(team.cloudId, { name: patch.name, emblem, vis: patch.vis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: stakeVal } });
+        window.bosCloud.updateTeam(team.cloudId, { name: patch.name, emblem, accent, vis: patch.vis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: stakeVal, accent } });
       }
     } catch (e) {}
     setTimeout(() => navigate("team-detail", { team: { ...team, ...patch }, from: backFrom }), 300);

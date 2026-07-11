@@ -2545,7 +2545,7 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   (async function () {
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
-        var row = await window.bosCloud.createTeam({ name: nt.name, emblem: teamObj.emblem, vis: vis, goalKind: nt.goal, goalTarget: nt.target, goal: { type: type, target: nt.target, unit: nt.unit, title: nt.name, stake: stake } });
+        var row = await window.bosCloud.createTeam({ name: nt.name, emblem: teamObj.emblem, vis: vis, goalKind: nt.goal, goalTarget: nt.target, goal: { type: type, target: nt.target, unit: nt.unit, title: nt.name, stake: stake, accent: teamObj.accent } });
         if (row && row.id) {
           if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
           // Персистим тумблер «Баланс круга» только когда он ВЫКЛючен (в БД default true = вкл, значит

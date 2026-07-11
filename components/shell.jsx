@@ -1588,6 +1588,41 @@ function AppProvider({ children }) {
             }
             // Reconciliation done → allow autosave again (the join below should persist).
             _doneHydrate();
+            // МУЛЬТИПЛЕЕР-СИНК круга (David 2026-07-11: «у друга старое имя/иконка/цвет совместной цели»).
+            // Раньше общую таблицу teams НИКТО не перечитывал — каждый показывал СВОЙ кэш-снапшот, и правки
+            // владельца до участников не доходили; цвет вообще не уходил в облако. Теперь после входа
+            // накладываем свежие ОБЩИЕ поля круга поверх кэша по cloudId. СТРОГО безопасно: (1) только для
+            // кругов, где Я УЧАСТНИК (role member) — владельца не трогаем, его локальное = источник правды,
+            // чтобы не откатить его правку; (2) правим только уже существующие круги, ничего не добавляем и
+            // не удаляем; (3) null (обрыв сети) не трогает ничего; (4) участие/отметки/локальный id не касаем.
+            try {
+              if (window.bosCloud && window.bosCloud.myTeamsLive) {
+                window.bosCloud.myTeamsLive().then(function (list) {
+                  if (!Array.isArray(list)) return; // null = сеть не дозвонилась → кэш не трогаем
+                  setTeams(function (ts) {
+                    return (ts || []).map(function (t) {
+                      if (!t || !t.cloudId) return t;
+                      var found = null, role = null;
+                      for (var i = 0; i < list.length; i++) { if (list[i] && list[i].team && list[i].team.id === t.cloudId) { found = list[i].team; role = list[i].role; break; } }
+                      if (!found || role === "owner") return t; // владельца НЕ трогаем
+                      var g = (found.goal && typeof found.goal === "object") ? found.goal : {};
+                      var patch = {};
+                      if (found.name != null) patch.name = found.name;
+                      if (found.emblem != null) patch.emblem = found.emblem;
+                      if (found.vis != null) patch.vis = found.vis;
+                      if (g.accent != null) patch.accent = g.accent;
+                      if (g.type != null) patch.type = g.type;
+                      if (g.unit != null) patch.unit = g.unit;
+                      if (g.target != null) patch.target = g.target; else if (found.goal_target != null) patch.target = found.goal_target;
+                      if (g.title != null) patch.goal = g.title; else if (found.goal_kind != null) patch.goal = found.goal_kind;
+                      if (g.stake != null) patch.stake = g.stake;
+                      if (found.circleBalanceOn != null) patch.circleBalanceOn = found.circleBalanceOn;
+                      return Object.assign({}, t, patch);
+                    });
+                  });
+                }).catch(function () {});
+              }
+            } catch (e) {}
             // ── Habits/goals live as ROWS now. Load them; if rows are empty, migrate the
             // seed (old blob / local) into rows ONCE. null = load failed → keep local copy.
             try {

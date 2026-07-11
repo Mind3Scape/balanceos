@@ -532,7 +532,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         app?.updateTeam(g0._id, patch);
         try {
           if (g0.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
-            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, vis: circleVis, goalKind: goalText, goalTarget: tgt, circleBalanceOn, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc } });
+            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, accent: color, vis: circleVis, goalKind: goalText, goalTarget: tgt, circleBalanceOn, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc, accent: color } });
           }
         } catch (e) {}
         close();

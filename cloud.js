@@ -668,6 +668,10 @@
     if (patch.goalKind != null) upd.goal_kind = patch.goalKind;
     if (patch.goalTarget != null) upd.goal_target = patch.goalTarget;
     if (patch.goal != null) upd.goal = patch.goal; // jsonb config — same shape createTeam writes
+    // Цвет (accent) круга — кладём ВНУТРЬ jsonb goal (David 2026-07-11: «цвет у друга старый» — раньше
+    // accent писался только локально, в облако не уходил → у других не синхронизировался). Отдельной
+    // колонки нет — прячем в уже синхронизируемый goal, без правки схемы БД.
+    if (patch.accent != null) upd.goal = Object.assign({}, upd.goal || (patch.goal || {}), { accent: patch.accent });
     if (patch.circleBalanceOn != null) upd.circle_balance_on = !!patch.circleBalanceOn; // тумблер «Баланс круга» (опт-аут владельцем)
     try {
       var r = await c.from("teams").update(upd).eq("id", teamId).eq("owner_id", id);
