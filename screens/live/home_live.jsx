@@ -300,10 +300,72 @@ function TasksWidgetLive({ isDark, openSheet }) {
   );
 }
 
+/* МЕНЮ ПО ДОЛГОМУ НАЖАТИЮ на карточку доски (David 2026-07-11, «вариант Г» + iOS-референс Notes):
+   зажал карточку → фон в тень, карточка приподнимается (превью на её месте), всплывает аккуратное
+   меню, а не резкая тряска. «Всё в одном»: действия карточки (Поделиться · Переставить · Убрать) +
+   блок «Доска» (Добавить виджет · Оформление). «Переставить» уже запускает тряску (enterReorder).
+   Заякорено по rect карточки (приходит из BosReorderGrid.onLongPress). Тема/стекло сюда НЕ входят —
+   они уехали в Я → Настройки (§14). Портал, как CreateMenuLive/CardStyleMenuLive. */
+function HomeCardMenuLive({ state, onClose, isDark, preview, kind, onShare, onReorder, onRemove, onAddWidget, onStyle }) {
+  const menuRef = React.useRef(null);
+  const [pos, setPos] = React.useState(null);
+  React.useLayoutEffect(() => {
+    if (!state || !state.rect) { setPos(null); return; }
+    const r = state.rect;
+    const vw = window.innerWidth, vh = window.innerHeight, pad = 12, gap = 10, menuW = 246;
+    const mh = (menuRef.current && menuRef.current.offsetHeight) || 300;
+    let safeB = 0; try { safeB = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--tg-bottom-inset")) || 0; } catch (e) {}
+    let previewTop = r.top, menuTop = r.bottom + gap;
+    const limit = vh - pad - safeB;
+    if (menuTop + mh > limit) {
+      const above = r.top - gap - mh;
+      if (above >= pad) { menuTop = above; }
+      else { const shift = (menuTop + mh) - limit; previewTop = Math.max(pad, r.top - shift); menuTop = Math.min(limit - mh, previewTop + r.height + gap); }
+    }
+    let menuLeft = r.left;
+    if (menuLeft + menuW > vw - pad) menuLeft = vw - pad - menuW;
+    if (menuLeft < pad) menuLeft = pad;
+    setPos({ previewTop, previewLeft: r.left, previewW: r.width, menuTop, menuLeft });
+  }, [state]);
+  if (!state) return null;
+  const ink = isDark ? "#f2f2f5" : "#0a0a0a";
+  const act = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } onClose(); if (fn) setTimeout(fn, 0); };
+  const line = "0.5px solid " + (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)");
+  const reorderIcon = (<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>);
+  const gridIcon = (<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><path d="M17.25 14.6v4.8M14.85 17h4.8"/></svg>);
+  const slidersIcon = (<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2" fill={isDark ? "#1e1f24" : "#fbfbfd"}/><circle cx="15" cy="12" r="2.2" fill={isDark ? "#1e1f24" : "#fbfbfd"}/><circle cx="8" cy="18" r="2.2" fill={isDark ? "#1e1f24" : "#fbfbfd"}/></svg>);
+  const Row = ({ label, icon, onClick, danger, first }) => (
+    <button role="menuitem" data-haptic="selection" onClick={onClick} className="tap" style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 16px", background: "transparent", border: 0, borderTop: first ? 0 : line, cursor: "pointer", fontSize: 16, fontWeight: 500, color: danger ? "#FF3B30" : ink, textAlign: "left" }}>
+      <span>{label}</span>
+      <span style={{ display: "grid", placeItems: "center", flexShrink: 0, color: danger ? "#FF3B30" : ink }}>{icon}</span>
+    </button>
+  );
+  const frost = isDark ? "rgba(30,31,36,0.86)" : "rgba(250,250,252,0.82)";
+  const hardDelete = (kind === "habit" || kind === "goal");
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8200, background: "rgba(18,22,38,0.30)", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)", animation: "dimIn 0.18s ease both" }}>
+      {/* Превью карточки на её месте — iOS «карточка приподнялась» (визуально, без событий). */}
+      <div aria-hidden style={{ position: "fixed", left: pos ? pos.previewLeft : state.rect.left, top: pos ? pos.previewTop : state.rect.top, width: pos ? pos.previewW : state.rect.width, pointerEvents: "none", transform: "scale(1.03)", transformOrigin: "center", filter: "drop-shadow(0 20px 44px rgba(20,20,40,0.30))", visibility: pos ? "visible" : "hidden" }}>{preview}</div>
+      {/* Само меню */}
+      <div ref={menuRef} role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", left: pos ? pos.menuLeft : state.rect.left, top: pos ? pos.menuTop : (state.rect.bottom + 10), width: 246, visibility: pos ? "visible" : "hidden", background: frost, WebkitBackdropFilter: "blur(26px) saturate(180%)", backdropFilter: "blur(26px) saturate(180%)", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 50px rgba(20,20,40,0.28), inset 0 0 0 0.5px " + (isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.6)"), transformOrigin: "top left", animation: "bosMenuPop 0.30s cubic-bezier(0.34,1.5,0.4,1) both" }}>
+        {onShare && <Row first label="Поделиться" icon={<I.Share size={19} />} onClick={act(onShare)} />}
+        <Row first={!onShare} label="Переставить" icon={reorderIcon} onClick={act(onReorder)} />
+        <Row label="Убрать" icon={hardDelete ? <I.Trash size={18} /> : <I.Minus size={19} />} danger onClick={act(onRemove)} />
+        <div style={{ padding: "9px 16px 3px", fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: isDark ? "rgba(255,255,255,0.4)" : "rgba(10,10,10,0.38)", borderTop: "6px solid " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.045)") }}>Доска</div>
+        <Row first label="Добавить виджет" icon={gridIcon} onClick={act(onAddWidget)} />
+        <Row label="Оформление" icon={slidersIcon} onClick={act(onStyle)} />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function HomeLive() {
   const { navigate } = useNav();
   const { open: openSheet, close: closeSheet } = useSheet();
   const app = useApp();
+  // Меню по долгому нажатию на карточку доски: { k, rect, kind } | null (см. HomeCardMenuLive).
+  const [cardMenu, setCardMenu] = React.useState(null);
   // Меню «Стиль карточек» — открывается из галереи: шторка закрывается, панель встаёт
   // под «+» в шапке, и смена формы/отметок видна ВЖИВУЮ на карточках доски.
   const [styleOpen, setStyleOpen] = React.useState(false);
@@ -353,8 +415,8 @@ function HomeLive() {
   const goalStyle = useBosGoalStyle();
   const teams = app?.teams || [];
   // Универсальная кнопка «+» в шапке главной (David: «нужна явная кнопка создать привычку») —
-  // открывает то же меню Привычку/Цель/Команду, что и «+» на странице Привычки. Плюс простой
-  // СТАРТ для нового юзера ниже (0 привычек/целей/команд → один понятный шаг).
+  // открывает то же меню Привычку/Цель/Круг, что и «+» на странице Привычки. Плюс простой
+  // СТАРТ для нового юзера ниже (0 привычек/целей/кругов → один понятный шаг).
   const [createOpen, setCreateOpen] = React.useState(false);
   const addBtnRef = React.useRef(null);
   const trulyNew = habits.length === 0 && goals.length === 0 && teams.length === 0;
@@ -623,8 +685,8 @@ function HomeLive() {
     }
 
     if (id === "team") {
-      // «Команды» — its own full-width widget (David picked variant A: teams separate). Glass tile
-      // + standard grey glass discs for emblems; tap → community.
+      // «Вместе» (круги) — its own full-width widget (David picked variant A: circles separate). Glass
+      // tile + standard grey glass discs for emblems; tap → community.
       return (
         <button className="tap" onClick={() => navigate("community")}
           style={{ width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 15px", textAlign: "left", display: "flex", alignItems: "center", gap: 12, boxShadow: cardShadow, color: "var(--text)" }}>
@@ -749,11 +811,12 @@ function HomeLive() {
     if (k.indexOf("t:") === 0) { const t = teams.find((x) => teamKey(x) === k); return t && typeof TeamTileLive === "function" ? <TeamTileLive team={t} from="home" /> : null; }
     return null;
   };
-  // David: СТАНДАРТИЗИРОВАНО — зажал ЛЮБУЮ плитку → тряска (раньше привычки/цели/круги давали
-  // меню-выбор, а виджеты тряслись — непоследовательно). Поделиться теперь в самой карточке
-  // (круглая кнопка), переставить = перетащить, убрать/архивировать = минусом (onMinus ниже).
-  const onCellLongPress = (k) => {
-    if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder();
+  // David 2026-07-11 («вариант Г» + iOS-референс): зажал ЛЮБУЮ плитку → всплывает аккуратное меню
+  // (HomeCardMenuLive), а не резкая тряска. Тряска запускается ОСОЗНАННО из пункта «Переставить».
+  // rect карточки приходит из BosReorderGrid.onLongPress — меню якорится на её место.
+  const onCellLongPress = (k, rect) => {
+    const kind = k.indexOf("h:") === 0 ? "habit" : k.indexOf("g:") === 0 ? "goal" : k.indexOf("t:") === 0 ? "circle" : "widget";
+    setCardMenu({ k, rect: rect || null, kind });
   };
   // Минус в тряске: виджет/круг — просто убрать с доски; привычка/цель — шторка «Архивировать /
   // Удалить» (David: «если не виджет, а привычка или цель — спрашивает удалить/архивировать»).
@@ -811,7 +874,29 @@ function HomeLive() {
         placement={styleBottom ? "bottom" : undefined}
         onArchiveList={() => openSheet(<ArchiveSheetLive navigate={navigate} />)} />}
 
-      {/* Новому юзеру (0 привычек/целей/команд) — ПРОСТОЙ старт = ОДИН hero-блок: ИИ-сводка + пилюли
+      {/* Меню по долгому нажатию на карточку (Поделиться · Переставить · Убрать + Доска). */}
+      {cardMenu && (
+        <HomeCardMenuLive
+          state={cardMenu}
+          onClose={() => setCardMenu(null)}
+          isDark={isDark}
+          kind={cardMenu.kind}
+          preview={tileFor(cardMenu.k)}
+          onShare={(() => {
+            const k = cardMenu.k;
+            if (k.indexOf("h:") === 0) { const h = habits.find((x) => _khHome(x) === k); return (h && typeof ShareHabitSheetLive === "function") ? () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) : null; }
+            if (k.indexOf("g:") === 0) { const g = goals.find((x) => _kgHome(x) === k); return (g && typeof ShareGoalSheetLive === "function") ? () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) : null; }
+            if (k.indexOf("t:") === 0) { const t = teams.find((x) => teamKey(x) === k); return (t && typeof TeamShareSheetLive === "function") ? () => openSheet(<TeamShareSheetLive team={t} />) : null; }
+            return null;
+          })()}
+          onReorder={() => { if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder(); }}
+          onRemove={() => onMinus(cardMenu.k)}
+          onAddWidget={openAddSheet}
+          onStyle={() => { setStyleBottom(true); setStyleOpen(true); }}
+        />
+      )}
+
+      {/* Новому юзеру (0 привычек/целей/кругов) — ПРОСТОЙ старт = ОДИН hero-блок: ИИ-сводка + пилюли
           (там уже есть «➕ Создать привычку» + мягкий ИИ-старт «Рассказать о себе»). Прежнюю большую
           карточку «Создай первую привычку» убрал — она дублировала пилюлю и занимала пол-экрана
           (David: «нету смысла показывать на пол-экрана, в пилюлях уже есть»). Доска — с первой привычкой. */}

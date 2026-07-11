@@ -3419,7 +3419,9 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
       const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener("click", swallow, true); };
       window.addEventListener("click", swallow, true);
       setTimeout(() => { try { window.removeEventListener("click", swallow, true); } catch (e2) {} }, 800);
-      if (onLongPress) { try { onLongPress(id); } catch (e2) {} }
+      // Передаём и rect прижатой плитки — заякоренное меню Главной ставит превью карточки на её
+      // место (iOS-эффект «карточка приподнялась»). Привычки игнорируют 2-й аргумент — безопасно.
+      if (onLongPress) { try { var _lpEl = refs.current[id]; onLongPress(id, _lpEl ? _lpEl.getBoundingClientRect() : null); } catch (e2) {} }
       cleanup();
     };
     // Press in REORDER mode → begin a drag at once (snapshot every tile's rect for 2D shifts).
@@ -3829,6 +3831,12 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   const items = [
     { icon: I.Flame, label: "Привычку", go: () => _openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />) },
     { icon: I.Flag,  label: "Цель",     go: () => _openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />) },
+    // «Круг» (решение David «вариант Г»): третья дверь создания. ЭХО существующего пути круга —
+    // открывает ту же форму, которой Сообщество создаёт круг: форма цели с уже включённым тумблером
+    // «идти к цели вместе» (circleOn) → при сохранении bosPromoteGoalToCircle делает настоящий круг.
+    // Её вопросы поменяет будущий чип «Сообщество-1»; сейчас задача — заметная дверь. Небольшой
+    // отступ (i===2 ниже) отделяет личное (привычка/цель) от совместного (круг).
+    { icon: I.Users, label: "Круг",     go: () => _openSheet(<GoalFormSheetLive mode="create" circleOn={true} navigate={navigate} />) },
     // «Готовый челлендж» временно убран из меню (David: «убери пока, оставь привычку и цель») —
     // вход в каталог пресетов остаётся ссылкой внутри формы цели. Вернуть = раскомментировать:
     // { icon: I.Bolt,  label: "Готовый челлендж", go: () => { if (typeof CreatePickerSheetLive === "function") _openSheet(<CreatePickerSheetLive navigate={navigate} custom={false} />); } },
@@ -4266,15 +4274,9 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
   const [tab, setTab] = React.useState("habits");
   const [hs, setHs] = React.useState(bosLoadCardStyle);
   const [gs, setGs] = React.useState(bosLoadGoalStyle);
-  // «Общий вид» (David: «общие визуальные настройки в шестерёнке»): эффект стекла — тот же
-  // глобальный тумблер bos:glass, что в настройках профиля, но под рукой прямо из тряски.
-  const [glassOn, setGlassOn] = React.useState(() => { try { return localStorage.getItem("bos:glass") !== "0"; } catch (e) { return true; } });
-  const setGlass = (v) => { setGlassOn(v); try { localStorage.setItem("bos:glass", v ? "1" : "0"); } catch (e) {} try { window.dispatchEvent(new Event("bos:glassChanged")); } catch (e) {} };
-  // Тёмная тема (David: «в общем виде — тоггл тёмной темы, а чёрные иконки убрать») — тот же
-  // общий переключатель темы, что в настройках профиля, под рукой прямо из тряски.
-  const app = (typeof useApp === "function") ? useApp() : null;
-  const darkOn = !!(app && app.themeOverride === "dark");
-  const setDark = (v) => { if (app && app.setThemeOverride) app.setThemeOverride(v ? "dark" : "light"); };
+  // Тёмная тема и Эффект стекла УЕХАЛИ отсюда в «Я → Настройки» (конституция §14: одна настройка —
+  // один дом; глобальное не живёт на доске). Здесь остаётся только ВИД доски (стиль привычек/целей)
+  // и доступ к Архиву. Тумблеры темы/стекла — единственный дом: Я → Настройки → Предпочтения.
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
@@ -4324,7 +4326,7 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
         // почти непрозрачное, чтобы надписи и тумблеры читались на любой доске.
         background: "rgba(255,255,255,0.98)", WebkitBackdropFilter: "blur(20px) saturate(150%)", backdropFilter: "blur(20px) saturate(150%)", border: "0.5px solid rgba(0,0,0,0.07)", boxShadow: "0 16px 44px rgba(20,30,60,0.22)", color: "#0a0a0a" }}>
         {/* Вкладки: Привычки / Цели */}
-        {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }, { v: "app", l: "Общий вид" }], setTab)}
+        {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }], setTab)}
         <div style={{ height: 9 }} />
         {tab === "habits" ? (
           <>
@@ -4339,7 +4341,7 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
               {hs.form === "square" && toggleRow("Название", hs.name, (v) => setH({ name: v }))}
             </div>
           </>
-        ) : tab === "goals" ? (
+        ) : (
           <>
             <div style={{ display: "flex", gap: 7 }}>{formBtn("banner", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", SQ, gs.form, (k) => setG({ form: k }))}</div>
             {divider}
@@ -4350,21 +4352,19 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
             </div>
             <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 0" }}>Орбиты показывают привычки и людей вокруг цели — превью, вокруг чего она.</div>
           </>
-        ) : (
+        )}
+        {/* Архив — всегда доступен (тема/стекло уехали в Я → Настройки по §14; здесь остаётся только
+            вид доски + доступ к архиву скрытых привычек/целей). */}
+        {typeof onArchiveList === "function" && (
           <>
-            {/* «Общий вид» (David: «тоггл тёмной темы, а чёрные иконки убрать»). */}
-            {toggleRow("Тёмная тема", darkOn, setDark)}
-            {toggleRow("Эффект стекла", glassOn, setGlass)}
-            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 2px" }}>Тёмная тема — весь экран в тёмных тонах. Стекло — глянцевые блики; выключи для плоского вида.</div>
-            {typeof onArchiveList === "function" && (
-              <button onClick={() => { onClose(); onArchiveList(); }} className="tap" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginTop: 8, border: 0, borderRadius: 11, padding: "9px 2px", background: "transparent", cursor: "pointer", color: "#0a0a0a", textAlign: "left" }}>
-                <span style={{ width: 26, height: 26, display: "grid", placeItems: "center", flexShrink: 0, color: "#0a0a0a" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" /><path d="M10 12h4" /></svg>
-                </span>
-                <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>Архив</span>
-                <I.ChevronRight size={15} color="rgba(10,10,10,0.4)" />
-              </button>
-            )}
+            <div style={{ height: 1, background: "rgba(10,10,10,0.08)", margin: "10px 0 4px" }} />
+            <button onClick={() => { onClose(); onArchiveList(); }} className="tap" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginTop: 4, border: 0, borderRadius: 11, padding: "9px 2px", background: "transparent", cursor: "pointer", color: "#0a0a0a", textAlign: "left" }}>
+              <span style={{ width: 26, height: 26, display: "grid", placeItems: "center", flexShrink: 0, color: "#0a0a0a" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" /><path d="M10 12h4" /></svg>
+              </span>
+              <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>Архив</span>
+              <I.ChevronRight size={15} color="rgba(10,10,10,0.4)" />
+            </button>
           </>
         )}
       </div>
