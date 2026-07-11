@@ -526,7 +526,13 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       // был в удалённой TeamQuickEditSheetLive/TeamSettingsLive), НЕ promote (иначе создался бы второй
       // круг). Шторка над комнатой круга → close() открывает её, комната перечитывает app.teams живьём.
       if (isTeamEdit) {
-        const goalText = (g0.goal && ("" + g0.goal).trim()) || (tgt + (unit ? " " + unit : ""));
+        // БЕЗОПАСНЫЙ текст цели (David: в Сообществе показывало «[object Object]»): у облачного круга
+        // g0.goal — это ОБЪЕКТ {title,target,unit,...}; старое `"" + g0.goal` давало «[object Object]»,
+        // и эта строка уходила в облако (goal_kind) и на карточку. Берём title/строку, иначе строим из числа.
+        const _gRaw = g0.goal;
+        const goalText = (typeof _gRaw === "string" && _gRaw.trim()) ? _gRaw.trim()
+          : (_gRaw && typeof _gRaw === "object" && typeof _gRaw.title === "string" && _gRaw.title.trim()) ? _gRaw.title.trim()
+          : (tgt + (unit ? " " + unit : ""));
         const _desc = (desc || "").trim();
         const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc, circleBalanceOn };
         app?.updateTeam(g0._id, patch);

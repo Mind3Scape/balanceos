@@ -1614,7 +1614,7 @@ function AppProvider({ children }) {
                       if (g.type != null) patch.type = g.type;
                       if (g.unit != null) patch.unit = g.unit;
                       if (g.target != null) patch.target = g.target; else if (found.goal_target != null) patch.target = found.goal_target;
-                      if (g.title != null) patch.goal = g.title; else if (found.goal_kind != null) patch.goal = found.goal_kind;
+                      if (typeof g.title === "string" && g.title) patch.goal = g.title; else if (typeof found.goal_kind === "string" && found.goal_kind && found.goal_kind.indexOf("[object") < 0) patch.goal = found.goal_kind;
                       if (g.stake != null) patch.stake = g.stake;
                       if (found.circleBalanceOn != null) patch.circleBalanceOn = found.circleBalanceOn;
                       return Object.assign({}, t, patch);

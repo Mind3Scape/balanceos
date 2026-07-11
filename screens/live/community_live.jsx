@@ -82,8 +82,11 @@ function LiveTeamCard({ t, navigate, rhythm }) {
   const chipS = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(false), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" };
   // t.goal у ОБЛАЧНОГО круга — jsonb-ОБЪЕКТ {title,target,unit,type,stake,desc}, а не строка. Рендер
   // объекта как React-ребёнка = краш (error #31, «Мои круги»). Достаём безопасную подпись-строку.
-  const _goalLabel = (typeof t.goal === "string") ? t.goal
-    : (t.goal && typeof t.goal === "object" ? (t.goal.title || (t.goal.target ? (t.goal.target + (typeof t.goal.unit === "string" && t.goal.unit ? " " + t.goal.unit : "")) : "")) : "");
+  var _goalLabel0 = (typeof t.goal === "string") ? t.goal
+    : (t.goal && typeof t.goal === "object" ? ((typeof t.goal.title === "string" ? t.goal.title : "") || (t.goal.target ? (t.goal.target + (typeof t.goal.unit === "string" && t.goal.unit ? " " + t.goal.unit : "")) : "")) : "");
+  // Страховка: если в поле всё же затесалось «[object Object]» (из старого бага сохранения) — не
+  // показываем мусор, строим подпись из числа цели (David: «в Сообществе показывает [object Object]»).
+  const _goalLabel = (_goalLabel0 && _goalLabel0.indexOf("[object") < 0) ? _goalLabel0 : (tgt ? (tgt + " " + (typeof t.unit === "string" && t.unit ? t.unit : "раз")) : "");
   const _dateLabel = (typeof t.date === "string") ? t.date : "";
   const _unitLabel = (typeof t.unit === "string") ? t.unit : "";
   return (
