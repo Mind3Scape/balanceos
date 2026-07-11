@@ -4102,13 +4102,15 @@ function bosTeamKeyLive(t) {
    теперь живёт и на ГЛАВНОЙ (ключи t:<id> в homeLayout), не только на «Привычках».
    Та же форма, что плитка цели (goalStyle: баннер/квадрат + орбиты + прогресс), но эмблема,
    ЛИЦА участников и командный счёт; ест stale-while-revalidate кэш детали (_bosTeamGet). */
-function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits" }) {
+function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = false }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const navigate = ((typeof useNav === "function") ? useNav() : {}).navigate || function () {};
   const isDark = !!(app && app.themeOverride === "dark");
   const goalStyle = useBosGoalStyle();
   const habits = (app && app.habits) || [];
-  const banner = goalStyle.form === "banner";
+  // big — Сообщество показывает круги ТОЛЬКО крупной карточкой (David 2026-07-11), независимо от
+  // выбранного на Главной вида; иначе как на Главной (баннер/квадрат по стилю целей).
+  const banner = big || goalStyle.form === "banner";
   const _ck = t.cloudId || null;
   const _cHabits = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("habits:" + _ck) : null;
   const _cRoster = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("roster:" + _ck) : null;
@@ -4756,13 +4758,17 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   // на бэке (owner_id), здесь дочищаем ЧЛЕНСТВО по локальному app.teams (без race).
   const mineById = {}; ((app && app.teams) || []).forEach((t) => { if (t && t.cloudId) mineById[t.cloudId] = t; });
   const shownList = (list || []).filter((t) => !mineById[t.id]);
+  // МОИ ПУБЛИЧНЫЕ круги (David 2026-07-11): создатель должен ВИДЕТЬ, что его круг открыт для всех —
+  // показываем их ВВЕРХУ «Открытых» карточкой Главной (TeamTileLive), без «Вступить» (он и так внутри).
+  // Приватные круги сюда не попадают (они не открыты). В поиске — не мешаем (ищем чужое).
+  const myOpen = isSearch ? [] : (((app && app.teams) || []).filter((t) => t && t.vis === "public" && t.cloudId));
   // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
   // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
   // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
   // В режиме поиска пустышка не нужна — родитель показывает общую «ничего не нашлось».
   if (!list) return null;
   if (query && !shownList.length) return null;
-  if (!shownList.length) return (
+  if (!shownList.length && !myOpen.length) return (
     <div style={{ marginTop: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
@@ -4794,9 +4800,19 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
       });
     } catch (e) { setBusy((b) => Object.assign({}, b, { [t.id]: false })); }
   };
+  const _dHdr = { fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" };
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
+      {/* Мои открытые круги — карточкой Главной (David: «одна карточка везде», создатель видит, что круг открыт). */}
+      {myOpen.length > 0 && (
+        <div style={{ marginBottom: shownList.length ? 20 : 0 }}>
+          <div style={_dHdr}>🌐 Твои открытые круги</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {myOpen.map((t) => (typeof TeamTileLive === "function" ? <TeamTileLive key={"mine:" + (t.cloudId || t._id)} team={t} from="community" big /> : null))}
+          </div>
+        </div>
+      )}
+      {shownList.length > 0 && <div style={_dHdr}>🌐 Открытые круги</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {shownList.map((t) => (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>

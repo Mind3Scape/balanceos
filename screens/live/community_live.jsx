@@ -1413,7 +1413,8 @@ function CommunityLive() {
                 Мои круги → Помощь круга → Мой вклад. Каждый блок изолирован BosBlock — сбой одного
                 не роняет страницу. Ставятся под лентой открытий, партнёры/круги остаются ниже. */}
             <BosBlock name="suggest"><CommunitySuggestLive app={app} navigate={navigate} isDark={isDark} onOpen={() => setFilter("circles")} /></BosBlock>
-            <BosBlock name="my-circles"><MyCirclesLive app={app} navigate={navigate} isDark={isDark} onAll={() => setFilter("circles")} /></BosBlock>
+            {/* «Мои круги» УБРАНЫ (David 2026-07-11: «круги и так на Главной, тут не нужны»). Свои
+                публичные круги теперь видны в «Открытых» (фильтр «Круги», раздел «Твои открытые»). */}
             <BosBlock name="circle-requests"><CircleRequestsLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             <BosBlock name="circle-help"><CircleHelpLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             <BosBlock name="my-contribution"><MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
