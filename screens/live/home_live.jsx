@@ -340,14 +340,14 @@ function HomeCardMenuLive({ state, onClose, isDark, preview, kind, onShare, onRe
       <span style={{ display: "grid", placeItems: "center", flexShrink: 0, color: danger ? "#FF3B30" : ink }}>{icon}</span>
     </button>
   );
-  const frost = isDark ? "rgba(30,31,36,0.86)" : "rgba(250,250,252,0.82)";
+  const frost = isDark ? "rgba(28,29,34,0.95)" : "rgba(252,252,254,0.95)";
   const hardDelete = (kind === "habit" || kind === "goal");
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8200, background: "rgba(18,22,38,0.30)", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)", animation: "dimIn 0.18s ease both" }}>
       {/* Превью карточки на её месте — iOS «карточка приподнялась» (визуально, без событий). */}
       <div aria-hidden style={{ position: "fixed", left: pos ? pos.previewLeft : state.rect.left, top: pos ? pos.previewTop : state.rect.top, width: pos ? pos.previewW : state.rect.width, pointerEvents: "none", transform: "scale(1.03)", transformOrigin: "center", filter: "drop-shadow(0 20px 44px rgba(20,20,40,0.30))", visibility: pos ? "visible" : "hidden" }}>{preview}</div>
       {/* Само меню */}
-      <div ref={menuRef} role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", left: pos ? pos.menuLeft : state.rect.left, top: pos ? pos.menuTop : (state.rect.bottom + 10), width: 246, visibility: pos ? "visible" : "hidden", background: frost, WebkitBackdropFilter: "blur(26px) saturate(180%)", backdropFilter: "blur(26px) saturate(180%)", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 50px rgba(20,20,40,0.28), inset 0 0 0 0.5px " + (isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.6)"), transformOrigin: "top left", animation: "bosMenuPop 0.30s cubic-bezier(0.34,1.5,0.4,1) both" }}>
+      <div ref={menuRef} role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", left: pos ? pos.menuLeft : state.rect.left, top: pos ? pos.menuTop : (state.rect.bottom + 10), width: 246, visibility: pos ? "visible" : "hidden", background: frost, WebkitBackdropFilter: "blur(34px) saturate(190%)", backdropFilter: "blur(34px) saturate(190%)", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 50px rgba(20,20,40,0.30), inset 0 0 0 0.5px " + (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.7)"), transformOrigin: "top left", animation: "bosMenuPop 0.30s cubic-bezier(0.34,1.5,0.4,1) both" }}>
         {onShare && <Row first label="Поделиться" icon={<I.Share size={19} />} onClick={act(onShare)} />}
         <Row first={!onShare} label="Переставить" icon={reorderIcon} onClick={act(onReorder)} />
         <Row label="Убрать" icon={hardDelete ? <I.Trash size={18} /> : <I.Minus size={19} />} danger onClick={act(onRemove)} />
@@ -372,6 +372,8 @@ function HomeLive() {
   // Открыто из шестерёнки в тряске → меню всплывает по ЦЕНТРУ над «Готово» (placement="bottom"),
   // а не под шапочным «+» вверху (David: «вылазит за кадр наверху; должно из шестерёнки над Готово»).
   const [styleBottom, setStyleBottom] = React.useState(false);
+  // Из меню карточки «Оформление» — прижать меню к таб-бару по центру (не 150px в воздухе).
+  const [styleLow, setStyleLow] = React.useState(false);
   const widgets = app?.widgets || {};
   const mood = app?.mood;
 
@@ -871,7 +873,7 @@ function HomeLive() {
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
       {/* «Стиль карточек» из галереи: панель под «+», доска на глазах меняет формы. */}
       {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={addBtnRef}
-        placement={styleBottom ? "bottom" : undefined}
+        placement={styleLow ? "bottom-low" : (styleBottom ? "bottom" : undefined)}
         onArchiveList={() => openSheet(<ArchiveSheetLive navigate={navigate} />)} />}
 
       {/* Меню по долгому нажатию на карточку (Поделиться · Переставить · Убрать + Доска). */}
@@ -892,7 +894,7 @@ function HomeLive() {
           onReorder={() => { if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder(); }}
           onRemove={() => onMinus(cardMenu.k)}
           onAddWidget={openAddSheet}
-          onStyle={() => { setStyleBottom(true); setStyleOpen(true); }}
+          onStyle={() => { setStyleBottom(false); setStyleLow(true); setStyleOpen(true); }}
         />
       )}
 
@@ -911,7 +913,7 @@ function HomeLive() {
           onReorder={onReorderKeys}
           onLongPress={onCellLongPress}
           onAdd={openAddSheet}
-          onGear={() => { setStyleBottom(true); setStyleOpen(true); }}
+          onGear={() => { setStyleLow(false); setStyleBottom(true); setStyleOpen(true); }}
           addLabel="Добавить на главную"
           spanFull={(k) => {
             // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).

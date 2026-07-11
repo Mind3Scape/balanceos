@@ -3553,25 +3553,27 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
 // sym — монохромный SVG-символ (sf:) для ЧЁРНО-БЕЛОГО показа иконок виджетов в галерее «+»
 // (David: «иконки виджетов, кроме привычек, чёрно-белые, в одном стиле как плюсик»). Сам виджет
 // на доске рисуется как прежде; символ используется только в списке добавления.
+// Icon — МОНОХРОМНАЯ line-иконка из набора I (David 2026-07-11: «во вкладке виджеты все иконки должны
+// быть svg одноцветные, эмодзи тут плохо смотрятся»). emoji/sym оставлены как фолбэк.
 var BOS_HOME_WIDGETS = [
-  { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨", sym: "sf:Sparkles" },
+  { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   Icon: I.Sparkles,    emoji: "✨" },
   // Лента челленджей. David 2026-07-10: УБРАНА из дефолта главной (челленджи переехали в форму
   // создания привычки + Сообщество). Остаётся обычным opt-in виджетом — включается из галереи «+».
-  { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡", sym: "sf:Flame" },
-  { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅", sym: "sf:Calendar" },
+  { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", Icon: I.Bolt,     emoji: "⚡" },
+  { id: "week",    t: "Эта неделя",   d: "Недельная активность",     Icon: I.Calendar,    emoji: "📅" },
   // v598: локальный todo-виджет «Дела» — списки-вкладки со своими делами. ВЫКЛ по умолчанию
   // (не в стартовом наборе home_live → у живых людей главная не меняется, пока сами не включат).
-  { id: "tasks",   t: "Дела",         d: "Списки задач с вкладками", emoji: "✅" },
+  { id: "tasks",   t: "Дела",         d: "Списки задач с вкладками", Icon: I.Check,        emoji: "✅" },
   // «Состояние» — виджет-орб (редизайн 2026-07-04): не отмечено → приглашение StateInviteLive,
   // отмечено → MoodWidgetLive (орб в цвете + след недели). Тап → Момент (жест A, route "mood").
-  { id: "mood",    t: "Состояние",    d: "Как ты сейчас — свет орба", emoji: "☀️", sym: "sf:Sun" },
+  { id: "mood",    t: "Состояние",    d: "Как ты сейчас — свет орба", Icon: I.Smile,       emoji: "☀️" },
   // «Баланс окружения» — общий тон твоих своих (светило, гибрид A+B 2026-07-09). ВЫКЛ по
   // умолчанию: включается из галереи «+», чтобы главная не перегружалась.
-  { id: "env",     t: "Баланс окружения", d: "Общий тон твоих своих", emoji: "🌤" },
-  { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥", sym: "sf:Users" },
+  { id: "env",     t: "Баланс окружения", d: "Общий тон твоих своих", Icon: I.OrbitPeople, emoji: "🌤" },
+  { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     Icon: I.Users,        emoji: "👥" },
   // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
   // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
-  { id: "invite",  t: "Позови своих", d: "Приглашай друзей — +XP",   emoji: "📣", sym: "sf:Gift" },
+  { id: "invite",  t: "Позови своих", d: "Приглашай друзей — +XP",   Icon: I.Send,         emoji: "📣" },
 ];
 
 /* iOS-style «−» remove badge for the home widget board — a small GLASS circle pinned to the
@@ -3788,7 +3790,7 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
       {kicker("Виджеты")}
       {/* Иконки виджетов — ЧЁРНО-БЕЛЫЕ (David): монохромный sf-символ вместо цветного эмодзи, единый
           строгий вид как у плюсика. Привычки/цели ниже остаются цветными. */}
-      {card(defs.map((o) => ({ key: "w:" + o.id, bare: true, icon: (typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 21, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji), name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
+      {card(defs.map((o) => ({ key: "w:" + o.id, bare: true, icon: (o.Icon ? React.createElement(o.Icon, { size: 21, color: dark ? "#f2f2f5" : "#1b1b1f", strokeWidth: 1.9 }) : (typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 21, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji)), name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
       {/* Привычки/цели/совместные цели ОТСЮДА убраны (David: «их же можно спрятать архивом — незачем
           дублировать»). Они появляются на главной сами; спрятать/вернуть — минусом в тряске → «Архив». */}
       <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, padding: "14px 4px 0", textAlign: "center" }}>
@@ -3812,10 +3814,43 @@ function AddWidgetSheetLive({ defs = [], dark = false, onStyle = null }) {
   );
 }
 
+/* ИКОНКИ-ТРИО создания (David: «чтобы смысл читался — как одно вытекает из другого»). Общий мотив —
+   ЗАЛИВНАЯ ТОЧКА, которая растёт: Привычка = точка в петле (повторяю один шаг) → Цель = точка-вершина,
+   к которой поднимаешься (иду к результату) → Круг = та же точка в центре, вокруг неё люди (идём вместе).
+   Монохром, линия + заливные точки — один язык с нашими SVG. Принимают {size,color,strokeWidth}. */
+function BosHabitIcon({ size = 20, color = "currentColor", strokeWidth = 1.8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19.6 12a7.6 7.6 0 1 1-2.3-5.5" />
+      <path d="M19.8 4v3.1h-3.1" />
+      <circle cx="12" cy="12" r="2.4" fill={color} stroke="none" />
+    </svg>
+  );
+}
+function BosGoalIcon({ size = 20, color = "currentColor", strokeWidth = 1.8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21V9.2" />
+      <path d="M7.6 12.8 12 8.4l4.4 4.4" />
+      <circle cx="12" cy="4.7" r="1.9" fill={color} stroke="none" />
+    </svg>
+  );
+}
+function BosCircleIcon({ size = 20, color = "currentColor", strokeWidth = 1.8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8" opacity="0.34" />
+      <circle cx="12" cy="12" r="2.3" fill={color} stroke="none" />
+      <circle cx="12" cy="4.7" r="1.8" fill={color} stroke="none" />
+      <circle cx="18.3" cy="15.65" r="1.8" fill={color} stroke="none" />
+      <circle cx="5.7" cy="15.65" r="1.8" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
 /* «+» (Главная и Привычки) — КЛАССИЧЕСКИЙ стеклянный поповер (David: «нравилась небольшая
-   стеклянная менюшка — привычку или цель, не перегружало; верни»). Три пункта: Привычку / Цель
-   (наши формы-шторки) + тихий третий «Готовый челлендж» → шторка-каталог пресетов по категориям
-   (CreatePickerSheetLive custom={false} — без верхних строк «своё», они уже здесь). */
+   стеклянная менюшка — привычку или цель, не перегружало; верни»). Три пункта: Привычку / Цель / Круг
+   (наши формы-шторки; Круг — эхо формы круга). Иконки — смысловое трио BosHabit/Goal/CircleIcon. */
 function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const _app = (typeof useApp === "function") ? useApp() : null;
@@ -3829,14 +3864,14 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   }, [open]);
   if (!open || !pos) return null;
   const items = [
-    { icon: I.Flame, label: "Привычку", go: () => _openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />) },
-    { icon: I.Flag,  label: "Цель",     go: () => _openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />) },
+    { icon: BosHabitIcon,  label: "Привычку", go: () => _openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />) },
+    { icon: BosGoalIcon,   label: "Цель",     go: () => _openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />) },
     // «Круг» (решение David «вариант Г»): третья дверь создания. ЭХО существующего пути круга —
     // открывает ту же форму, которой Сообщество создаёт круг: форма цели с уже включённым тумблером
     // «идти к цели вместе» (circleOn) → при сохранении bosPromoteGoalToCircle делает настоящий круг.
     // Её вопросы поменяет будущий чип «Сообщество-1»; сейчас задача — заметная дверь. Небольшой
     // отступ (i===2 ниже) отделяет личное (привычка/цель) от совместного (круг).
-    { icon: I.Users, label: "Круг",     go: () => _openSheet(<GoalFormSheetLive mode="create" circleOn={true} navigate={navigate} />) },
+    { icon: BosCircleIcon, label: "Круг", go: () => _openSheet(<GoalFormSheetLive mode="create" circleOn={true} navigate={navigate} />) },
     // «Готовый челлендж» временно убран из меню (David: «убери пока, оставь привычку и цель») —
     // вход в каталог пресетов остаётся ссылкой внутри формы цели. Вернуть = раскомментировать:
     // { icon: I.Bolt,  label: "Готовый челлендж", go: () => { if (typeof CreatePickerSheetLive === "function") _openSheet(<CreatePickerSheetLive navigate={navigate} custom={false} />); } },
@@ -4283,6 +4318,9 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
     // Из шестерёнки в ТРЯСКЕ (placement="bottom") — по ЦЕНТРУ над панелью «Готово», всплывает снизу
     // (David: «должна открываться по центру над Готово, из шестерёнки»). Иначе — под якорем/справа.
     if (placement === "bottom") { setPos({ mode: "bottom" }); }
+    // «bottom-low» — из меню карточки (David 2026-07-11: «оцентрировать и поставить на нижнее меню»):
+    // по центру, прижато к таб-бару (там нет панели «Готово», 150px висело бы в воздухе).
+    else if (placement === "bottom-low") { setPos({ mode: "bottomLow" }); }
     else if (anchorRef && anchorRef.current) { const r = anchorRef.current.getBoundingClientRect(); setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) }); }
     else setPos({ right: 12, top: 78 });
   }, [open, placement]);
@@ -4320,6 +4358,8 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
       <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed",
         ...(pos.mode === "bottom"
           ? { left: "calc(50% - 134px)", bottom: "calc(var(--bos-safe-bottom, 0px) + 150px)", transformOrigin: "bottom center" }
+          : pos.mode === "bottomLow"
+          ? { left: "calc(50% - 134px)", bottom: "calc(var(--bos-safe-bottom, 0px) + 96px)", transformOrigin: "bottom center" }
           : { right: pos.right, top: pos.top, transformOrigin: "top right" }),
         animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 268, padding: 12, borderRadius: 20,
         // Плотный фон (David: «меню не должно быть прозрачным — сбивает, не видно что выбираешь»):
