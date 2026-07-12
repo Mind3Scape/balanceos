@@ -1110,7 +1110,7 @@ function ContactDetailLive() {
     window.bosCloud.netOffers(200).then((all) => {
       if (!on) return;
       const mine = (Array.isArray(all) ? all : []).filter((o) => o && o.owner_id === pid && o.active !== false)
-        .filter((o) => sharedCircle || ((!o.status || o.status === "confirmed") && (!o.visibility || o.visibility === "all")));
+        .filter((o) => sharedCircle || (o.status === "confirmed" && o.visibility === "all"));
       setOffers(mine);
       Promise.all(mine.map((o) => (window.bosCloud.netRoleConfirmations ? window.bosCloud.netRoleConfirmations(o.id) : Promise.resolve([])).then((rc) => rc || []).catch(() => []))).then((arr) => {
         if (!on) return; const ids = {}; arr.forEach((rc) => rc.forEach((x) => { ids[x.confirmer_id] = true; })); setConfIds(Object.keys(ids));
@@ -1206,19 +1206,25 @@ function ContactDetailLive() {
               const lvl = o.min_level || 1;
               const locked = viewerLevel < lvl;
               const isBooked = !!booked[o.id];
+              const isDraft = o.status === "draft";
+              const serverUnavailable = lvl > 1 || (o.price_xp | 0) > 0;
               const priceTxt = (o.price_xp | 0) > 0 ? (o.price_xp + " XP") : "Бесплатно";
               return (
                 <div key={o.id} style={{ background: "var(--card)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)", opacity: locked ? 0.55 : 1 }}>
-                  <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{bosIcon(o.emoji || "🤝", 21, null)}</span>
+                  <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{typeof BosHelpOfferIconLive === "function" ? <BosHelpOfferIconLive offer={o} size={20} /> : null}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{o.title}</span>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{typeof bosHelpOfferTitleText === "function" ? bosHelpOfferTitleText(o) : o.title}</span>
                       {locked && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>🔒 L{lvl}</span>}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{[o.when_text, priceTxt, (o.status === "draft" ? "черновик" : null)].filter(Boolean).join(" · ")}</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    {locked
+                    {isDraft
+                      ? <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "6px 10px" }}>Ждёт подтверждений</span>
+                      : serverUnavailable
+                      ? <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "6px 10px" }}>Пока недоступно</span>
+                      : locked
                       ? <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>с L{lvl}</span>
                       : isBooked
                         ? <button onClick={() => thank(o)} className="tap" style={{ fontSize: 11.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 999, padding: "6px 12px", cursor: "pointer" }}>Спасибо ✦</button>

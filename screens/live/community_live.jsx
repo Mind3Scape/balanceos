@@ -508,10 +508,10 @@ function DiscoveryHelpersSheetLive({ app, navigate, isDark }) {
       {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
       <div style={_dSTitle}>Помогай своим</div>
       <div style={_dSSub}>роль подтверждает твоё окружение — не модерация сверху</div>
-      <div style={{ ..._dSText, textAlign: "center" }}>Любой становится помощником через <b style={{ color: "var(--text)" }}>своё окружение</b>: люди из твоих кругов видели тебя в деле — они и подтверждают роль.</div>
+      <div style={{ ..._dSText, textAlign: "center" }}>Любой становится помощником через <b style={{ color: "var(--text)" }}>своё окружение</b>: люди из твоих кругов знают тебя в этом деле — они и подтверждают роль.</div>
       <div style={{ ..._dSCard, display: "flex", flexDirection: "column", gap: 12 }}>
         {step("1", "Вклад", "Выбери формат из безопасного каталога — что даёшь своим.")}
-        {step("2", "Подтверждение", "2 человека из круга подтверждают роль → формат открывается шире.")}
+        {step("2", "Подтверждение", "2 человека из круга подтверждают, что знают тебя в этой роли.")}
         {step("3", "Просьба", "Круг просит — ты откликаешься. Первое дело у своих.")}
         {step("4", "След пользы", "«Спасибо»-свет от тех, кому помог. Без звёзд-рейтингов.")}
       </div>
@@ -707,23 +707,32 @@ function bosFormatsWord(n) { var a = n % 10, b = n % 100; return (a === 1 && b !
 // Один проход по teamMembers всех моих облачных кругов; пусто/оффлайн → {} (без вспышки).
 function bosUseCircleMembers(app) {
   var teams = ((app && app.teams) || []).filter(function (t) { return t && t.cloudId; });
-  var sig = teams.map(function (t) { return t.cloudId; }).join(",");
-  var _m = React.useState(null), map = _m[0], setMap = _m[1];
-  var _i = React.useState(null), meId = _i[0], setMeId = _i[1];
+  var _r = React.useState(0), rev = _r[0], setRev = _r[1];
+  var uidHint = null; try { uidHint = window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync(); } catch (e) {}
+  var sig = teams.map(function (t) { return [t.cloudId, t.name || ""].join(":"); }).join(",") + "|" + (uidHint || "") + "|" + rev;
+  var _s = React.useState({ status: "loading", map: null, meId: null, key: null }), state = _s[0], setState = _s[1];
   React.useEffect(function () {
-    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers) || !teams.length) { setMap({}); return; }
+    if (!teams.length) { setState({ status: "ready", map: {}, meId: uidHint || null, key: sig }); return; }
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembersStrict)) { setState({ status: "error", map: {}, meId: null, key: sig }); return; }
     var on = true;
-    window.bosCloud.uid().then(function (id) { if (on) setMeId(id || null); }).catch(function () {});
-    Promise.all(teams.map(function (t) { return window.bosCloud.teamMembers(t.cloudId).then(function (mem) { return { t: t, mem: Array.isArray(mem) ? mem : [] }; }).catch(function () { return { t: t, mem: [] }; }); }))
-      .then(function (res) {
+    setState({ status: "loading", map: null, meId: uidHint || null, key: sig });
+    Promise.all([
+      window.bosCloud.uid().catch(function () { return null; }),
+      Promise.all(teams.map(function (t) { return window.bosCloud.teamMembersStrict(t.cloudId).then(function (r) { return { t: t, status: r && r.status, mem: (r && r.people) || [] }; }).catch(function () { return { t: t, status: "error", mem: [] }; }); }))
+    ]).then(function (all) {
         if (!on) return;
-        var m = {};
-        res.forEach(function (r) { r.mem.forEach(function (p) { if (p && p.id && !m[p.id]) m[p.id] = { name: p.name || "Участник", avatar: p.avatar, teamName: r.t.name }; }); });
-        setMap(m);
+        var meId = all[0] || null, res = all[1] || [], m = {}, failed = 0;
+        if (!meId) { setState({ status: "error", map: {}, meId: null, key: sig }); return; }
+        res.forEach(function (r) {
+          if (r.status !== "ready") failed++;
+          r.mem.forEach(function (p) { if (p && p.id && p.id !== meId && !m[p.id]) m[p.id] = { name: p.name || "Участник", avatar: p.avatar, teamName: r.t.name }; });
+        });
+        setState({ status: failed === 0 ? "ready" : (failed < res.length ? "partial" : "error"), map: m, meId: meId, key: sig });
       });
     return function () { on = false; };
   }, [sig]);
-  return { map: map, meId: meId };
+  var safe = state.key === sig ? state : { status: "loading", map: null, meId: uidHint || null };
+  return { status: safe.status, map: safe.map, meId: safe.meId, refresh: function () { setRev(function (n) { return n + 1; }); } };
 }
 
 // ── «ПОДХОДИТ СЕЙЧАС» — рекомендация из публичных кругов, ВСЕГДА с причиной ──
@@ -781,12 +790,24 @@ function MyCirclesLive({ app, navigate, isDark, onAll }) {
   );
 }
 
-// ── «ПОМОЩЬ КРУГА» — вклады людей ИЗ ТВОИХ КРУГОВ (свои без замка L10), лица + имена ──
-// netOffers читается всеми (RLS using(true)); фильтруем по owner_id ∈ участники моих кругов.
+// ── «ПОМОЩЬ ОТ СВОИХ» — общие круги + прямые друзья, лица + имена ──
+// netOffers уже ограничен серверным RLS; здесь тот же owner-scope, что в Балансе
+// окружения, поэтому найденная там помощь не исчезает после перехода.
 // Факты доверия ✓подтверждения/✦следы появятся в Э2/Э4 — пока показываем ТОЛЬКО реальное
 // (время/онлайн, места, «показана: круг …»), без выдуманных чисел. Пусто → блок скрыт.
 function CircleHelpLive({ app, navigate, isDark }) {
-  var cm = bosUseCircleMembers(app), map = cm.map, meId = cm.meId;
+  var cm = bosUseCircleMembers(app), directState = bosEnvUsePeople(), meId = cm.meId;
+  var map = null;
+  if (cm.map || Array.isArray(directState.people)) {
+    map = {};
+    (Array.isArray(directState.people) ? directState.people : []).forEach(function (p) { if (p && p.id) map[p.id] = { name: p.name || "Друг", avatar: p.avatar, teamName: null, direct: true }; });
+    Object.keys(cm.map || {}).forEach(function (id) { map[id] = cm.map[id]; });
+  }
+  var focusOwners = app && app.communityView && Array.isArray(app.communityView.helpOwnerIds) ? app.communityView.helpOwnerIds : null;
+  var focusOffers = app && app.communityView && Array.isArray(app.communityView.helpOfferIds) ? app.communityView.helpOfferIds : null;
+  var focusSig = (focusOwners || []).join(",") + "|" + (focusOffers || []).join(",");
+  var focusCircleOwners = (focusOwners || []).filter(function (id) { return cm.map && cm.map[id]; });
+  var circleSig = focusCircleOwners.join(",");
   var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
   var _cf = React.useState({}), confs = _cf[0], setConfs = _cf[1]; // offerId -> { n, mine }
   var _mt = React.useState({}), meta = _mt[0], setMeta = _mt[1];   // offerId -> { thanksN, booked, thanked, week }
@@ -795,10 +816,13 @@ function CircleHelpLive({ app, navigate, isDark }) {
   React.useEffect(function () {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netOffers)) { setOffers([]); return; }
     var on = true;
-    window.bosCloud.netOffers(200).then(function (all) { if (on) setOffers(Array.isArray(all) ? all : []); }).catch(function () { if (on) setOffers([]); });
+    var load = focusOwners && focusOwners.length && window.bosCloud.netConfirmedOffersByOwners
+      ? window.bosCloud.netConfirmedOffersByOwners(focusOwners, focusCircleOwners).then(function (r) { return (r && r.offers) || []; })
+      : window.bosCloud.netOffers(200);
+    load.then(function (all) { if (on) setOffers(Array.isArray(all) ? all : []); }).catch(function () { if (on) setOffers([]); });
     return function () { on = false; };
-  }, []);
-  var shown = (map && offers) ? offers.filter(function (o) { return o && o.owner_id && o.owner_id !== meId && map[o.owner_id] && o.active !== false; }).slice(0, 3) : [];
+  }, [tick, focusSig, circleSig]);
+  var shown = (map && offers) ? offers.filter(function (o) { return o && o.owner_id && o.owner_id !== meId && map[o.owner_id] && o.active !== false && (!focusOffers || !focusOffers.length || focusOffers.indexOf(o.id) >= 0); }).slice(0, focusOffers && focusOffers.length ? 6 : 3) : [];
   var shownSig = shown.map(function (o) { return o.id; }).join(",");
   React.useEffect(function () {
     if (!shown.length || !(window.bosCloud && window.bosCloud.netRoleConfirmations)) return;
@@ -826,11 +850,11 @@ function CircleHelpLive({ app, navigate, isDark }) {
     if (!window.bosCloud || !window.bosCloud.netConfirmRole) return;
     setConfs(function (m) { var n = Object.assign({}, m); var cur = n[o.id] || { n: 0, mine: false }; n[o.id] = { n: cur.n + 1, mine: true }; return n; }); // оптимистично
     if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
-    window.bosCloud.netConfirmRole(o.id).then(function (ok) { if (ok === false) setTick(function (n) { return n + 1; }); });
+    window.bosCloud.netConfirmRole(o.id).then(function () { setTick(function (n) { return n + 1; }); });
   };
   return (
-    <div>
-      <CommSectionHeadLive title="🤝 Помощь круга" onAll={null} />
+    <div data-community-section="circle-help" style={{ scrollMarginTop: 12 }}>
+      <CommSectionHeadLive title="Помощь от своих" onAll={null} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
         {shown.map(function (o) {
           var p = map[o.owner_id];
@@ -838,7 +862,7 @@ function CircleHelpLive({ app, navigate, isDark }) {
           var person = { ownerId: o.owner_id, avatar: p.avatar, level: null, offers: [o] };
           var cf = confs[o.id] || { n: 0, mine: false };
           var mt = meta[o.id] || { thanksN: 0, booked: false, thanked: false };
-          var isDraft = o.status === "draft"; // подтверждён (или до-SQL легаси) → сразу «Попросить»
+          var isDraft = o.status === "draft";
           var canConfirm = isDraft && !cf.mine;
           var canThank = mt.booked && !mt.thanked; // я бронировал и ещё не оставил след
           var facts = [o.when_text, slots + " " + bosSlotsWord(slots)];
@@ -846,17 +870,21 @@ function CircleHelpLive({ app, navigate, isDark }) {
           if (mt.thanksN > 0) facts.push("✦ " + mt.thanksN);
           return (
             <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "13px 14px", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>
-              <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("contact-detail", { person: { id: o.owner_id, name: p.name, avatar: p.avatar, teamName: p.teamName, from: "community" } }); }} className="tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", textAlign: "left", cursor: "pointer", color: "var(--text)", padding: 0 }}>
+              <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (o.kind === "skill_offer") navigate("net-person", { person: { ownerId: o.owner_id, name: p.name, avatar: p.avatar, level: null, offers: [o] } }); else navigate("contact-detail", { person: { id: o.owner_id, name: p.name, avatar: p.avatar, teamName: p.teamName, from: "community" } }); }} className="tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", textAlign: "left", cursor: "pointer", color: "var(--text)", padding: 0 }}>
                 <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || "").split(" ")[0]} · {o.title}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || "").split(" ")[0]} · {typeof bosHelpOfferTitleText === "function" ? bosHelpOfferTitleText(o) : o.title}</div>
                   <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>{facts.filter(Boolean).join(" · ")}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>Показана: круг «{p.teamName}»{isDraft ? " · черновик" : ""}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>{p.teamName ? ("Общий круг · «" + p.teamName + "»") : "Прямой контакт"}{isDraft ? " · черновик" : ""}</div>
                 </div>
               </button>
               {canConfirm
                 ? <button onClick={function () { confirmRole(o); }} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Подтвердить</button>
-                : canThank
+                : isDraft
+                  ? <span style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-4)", borderRadius: 999, padding: "8px 12px", fontSize: 11.5, fontWeight: 700 }}>{cf.mine ? "Ты подтвердил" : "Ждёт подтверждений"}</span>
+                : o.kind === "skill_offer"
+                  ? <button onClick={function () { if (typeof NetworkRequestSheetLive === "function") s.open(<NetworkRequestSheetLive person={{ ownerId: o.owner_id, name: p.name, avatar: p.avatar }} offer={o} />); }} className="tap" style={{ flexShrink: 0, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Запросить</button>
+                  : canThank
                   ? <button onClick={function () { s.open(<ThanksSheetLive offerId={o.id} toId={o.owner_id} toName={p.name} week={mt.week} onDone={function () { setTick(function (n) { return n + 1; }); }} />); }} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Спасибо ✦</button>
                   : <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("contact-detail", { person: { id: o.owner_id, name: p.name, avatar: p.avatar, teamName: p.teamName, from: "community" } }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Попросить</button>}
             </div>
@@ -879,7 +907,7 @@ function MyContributionStatusLive({ app, navigate, isDark }) {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) { setOffers([]); return; }
     var on = true;
     window.bosCloud.netMyOffers().then(function (mine) {
-      if (!on) return; mine = Array.isArray(mine) ? mine : []; setOffers(mine);
+      if (!on) return; mine = (Array.isArray(mine) ? mine : []).filter(function (o) { return !o.kind || o.kind === "circle_support"; }); setOffers(mine);
       var first = mine.filter(function (o) { return o && o.active !== false; })[0];
       if (first && window.bosCloud.netRoleConfirmations) window.bosCloud.netRoleConfirmations(first.id).then(function (rc) { if (on) setConfN((rc || []).length); }); else setConfN(0);
       if (first && window.bosCloud.netOfferThanks) window.bosCloud.netOfferThanks(first.id).then(function (th) { if (on) setThanksN((th && th.n) || 0); });
@@ -887,7 +915,8 @@ function MyContributionStatusLive({ app, navigate, isDark }) {
     return function () { on = false; };
   }, [tick]);
   if (offers === null) return null;
-  var open = function (offer) { if (typeof AddHelpFormatSheetLive === "function") s.open(<AddHelpFormatSheetLive app={app} offer={offer} onDone={function () { setTick(function (n) { return n + 1; }); }} />); };
+  var refreshed = function () { setTick(function (n) { return n + 1; }); };
+  var open = function (offer) { if (typeof AddHelpFormatSheetLive === "function") s.open(<AddHelpFormatSheetLive app={app} offer={offer} onDone={refreshed} />); };
   var active = offers.filter(function (o) { return o && o.active !== false; });
   var goldCard = { background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)", border: "1px solid rgba(239,159,20,0.35)" };
   var shield = <svg width="12" height="12" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 2l8 3.5v5.2c0 5-3.4 9.6-8 11.3-4.6-1.7-8-6.3-8-11.3V5.5L12 2z" /></svg>;
@@ -904,7 +933,7 @@ function MyContributionStatusLive({ app, navigate, isDark }) {
   var first = active[0];
   var n = confN == null ? 0 : confN;
   var confirmed = first.status === "confirmed" || n >= 2;
-  var statusKick = confirmed ? "Мой вклад · открыт кругам" : "Мой вклад · черновик в ближнем круге";
+  var statusKick = confirmed ? "Мой вклад · подтверждён" : "Мой вклад · черновик для общих кругов";
   var traces = thanksN > 0 ? (" · ✦ " + thanksN + " " + (thanksN === 1 ? "след пользы" : (thanksN < 5 ? "следа пользы" : "следов пользы"))) : "";
   var sub = (confirmed ? "Роль подтверждена · дальше: первое дело у своих" : (n + " из 2 подтверждений · дальше: первое дело у своих")) + traces;
   return (
@@ -912,27 +941,38 @@ function MyContributionStatusLive({ app, navigate, isDark }) {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 800, letterSpacing: 0.5, color: "#9a6800", textTransform: "uppercase" }}>{shield} {statusKick}</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.title}</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3 }}>{sub}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{typeof bosHelpOfferTitleText === "function" ? bosHelpOfferTitleText(first) : first.title}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3 }}>{sub}{active.length > 1 ? (" · ещё " + (active.length - 1)) : ""}</div>
         </div>
-        <button onClick={function () { open(first); }} className="tap" data-haptic="selection" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Изменить</button>
+        <button onClick={function () { active.length > 1 && typeof HelpFormatsManageSheetLive === "function" ? s.open(<HelpFormatsManageSheetLive app={app} offers={active} onDone={refreshed} />) : open(first); }} className="tap" data-haptic="selection" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{active.length > 1 ? "Управлять" : "Изменить"}</button>
       </div>
     </div>
   );
 }
 
 // ═════ Э2 · ШТОРКА «Добавить формат помощи» (валидация окружением) ═════════════════
-// Безопасный каталог + границы + «Кто может подтвердить эту роль?» (лица из кругов) → сохранить:
-// черновик (visibility='circles', status='draft'), 2 подтверждения → confirmed. Каталог из дока §1.
+// Безопасный каталог + границы + круг потенциальных подтверждающих → сохранить черновик.
+// Никакого фиктивного «запроса»: участники сами подтверждают только знакомую им роль.
 var BOS_HELP_CATALOG = [
-  { key: "habit",   i: "🌱", t: "Поддержать привычку" },
-  { key: "walk",    i: "🚶", t: "Позвать на прогулку" },
-  { key: "return",  i: "🔄", t: "Помочь вернуться в ритм" },
-  { key: "workout", i: "🏃", t: "Провести первую тренировку" },
-  { key: "breath",  i: "🧘", t: "Провести дыхание или медитацию" },
-  { key: "week",    i: "🗓️", t: "Разобрать неделю" },
-  { key: "meet",    i: "🤝", t: "Собрать маленькую встречу" },
+  { key: "habit",   i: "🌱", icon: "Leaf",     t: "Поддержать привычку" },
+  { key: "walk",    i: "🚶", icon: "Foot",     t: "Позвать на прогулку" },
+  { key: "return",  i: "🔄", icon: "Refresh",  t: "Помочь вернуться в ритм" },
+  { key: "workout", i: "🏃", icon: "Dumbbell", t: "Провести первую тренировку" },
+  { key: "breath",  i: "🧘", icon: "Moon",     t: "Провести дыхание или медитацию" },
+  { key: "week",    i: "🗓️", icon: "Calendar", t: "Разобрать неделю" },
+  { key: "meet",    i: "🤝", icon: "Users",    t: "Собрать маленькую встречу" },
+  { key: "skill",   i: "💡", icon: "Bulb",     t: "Показать навык на практике" },
+  { key: "focus",   i: "⏱️", icon: "Clock",    t: "Провести совместный фокус-час" },
+  { key: "task",    i: "🎯", icon: "Target",   t: "Разобрать конкретную задачу" },
 ];
+// «Показать навык» оставлен только для редактирования legacy-строк. Новый навык создаётся
+// отдельно в «Мои навыки»: круговая поддержка и профессиональная способность больше не смешаны.
+var BOS_CIRCLE_SUPPORT_CATALOG = BOS_HELP_CATALOG.filter(function (c) { return c.key !== "skill"; });
+var BOS_HELP_SKILL_PRESETS = ["Медитация", "Бег", "Силовые тренировки", "Планирование", "Фокус и работа", "Публичные выступления", "Дизайн", "Языковая практика"];
+function bosHelpDraftUuid() {
+  try { if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 3 | 8); return v.toString(16); });
+}
 
 function AddHelpFormatSheetLive({ app, offer, onDone }) {
   var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
@@ -940,92 +980,168 @@ function AddHelpFormatSheetLive({ app, offer, onDone }) {
   var cm = bosUseCircleMembers(app);
   var members = (cm.map ? Object.keys(cm.map) : []).filter(function (id) { return id !== cm.meId; }).map(function (id) { return { id: id, name: cm.map[id].name, avatar: cm.map[id].avatar }; });
   var initCat = BOS_HELP_CATALOG.filter(function (c) { return offer && c.t === offer.title; })[0];
-  var _c = React.useState(initCat ? initCat.key : (editing ? "" : "habit")); var catKey = _c[0], setCatKey = _c[1];
-  var _m = React.useState(20); var mins = _m[0], setMins = _m[1];
-  var _p = React.useState("онлайн"); var place = _p[0], setPlace = _p[1];
-  var _pk = React.useState({}); var picked = _pk[0], setPicked = _pk[1];
+  var initMins = offer && parseInt(offer.when_text, 10); if ([15, 20, 30].indexOf(initMins) < 0) initMins = 20;
+  var initPlace = offer && ("" + (offer.when_text || "")).toLowerCase().indexOf("рядом") >= 0 ? "рядом" : "онлайн";
+  var initSlots = offer && parseInt(offer.slots_week, 10); if ([1, 2, 3].indexOf(initSlots) < 0) initSlots = 2;
+  var initSkill = "Медитация";
+  if (offer && offer.descr) { var sd = ("" + offer.descr).replace(/^Навык\s*·\s*/, ""); if (BOS_HELP_SKILL_PRESETS.indexOf(sd) >= 0) initSkill = sd; }
+  var _c = React.useState(initCat ? initCat.key : (editing ? "legacy" : "habit")); var catKey = _c[0], setCatKey = _c[1];
+  var _di = React.useState(function () { return (offer && offer.id) || bosHelpDraftUuid(); }); var draftId = _di[0];
+  var _m = React.useState(initMins); var mins = _m[0], setMins = _m[1];
+  var _p = React.useState(initPlace); var place = _p[0], setPlace = _p[1];
+  var _sl = React.useState(initSlots); var slots = _sl[0], setSlots = _sl[1];
+  var _sk = React.useState(initSkill); var skillName = _sk[0], setSkillName = _sk[1];
   var _b = React.useState(false); var busy = _b[0], setBusy = _b[1];
-  var cat = BOS_HELP_CATALOG.filter(function (c) { return c.key === catKey; })[0];
-  var togMin = function () { setMins(function (m) { return m === 15 ? 20 : m === 20 ? 30 : 15; }); };
-  var togPlace = function () { setPlace(function (p) { return p === "онлайн" ? "рядом" : "онлайн"; }); };
-  var togPick = function (id) { setPicked(function (m) { var n = Object.assign({}, m); if (n[id]) delete n[id]; else if (Object.keys(n).length < 3) n[id] = true; return n; }); };
+  var _er = React.useState(""); var saveError = _er[0], setSaveError = _er[1];
+  var cat = BOS_HELP_CATALOG.filter(function (c) { return c.key === catKey; })[0]
+    || (editing ? { key: "legacy", i: offer.emoji || "✨", icon: "Heart", t: offer.title || "Формат помощи" } : null);
+  var confirmed = !!(offer && offer.status === "confirmed");
   var save = async function () {
-    if (!cat || busy) return; setBusy(true);
+    if (!cat || busy) return; setBusy(true); setSaveError("");
     var when = mins + " мин · " + place, row = null;
     // min_level=1: вклад для СВОИХ — без замка L10 на бронь (помощь своим не рынок). Рынок «всех»
     // (visibility='all') гейтит уровень публикации отдельно, а не эту запись.
-    try { row = await window.bosCloud.netUpsertOffer({ id: offer && offer.id, emoji: cat.i, title: cat.t, descr: "", price_xp: 0, slots_week: 2, when_text: when, min_level: 1, visibility: "circles", status: (offer && offer.status) || "draft", active: true }); } catch (e) {}
-    try { var oid = (row && row.id) || (offer && offer.id); if (oid) localStorage.setItem("bos:offerAsked:" + oid, JSON.stringify(Object.keys(picked))); } catch (e) {}
-    setBusy(false); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } if (onDone) onDone(); s.close();
+    var descr = cat.key === "skill" ? ("Навык · " + skillName) : "";
+    try { if (window.bosCloud && window.bosCloud.netUpsertOffer) row = await window.bosCloud.netUpsertOffer({ id: draftId, existing: editing, emoji: cat.i, title: cat.t, descr: descr, price_xp: 0, slots_week: slots, when_text: when, min_level: 1, visibility: (offer && offer.visibility) || "circles", status: (offer && offer.status) || "draft", active: true }); } catch (e) {}
+    if (!row) {
+      setBusy(false); setSaveError("Не удалось сохранить. Проверь соединение и попробуй ещё раз.");
+      if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
+      return;
+    }
+    setBusy(false); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } if (onDone) onDone(row); s.close();
   };
   var kick = { fontSize: 11, fontWeight: 800, letterSpacing: 0.6, color: "var(--text-4)", textTransform: "uppercase", padding: "16px 2px 8px" };
-  var chipOn = { background: "rgba(254,222,52,0.28)", border: "1px solid #EF9F14", color: "var(--text)", borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 600 };
+  var boundaryChoice = function (on) { return { minHeight: 44, flex: 1, border: on ? "1px solid #EF9F14" : "1px solid transparent", background: on ? "rgba(254,222,52,0.24)" : "var(--surface-3)", color: on ? "var(--text)" : "var(--text-3)", borderRadius: 13, padding: "8px 7px", fontSize: 12.5, fontWeight: on ? 750 : 600, cursor: "pointer" }; };
+  var CurrentIcon = cat && typeof I !== "undefined" && I[cat.icon];
   return (
     <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
       {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
-      <div style={_dSTitle}>Добавить формат помощи</div>
-      <div style={_dSSub}>безопасный каталог · роль подтверждает твоё окружение</div>
+      <div style={_dSTitle}>{editing ? "Настроить поддержку" : "Как ты поддержишь своих"}</div>
+      <div style={_dSSub}>коротко, бесплатно и только для людей из общих кругов</div>
 
-      <div style={kick}>Как ты можешь помочь?</div>
-      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
-        {BOS_HELP_CATALOG.map(function (c, i) {
+      <div style={kick}>Что ты готов делать</div>
+      <div role={editing ? undefined : "radiogroup"} aria-label="Формат помощи" style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+        {editing ? (
+          <div style={{ minHeight: 56, display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
+            <span style={{ width: 30, height: 30, borderRadius: 10, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{CurrentIcon ? <CurrentIcon size={16} color="var(--text-2)" /> : null}</span>
+            <span style={{ flex: 1 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>{cat.t}</span><span style={{ display: "block", fontSize: 11, color: "var(--text-4)", marginTop: 2 }}>Другой навык или роль — отдельный формат</span></span>
+          </div>
+        ) : BOS_CIRCLE_SUPPORT_CATALOG.map(function (c, i) {
           var on = c.key === catKey;
+          var CatIcon = typeof I !== "undefined" && I[c.icon];
           return (
-            <button key={c.key} onClick={function () { setCatKey(c.key); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, background: "transparent", textAlign: "left", cursor: "pointer", color: on ? "var(--text)" : "var(--text-3)", fontWeight: on ? 700 : 600 }}>
-              <span style={{ width: 30, height: 30, borderRadius: 10, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{c.i}</span>
+            <button key={c.key} role="radio" aria-checked={on} onClick={function () { setCatKey(c.key); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap hit44" style={{ minHeight: 54, width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, background: "transparent", textAlign: "left", cursor: "pointer", color: on ? "var(--text)" : "var(--text-3)", fontWeight: on ? 700 : 600 }}>
+              <span style={{ width: 30, height: 30, borderRadius: 10, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{CatIcon ? <CatIcon size={16} color="var(--text-2)" /> : null}</span>
               <span style={{ flex: 1, fontSize: 14.5 }}>{c.t}</span>
-              <span style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: on ? "#EF9F14" : "transparent", border: on ? 0 : "1.5px solid var(--line)" }}>{on && <svg width="12" height="12" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
+              <span style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: on ? "#FEDE34" : "transparent", border: on ? "1px solid #EF9F14" : "1.5px solid var(--line)" }}>{on && <svg width="12" height="12" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#0a0a0a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
             </button>
           );
         })}
       </div>
 
-      <div style={kick}>Границы формата</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-        <button onClick={togMin} className="tap" style={{ ...chipOn, cursor: "pointer" }}>{mins} минут</button>
-        <button onClick={togPlace} className="tap" style={{ ...chipOn, cursor: "pointer" }}>{place}</button>
-        <span style={chipOn}>2 места в неделю</span>
-        <span style={chipOn}>Сначала ближний круг</span>
-        <span style={chipOn}>Без обещаний результата</span>
-      </div>
-      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, padding: "8px 2px 0" }}>Без медицины, терапии и финансов — каталог только из безопасных форматов.</div>
+      {cat && cat.key === "skill" ? (
+        <React.Fragment>
+          <div style={kick}>Какой навык</div>
+          {editing ? <div style={{ minHeight: 48, display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", borderRadius: 15, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>{typeof I !== "undefined" && I.Bulb ? <I.Bulb size={17} color="var(--text-2)" /> : null}<span style={{ fontSize: 13.5, fontWeight: 700 }}>{skillName}</span></div>
+            : <div role="radiogroup" aria-label="Навык" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+              {BOS_HELP_SKILL_PRESETS.map(function (name) { var on = skillName === name; return <button key={name} role="radio" aria-checked={on} onClick={function () { setSkillName(name); }} className="tap hit44" style={{ minHeight: 44, border: on ? "1px solid #EF9F14" : "1px solid transparent", borderRadius: 13, background: on ? "rgba(254,222,52,0.24)" : "var(--card)", color: on ? "var(--text)" : "var(--text-3)", boxShadow: "var(--card-shadow)", padding: "8px 9px", fontSize: 12, fontWeight: on ? 750 : 600, textAlign: "left", cursor: "pointer" }}>{name}</button>; })}
+            </div>}
+        </React.Fragment>
+      ) : null}
 
-      <div style={kick}>Кто может подтвердить эту роль?</div>
-      {members.length ? (
+      <div style={kick}>Границы формата</div>
+      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: 12 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 7 }}>Длительность</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[15, 20, 30].map(function (v) { return <button key={v} onClick={function () { setMins(v); }} className="tap hit44" aria-pressed={mins === v} style={boundaryChoice(mins === v)}>{v} мин</button>; })}
+        </div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", margin: "12px 0 7px" }}>Где</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["онлайн", "рядом"].map(function (v) { return <button key={v} onClick={function () { setPlace(v); }} className="tap hit44" aria-pressed={place === v} style={boundaryChoice(place === v)}>{v === "онлайн" ? "Онлайн" : "Рядом"}</button>; })}
+        </div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", margin: "12px 0 7px" }}>Мест в неделю</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[1, 2, 3].map(function (v) { return <button key={v} onClick={function () { setSlots(v); }} className="tap hit44" aria-pressed={slots === v} style={boundaryChoice(slots === v)}>{v}</button>; })}
+        </div>
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, padding: "9px 2px 0" }}>Это не объявление об услуге и не доказательство навыка. Формат видят только общие круги; без медицины, терапии, финансов и обещаний результата.</div>
+
+      <div style={kick}>Кто сможет подтвердить роль</div>
+      {cm.status === "loading" ? (
+        <div style={{ minHeight: 44, display: "flex", alignItems: "center", gap: 8, color: "var(--text-4)", fontSize: 12.5 }}>{typeof I !== "undefined" && I.Refresh ? <I.Refresh size={14} color="var(--text-4)" /> : null}Проверяем общие круги…</div>
+      ) : cm.status === "error" ? (
+        <div style={{ padding: "10px 12px", borderRadius: 14, background: "var(--surface-3)" }}>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Не удалось обновить круги. Черновик сохранить можно, но список подтверждающих пока неизвестен.</div>
+          <button onClick={cm.refresh} className="tap hit44" style={{ minHeight: 44, marginTop: 6, padding: 0, border: 0, background: "transparent", color: "var(--text-2)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Попробовать ещё раз</button>
+        </div>
+      ) : members.length ? (
         <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "2px 2px 4px" }}>
           {members.slice(0, 10).map(function (p) {
-            var on = !!picked[p.id];
             return (
-              <button key={p.id} onClick={function () { togPick(p.id); }} className="tap" data-no-haptic style={{ flexShrink: 0, border: 0, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: 56 }}>
-                <span style={{ position: "relative", borderRadius: "50%", boxShadow: on ? "0 0 0 2px var(--card), 0 0 0 4px #EF9F14" : "none" }}>
+              <div key={p.id} style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: 56 }}>
+                <span style={{ position: "relative", borderRadius: "50%" }}>
                   <BuddyFaceLive avatar={p.avatar} name={p.name} size={44} />
-                  <span style={{ position: "absolute", right: -2, bottom: -2, width: 18, height: 18, borderRadius: "50%", background: on ? "#EF9F14" : "var(--surface-3)", border: "2px solid var(--card)", display: "grid", placeItems: "center" }}>{on ? <svg width="9" height="9" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>}</span>
                 </span>
                 <span style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 56, textAlign: "center" }}>{(p.name || "").split(" ")[0]}</span>
-              </button>
+              </div>
             );
           })}
         </div>
       ) : (
         <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, padding: "0 2px" }}>Появится, когда у тебя будут круги с людьми — они и подтвердят роль. Пока можно сохранить черновик.</div>
       )}
-      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, padding: "8px 2px 0" }}>Люди из твоих кругов, которые видели тебя в этом деле.</div>
+      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, padding: "8px 2px 0" }}>{cm.status === "partial" ? "Показаны не все круги. " : ""}Участник общего круга подтверждает, что знает тебя в этой роли. Сейчас никому ничего не отправляем.</div>
 
       <div style={{ marginTop: 14, background: "var(--card)", border: "1px solid rgba(239,159,20,0.35)", borderRadius: 16, padding: 13, display: "flex", alignItems: "center", gap: 11 }}>
-        <span style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17 }}>🌙</span>
+        <span style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", flexShrink: 0 }}>{typeof I !== "undefined" && I.Moon ? <I.Moon size={17} color="#0a0a0a" /> : null}</span>
         <div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>Черновик в ближнем круге</div>
-          <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.35 }}>2 подтверждения → первое действие → след пользы → шире</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{confirmed ? "Поддержка подтверждена кругом" : "Черновик для общих кругов"}</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.35 }}>{confirmed ? "После дела обе стороны отметят, что оно состоялось" : "Два участника подтверждают, что ты действительно готов так помогать"}</div>
         </div>
       </div>
 
-      <button onClick={save} disabled={!cat || busy} className="tap" style={{ width: "100%", marginTop: 14, marginBottom: 8, border: 0, background: cat ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "var(--surface-3)", color: cat ? "#0a0a0a" : "var(--text-4)", fontSize: 15, fontWeight: 800, borderRadius: 16, padding: 14, cursor: cat ? "pointer" : "default", boxShadow: cat ? "0 6px 16px rgba(239,159,20,0.32)" : "none" }}>{editing ? "Сохранить формат" : "Сохранить и запросить подтверждения"}</button>
+      {saveError ? <div role="alert" style={{ marginTop: 12, padding: "10px 12px", borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#D14338", fontSize: 12, lineHeight: 1.4 }}>{saveError}</div> : null}
+      <button onClick={save} disabled={!cat || busy} aria-busy={busy} className="tap hit44" style={{ minHeight: 48, width: "100%", marginTop: 14, marginBottom: 8, border: 0, background: cat ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "var(--surface-3)", color: cat ? "#0a0a0a" : "var(--text-4)", fontSize: 15, fontWeight: 800, borderRadius: 16, padding: 14, cursor: cat ? "pointer" : "default", boxShadow: cat ? "0 6px 16px rgba(239,159,20,0.32)" : "none" }}>{busy ? "Сохраняем…" : editing ? "Сохранить поддержку" : "Сохранить для своих"}</button>
     </div>
   );
 }
 
-// ── «ТВОЙ ПУТЬ ПОМОЩНИКА» — лесенка валидации (на «Люди», до L10) ──
-// Формат ✓ → Подтверждения круга N/2 (лица) → Первое дело → Следы → Нетворк L10.
+// Несколько ролей не прячем за общей лентой: это короткий личный менеджер.
+// Каждая строка открывает тот же безопасный редактор; новая роль создаётся отдельно,
+// поэтому уже собранные подтверждения никогда не переносятся на другой навык.
+function HelpFormatsManageSheetLive({ app, offers, onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var active = (Array.isArray(offers) ? offers : []).filter(function (o) { return o && o.active !== false; });
+  var edit = function (offer) {
+    if (typeof AddHelpFormatSheetLive !== "function") return;
+    s.open(<AddHelpFormatSheetLive app={app} offer={offer || null} onDone={onDone} />);
+  };
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Твои форматы помощи</div>
+      <div style={_dSSub}>каждая роль — отдельный понятный формат для общих кругов</div>
+      <div style={{ marginTop: 16, background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+        {active.map(function (o, i) {
+          var title = typeof bosHelpOfferTitleText === "function" ? bosHelpOfferTitleText(o) : o.title;
+          var sub = [o.status === "confirmed" ? "подтверждён" : "черновик", o.when_text, (o.slots_week || 1) + " " + bosSlotsWord(Math.max(1, o.slots_week || 1))].filter(Boolean).join(" · ");
+          return (
+            <button key={o.id || i} onClick={function () { edit(o); }} className="tap hit44" style={{ minHeight: 64, width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "10px 13px", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, background: "transparent", textAlign: "left", color: "var(--text)", cursor: "pointer" }}>
+              <span style={{ width: 36, height: 36, borderRadius: 12, display: "grid", placeItems: "center", flexShrink: 0, background: "var(--surface-3)" }}>{typeof BosHelpOfferIconLive === "function" ? <BosHelpOfferIconLive offer={o} size={18} /> : null}</span>
+              <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span><span style={{ display: "block", fontSize: 11, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span></span>
+              {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={16} color="var(--text-4)" /> : null}
+            </button>
+          );
+        })}
+      </div>
+      <button onClick={function () { edit(null); }} className="tap hit44" style={{ minHeight: 48, width: "100%", marginTop: 12, marginBottom: 8, border: 0, borderRadius: 16, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 14.5, fontWeight: 800, cursor: "pointer", boxShadow: "0 6px 16px rgba(239,159,20,0.28)" }}>Добавить ещё один формат</button>
+    </div>
+  );
+}
+
+// ── «ТВОЙ ПУТЬ ПОМОЩНИКА» — лесенка надёжности для своих ──
+// Поддержка не превращается в «услугу» автоматически. Она даёт опыт реальных дел;
+// если дело связано с отдельным навыком, оно становится доказательством этого навыка.
 function HelperPathLive({ app, navigate, isDark }) {
   var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
   var cm = bosUseCircleMembers(app);
@@ -1037,7 +1153,7 @@ function HelperPathLive({ app, navigate, isDark }) {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) { setOffers([]); return; }
     var on = true;
     window.bosCloud.netMyOffers().then(function (mine) {
-      if (!on) return; mine = Array.isArray(mine) ? mine : []; setOffers(mine);
+      if (!on) return; mine = (Array.isArray(mine) ? mine : []).filter(function (o) { return !o.kind || o.kind === "circle_support"; }); setOffers(mine);
       var first = mine.filter(function (o) { return o && o.active !== false; })[0];
       if (first && window.bosCloud.netRoleConfirmations) window.bosCloud.netRoleConfirmations(first.id).then(function (rc) { if (on) setConfIds((rc || []).map(function (x) { return x.confirmer_id; })); });
       if (first && window.bosCloud.netOfferThanks) window.bosCloud.netOfferThanks(first.id).then(function (th) { if (on) setThanksN((th && th.n) || 0); });
@@ -1057,11 +1173,11 @@ function HelperPathLive({ app, navigate, isDark }) {
   var confSub = !first ? "2 человека из круга подтвердят роль"
     : (confN + " из 2" + (confFaces.length ? " · " + confFaces.map(fn).join(", ") + " подтвердил" + (confFaces.length > 1 ? "и" : "а") : "") + (waitFaces.length ? " · ждём " + waitFaces.map(fn).join(", ") : ""));
   var steps = [
-    { st: first ? "done" : "now", t: "Формат выбран", d: first ? (first.title + " · черновик у ближнего круга") : "Выбери формат из безопасного каталога", cta: !first },
+    { st: first ? "done" : "now", t: "Формат выбран", d: first ? ((typeof bosHelpOfferTitleText === "function" ? bosHelpOfferTitleText(first) : first.title) + " · черновик для общих кругов") : "Выбери формат из безопасного каталога", cta: !first },
     { st: !first ? "future" : (confirmed ? "done" : "now"), t: "Подтверждения круга", d: confSub, badge: (first && !confirmed) ? (confN + "/2") : null, faces: confFaces.concat(waitFaces.map(function (f) { return { _w: 1, avatar: f.avatar, name: f.name }; })) },
-    { st: confirmed ? "now" : "future", t: "Первое дело у своих", d: "Просьбы ближнего круга придут сюда" },
+    { st: confirmed ? "now" : "future", t: "Первое дело у своих", d: "Просьбы из общих кругов придут сюда" },
     { st: thanksN > 0 ? "done" : "future", t: "Следы пользы", d: thanksN > 0 ? ("✦ " + thanksN + " " + (thanksN === 1 ? "след" : (thanksN < 5 ? "следа" : "следов")) + " пользы") : "«Спасибо» от тех, кому помог" },
-    { st: lvl >= 10 ? "done" : "future", t: "Нетворк · опубликовать всем", d: "С 10 уровня · рынок пользы", lock: true },
+    { st: thanksN > 0 ? "done" : "future", t: "Надёжность растёт", d: "Состоявшиеся дела укрепляют профиль; навык ведётся отдельно", lock: false },
   ];
   var knot = function (st, lock, badge) {
     return (
@@ -1223,9 +1339,30 @@ function CommunityLive() {
   // David: «Рядом» слит в «Партнёры» (карта+сетка одним блоком). «Курсы» ВЕРНУЛИ отдельным чипом
   // (David: «верни вкладку Курсы с 3мя курсами»). Старое «nearby» аккуратно переводим в «partners».
   if (filter === "nearby") filter = "partners";
-  const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "training" ? "courses" : "network" });
+  const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "training" ? "courses" : "network", helpOwnerIds: null, helpOfferIds: null });
   const isDark = app?.themeOverride === "dark";
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+
+  // Переход с «Баланса окружения» ведёт не просто на вкладку, а к реальному блоку
+  // помощи. Данные приходят асинхронно, поэтому коротко ждём появления блока.
+  React.useEffect(() => {
+    if (!cv.focus) return undefined;
+    let stopped = false, tries = 0, timer = 0;
+    const seek = () => {
+      if (stopped) return;
+      const safe = String(cv.focus).replace(/[^a-z0-9_-]/gi, "");
+      const el = safe ? document.querySelector('[data-community-section="' + safe + '"]') : null;
+      if (el) {
+        try { el.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { el.scrollIntoView(); }
+        setView({ focus: null });
+        return;
+      }
+      if (++tries < 40) timer = window.setTimeout(seek, 120);
+      else setView({ focus: null });
+    };
+    timer = window.setTimeout(seek, 60);
+    return () => { stopped = true; if (timer) window.clearTimeout(timer); };
+  }, [cv.focus, cv.focusNonce]);
 
   // ── ПОИСК по ленте (Э2 редизайна): круги (облако + живые витрины) · партнёры · программы.
   // Дебаунс 350мс бережёт облако; от 2 символов. Пока ищем — чипы и лента уступают результатам.
@@ -1265,6 +1402,9 @@ function CommunityLive() {
   // typeof guard keeps this safe if the XP helpers aren't loaded yet.
   const _commLvl = (typeof bosLiveXPLive === "function" && typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(bosLiveXPLive(app)) : null;
   const userLevel = _commLvl ? _commLvl.level : 1;
+  // Локальный QA-флаг показывает зрелый Нетворк на чистом аккаунте, не меняя XP и не
+  // открывая его в production. Нужен для проверки условных карточек до появления данных.
+  const networkPreview = (() => { try { return /^(127\.0\.0\.1|localhost)$/.test(location.hostname) && new URLSearchParams(location.search).get("networkPreview") === "1"; } catch (e) { return false; } })();
   const xpInLevel = _commLvl ? _commLvl.into : 0;
   const xpForNext = _commLvl ? _commLvl.span : 2000;
   const levelsLeft = Math.max(0, 10 - userLevel);
@@ -1483,7 +1623,7 @@ function CommunityLive() {
 
         {filter === "people" && (
           <div style={{ marginTop: 0 }}>
-            {userLevel >= 10 ? (
+            {userLevel >= 10 || networkPreview ? (
               // НАСТОЯЩИЙ Нетворк: твоя карточка + реальные дошедшие (без выдуманных людей).
               <NetworkLive navigate={navigate} app={app} level={userLevel} isDark={isDark} />
             ) : (
@@ -1491,6 +1631,9 @@ function CommunityLive() {
                 {/* Э2 · «Твой путь помощника» — валидация видна ДО L10 (свои — без замка): формат →
                     подтверждения круга → первое дело → следы → Нетворк L10. */}
                 <BosBlock name="helper-path"><div style={{ marginBottom: 12 }}><HelperPathLive app={app} navigate={navigate} isDark={isDark} /></div></BosBlock>
+                {/* Навыки начинают подтверждаться ДО открытия Нетворка. Уровень открывает витрину,
+                    но никогда не подменяет доказанные дела. */}
+                {typeof SkillsWorkbenchLive === "function" ? <BosBlock name="skills-workbench"><div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}><SkillsWorkbenchLive app={app} level={userLevel} /></div></BosBlock> : null}
                 {/* «Основатель» (прыжок на 10) убран — brief 2026-07-11: уровень не покупает доверие. */}
                 {/* Честный замок — реальные пути XP, без выдуманных людей. */}
                 <NetworkLockedLive
@@ -2280,7 +2423,7 @@ function TeamDetailLive() {
         } : null),
         // «Календарь» и «Люди» подняты в TeamPeopleCalendarLive наверх (David fork 3) — здесь убраны.
         (circleBalOn ? {
-          // БАЛАНС КРУГА — та же аналитика, что «Баланс окружения», но В РАМКАХ ЦЕЛИ (кольцо-состояние
+          // БАЛАНС КРУГА — отдельная аналитика темпа В РАМКАХ ЦЕЛИ (кольцо-состояние
           // круга + темп каждого + поддержи отстающего). Секцией между Календарём и Людьми (David).
           // Гейт: раздел прячется целиком, если владелец выключил тумблер «Баланс круга» (circleBalOn).
           key: "circle", icon: <I.Sparkles size={16} color="var(--text-3)" />, title: "Баланс круга",

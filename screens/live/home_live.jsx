@@ -733,7 +733,7 @@ function HomeLive() {
     }
 
     if (id === "env") {
-      // «Баланс окружения» — мини-светило общего тона своих (env_balance_live). ВЫКЛ по умолчанию.
+      // «Баланс окружения» — компактный снимок реальных общих контекстов (env_balance_live). ВЫКЛ по умолчанию.
       const _envHide = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:env") }];
       return (
         <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>

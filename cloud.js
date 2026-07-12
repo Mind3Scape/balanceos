@@ -143,6 +143,53 @@
     try { var r = await c.from("profiles").select("id,username,avatar,created_at").eq("referred_by", id).order("created_at", { ascending: true }); return (r.data || []).filter(function (p) { return p && p.id !== id; }); } // self-фильтр: себя среди «кого пригласил» не показываем (баг «Давид пригласил Давид»)
     catch (e) { return []; }
   }
+  // СТРОГИЙ источник людей для «Баланса окружения». Старые invitedPeople/myInviter намеренно
+  // local-first и при сбое возвращают []/null — для обычных экранов это удобно, но аналитика тогда
+  // не отличает «друзей нет» от «сеть не ответила». Здесь статус является частью контракта:
+  //   ready   — оба источника прочитаны; пустой people действительно означает пустоту;
+  //   partial — один источник прочитан, второй нет (показывать найденное с оговоркой);
+  //   error   — ни один источник не подтверждён (не выдавать [] за факт).
+  async function envPeopleStrict() {
+    var c = client(); var id = await uid();
+    if (!c || !id) return { status: "error", people: [], failed: ["auth"] };
+
+    var people = [], failed = [], inviteesOK = false, inviterOK = false;
+    try {
+      var invited = await c.from("profiles").select("id,username,avatar,created_at").eq("referred_by", id).order("created_at", { ascending: true });
+      if (!invited || invited.error || !Array.isArray(invited.data)) failed.push("invitees");
+      else {
+        inviteesOK = true;
+        ((invited && invited.data) || []).forEach(function (p) {
+          if (p && p.id && p.id !== id) people.push({ id: p.id, username: p.username || "", avatar: p.avatar || null, created_at: p.created_at || null, relation: "invitee", mine: true });
+        });
+      }
+    } catch (e) { failed.push("invitees"); }
+
+    try {
+      var mine = await c.from("profiles").select("referred_by").eq("id", id).maybeSingle();
+      if (!mine || mine.error || !mine.data) failed.push("inviter");
+      else {
+        var rid = mine && mine.data && mine.data.referred_by;
+        if (!rid || rid === id) inviterOK = true;
+        else {
+          var inviter = await c.from("profiles").select("id,username,avatar").eq("id", rid).maybeSingle();
+          if (!inviter || inviter.error || !inviter.data) failed.push("inviter");
+          else {
+            inviterOK = true;
+            if (inviter && inviter.data && inviter.data.id && inviter.data.id !== id) {
+              people.unshift({ id: inviter.data.id, username: inviter.data.username || "", avatar: inviter.data.avatar || null, relation: "inviter", inviter: true });
+            }
+          }
+        }
+      }
+    } catch (e) { failed.push("inviter"); }
+
+    // Защита от исторического само-реферала и дубля, если человек оказался с двух сторон связи.
+    var seen = {}, unique = [];
+    people.forEach(function (p) { if (p && p.id && p.id !== id && !seen[p.id]) { seen[p.id] = true; unique.push(p); } });
+    var status = inviteesOK && inviterOK ? "ready" : ((inviteesOK || inviterOK) ? "partial" : "error");
+    return { status: status, people: unique, failed: failed };
+  }
   // The person who brought ME in (my profiles.referred_by → their profile), so the
   // newcomer sees their inviter on the orbit from day one — the bridge works both ways.
   // КЭШ: данные почти write-once, а ходили мы за ними 2 ПОСЛЕДОВАТЕЛЬНЫХ запроса — с «Я», из
@@ -628,6 +675,37 @@
       return (r.data || []).map(function (m) { return { id: m.user_id, role: m.role, name: (m.profiles && m.profiles.username) || "", avatar: (m.profiles && m.profiles.avatar) || "default" }; });
     } catch (e) { return []; }
   }
+  // Лёгкий и строгий roster для «Баланса окружения»: только id ПРИНЯТЫХ участников.
+  // teamMembers() сохраняет старый graceful-контракт [], а здесь ready+[] означает именно
+  // успешный пустой результат; ошибка/нет авторизации всегда возвращаются отдельным status.
+  async function teamMemberIdsStrict(teamId) {
+    var c = client(); var me = await uid();
+    if (!c || !me || !teamId) return { status: "error", ids: [] };
+    try {
+      var r = await c.from("team_members").select("user_id,role").eq("team_id", teamId).neq("role", "pending");
+      if (!r || r.error || !Array.isArray(r.data)) return { status: "error", ids: [] };
+      var seen = {}, ids = [];
+      r.data.forEach(function (m) {
+        var id = m && m.user_id;
+        if (id && id !== me && m.role !== "pending" && !seen[id]) { seen[id] = true; ids.push(id); }
+      });
+      return { status: "ready", ids: ids };
+    } catch (e) { return { status: "error", ids: [] }; }
+  }
+  async function teamMembersStrict(teamId) {
+    var c = client(); if (!c || !teamId) return { status: "error", people: [] };
+    try {
+      var r = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId).neq("role", "pending");
+      if (!r || r.error || !Array.isArray(r.data)) return { status: "error", people: [] };
+      var seen = {}, people = [];
+      r.data.forEach(function (m) {
+        if (!m || !m.user_id || m.role === "pending" || seen[m.user_id]) return;
+        seen[m.user_id] = true;
+        people.push({ id: m.user_id, role: m.role, name: (m.profiles && m.profiles.username) || "", avatar: (m.profiles && m.profiles.avatar) || "default" });
+      });
+      return { status: "ready", people: people };
+    } catch (e) { return { status: "error", people: [] }; }
+  }
   // One team by id (уведомление «тебя приняли»: постучался → одобрили → надо показать
   // имя круга и дать открыть его; читается, когда ты уже член — RLS пропустит).
   async function teamById(teamId) {
@@ -959,6 +1037,22 @@
       return { members: members, ownerId: ownerId };
     } catch (e) { return null; }
   }
+  // Строгая лёгкая выборка участников общей привычки — без профилей и календарей.
+  // Нужна аналитике связей, где null/[] после сетевой ошибки нельзя выдавать за «никого нет».
+  async function sharedHabitMemberIdsStrict(code) {
+    var c = client(); var me = await uid();
+    if (!c || !me || !code) return { status: "error", ids: [] };
+    try {
+      var r = await c.from("shared_habit_members").select("user_id").eq("code", code);
+      if (!r || r.error || !Array.isArray(r.data)) return { status: "error", ids: [] };
+      var seen = {}, ids = [];
+      r.data.forEach(function (m) {
+        var id = m && m.user_id;
+        if (id && id !== me && !seen[id]) { seen[id] = true; ids.push(id); }
+      });
+      return { status: "ready", ids: ids };
+    } catch (e) { return { status: "error", ids: [] }; }
+  }
   // Owner removes a member from a shared habit (David: «свайп влево на человеке → убрать из
   // привычки»). RLS lets the OWNER delete anyone (or a member delete themselves). `.select()` so we
   // KNOW a row was actually deleted — an RLS-blocked delete matches 0 rows and returns NO error, so
@@ -1155,25 +1249,352 @@
     catch (e) { return false; }
   }
 
-  // ── НЕТВОРК · предложения пользы + бронь за XP (patch_network_offers.sql) ──────
-  // Все активные предложения (витрина нетворка). Graceful: нет таблицы → [].
+  // ── SKILL NETWORK v1 · future patch_skill_network_v1.sql ─────────────────────
+  // This API is deliberately separate from the legacy offer helpers below. Missing tables/RPCs,
+  // auth or network never fall back to the old free-form model: reads return an explicit status,
+  // mutations return {ok:false,err}. That keeps a half-deployed patch from publishing or booking
+  // something under weaker legacy rules.
+  var _NET_SKILL_OFFER_FIELDS = "id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility,kind,skill_id,skill_key,interaction_key,outcome_key,mode,created_at";
+  var _NET_SKILL_EPISODE_FIELDS = "id,offer_id,owner_id,booker_id,week,price_xp,kind,status,request_note,provider_done_at,recipient_done_at,created_at,network_offers!inner(id,kind,skill_id,skill_key,interaction_key,outcome_key,mode,title,emoji)";
+
+  function _netV1Err(err) {
+    var code = ((err && err.code) || "").toLowerCase();
+    var msg = ((err && err.message) || "").toLowerCase();
+    if (code === "pgrst202" || code === "pgrst204" || code === "pgrst205" || code === "42p01" || code === "42703" ||
+        msg.indexOf("could not find the function") >= 0 || msg.indexOf("does not exist") >= 0 || msg.indexOf("schema cache") >= 0) return "unavailable";
+    if (code === "auth" || code.indexOf("jwt") >= 0 || msg.indexOf("not authenticated") >= 0) return "auth";
+    if (code === "42501" || msg.indexOf("permission denied") >= 0) return "forbidden";
+    if (msg.indexOf("fetch") >= 0 || msg.indexOf("network") >= 0 || msg.indexOf("timeout") >= 0) return "network";
+    return "server";
+  }
+  function _netV1ReadFail(key, err, extra) {
+    var out = { status: "error", err: _netV1Err(err) }; out[key] = [];
+    if (extra) Object.keys(extra).forEach(function (k) { out[k] = extra[k]; });
+    return out;
+  }
+  function _netV1Parse(data) {
+    if (typeof data !== "string") return data;
+    try { return JSON.parse(data); } catch (e) { return data; }
+  }
+  function _netV1Mutation(res) {
+    if (!res || res.error) return { ok: false, err: _netV1Err(res && res.error) };
+    var data = _netV1Parse(res.data);
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      var out = Object.assign({}, data);
+      if (out.ok == null) out.ok = !out.err;
+      return out;
+    }
+    return { ok: true, data: data == null ? null : data };
+  }
+  function _netV1Id(v) { return (typeof v === "string" && v.trim()) ? v.trim() : null; }
+  function _netV1Page(opts, max) {
+    opts = opts || {}; max = max || 100;
+    return { limit: Math.max(1, Math.min(max, (opts.limit | 0) || 40)), offset: Math.max(0, opts.offset | 0) };
+  }
+  async function _netV1Rpc(name, args) {
+    var c = client(); var id = await uid();
+    if (!c || !id) return { ok: false, err: "auth" };
+    try { return _netV1Mutation(await c.rpc(name, args || {})); }
+    catch (e) { return { ok: false, err: _netV1Err(e) }; }
+  }
+
+  // Safe catalogue. The future patch owns taxonomy and ordering; the client never invents skills.
+  async function netSkillsCatalog() {
+    var c = client(); var id = await uid();
+    if (!c || !id) return _netV1ReadFail("skills", { code: "auth", message: "not authenticated" });
+    try {
+      var r = await c.from("skill_catalog").select("*");
+      if (!r || r.error || !Array.isArray(r.data)) return _netV1ReadFail("skills", r && r.error);
+      var skills = r.data.filter(function (s) { return s && s.active !== false; });
+      skills.sort(function (a, b) { return ((a.sort_order | 0) - (b.sort_order | 0)) || String(a.title || a.name || "").localeCompare(String(b.title || b.name || ""), "ru"); });
+      return { status: "ready", skills: skills };
+    } catch (e) { return _netV1ReadFail("skills", e); }
+  }
+  // Own claims/evidence only. RLS in patch_skill_network_v1.sql remains the authority.
+  async function loadMySkills() {
+    var c = client(); var id = await uid();
+    if (!c || !id) return _netV1ReadFail("skills", { code: "auth", message: "not authenticated" });
+    try {
+      var r = await c.from("user_skills").select("*").eq("owner_id", id);
+      if (!r || r.error || !Array.isArray(r.data)) return _netV1ReadFail("skills", r && r.error);
+      var skills = r.data.slice().sort(function (a, b) { return String(a.created_at || a.claimed_at || "").localeCompare(String(b.created_at || b.claimed_at || "")); });
+      return { status: "ready", skills: skills };
+    } catch (e) { return _netV1ReadFail("skills", e); }
+  }
+  async function claimSkill(skillId) {
+    skillId = _netV1Id(skillId); if (!skillId) return { ok: false, err: "skill" };
+    return _netV1Rpc("bos_claim_skill", { p_skill: skillId });
+  }
+
+  // Conscious Network identity lookup. Unlike allPublic() this is called only for owners already
+  // present in Network and returns first name. Requested IDs are bounded/chunked; no world dump.
+  // A future server-owned profiles.level wins; until it exists, public pub_orbit.level is labelled.
+  async function netProfiles(ownerIds) {
+    var c = client(); var me = await uid();
+    if (!c || !me) return _netV1ReadFail("profiles", { code: "auth", message: "not authenticated" });
+    var seen = {}, ids = [];
+    (Array.isArray(ownerIds) ? ownerIds : []).forEach(function (v) { var x = _netV1Id(v); if (x && !seen[x]) { seen[x] = true; ids.push(x); } });
+    ids = ids.slice(0, 240);
+    if (!ids.length) return { status: "ready", profiles: [] };
+    var rows = [], failed = 0;
+    for (var i = 0; i < ids.length; i += 80) {
+      var part = ids.slice(i, i + 80);
+      try {
+        var base = await c.from("profiles").select("id,username,avatar,pub_orbit").in("id", part);
+        if (base && base.error && typeof _isMissingCol === "function" && _isMissingCol(base.error)) base = await c.from("profiles").select("id,username,avatar").in("id", part);
+        if (!base || base.error || !Array.isArray(base.data)) { failed++; continue; }
+        var serverLevels = {};
+        try {
+          var lv = await c.from("profiles").select("id,level").in("id", part);
+          if (lv && !lv.error && Array.isArray(lv.data)) lv.data.forEach(function (p) { if (p && p.id && (p.level | 0) > 0) serverLevels[p.id] = p.level | 0; });
+        } catch (e2) {}
+        base.data.forEach(function (p) {
+          if (!p || !p.id || !seen[p.id]) return;
+          var first = String(p.username || "").trim().split(/\s+/)[0] || "Участник";
+          var pubLevel = p.pub_orbit && (p.pub_orbit.level | 0) > 0 ? (p.pub_orbit.level | 0) : null;
+          rows.push({ id: p.id, username: first, name: first, avatar: p.avatar || "default", level: serverLevels[p.id] || pubLevel || null, levelSource: serverLevels[p.id] ? "server" : (pubLevel ? "public" : null) });
+        });
+      } catch (e) { failed++; }
+    }
+    return { status: failed ? (rows.length ? "partial" : "error") : "ready", profiles: rows, failed: failed };
+  }
+
+  // Public skill offers only: kind + trust + visibility are all required client-side in addition
+  // to server RLS. No fallback to legacy rows when the new columns are missing.
+  async function netSkillOffers(opts) {
+    var c = client(); var me = await uid(); var pg = _netV1Page(opts, 100); opts = opts || {};
+    if (!c || !me) return _netV1ReadFail("offers", { code: "auth", message: "not authenticated" });
+    try {
+      var q = c.from("network_offers").select(_NET_SKILL_OFFER_FIELDS)
+        .eq("kind", "skill_offer").eq("active", true).eq("status", "confirmed").eq("visibility", "all");
+      if (_netV1Id(opts.skillId)) q = q.eq("skill_id", opts.skillId);
+      if (_netV1Id(opts.skillKey)) q = q.eq("skill_key", opts.skillKey);
+      if (_netV1Id(opts.ownerId)) q = q.eq("owner_id", opts.ownerId);
+      if (_netV1Id(opts.interactionKey)) q = q.eq("interaction_key", opts.interactionKey);
+      if (_netV1Id(opts.outcomeKey)) q = q.eq("outcome_key", opts.outcomeKey);
+      if (_netV1Id(opts.mode)) q = q.eq("mode", opts.mode);
+      q = q.order("created_at", { ascending: false }).range(pg.offset, pg.offset + pg.limit - 1);
+      var r = await q;
+      if (!r || r.error || !Array.isArray(r.data)) return _netV1ReadFail("offers", r && r.error);
+      return { status: "ready", offers: r.data, offset: pg.offset, nextOffset: r.data.length === pg.limit ? pg.offset + pg.limit : null };
+    } catch (e) { return _netV1ReadFail("offers", e); }
+  }
+  async function netMySkillOffers(opts) {
+    var c = client(); var id = await uid(); var pg = _netV1Page(opts, 100); opts = opts || {};
+    if (!c || !id) return _netV1ReadFail("offers", { code: "auth", message: "not authenticated" });
+    try {
+      var q = c.from("network_offers").select(_NET_SKILL_OFFER_FIELDS).eq("owner_id", id).eq("kind", "skill_offer");
+      if (_netV1Id(opts.status)) q = q.eq("status", opts.status);
+      if (_netV1Id(opts.skillId)) q = q.eq("skill_id", opts.skillId);
+      if (_netV1Id(opts.skillKey)) q = q.eq("skill_key", opts.skillKey);
+      q = q.order("created_at", { ascending: false }).range(pg.offset, pg.offset + pg.limit - 1);
+      var r = await q;
+      if (!r || r.error || !Array.isArray(r.data)) return _netV1ReadFail("offers", r && r.error);
+      return { status: "ready", offers: r.data, offset: pg.offset, nextOffset: r.data.length === pg.limit ? pg.offset + pg.limit : null };
+    } catch (e) { return _netV1ReadFail("offers", e); }
+  }
+
+  // Only editable product fields cross the client boundary. owner/status/visibility/kind/active are
+  // server-owned and deliberately omitted; the RPC creates kind='skill_offer' as a safe draft.
+  async function netUpsertSkillOffer(input) {
+    input = input || {};
+    var skillId = _netV1Id(input.skill_id || input.skillId);
+    var interaction = _netV1Id(input.interaction_key || input.interactionKey);
+    var outcome = _netV1Id(input.outcome_key || input.outcomeKey);
+    var mode = _netV1Id(input.mode);
+    if (!skillId || !interaction || !outcome || !mode) return { ok: false, err: "input" };
+    var offer = { skill_id: skillId, interaction_key: interaction, outcome_key: outcome, mode: mode };
+    var oid = _netV1Id(input.id); if (oid) offer.id = oid;
+    if (input.slots_week != null) offer.slots_week = Math.max(1, Math.min(5, input.slots_week | 0));
+    if (input.when_text != null) offer.when_text = String(input.when_text).trim().slice(0, 120);
+    // price_xp=0 и min_level=1 — серверные границы v1, клиент их не предлагает и не шлёт.
+    return _netV1Rpc("bos_upsert_skill_offer", { p_offer: offer });
+  }
+  async function netPublishSkillOffer(offerId) {
+    offerId = _netV1Id(offerId); if (!offerId) return { ok: false, err: "offer" };
+    return _netV1Rpc("bos_publish_skill_offer", { p_offer: offerId });
+  }
+  async function netPauseSkillOffer(offerId, paused) {
+    offerId = _netV1Id(offerId); if (!offerId) return { ok: false, err: "offer" };
+    return _netV1Rpc("bos_pause_skill_offer", { p_offer: offerId, p_paused: paused !== false });
+  }
+
+  async function netRequestSkillOffer(offerId, requestNote) {
+    offerId = _netV1Id(offerId); var note = String(requestNote || "").trim().slice(0, 240);
+    if (!offerId) return { ok: false, err: "offer" };
+    if (!note) return { ok: false, err: "request_note" };
+    return _netV1Rpc("bos_request_skill_offer", { p_offer: offerId, p_request_note: note });
+  }
+  async function _netSkillEpisodes(side, opts) {
+    var c = client(); var id = await uid(); var pg = _netV1Page(opts, 100); opts = opts || {};
+    if (!c || !id) return _netV1ReadFail("episodes", { code: "auth", message: "not authenticated" });
+    try {
+      var col = side === "incoming" ? "owner_id" : "booker_id";
+      var q = c.from("network_bookings").select(_NET_SKILL_EPISODE_FIELDS).eq(col, id)
+        .eq("kind", "skill_episode").eq("network_offers.kind", "skill_offer");
+      if (_netV1Id(opts.status)) q = q.eq("status", opts.status);
+      q = q.order("created_at", { ascending: false }).range(pg.offset, pg.offset + pg.limit - 1);
+      var r = await q;
+      if (!r || r.error || !Array.isArray(r.data)) return _netV1ReadFail("episodes", r && r.error);
+      // status + inner kind filter keep legacy circle bookings out of the episode inbox.
+      var episodes = r.data.filter(function (e) { return e && e.status; });
+      return { status: "ready", episodes: episodes, offset: pg.offset, nextOffset: r.data.length === pg.limit ? pg.offset + pg.limit : null };
+    } catch (e) { return _netV1ReadFail("episodes", e); }
+  }
+  function netIncomingSkillEpisodes(opts) { return _netSkillEpisodes("incoming", opts); }
+  function netOutgoingSkillEpisodes(opts) { return _netSkillEpisodes("outgoing", opts); }
+  async function _netSkillEpisodeAction(episodeId, action) {
+    episodeId = _netV1Id(episodeId);
+    if (!episodeId || ["accept", "decline", "cancel"].indexOf(action) < 0) return { ok: false, err: "action" };
+    return _netV1Rpc("bos_skill_episode_action", { p_episode: episodeId, p_action: action });
+  }
+  function netAcceptSkillEpisode(episodeId) { return _netSkillEpisodeAction(episodeId, "accept"); }
+  function netDeclineSkillEpisode(episodeId) { return _netSkillEpisodeAction(episodeId, "decline"); }
+  function netCancelSkillEpisode(episodeId) { return _netSkillEpisodeAction(episodeId, "cancel"); }
+  async function _netSkillMarkDone(episodeId, role) {
+    episodeId = _netV1Id(episodeId);
+    if (!episodeId || ["provider", "recipient"].indexOf(role) < 0) return { ok: false, err: "role" };
+    return _netV1Rpc("bos_skill_mark_done", { p_episode: episodeId, p_role: role });
+  }
+  function netMarkSkillProviderDone(episodeId) { return _netSkillMarkDone(episodeId, "provider"); }
+  function netMarkSkillRecipientDone(episodeId) { return _netSkillMarkDone(episodeId, "recipient"); }
+  async function netSkillEpisodeContact(episodeId) {
+    episodeId = _netV1Id(episodeId);
+    if (!episodeId) return { status: "error", err: "episode", contact: null };
+    var r = await _netV1Rpc("bos_skill_episode_contact", { p_episode: episodeId });
+    if (!r.ok) return { status: "error", err: r.err || "server", contact: null };
+    var contact = r.contact != null ? r.contact : (r.data != null ? r.data : { first_name: r.first_name || null, avatar: r.avatar || null, telegram_url: r.telegram_url || null });
+    if (!contact || typeof contact !== "object" || Array.isArray(contact)) return { status: "error", err: "not_available", contact: null };
+    return { status: "ready", contact: contact };
+  }
+
+  async function netSkillOfferCounts(offerId) {
+    offerId = _netV1Id(offerId); if (!offerId) return { status: "error", err: "offer", counts: null };
+    var r = await _netV1Rpc("bos_skill_offer_counts", { p_offer: offerId });
+    if (!r.ok) return { status: "error", err: r.err || "server", counts: null };
+    var counts = r.counts != null ? r.counts : (r.data != null ? r.data : Object.assign({}, r));
+    if (counts && typeof counts === "object") delete counts.ok;
+    return { status: "ready", counts: counts };
+  }
+  async function netSkillEvidence(userId, skillId) {
+    if (skillId == null) { skillId = userId; userId = null; }
+    skillId = _netV1Id(skillId); var id = _netV1Id(userId) || await uid();
+    if (!id || !skillId) return { status: "error", err: !id ? "auth" : "skill", evidence: null };
+    var r = await _netV1Rpc("bos_skill_evidence_summary", { p_user: id, p_skill: skillId });
+    if (!r.ok) return { status: "error", err: r.err || "server", evidence: null };
+    var evidence = r.evidence != null ? r.evidence : (r.data != null ? r.data : Object.assign({}, r));
+    if (evidence && typeof evidence === "object") delete evidence.ok;
+    return { status: "ready", evidence: evidence };
+  }
+
+  async function netBlockUser(userId) {
+    userId = _netV1Id(userId); if (!userId) return { ok: false, err: "user" };
+    return _netV1Rpc("bos_block_network_user", { p_user: userId });
+  }
+  async function netUnblockUser(userId) {
+    userId = _netV1Id(userId); if (!userId) return { ok: false, err: "user" };
+    return _netV1Rpc("bos_unblock_network_user", { p_user: userId });
+  }
+  async function netReportUser(userId, reason, context) {
+    userId = _netV1Id(userId); reason = _netV1Id(reason); context = context || {};
+    if (!userId || !reason) return { ok: false, err: !userId ? "user" : "reason" };
+    reason = reason.slice(0, 64);
+    var safe = {};
+    var offerId = _netV1Id(context.offer_id || context.offerId); if (offerId) safe.offer_id = offerId;
+    var episodeId = _netV1Id(context.episode_id || context.episodeId); if (episodeId) safe.episode_id = episodeId;
+    if (context.note != null) safe.note = String(context.note).trim().slice(0, 500);
+    return _netV1Rpc("bos_report_network", { p_user: userId, p_reason: reason, p_context: safe });
+  }
+
+  // ── LEGACY НЕТВОРК · предложения пользы + бронь за XP ───────────────────────
+  // Kept intact for circle support and backwards compatibility. New skill flows above never
+  // silently fall back here.
+  // Все активные предложения. Без trust-колонок ничего не показываем: legacy-RLS
+  // делал черновики публичными, поэтому «мягкий» fallback здесь небезопасен.
   async function netOffers(limit) {
     var c = client(); if (!c) return [];
     try {
-      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,status,visibility").eq("active", true).limit(limit || 200);
-      if (r && r.error) r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text").eq("active", true).limit(limit || 200); // до patch_community_v2.sql
+      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,status,visibility,kind,skill_id,skill_key,interaction_key,outcome_key,mode").eq("active", true).limit(limit || 200);
+      if (r && r.error && _isMissingCol(r.error)) r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,status,visibility").eq("active", true).limit(limit || 200);
       return (r && !r.error && r.data) ? r.data : [];
     } catch (e) { return []; }
   }
+  // Строгая выборка подтверждённой помощи КОНКРЕТНЫХ друзей. В отличие от netOffers(limit),
+  // фильтр owner_id выполняется в БД до выдачи результата: предложения друзей не исчезнут из-за
+  // глобального limit витрины. IDs режем только на транспортные чанки, но строки не лимитируем.
+  // Нет status-колонки/таблицы/сети → error/partial, а не ложное «помощи нет».
+  async function netConfirmedOffersByOwners(ownerIds, commonCircleOwnerIds) {
+    var c = client(); var me = await uid();
+    if (!c || !me) return { status: "error", offers: [], failed: 1 };
+    var seenIds = {}, ids = [];
+    (Array.isArray(ownerIds) ? ownerIds : []).forEach(function (x) {
+      var id = typeof x === "string" ? x.trim() : "";
+      if (id && id !== me && !seenIds[id]) { seenIds[id] = true; ids.push(id); }
+    });
+    if (!ids.length) return { status: "ready", offers: [], failed: 0 };
+
+    var circleSeen = {}, circleIds = [];
+    (Array.isArray(commonCircleOwnerIds) ? commonCircleOwnerIds : []).forEach(function (x) {
+      if (typeof x === "string" && seenIds[x] && !circleSeen[x]) { circleSeen[x] = true; circleIds.push(x); }
+    });
+    // visibility='all' доступен любому своему; visibility='circles' — только человеку,
+    // с которым уже найден общий принятый круг. Фильтруем ДО скачивания строк.
+    var jobs = [];
+    function addJobs(list, visibility) {
+      for (var i = 0; i < list.length; i += 80) jobs.push({ ids: list.slice(i, i + 80), visibility: visibility });
+    }
+    addJobs(ids, "all");
+    addJobs(circleIds, "circles");
+
+    var offers = [], failed = 0;
+    await Promise.all(jobs.map(async function (job) {
+      try {
+        var q = c.from("network_offers")
+          .select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,status,visibility,kind,skill_id,skill_key,interaction_key,outcome_key,mode")
+          .in("owner_id", job.ids).eq("active", true).eq("visibility", job.visibility);
+        if (job.visibility === "all") q = q.eq("status", "confirmed");
+        var r = await q;
+        if (r && r.error && _isMissingCol(r.error)) {
+          var qLegacy = c.from("network_offers")
+          .select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,status,visibility")
+          .in("owner_id", job.ids).eq("active", true).eq("visibility", job.visibility);
+          if (job.visibility === "all") qLegacy = qLegacy.eq("status", "confirmed");
+          r = await qLegacy;
+        }
+        if (!r || r.error || !Array.isArray(r.data)) { failed++; return; }
+        r.data.forEach(function (o) {
+          var visible = o && (o.visibility === "all" || (o.visibility === "circles" && circleSeen[o.owner_id]));
+          var safeStatus = o && (o.visibility === "circles" ? (o.status === "draft" || o.status === "confirmed") : o.status === "confirmed");
+          if (visible && safeStatus && o.id && o.owner_id && seenIds[o.owner_id]) offers.push(o);
+        });
+      } catch (e) { failed++; }
+    }));
+
+    var seenOffers = {}, unique = [];
+    offers.forEach(function (o) { if (!seenOffers[o.id]) { seenOffers[o.id] = true; unique.push(o); } });
+    return { status: failed === 0 ? "ready" : (failed < jobs.length ? "partial" : "error"), offers: unique, failed: failed };
+  }
   // Мои предложения (все, включая выключённые) — для редактора/статуса «Мой вклад».
-  // status/visibility (Э2) читаем с фолбэком: до patch_community_v2.sql столбцов нет → без них.
+  // Нет trust-схемы → []: сохранение всё равно fail-closed и не создаст public legacy row.
   async function netMyOffers() {
     var c = client(); var id = await uid(); if (!c || !id) return [];
     try {
-      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility").eq("owner_id", id).order("created_at", { ascending: true });
-      if (r && r.error) r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active").eq("owner_id", id).order("created_at", { ascending: true });
+      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility,kind,skill_id,skill_key,interaction_key,outcome_key,mode").eq("owner_id", id).order("created_at", { ascending: true });
+      if (r && r.error && _isMissingCol(r.error)) r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility").eq("owner_id", id).order("created_at", { ascending: true });
       return (r && !r.error && r.data) ? r.data : [];
     } catch (e) { return []; }
+  }
+  // Строгий вариант для аналитики/CTA: при сбое сохраняем последний достоверный кэш,
+  // а не превращаем сетевую ошибку в «у тебя нет форматов».
+  async function netMyOffersStrict() {
+    var c = client(); var id = await uid();
+    if (!c || !id) return { status: "error", offers: [] };
+    try {
+      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility,kind,skill_id,skill_key,interaction_key,outcome_key,mode").eq("owner_id", id).order("created_at", { ascending: true });
+      if (r && r.error && _isMissingCol(r.error)) r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility").eq("owner_id", id).order("created_at", { ascending: true });
+      if (!r || r.error || !Array.isArray(r.data)) return { status: "error", offers: [] };
+      return { status: "ready", offers: r.data };
+    } catch (e) { return { status: "error", offers: [] }; }
   }
   // Создать/обновить моё предложение (RLS: только владелец). Возвращает сохранённую строку | null.
   async function netUpsertOffer(o) {
@@ -1188,13 +1609,21 @@
       };
       if (o.visibility) row.visibility = o.visibility;   // Э2: 'circles' | 'all'
       if (o.status) row.status = o.status;                // Э2: 'draft' | 'confirmed'
-      if (o.id) row.id = o.id;
-      var r = await c.from("network_offers").upsert(row).select().single();
-      // до patch_community_v2.sql столбцов status/visibility нет → повторяем без них (не роняем сохранение).
-      if (r && r.error && (o.visibility || o.status)) {
-        delete row.visibility; delete row.status;
-        r = await c.from("network_offers").upsert(row).select().single();
+      var r;
+      if (o.existing && o.id) {
+        r = await c.from("network_offers").update(row).eq("id", o.id).eq("owner_id", id).select().single();
+      } else {
+        if (o.id) row.id = o.id; // стабильный UUID делает повтор идемпотентным
+        r = await c.from("network_offers").insert(row).select().single();
+        // Ответ первого insert мог потеряться после commit. На повторе UUID уже существует —
+        // читаем только СВОЮ строку и считаем сохранение успешным, не создавая дубль.
+        if (r && r.error && o.id) {
+          var existing = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility").eq("id", o.id).eq("owner_id", id).maybeSingle();
+          if (existing && !existing.error && existing.data) r = existing;
+        }
       }
+      // Приватный draft нельзя «спасти» повтором без status/visibility: на старой схеме
+      // такая строка могла стать публичной. Нет нужных колонок/сети → честный failure.
       return (r && !r.error && r.data) ? r.data : null;
     } catch (e) { return null; }
   }
@@ -1205,27 +1634,42 @@
     try { var r = await c.from("thanks").upsert({ offer_id: offerId, from_id: id, to_id: toId, week: week, note: (note ? ("" + note).slice(0, 140) : null) }, { onConflict: "offer_id,from_id,week", ignoreDuplicates: true }); return !(r && r.error); }
     catch (e) { return false; }
   }
-  // Следы конкретного вклада — {n, notes, mine} (mine = я уже поблагодарил). Нет таблицы → n:0.
+  // Следы конкретного вклада — только серверный агрегат. Сырые строки содержат
+  // социальный граф и свободный текст, поэтому клиент их глобально не читает.
   async function netOfferThanks(offerId) {
-    var c = client(); var me = await uid(); if (!c || !offerId) return { n: 0, notes: [], mine: false };
+    var c = client(); if (!c || !offerId) return { n: 0, notes: [], mine: false };
     try {
-      var r = await c.from("thanks").select("from_id,note").eq("offer_id", offerId);
-      var rows = (r && !r.error && r.data) || [];
-      return { n: rows.length, notes: rows.map(function (x) { return x.note; }).filter(Boolean), mine: me ? rows.some(function (x) { return x.from_id === me; }) : false };
+      var r = await c.rpc("bos_offer_thanks_summary", { p_offer: offerId });
+      if (!r || r.error || !r.data) return { n: 0, notes: [], mine: false };
+      var d = r.data; if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { d = {}; } }
+      return { n: Math.max(0, d.n | 0), notes: Array.isArray(d.notes) ? d.notes.filter(Boolean).slice(0, 20) : [], mine: !!d.mine };
     } catch (e) { return { n: 0, notes: [], mine: false }; }
   }
-  // Сколько следов у человека (свет его звезды) — по to_id. Нет таблицы → 0.
+  // Сколько следов у человека — только агрегат, без авторов и текстов.
   async function netUserThanks(userId) {
     var c = client(); if (!c || !userId) return 0;
-    try { var r = await c.from("thanks").select("id", { count: "exact", head: true }).eq("to_id", userId); return (r && typeof r.count === "number") ? r.count : 0; }
+    try { var r = await c.rpc("bos_user_thanks_count", { p_user: userId }); return (r && !r.error && r.data != null) ? Math.max(0, r.data | 0) : 0; }
     catch (e) { return 0; }
   }
 
   // ── Э2 · подтверждения роли окружением (role_confirmations) ──────────────────
-  // Кто подтвердил вклад — {confirmer_id, created_at}. Нет таблицы (до патча) → [].
+  // Сервер возвращает количество всем, кому виден вклад, но реальные id — только
+  // автору и общим кругам. Анонимные элементы сохраняют прежний интерфейс счётчика.
   async function netRoleConfirmations(offerId) {
-    var c = client(); if (!c || !offerId) return [];
-    try { var r = await c.from("role_confirmations").select("confirmer_id,created_at").eq("offer_id", offerId); return (r && !r.error && r.data) ? r.data : []; }
+    var c = client(); var me = await uid(); if (!c || !offerId) return [];
+    try {
+      var r = await c.rpc("bos_role_confirmation_summary", { p_offer: offerId });
+      if (!r || r.error || !r.data) return [];
+      var d = r.data; if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { d = {}; } }
+      var n = Math.max(0, d.n | 0), ids = Array.isArray(d.ids) ? d.ids.filter(Boolean) : [];
+      var rows = ids.slice(0, n).map(function (id) { return { confirmer_id: id, anonymous: false }; });
+      if (d.mine && me && !ids.some(function (id) { return id === me; }) && n > 0) {
+        if (rows.length < n) rows.push({ confirmer_id: me, anonymous: false });
+        else rows[0] = { confirmer_id: me, anonymous: false };
+      }
+      while (rows.length < n) rows.push({ confirmer_id: "anon:" + offerId + ":" + rows.length, anonymous: true });
+      return rows;
+    }
     catch (e) { return []; }
   }
   // Подтвердить роль автора вклада (RLS: только если мы в общем круге, за себя, один раз).
@@ -1271,22 +1715,31 @@
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, uidSync: uidSync, currentUser: currentUser,
-    loadProfile: loadProfile, saveProfile: saveProfile, saveOffer: saveOffer, touchActive: touchActive, savePulse: savePulse, envPulse: envPulse, invitedPeople: invitedPeople, myInviter: myInviter, refCode: refCode, inviteCode: inviteCode,
+    loadProfile: loadProfile, saveProfile: saveProfile, saveOffer: saveOffer, touchActive: touchActive, savePulse: savePulse, envPulse: envPulse, invitedPeople: invitedPeople, myInviter: myInviter, envPeopleStrict: envPeopleStrict, refCode: refCode, inviteCode: inviteCode,
     savePublicStats: savePublicStats, profilesPublic: profilesPublic, allPublic: allPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,
     createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
-    teamMembers: teamMembers, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
+    teamMembers: teamMembers, teamMembersStrict: teamMembersStrict, teamMemberIdsStrict: teamMemberIdsStrict, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
-    createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
+    createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, sharedHabitMemberIdsStrict: sharedHabitMemberIdsStrict, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
-    netOffers: netOffers, netMyOffers: netMyOffers, netUpsertOffer: netUpsertOffer, netDeleteOffer: netDeleteOffer,
+    netSkillsCatalog: netSkillsCatalog, loadMySkills: loadMySkills, claimSkill: claimSkill, netProfiles: netProfiles,
+    netSkillOffers: netSkillOffers, netMySkillOffers: netMySkillOffers,
+    netUpsertSkillOffer: netUpsertSkillOffer, netPublishSkillOffer: netPublishSkillOffer, netPauseSkillOffer: netPauseSkillOffer,
+    netRequestSkillOffer: netRequestSkillOffer, netIncomingSkillEpisodes: netIncomingSkillEpisodes, netOutgoingSkillEpisodes: netOutgoingSkillEpisodes,
+    netAcceptSkillEpisode: netAcceptSkillEpisode, netDeclineSkillEpisode: netDeclineSkillEpisode, netCancelSkillEpisode: netCancelSkillEpisode,
+    netMarkSkillProviderDone: netMarkSkillProviderDone, netMarkSkillRecipientDone: netMarkSkillRecipientDone,
+    netSkillEpisodeContact: netSkillEpisodeContact,
+    netSkillOfferCounts: netSkillOfferCounts, netSkillEvidence: netSkillEvidence,
+    netBlockUser: netBlockUser, netUnblockUser: netUnblockUser, netReportUser: netReportUser,
+    netOffers: netOffers, netConfirmedOffersByOwners: netConfirmedOffersByOwners, netMyOffers: netMyOffers, netMyOffersStrict: netMyOffersStrict, netUpsertOffer: netUpsertOffer, netDeleteOffer: netDeleteOffer,
     netBook: netBook, netOfferTaken: netOfferTaken, netMyBookings: netMyBookings, netOfferBookings: netOfferBookings,
     netRoleConfirmations: netRoleConfirmations, netConfirmRole: netConfirmRole,
     netThank: netThank, netOfferThanks: netOfferThanks, netUserThanks: netUserThanks,

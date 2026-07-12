@@ -934,14 +934,14 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
       <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
-        background: "linear-gradient(145deg, #26406e 0%, #182c4f 52%, #0c1730 100%)",
-        boxShadow: "0 10px 26px rgba(12,23,48,0.42)" }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 82% 18%, rgba(150,185,255,0.30) 0%, transparent 46%), radial-gradient(circle at 12% 96%, rgba(120,160,220,0.16) 0%, transparent 44%)", pointerEvents: "none" }} />
-        <div aria-hidden style={{ position: "absolute", top: 15, right: 18, fontSize: 34, lineHeight: 1, pointerEvents: "none" }}>👑</div>
+        background: "linear-gradient(145deg, #171719 0%, #050505 100%)",
+        boxShadow: "0 10px 26px rgba(0,0,0,0.30)" }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 82% 16%, rgba(254,222,52,0.24) 0%, transparent 46%)", pointerEvents: "none" }} />
+        <div aria-hidden style={{ position: "absolute", top: 17, right: 19, opacity: 0.78, pointerEvents: "none" }}><I.Lock size={26} color="#FEDE34" /></div>
         <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(160,196,255,0.9)" }}>Нетворк · откроется с 10 уровня</div>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, maxWidth: 215, lineHeight: 1.18 }}>Закрытый круг своих</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.74)", marginTop: 6, lineHeight: 1.4, maxWidth: 248 }}>Живые встречи и помощь рядом — с людьми твоего города.</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#D9B234" }}>Нетворк · откроется с 10 уровня</div>
+          <div style={{ fontSize: 20, fontWeight: 750, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, maxWidth: 245, lineHeight: 1.18 }}>Люди по конкретной задаче</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)", marginTop: 6, lineHeight: 1.4, maxWidth: 270 }}>Ищи подтверждённый навык, отправляй запрос и фиксируй состоявшееся дело.</div>
 
           <div style={{ marginTop: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
@@ -954,7 +954,7 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining 
           </div>
 
           <div style={{ display: "flex", gap: 7, marginTop: 13 }}>
-            {[["🤝", "Наставники"], ["💎", "Услуги за XP"]].map(([e, l], i) => (
+            {[["◎", "Навык"], ["✓", "Подтверждено делами"]].map(([e, l], i) => (
               <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.13)", borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: 700, color: "#fff" }}>
                 <span style={{ fontSize: 13, lineHeight: 1 }}>{e}</span>{l}
               </span>
@@ -994,7 +994,7 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining 
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: 0.2 }}>Почему Нетворк закрыт?</span>
         </div>
         <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.5 }}>
-          Нам важны люди, преданные делу, а не случайный шум. Когда вход нужно заслужить, здесь остаются только те, с кем правда хочется познакомиться.
+          Уровень защищает пространство от случайного шума, но не доказывает квалификацию. Навык открывается шире только после реальных дел у своих.
         </div>
       </div>
     </div>
@@ -1016,7 +1016,9 @@ var BOS_NET_TIERS = [
 // ISO-неделя ('2026-W28') — ключ периода для лимита слотов и броней.
 function bosNetWeek(d) {
   d = d ? new Date(d) : new Date();
-  var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  // Канонический период брони — UTC-неделя. Сервер считает тем же способом:
+  // клиент не выбирает соседнюю неделю на границе часовых поясов.
+  var t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   var day = t.getUTCDay() || 7;
   t.setUTCDate(t.getUTCDate() + 4 - day);
   var ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
@@ -1024,128 +1026,220 @@ function bosNetWeek(d) {
   return t.getUTCFullYear() + "-W" + ("0" + wk).slice(-2);
 }
 
+// Единый SVG-глиф безопасного каталога помощи. Emoji остаётся только legacy-полем
+// в БД; интерфейс всех карточек рисует ту же монохромную iOS-семью иконок.
+function BosHelpOfferIconLive({ offer, size, color }) {
+  var byTitle = {
+    "Поддержать привычку": "Leaf", "Позвать на прогулку": "Foot",
+    "Помочь вернуться в ритм": "Refresh", "Провести первую тренировку": "Dumbbell",
+    "Провести дыхание или медитацию": "Moon", "Разобрать неделю": "Calendar",
+    "Собрать маленькую встречу": "Users", "Показать навык на практике": "Bulb",
+    "Провести совместный фокус-час": "Clock", "Разобрать конкретную задачу": "Target"
+  };
+  var skillIcon = offer && offer.kind === "skill_offer" ? bosNetSkillForOffer(offer).icon : null;
+  var interactionIcon = offer && offer.kind === "skill_offer" ? bosNetInteraction(offer.interaction_key).icon : null;
+  var IconCmp = typeof I !== "undefined" && I[skillIcon || interactionIcon || byTitle[(offer && offer.title) || ""] || "Heart"];
+  return IconCmp ? <IconCmp size={size || 18} color={color || "var(--text-2)"} /> : null;
+}
+function bosHelpOfferTitleText(offer) {
+  if (offer && offer.kind === "skill_offer") return offer.title || offer.outcome_title || "Применить навык";
+  if (offer && offer.title === "Показать навык на практике" && /^Навык\s*·\s*/.test(offer.descr || "")) return offer.descr;
+  return (offer && offer.title) || "Формат помощи";
+}
+
+/* ── Навыки и серьёзный Нетворк ─────────────────────────────────────────────
+   Привычка отвечает на «что я повторяю», навык — на «что я умею делать»,
+   предложение — на «какой ограниченный результат я готов дать другому».
+   Каталог широкий, но структурный: публичную карточку нельзя превратить в доску
+   случайных объявлений или обещаний из регулируемых областей. */
+var BOS_SKILL_GROUPS = [
+  { key: "product", title: "Продукт и бизнес", icon: "Briefcase", skills: [
+    ["product_strategy", "Продуктовая стратегия"], ["customer_research", "Исследования пользователей"],
+    ["project_management", "Управление проектами"], ["entrepreneurship", "Предпринимательство"],
+    ["sales", "Продажи"], ["service_design", "Сервис-дизайн"]
+  ] },
+  { key: "design", title: "Дизайн и творчество", icon: "Pencil", skills: [
+    ["product_design", "Продуктовый дизайн"], ["graphic_design", "Графический дизайн"],
+    ["motion_design", "Моушн-дизайн"], ["photography", "Фотография"],
+    ["video", "Видео"], ["writing", "Тексты и редактура"]
+  ] },
+  { key: "technology", title: "Технологии и AI", icon: "Bolt", skills: [
+    ["frontend", "Frontend-разработка"], ["backend", "Backend-разработка"],
+    ["mobile", "Мобильная разработка"], ["data", "Аналитика данных"],
+    ["ai_automation", "AI и автоматизация"], ["no_code", "No-code инструменты"]
+  ] },
+  { key: "growth", title: "Рост и коммуникация", icon: "ChartBar", skills: [
+    ["marketing", "Маркетинг"], ["content", "Контент"], ["public_speaking", "Публичные выступления"],
+    ["negotiation", "Переговоры"], ["career_navigation", "Карьерная навигация"],
+    ["community_building", "Развитие сообществ"]
+  ] },
+  { key: "learning", title: "Обучение и языки", icon: "Book", skills: [
+    ["english", "Английский язык"], ["language_practice", "Языковая практика"],
+    ["tutoring", "Объяснение сложного"], ["learning_design", "Дизайн обучения"],
+    ["study_systems", "Системы обучения"], ["research", "Работа с исследованиями"]
+  ] },
+  { key: "practice", title: "Тело и практики", icon: "Dumbbell", skills: [
+    ["running", "Бег"], ["strength", "Силовые тренировки"], ["mobility", "Мобильность и растяжка"],
+    ["yoga", "Йога"], ["meditation", "Медитация"], ["breathwork", "Дыхательные практики"]
+  ] },
+  { key: "life", title: "Организация жизни", icon: "Calendar", skills: [
+    ["planning", "Личное планирование"], ["focus", "Фокус и глубокая работа"],
+    ["facilitation", "Фасилитация встреч"], ["event_making", "Организация событий"],
+    ["travel_orientation", "Ориентация в новом городе"], ["home_organization", "Организация пространства"]
+  ] }
+];
+var BOS_SKILL_CATALOG = [];
+BOS_SKILL_GROUPS.forEach(function (g) { (g.skills || []).forEach(function (s) { BOS_SKILL_CATALOG.push({ key: s[0], title: s[1], group: g.key, groupTitle: g.title, icon: g.icon }); }); });
+function bosSkillDef(key, title) {
+  for (var i = 0; i < BOS_SKILL_CATALOG.length; i++) if (BOS_SKILL_CATALOG[i].key === key) return BOS_SKILL_CATALOG[i];
+  return { key: key || "skill", title: title || "Навык", group: "other", groupTitle: "Навык", icon: "Bulb" };
+}
+var BOS_NET_INTERACTIONS = [
+  { key: "question", title: "Ответить на вопрос", icon: "MessageCircle", mins: [30, 45], outcome: "Разобрать конкретный вопрос" },
+  { key: "review", title: "Дать разбор", icon: "Eye", mins: [30, 45], outcome: "Разобрать работу и дать обратную связь" },
+  { key: "diagnostic", title: "Разложить ситуацию", icon: "Search", mins: [30, 45], outcome: "Найти узкое место и следующий шаг" },
+  { key: "plan", title: "Собрать план", icon: "Target", mins: [30, 45], outcome: "Собрать понятный план действий" },
+  { key: "demo", title: "Показать на практике", icon: "Play", mins: [30, 45], outcome: "Показать подход на живом примере" },
+  { key: "together", title: "Сделать вместе", icon: "Users", mins: [30, 45], outcome: "Сделать первый рабочий шаг вместе" },
+  { key: "practice", title: "Провести практику", icon: "Sparkles", mins: [30, 45], outcome: "Провести короткую практику" },
+  { key: "sprint", title: "Сопроводить спринт", icon: "Flag", mins: [30, 45], outcome: "Запустить короткий спринт и сверить результат" }
+];
+function bosNetInteraction(key) {
+  for (var i = 0; i < BOS_NET_INTERACTIONS.length; i++) if (BOS_NET_INTERACTIONS[i].key === key) return BOS_NET_INTERACTIONS[i];
+  return BOS_NET_INTERACTIONS[0];
+}
+function bosNetSkillForOffer(o) {
+  return bosSkillDef(o && (o.skill_key || (o.skill && o.skill.skill_key)), o && (o.skill_title || (o.skill && o.skill.title)));
+}
+function bosNetEvidence(o) {
+  return Math.max(0, (o && (o.evidence_count != null ? o.evidence_count : o.completed_count)) | 0);
+}
+function bosNetWhenText(o) {
+  var t = (o && o.when_text) || "30 мин";
+  if (!/(онлайн|рядом)/i.test(t)) t += " · " + ((o && o.mode === "nearby") ? "рядом" : "онлайн");
+  return t;
+}
+function bosNetSlotsText(n) {
+  n = Math.max(1, n | 0); var d = n % 10, h = n % 100;
+  var w = (d === 1 && h !== 11) ? "место" : (d >= 2 && d <= 4 && (h < 12 || h > 14)) ? "места" : "мест";
+  return n + " " + w + "/нед";
+}
+function bosNetPreviewPeople() {
+  return [
+    { ownerId: "preview-maria", name: "Мария", avatar: "m3", level: 14, preview: true, evidence: 7, peopleCount: 5, offers: [
+      { id: "preview-product", owner_id: "preview-maria", kind: "skill_offer", skill_key: "product_design", skill_title: "Продуктовый дизайн", interaction_key: "review", title: "Разобрать первый экран продукта", descr: "Увидишь, что мешает сценарию считываться, и получишь 3 точечных шага.", when_text: "30 мин · онлайн", mode: "online", slots_week: 2, status: "confirmed", visibility: "all", evidence_count: 7, preview: true }
+    ] },
+    { ownerId: "preview-anton", name: "Антон", avatar: "m7", level: 18, preview: true, evidence: 11, peopleCount: 8, offers: [
+      { id: "preview-ai", owner_id: "preview-anton", kind: "skill_offer", skill_key: "ai_automation", skill_title: "AI и автоматизация", interaction_key: "plan", title: "Собрать сценарий автоматизации", descr: "Разложим один повторяющийся процесс и соберём реалистичную схему без магии.", when_text: "45 мин · онлайн", mode: "online", slots_week: 1, status: "confirmed", visibility: "all", evidence_count: 11, preview: true }
+    ] },
+    { ownerId: "preview-lena", name: "Лена", avatar: "m11", level: 12, preview: true, evidence: 5, peopleCount: 4, offers: [
+      { id: "preview-english", owner_id: "preview-lena", kind: "skill_offer", skill_key: "english", skill_title: "Английский язык", interaction_key: "practice", title: "Провести разговорную практику", descr: "Короткий разговор вокруг твоей реальной ситуации и одна зона роста после созвона.", when_text: "30 мин · онлайн", mode: "online", slots_week: 3, status: "confirmed", visibility: "all", evidence_count: 5, preview: true }
+    ] }
+  ];
+}
+
 /* НЕТВОРК · LIVE (v643): твоя карточка ПУБЛИКУЕТ пользу (структурные предложения — цена XP,
    расписание, лимит мест/неделю) + витрина реальных людей ≥10 задизайненными карточками
    (NetPersonCardLive → детали с бронью). Пусто честно, пока никто не опубликовал. */
 function NetworkLive({ navigate, app, level, isDark }) {
-  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
-  const week = bosNetWeek();
-  const isFounder = (function () { try { return localStorage.getItem("bos:founder") === "1"; } catch (e) { return false; } })();
-  const myName = (app && app.userName) || "Ты";
-  const myAvatar = app && app.avatar;
-
-  const [tick, setTick] = React.useState(0);
-  const [myOffers, setMyOffers] = React.useState(null);
+  const [view, setView] = React.useState("find");
+  const [query, setQuery] = React.useState("");
+  const [group, setGroup] = React.useState("all");
   const [people, setPeople] = React.useState(null);
-  const [counts, setCounts] = React.useState({});
+  const [preview, setPreview] = React.useState(false);
+  const [loadError, setLoadError] = React.useState(false);
+  const [tick, setTick] = React.useState(0);
   React.useEffect(function () {
     var on = true;
     (async function () {
-      var C = window.bosCloud;
-      if (!(C && C.enabled && C.enabled() && C.netOffers)) { if (on) { setMyOffers([]); setPeople([]); } return; }
-      var myId = null; try { myId = await C.uid(); } catch (e) {}
-      var all = [], mine = [];
-      try { all = (await C.netOffers(200)) || []; } catch (e) {}
-      try { mine = (await C.netMyOffers()) || []; } catch (e) {}
-      if (!on) return;
-      setMyOffers(mine);
-      var cnt = {};
-      try { for (var m = 0; m < mine.length; m++) { var bk = (await C.netOfferBookings(mine[m].id)) || []; cnt[mine[m].id] = bk.filter(function (b) { return b.week === week; }).length; } } catch (e) {}
-      if (on) setCounts(cnt);
-      // Слой 0 (brief 2026-07-11): в общий Нетворк попадают ТОЛЬКО подтверждённые и открытые
-      // владельцем «всем» вклады. Черновики и circle-only живут в «Помощи круга» у своих.
-      // До SQL-патча (нет колонок status/visibility) — прежнее поведение, поля undefined.
-      var others = all.filter(function (o) {
-        if (!o.owner_id || o.owner_id === myId) return false;
-        if (o.status && o.status !== "confirmed") return false;
-        if (o.visibility && o.visibility !== "all") return false;
-        return true;
+      var C = window.bosCloud, myId = null, offers = [], profileMap = {}, failed = false;
+      if (C && C.enabled && C.enabled()) {
+        try { myId = await C.uid(); } catch (e) {}
+        try {
+          if (C.netSkillOffers) {
+            var sr = await C.netSkillOffers({ limit: 240 });
+            if (sr && sr.status === "error") failed = true;
+            offers = Array.isArray(sr) ? sr : ((sr && sr.offers) || []);
+          } else if (C.netOffers) offers = (await C.netOffers(240)) || [];
+        } catch (e) { offers = []; failed = true; }
+        offers = offers.filter(function (o) { return o && o.owner_id && o.owner_id !== myId && o.kind === "skill_offer" && o.status === "confirmed" && o.visibility === "all" && o.active !== false; });
+        if (C.netSkillEvidence && offers.length) {
+          try { await Promise.all(offers.slice(0, 80).map(async function (o) { var er = await C.netSkillEvidence(o.owner_id, o.skill_id); var ev = er && er.evidence; if (ev) { o.evidence_count = ev.completed_episodes | 0; o.people_count = (ev.unique_people != null ? ev.unique_people : ev.completed_episodes) | 0; o.role_confirmations = ev.role_confirmations | 0; } })); } catch (e) {}
+        }
+        var ids = []; offers.forEach(function (o) { if (ids.indexOf(o.owner_id) < 0) ids.push(o.owner_id); });
+        try {
+          if (ids.length && C.netProfiles) {
+            var pr = await C.netProfiles(ids); var rows = Array.isArray(pr) ? pr : ((pr && pr.profiles) || []);
+            rows.forEach(function (p) { if (p && p.id) profileMap[p.id] = p; });
+          } else if (C.allPublic) {
+            var pv = (await C.allPublic(240)) || []; pv.forEach(function (p) { profileMap[p.id] = p; });
+          }
+        } catch (e) {}
+      }
+      var byOwner = {};
+      offers.forEach(function (o) { (byOwner[o.owner_id] = byOwner[o.owner_id] || []).push(o); });
+      var hidden = []; try { hidden = JSON.parse(localStorage.getItem("bos:network:hidden") || "[]") || []; } catch (e) {}
+      var real = Object.keys(byOwner).filter(function (oid) { return hidden.indexOf(oid) < 0; }).map(function (oid) {
+        var p = profileMap[oid] || {}, os = byOwner[oid];
+        return { ownerId: oid, name: p.username || p.name || "Участник", avatar: p.avatar || "default", level: p.level || 10, offers: os, evidence: os.reduce(function (n, o) { return Math.max(n, bosNetEvidence(o)); }, 0), peopleCount: os.reduce(function (n, o) { return Math.max(n, (o.people_count | 0)); }, 0) };
       });
-      var pub = {}; try { var pv = (await C.allPublic(240)) || []; pv.forEach(function (p) { pub[p.id] = p; }); } catch (e) {}
-      var byOwner = {}; others.forEach(function (o) { (byOwner[o.owner_id] = byOwner[o.owner_id] || []).push(o); });
-      var ppl = Object.keys(byOwner).map(function (oid) { var pr = pub[oid] || {}; return { ownerId: oid, avatar: pr.avatar || "default", level: pr.level || 10, offers: byOwner[oid] }; });
-      if (on) setPeople(ppl);
+      if (!on) return;
+      if (real.length) { setPeople(real); setPreview(false); setLoadError(false); }
+      else { setPeople(bosNetPreviewPeople().filter(function (p) { return hidden.indexOf(p.ownerId) < 0; })); setPreview(true); setLoadError(failed); }
     })();
     return function () { on = false; };
   }, [tick]);
 
-  // Один доменный объект «формат помощи» (brief 2026-07-11, Слой 0): и тут, и в «Моём вкладе»
-  // предложение создаётся ТОЛЬКО из безопасного каталога — свободный редактор убран.
-  const openEditor = function (offer) { if (typeof AddHelpFormatSheetLive === "function") _openSheet(<AddHelpFormatSheetLive app={app} offer={offer || null} onDone={function () { setTick(function (t) { return t + 1; }); }} />); };
-
+  var q = query.trim().toLowerCase();
+  var shown = (people || []).filter(function (p) {
+    var os = p.offers || [];
+    var groupOk = group === "all" || os.some(function (o) { return bosNetSkillForOffer(o).group === group; });
+    if (!groupOk) return false;
+    if (!q) return true;
+    var hay = [p.name].concat(os.map(function (o) { var s = bosNetSkillForOffer(o); return [s.title, s.groupTitle, o.title, o.descr, bosNetInteraction(o.interaction_key).title].join(" "); })).join(" ").toLowerCase();
+    return hay.indexOf(q) >= 0;
+  });
+  var groups = [{ key: "all", title: "Все" }].concat(BOS_SKILL_GROUPS.slice(0, 6));
+  var segment = function (key, label, IconCmp) {
+    var on = view === key;
+    return <button key={key} onClick={function () { setView(key); }} className="tap hit44" style={{ flex: 1, minHeight: 42, border: 0, borderRadius: 13, background: on ? "var(--card)" : "transparent", color: on ? "var(--text)" : "var(--text-4)", boxShadow: on ? "var(--card-shadow)" : "none", fontSize: 12.5, fontWeight: on ? 750 : 650, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" }}>{IconCmp ? <IconCmp size={14} /> : null}{label}</button>;
+  };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-      {/* ГЕРОЙ */}
-      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px", background: "linear-gradient(140deg, #FEDE34 0%, #F6B31E 46%, #EF9F14 100%)", boxShadow: "0 10px 26px rgba(239,159,20,0.34)" }}>
-        <div aria-hidden style={{ position: "absolute", top: -44, right: -30, width: 170, height: 170, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
-        <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(70,45,0,0.62)" }}>Нетворк · открыт</div>
-          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2600", marginTop: 4, lineHeight: 1.16 }}>{isFounder ? "Ты открыл его первым" : "Круг своих"}</div>
-          <div style={{ fontSize: 13, color: "rgba(58,38,0,0.72)", marginTop: 6, lineHeight: 1.45, maxWidth: 264 }}>Публикуй, чем полезен окружению, — и записывайся к другим за XP.</div>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
+      <div style={{ display: "flex", gap: 4, background: "var(--surface-3)", borderRadius: 16, padding: 4 }}>
+        {segment("find", "Найти", I.Search)}{segment("skills", "Мои навыки", I.Bulb)}{segment("requests", "Запросы", I.MessageCircle)}
       </div>
 
-      {/* ТВОЯ КАРТОЧКА — тёмная; тут ты публикуешь пользу. */}
-      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: 18, color: "#fff", background: "linear-gradient(135deg, #1a1a1d 0%, #0a0a0a 100%)", boxShadow: "0 6px 22px rgba(0,0,0,0.20)" }}>
-        <div aria-hidden style={{ position: "absolute", top: -40, right: -30, width: 160, height: 160, borderRadius: "50%", background: "radial-gradient(circle at 35% 35%, #ffe88a, #FEDE34 30%, #EF9F14 70%, transparent 95%)", opacity: 0.18, filter: "blur(8px)", pointerEvents: "none" }} />
-        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 13 }}>
-          {typeof BosAvatar === "function" ? <BosAvatar avatar={myAvatar} size={50} style={{ flexShrink: 0, boxShadow: "0 0 0 2px rgba(255,255,255,0.14)" }} /> : null}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{myName}</span>
-              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999, padding: "2px 8px", letterSpacing: 0.3 }}>L{level}</span>
+      {view === "find" ? <React.Fragment>
+        <div style={{ position: "relative", overflow: "hidden", borderRadius: 24, padding: "17px 16px 16px", background: "linear-gradient(145deg,#171719 0%,#050505 100%)", color: "#fff", boxShadow: "0 10px 28px rgba(0,0,0,0.22)" }}>
+          <div aria-hidden style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", right: -75, top: -92, background: "radial-gradient(circle,rgba(254,222,52,0.32),rgba(254,222,52,0.04) 55%,transparent 72%)" }} />
+          <div style={{ position: "relative" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.3, textTransform: "uppercase", color: "#E9BD32" }}>Нетворк · подтверждено делами</div>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.55px", lineHeight: 1.13, marginTop: 5 }}>Что тебе сейчас нужно?</div>
+            <div style={{ position: "relative", marginTop: 13 }}>
+              <I.Search size={18} color="rgba(255,255,255,0.58)" style={{ position: "absolute", left: 13, top: 13 }} />
+              <input value={query} onChange={function (e) { setQuery(e.target.value); }} aria-label="Поиск по навыкам и задачам" placeholder="Навык, задача или человек" style={{ width: "100%", height: 44, border: "1px solid rgba(255,255,255,0.09)", borderRadius: 14, background: "rgba(255,255,255,0.10)", color: "#fff", padding: "0 14px 0 40px", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
             </div>
-            {isFounder ? <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 6, fontSize: 11.5, fontWeight: 700, color: "#FEDE34", background: "rgba(254,222,52,0.12)", borderRadius: 999, padding: "3px 9px" }}>🏛 Основатель</div> : null}
+            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.52)", marginTop: 9, lineHeight: 1.4 }}>Уровень открывает доступ. Качество подтверждают только состоявшиеся дела.</div>
           </div>
         </div>
 
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 9 }}>Твоя польза окружению</div>
-          {myOffers === null ? (
-            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)" }}>Загружаем…</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {myOffers.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>Выбери формат из безопасного каталога — сначала он живёт у твоих кругов, потом открывается шире.</div>
-              ) : myOffers.map(function (o) {
-                var c = counts[o.id] | 0; var full = c >= ((o.slots_week | 0) || 1);
-                return (
-                  <button key={o.id} onClick={function () { openEditor(o); }} className="tap" style={{ border: 0, cursor: "pointer", textAlign: "left", background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "11px 12px", display: "flex", alignItems: "center", gap: 11 }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 11, background: "rgba(255,255,255,0.08)", display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{o.emoji || "🤝"}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.title}</div>
-                      <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(o.price_xp > 0 ? (o.price_xp + " XP") : "Бесплатно") + (o.when_text ? (" · " + o.when_text) : "") + " · " + ((o.slots_week | 0) || 1) + "/нед"}</div>
-                    </div>
-                    <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: full ? "#FF9F0A" : "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.08)", borderRadius: 999, padding: "3px 8px" }}>{c > 0 ? (c + " зап.") : "свободно"}</span>
-                  </button>
-                );
-              })}
-              <button onClick={function () { openEditor(null); }} className="tap" style={{ border: "1px dashed rgba(255,255,255,0.22)", cursor: "pointer", background: "transparent", borderRadius: 14, padding: "10px 12px", color: "#FEDE34", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>＋ Добавить формат помощи</button>
-            </div>
-          )}
+        <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", padding: "0 1px 3px" }}>
+          {groups.map(function (g) { var on = group === g.key; return <button key={g.key} onClick={function () { setGroup(g.key); }} className="tap hit44" style={{ minHeight: 40, flexShrink: 0, border: on ? "1px solid #D7A719" : "1px solid var(--line)", borderRadius: 999, background: on ? "rgba(254,222,52,0.24)" : "var(--card)", color: on ? "var(--text)" : "var(--text-3)", padding: "8px 13px", fontSize: 12.5, fontWeight: on ? 750 : 650, cursor: "pointer", boxShadow: on ? "none" : "var(--card-shadow)" }}>{g.title}</button>; })}
         </div>
-      </div>
 
-      {/* ЛЮДИ — задизайненные карточки. */}
-      <div className="section-label" style={{ marginTop: 6 }}>{people && people.length ? ("В Нетворке · " + people.length) : "В Нетворке"}</div>
-      {people === null ? (
-        <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)" }}>Загружаем…</div>
-      ) : people.length === 0 ? (
-        <React.Fragment>
-          <div style={{ background: "var(--card)", borderRadius: 22, padding: "18px 16px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
-            <div style={{ fontSize: 30 }}>🌱</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6 }}>Ты здесь первый</div>
-            <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.5, marginTop: 5, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>Опубликуй свою пользу выше — а когда другие дойдут до Нетворка, их предложения появятся здесь.</div>
-          </div>
-          {typeof InviteFriendsCardLive === "function" ? <InviteFriendsCardLive isDark={isDark} /> : null}
-        </React.Fragment>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {people.map(function (pp) { return <NetPersonCardLive key={pp.ownerId} person={pp} viewerLevel={level} navigate={navigate} />; })}
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "2px 3px 0" }}>
+          <div className="section-label" style={{ margin: 0 }}>{q ? "Подходит тебе" : "Люди и навыки"}</div>
+          <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>{shown.length}</span>
         </div>
-      )}
+        {preview ? <div style={{ display: "flex", alignItems: "flex-start", gap: 9, borderRadius: 15, background: "rgba(254,222,52,0.15)", border: "1px solid rgba(215,167,25,0.28)", padding: "10px 12px" }}><I.Eye size={16} color="#A97900" style={{ flexShrink: 0, marginTop: 1 }} /><div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.42 }}><b style={{ color: "var(--text-2)" }}>{loadError ? "Нетворк сейчас не загрузился." : "Пример наполнения."}</b> {loadError ? "Ниже только демонстрационные карточки — реальные данные не подменяем." : "Реальные карточки появятся здесь после публикации подтверждённых навыков."}</div></div> : null}
+        {people === null ? <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)" }}>Загружаем Нетворк…</div>
+          : shown.length ? <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{shown.map(function (p) { return <NetPersonCardLive key={p.ownerId} person={p} viewerLevel={level} navigate={navigate} />; })}</div>
+          : <div style={{ background: "var(--card)", borderRadius: 22, padding: 20, boxShadow: "var(--card-shadow)", textAlign: "center" }}><I.Search size={24} color="var(--text-4)" /><div style={{ fontSize: 15, fontWeight: 750, marginTop: 8 }}>Пока нет точного совпадения</div><div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 4, lineHeight: 1.45 }}>Попробуй описать задачу короче или выбери другую область.</div></div>}
+      </React.Fragment> : null}
 
-      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", margin: "10px 8px 2px", fontStyle: "italic" }}>Плата XP из копилки — не деньгами. Уровень от траты не падает.</div>
+      {view === "skills" ? <SkillsWorkbenchLive app={app} level={level} onChanged={function () { setTick(function (n) { return n + 1; }); }} /> : null}
+      {view === "requests" ? <NetworkEpisodesLive app={app} onChanged={function () { setTick(function (n) { return n + 1; }); }} /> : null}
     </div>
   );
 }
@@ -1157,43 +1251,43 @@ function NetworkLive({ navigate, app, level, isDark }) {
 /* Карточка человека в Нетворке (reuse дизайна): аватар, уровень, превью предложений.
    Тап → детали с бронью. Аноним (имён пока нет — честно). */
 function NetPersonCardLive({ person, viewerLevel, navigate }) {
-  const offers = (person.offers || []).slice().sort(function (a, b) { return ((a.min_level | 0) - (b.min_level | 0)); });
-  const n = offers.length;
-  const nWord = n + " " + ((n % 10 === 1 && n % 100 !== 11) ? "предложение" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "предложения" : "предложений"));
+  const offers = (person.offers || []).slice();
+  const first = offers[0] || {};
+  const skill = bosNetSkillForOffer(first);
+  const interaction = bosNetInteraction(first.interaction_key);
+  const evidence = Math.max(person.evidence | 0, bosNetEvidence(first));
   return (
-    <div onClick={function () { navigate("net-person", { person: person }); }} className="tap" style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", cursor: "pointer" }}>
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={44} style={{ flexShrink: 0 }} /> : null}
+    <button onClick={function () { navigate("net-person", { person: person }); }} className="tap" style={{ width: "100%", border: 0, textAlign: "left", background: "var(--card)", borderRadius: 23, padding: 0, boxShadow: "var(--card-shadow)", cursor: "pointer", color: "var(--text)", overflow: "hidden" }}>
+      <div style={{ padding: "14px 15px 12px", display: "flex", gap: 11, alignItems: "center" }}>
+        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={46} style={{ flexShrink: 0 }} /> : null}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Участник</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>L{person.level | 0}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 750, fontSize: 16, color: "var(--text)" }}>{person.name || "Участник"}</span>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: "#8A6500", background: "rgba(254,222,52,0.24)", borderRadius: 999, padding: "3px 7px", letterSpacing: 0.3 }}>L{person.level | 0}</span>
+            {person.preview ? <span style={{ fontSize: 9, fontWeight: 800, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "3px 7px", letterSpacing: 0.5, textTransform: "uppercase" }}>пример</span> : null}
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3 }}>{nWord}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}><I.Check size={12} color="#B08714" />{evidence ? (evidence + " подтверждённых дел" + ((person.peopleCount | 0) ? (" · " + person.peopleCount + " человек") : "")) : "Навык открыт после дел в кругах"}</div>
         </div>
         <I.ChevronRight size={18} color="var(--text-4)" />
       </div>
-      {offers.length > 0 ? (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 7 }}>
-          {offers.slice(0, 3).map(function (o) {
-            var locked = (viewerLevel | 0) < (o.min_level | 0);
-            return (
-              <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, opacity: locked ? 0.55 : 1 }}>
-                <span style={{ width: 28, height: 28, borderRadius: 10, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{o.emoji || "🤝"}</span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.title}</span>
-                <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: locked ? "var(--text-4)" : "var(--text)" }}>{locked ? ("🔒 L" + o.min_level) : (o.price_xp > 0 ? (o.price_xp + " XP") : "Бесплатно")}</span>
-              </div>
-            );
-          })}
+      {first.id ? <div style={{ margin: "0 8px 8px", borderRadius: 18, padding: "13px 13px 12px", background: "linear-gradient(145deg,var(--surface-3),rgba(254,222,52,0.10))", border: "1px solid rgba(215,167,25,0.16)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 36, height: 36, borderRadius: 12, background: "var(--card)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}><BosHelpOfferIconLive offer={first} size={18} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 750, textTransform: "uppercase", letterSpacing: 0.55 }}>{skill.title}</div><div style={{ fontSize: 15, fontWeight: 750, color: "var(--text)", marginTop: 2, lineHeight: 1.23 }}>{bosHelpOfferTitleText(first)}</div></div>
         </div>
-      ) : null}
-    </div>
+        {first.descr ? <div style={{ fontSize: 12.2, color: "var(--text-3)", lineHeight: 1.43, marginTop: 9 }}>{first.descr}</div> : null}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+          {[interaction.title, bosNetWhenText(first), bosNetSlotsText(first.slots_week)].map(function (x, i) { return <span key={i} style={{ borderRadius: 999, padding: "5px 8px", background: i === 0 ? "rgba(254,222,52,0.22)" : "var(--card)", fontSize: 10.5, fontWeight: 700, color: i === 0 ? "#806000" : "var(--text-3)" }}>{x}</span>; })}
+        </div>
+        {offers.length > 1 ? <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 9 }}>Ещё {offers.length - 1} {offers.length - 1 === 1 ? "применение навыка" : "применения навыков"}</div> : null}
+      </div> : null}
+    </button>
   );
 }
 
 /* Детали человека в Нетворке (reuse дизайна ContactDetailLive): герой + Предложения с бронью.
    Выдуманные отзывы/рейтинг/история НЕ показываем — только реальное. Маршрут "net-person". */
-function NetPersonDetailLive() {
+function NetPersonDetailLegacyLive() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const person = (params && params.person) || { ownerId: null, avatar: "default", level: 10, offers: [] };
@@ -1271,13 +1365,14 @@ function NetPersonDetailLive() {
               var locked = (viewerLevel | 0) < (o.min_level | 0);
               var booked = !!mine[o.id];
               var affordable = balance >= (o.price_xp | 0);
+              var serverUnavailable = (o.min_level | 0) > 1 || (o.price_xp | 0) > 0;
               return (
                 <div key={o.id} style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", opacity: (locked && !booked) ? 0.6 : 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{o.emoji || "🤝"}</span>
+                    <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}><BosHelpOfferIconLive offer={o} size={20} /></span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{o.title}</span>
+                        <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{bosHelpOfferTitleText(o)}</span>
                         {locked ? <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px" }}>🔒 L{o.min_level}</span> : null}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{(o.descr ? (o.descr + " · ") : "") + (o.when_text ? (o.when_text + " · ") : "") + slots + "/нед"}</div>
@@ -1287,6 +1382,8 @@ function NetPersonDetailLive() {
                   <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     {booked ? (
                       <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#1E8E4E", background: "rgba(52,199,89,0.14)", borderRadius: 999, padding: "7px 13px" }}><I.Check size={13} strokeWidth={3} /> Ты записан на этой неделе</div>
+                    ) : serverUnavailable ? (
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)" }}>Запись откроется после серверного кошелька</div>
                     ) : locked ? (
                       <div style={{ fontSize: 12.5, color: "var(--text-4)" }}>Откроется с {o.min_level} уровня</div>
                     ) : full ? (
@@ -1296,7 +1393,7 @@ function NetPersonDetailLive() {
                     ) : (
                       <button onClick={function () { book(o); }} disabled={busyId === o.id} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{busyId === o.id ? "…" : (o.price_xp > 0 ? ("Записаться за " + o.price_xp + " XP") : "Записаться")}</button>
                     )}
-                    {!booked && !locked ? <span style={{ fontSize: 11.5, color: "var(--text-5)" }}>{Math.max(0, slots - tk)} из {slots} свободно</span> : null}
+                    {!booked && !locked && !serverUnavailable ? <span style={{ fontSize: 11.5, color: "var(--text-5)" }}>{Math.max(0, slots - tk)} из {slots} свободно</span> : null}
                   </div>
                 </div>
               );
@@ -1306,6 +1403,298 @@ function NetPersonDetailLive() {
       </div>
     </div>
   );
+}
+
+/* Детальный профиль Нетворка: публичное имя раскрывается только здесь, после осознанного
+   входа в раздел. Вместо рейтинга — проверяемые дела и число разных людей. */
+function NetPersonDetailLive() {
+  const { navigate, params } = useNav();
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  const person = (params && params.person) || { ownerId: null, name: "Участник", avatar: "default", level: 10, offers: [] };
+  const offers = (person.offers || []).filter(function (o) { return o && o.kind === "skill_offer"; });
+  const skills = [];
+  offers.forEach(function (o) { var s = bosNetSkillForOffer(o); if (!skills.some(function (x) { return x.key === s.key; })) skills.push(s); });
+  const evidence = Math.max(person.evidence | 0, offers.reduce(function (n, o) { return Math.max(n, bosNetEvidence(o)); }, 0));
+  const ask = function (o) { openSheet(<NetworkRequestSheetLive person={person} offer={o} />); };
+  return (
+    <div className="page-in" style={{ padding: "0 0 30px" }}>
+      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(155deg,#171719,#050505)", color: "#fff", margin: "-60px 0 0", padding: "60px 16px 20px" }}>
+        <div aria-hidden style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", top: -100, right: -100, background: "radial-gradient(circle,rgba(254,222,52,0.28),transparent 68%)" }} />
+        <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4, paddingBottom: 17 }}>
+          <button onClick={function () { navigate("community"); }} aria-label="Назад" className="tap hit44" style={{ width: 40, height: 40, border: 0, borderRadius: 999, background: "rgba(255,255,255,0.10)", color: "#fff", display: "grid", placeItems: "center" }}><I.ChevronLeft size={19} /></button>
+          <button onClick={function () { openSheet(<NetworkSafetySheetLive person={person} onHidden={function () { navigate("community"); }} />); }} aria-label="Действия" className="tap hit44" style={{ width: 40, height: 40, border: 0, borderRadius: 999, background: "rgba(255,255,255,0.10)", color: "#fff", display: "grid", placeItems: "center" }}><I.More size={18} /></button>
+        </div>
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={68} style={{ flexShrink: 0, boxShadow: "0 0 0 2px rgba(255,255,255,0.14)" }} /> : null}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><span style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.55px" }}>{person.name || "Участник"}</span><span style={{ fontSize: 9.5, color: "#17120A", background: "#FEDE34", borderRadius: 999, padding: "3px 8px", fontWeight: 850 }}>L{person.level | 0}</span>{person.preview ? <span style={{ fontSize: 9, color: "rgba(255,255,255,0.62)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 999, padding: "3px 8px", fontWeight: 750, textTransform: "uppercase" }}>пример</span> : null}</div>
+            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.62)", marginTop: 5, lineHeight: 1.4 }}>{evidence ? (evidence + " состоявшихся дел" + ((person.peopleCount | 0) ? (" · " + person.peopleCount + " человек") : "")) : "Навыки подтверждены общими кругами"}</div>
+          </div>
+        </div>
+        <div style={{ position: "relative", display: "flex", gap: 6, overflowX: "auto", marginTop: 15 }}>
+          {skills.map(function (s) { return <span key={s.key} style={{ flexShrink: 0, borderRadius: 999, padding: "6px 10px", background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.84)", fontSize: 11.5, fontWeight: 700 }}>{s.title}</span>; })}
+        </div>
+      </div>
+
+      <div style={{ padding: "16px 16px 0" }}>
+        <div className="section-label" style={{ marginBottom: 10 }}>Чем может помочь</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {offers.map(function (o) {
+            var s = bosNetSkillForOffer(o), it = bosNetInteraction(o.interaction_key), ev = Math.max(bosNetEvidence(o), person.evidence | 0);
+            return <div key={o.id} style={{ background: "var(--card)", borderRadius: 22, padding: 15, boxShadow: "var(--card-shadow)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 11 }}><span style={{ width: 42, height: 42, borderRadius: 14, background: "linear-gradient(145deg,rgba(254,222,52,0.26),var(--surface-3))", display: "grid", placeItems: "center", flexShrink: 0 }}><BosHelpOfferIconLive offer={o} size={20} /></span><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10.5, color: "#9A7200", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.55 }}>{s.title}</div><div style={{ fontSize: 16, fontWeight: 750, lineHeight: 1.24, marginTop: 2 }}>{bosHelpOfferTitleText(o)}</div></div></div>
+              {o.descr ? <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.48, marginTop: 10 }}>{o.descr}</div> : null}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 11 }}>{[it.title, bosNetWhenText(o), bosNetSlotsText(o.slots_week)].map(function (x, i) { return <span key={i} style={{ borderRadius: 999, background: "var(--surface-3)", padding: "5px 8px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{x}</span>; })}</div>
+              <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ fontSize: 11.5, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 5 }}><I.Check size={13} color="#B08714" />{ev ? (ev + " подтверждений опытом") : "Подтверждено окружением"}</span><button onClick={function () { ask(o); }} className="tap hit44" style={{ minHeight: 40, border: 0, borderRadius: 999, background: "#0a0a0a", color: "#fff", padding: "9px 15px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Запросить</button></div>
+            </div>;
+          })}
+        </div>
+
+        <div style={{ marginTop: 13, background: "var(--card)", borderRadius: 22, padding: 15, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ fontSize: 14.5, fontWeight: 750 }}>Почему это не рейтинг</div>
+          <div style={{ display: "flex", gap: 10, marginTop: 11 }}>
+            {[{ i: I.Users, t: "Разные люди", d: "Один и тот же друг не может бесконечно накручивать доверие" }, { i: I.Check, t: "Обе стороны", d: "Дело засчитывается, только когда завершение подтвердили оба" }].map(function (x) { var X = x.i; return <div key={x.t} style={{ flex: 1, minWidth: 0, borderRadius: 15, background: "var(--surface-3)", padding: 11 }}><X size={16} color="#A67A00" /><div style={{ fontSize: 12, fontWeight: 750, marginTop: 7 }}>{x.t}</div><div style={{ fontSize: 10.5, color: "var(--text-4)", lineHeight: 1.38, marginTop: 3 }}>{x.d}</div></div>; })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NetworkRequestSheetLive({ person, offer }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var it = bosNetInteraction(offer && offer.interaction_key), skill = bosNetSkillForOffer(offer || {});
+  var choices = ["Понять, с чего начать", "Получить обратную связь", "Собрать следующий шаг", "Разобрать конкретную ситуацию"];
+  var _ch = React.useState(choices[0]), choice = _ch[0], setChoice = _ch[1];
+  var _n = React.useState(""), note = _n[0], setNote = _n[1];
+  var _b = React.useState(false), busy = _b[0], setBusy = _b[1];
+  var _e = React.useState(""), error = _e[0], setError = _e[1];
+  var _ok = React.useState(false), sent = _ok[0], setSent = _ok[1];
+  var send = async function () {
+    if (busy) return; setBusy(true); setError("");
+    if (offer && offer.preview) { setTimeout(function () { setBusy(false); setSent(true); }, 300); return; }
+    var C = window.bosCloud, res = null;
+    try { if (C && C.netRequestSkillOffer) res = await C.netRequestSkillOffer(offer.id, choice + (note.trim() ? (" · " + note.trim()) : "")); } catch (e) {}
+    setBusy(false);
+    if (res && res.ok) { setSent(true); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
+    else setError("Не удалось отправить запрос. Проверь соединение или попробуй позже.");
+  };
+  if (sent) return <div className="bos-sheet-scroll" style={{ padding: "14px 18px 22px", textAlign: "center", color: "var(--text)" }}>{typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}<div style={{ width: 58, height: 58, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", margin: "10px auto 14px" }}><I.Check size={26} color="#0a0a0a" strokeWidth={2.4} /></div><div style={{ fontSize: 21, fontWeight: 800 }}>Запрос отправлен</div><div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.48, margin: "7px auto 16px", maxWidth: 300 }}>{person.name || "Участник"} увидит задачу и сможет принять или вежливо отказаться. После принятия вы сможете открыть контакт и согласовать детали.</div>{offer.preview ? <div style={{ fontSize: 11.5, color: "#8A6500", background: "rgba(254,222,52,0.18)", borderRadius: 13, padding: 10, marginBottom: 12 }}>Это демонстрационный сценарий — реальный запрос не отправлен.</div> : null}<button onClick={s.close} className="tap hit44" style={{ width: "100%", minHeight: 48, border: 0, borderRadius: 16, background: "#0a0a0a", color: "#fff", fontSize: 14.5, fontWeight: 800 }}>Готово</button></div>;
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>
+    {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={typeof _dSTitle !== "undefined" ? _dSTitle : { fontSize: 21, fontWeight: 800 }}>Запросить помощь</div>
+    <div style={typeof _dSSub !== "undefined" ? _dSSub : { fontSize: 13, color: "var(--text-4)" }}>{skill.title} · {it.title.toLowerCase()}</div>
+    <div style={{ marginTop: 15, borderRadius: 18, background: "var(--card)", padding: 13, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 11 }}><BosAvatar avatar={person.avatar} size={42} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 750 }}>{person.name || "Участник"}</div><div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{bosHelpOfferTitleText(offer)}</div></div></div>
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "17px 2px 8px" }}>Какой результат нужен</div>
+    <div role="radiogroup" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>{choices.map(function (x) { var on = choice === x; return <button key={x} onClick={function () { setChoice(x); }} role="radio" aria-checked={on} className="tap hit44" style={{ minHeight: 48, border: on ? "1px solid #D7A719" : "1px solid transparent", borderRadius: 14, background: on ? "rgba(254,222,52,0.22)" : "var(--card)", color: "var(--text)", boxShadow: on ? "none" : "var(--card-shadow)", padding: "9px 10px", textAlign: "left", fontSize: 11.8, lineHeight: 1.3, fontWeight: on ? 750 : 650 }}>{x}</button>; })}</div>
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "17px 2px 8px" }}>Контекст · необязательно</div>
+    <textarea value={note} maxLength={180} onChange={function (e) { setNote(e.target.value); }} placeholder="Одна конкретная ситуация, без личных данных" style={{ width: "100%", minHeight: 86, resize: "none", border: "1px solid var(--line)", borderRadius: 16, background: "var(--card)", color: "var(--text)", padding: 12, boxSizing: "border-box", fontSize: 13, lineHeight: 1.4, outline: "none" }} />
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, margin: "6px 2px 0", fontSize: 10.5, color: "var(--text-4)" }}><span>Без оплаты и обещаний результата</span><span>{note.length}/180</span></div>
+    {error ? <div role="alert" style={{ marginTop: 10, borderRadius: 13, background: "rgba(255,59,48,0.10)", color: "#C8443A", padding: 10, fontSize: 11.5 }}>{error}</div> : null}
+    <button onClick={send} disabled={busy} className="tap hit44" style={{ width: "100%", minHeight: 49, marginTop: 14, border: 0, borderRadius: 16, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 14.5, fontWeight: 850, boxShadow: "0 5px 15px rgba(239,159,20,0.28)" }}>{busy ? "Отправляем…" : "Отправить запрос"}</button>
+  </div>;
+}
+
+function NetworkSafetySheetLive({ person, onHidden }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _r = React.useState(null), reason = _r[0], setReason = _r[1];
+  var _ok = React.useState(false), done = _ok[0], setDone = _ok[1];
+  var reasons = [["spam", "Спам или реклама"], ["unsafe", "Опасное обещание"], ["misleading_skill", "Навык описан вводяще в заблуждение"], ["harassment", "Оскорбление или давление"], ["other", "Другое нарушение"]];
+  var hide = async function (block) {
+    try { var a = JSON.parse(localStorage.getItem("bos:network:hidden") || "[]"); if (a.indexOf(person.ownerId) < 0) a.push(person.ownerId); localStorage.setItem("bos:network:hidden", JSON.stringify(a)); } catch (e) {}
+    if (block && window.bosCloud && window.bosCloud.netBlockUser && !person.preview) try { await window.bosCloud.netBlockUser(person.ownerId); } catch (e) {}
+    s.close(); if (onHidden) onHidden();
+  };
+  var report = async function () { if (!reason) return; if (window.bosCloud && window.bosCloud.netReportUser && !person.preview) try { await window.bosCloud.netReportUser(person.ownerId, reason, { source: "network_profile" }); } catch (e) {} setDone(true); };
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>{typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}<div style={_dSTitle}>Безопасность</div><div style={_dSSub}>{person.name || "Участник"} · действия видны только тебе и модерации</div>
+    {done ? <div style={{ textAlign: "center", padding: "26px 8px 8px" }}><I.Check size={28} color="#A67A00" /><div style={{ fontSize: 18, fontWeight: 800, marginTop: 10 }}>Жалоба отправлена</div><div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 5 }}>Карточку можно также скрыть или заблокировать.</div></div> : <React.Fragment>
+      <div style={{ marginTop: 16, borderRadius: 18, background: "var(--card)", boxShadow: "var(--card-shadow)", overflow: "hidden" }}><button onClick={function () { hide(false); }} className="tap hit44" style={{ width: "100%", minHeight: 52, border: 0, background: "transparent", color: "var(--text)", display: "flex", alignItems: "center", gap: 11, padding: "10px 13px", textAlign: "left" }}><I.Eye size={18} /><span style={{ flex: 1, fontSize: 13.5, fontWeight: 700 }}>Больше не показывать карточку</span></button><button onClick={function () { hide(true); }} className="tap hit44" style={{ width: "100%", minHeight: 52, border: 0, borderTop: "1px solid var(--line)", background: "transparent", color: "#C8443A", display: "flex", alignItems: "center", gap: 11, padding: "10px 13px", textAlign: "left" }}><I.Ban size={18} /><span style={{ flex: 1, fontSize: 13.5, fontWeight: 700 }}>Заблокировать друг друга</span></button></div>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "18px 2px 8px" }}>Пожаловаться</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>{reasons.map(function (r) { var on = reason === r[0]; return <button key={r[0]} onClick={function () { setReason(r[0]); }} className="tap hit44" style={{ minHeight: 47, border: on ? "1px solid #D7A719" : "1px solid transparent", borderRadius: 14, background: on ? "rgba(254,222,52,0.20)" : "var(--card)", color: "var(--text)", textAlign: "left", padding: "10px 12px", fontSize: 12.5, fontWeight: on ? 750 : 650, boxShadow: on ? "none" : "var(--card-shadow)" }}>{r[1]}</button>; })}</div>
+    </React.Fragment>}
+    <button onClick={done ? s.close : report} disabled={!done && !reason} className="tap hit44" style={{ width: "100%", minHeight: 48, marginTop: 14, border: 0, borderRadius: 16, background: done ? "#0a0a0a" : (reason ? "#0a0a0a" : "var(--surface-3)"), color: (done || reason) ? "#fff" : "var(--text-4)", fontSize: 14, fontWeight: 800 }}>{done ? "Готово" : "Отправить жалобу"}</button>
+  </div>;
+}
+
+function SkillsWorkbenchLive({ app, level, onChanged }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var _sk = React.useState(null), skills = _sk[0], setSkills = _sk[1];
+  var _of = React.useState([]), offers = _of[0], setOffers = _of[1];
+  var _er = React.useState(""), error = _er[0], setError = _er[1];
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  var refresh = function () { setTick(function (n) { return n + 1; }); if (onChanged) onChanged(); };
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!(C && C.enabled && C.enabled())) { setSkills([]); return; }
+    Promise.all([
+      C.loadMySkills ? C.loadMySkills() : Promise.resolve({ status: "error", skills: [] }),
+      C.netMySkillOffers ? C.netMySkillOffers({ includePaused: true }) : Promise.resolve({ status: "error", offers: [] })
+    ]).then(async function (r) { if (!on) return; var mine = (r[0] && r[0].skills) || []; if (C.netSkillEvidence && mine.length) { try { await Promise.all(mine.map(async function (sk) { var er = await C.netSkillEvidence(sk.id); var ev = er && er.evidence; if (ev) { sk.confirmations_count = ev.role_confirmations | 0; sk.evidence_count = ev.completed_episodes | 0; sk.people_count = (ev.unique_people != null ? ev.unique_people : ev.completed_episodes) | 0; sk.state = ev.state || sk.state; } })); } catch (e) {} } if (!on) return; setSkills(mine); setOffers((r[1] && r[1].offers) || []); }).catch(function () { if (on) setSkills([]); });
+    return function () { on = false; };
+  }, [tick]);
+  var openSkill = function () { s.open(<AddSkillSheetLive onDone={refresh} />); };
+  var editOffer = function (skill, offer) { s.open(<SkillOfferEditorSheetLive skill={skill} offer={offer || null} onDone={refresh} />); };
+  var publish = async function (offer) { setError(""); var C = window.bosCloud, r = null; try { if (C && C.netPublishSkillOffer) r = await C.netPublishSkillOffer(offer.id); } catch (e) {} if (r && r.ok) refresh(); else setError((r && r.err === "not_eligible") ? "Сначала нужны подтверждения роли и состоявшиеся дела с разными людьми." : "Публикация пока недоступна. Проверь прогресс навыка."); };
+  var pause = async function (offer) { setError(""); var C = window.bosCloud, r = null; try { if (C && C.netPauseSkillOffer) r = await C.netPauseSkillOffer(offer.id, true); } catch (e) {} if (r && r.ok) refresh(); else setError("Не удалось приостановить предложение."); };
+  return <React.Fragment>
+    <div style={{ borderRadius: 23, padding: 16, background: "linear-gradient(145deg,#171719,#050505)", color: "#fff", boxShadow: "0 9px 25px rgba(0,0,0,0.22)" }}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><span style={{ width: 44, height: 44, borderRadius: 15, background: "rgba(254,222,52,0.16)", display: "grid", placeItems: "center" }}><I.Bulb size={21} color="#FEDE34" /></span><div style={{ flex: 1 }}><div style={{ fontSize: 18, fontWeight: 800 }}>Навык — не привычка</div><div style={{ fontSize: 12, color: "rgba(255,255,255,0.58)", lineHeight: 1.42, marginTop: 3 }}>Навык отвечает на «что я умею дать другому» и подтверждается реальными делами.</div></div></div><button onClick={openSkill} className="tap hit44" style={{ width: "100%", minHeight: 45, marginTop: 14, border: "1px solid rgba(254,222,52,0.30)", borderRadius: 15, background: "rgba(254,222,52,0.12)", color: "#FEDE34", fontSize: 13.5, fontWeight: 800 }}>＋ Добавить навык</button></div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 5, padding: "0 2px" }}>{[["1", "Заявить"], ["2", "Показать своим"], ["3", "Подтвердить делами"], ["4", "Открыть шире"]].map(function (x, i) { return <div key={x[0]} style={{ textAlign: "center" }}><div style={{ height: 3, borderRadius: 999, background: i === 0 ? "#D7A719" : "var(--line)" }} /><div style={{ fontSize: 9.5, color: "var(--text-4)", marginTop: 6, lineHeight: 1.25 }}>{x[1]}</div></div>; })}</div>
+    {error ? <div role="alert" style={{ borderRadius: 14, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: "10px 12px", fontSize: 11.5 }}>{error}</div> : null}
+    {skills === null ? <div style={{ background: "var(--card)", borderRadius: 20, padding: 16, color: "var(--text-4)" }}>Загружаем навыки…</div> : skills.length ? <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{skills.map(function (sk) {
+      var def = bosSkillDef(sk.skill_key || sk.key, sk.title), offer = offers.filter(function (o) { return o.skill_id === sk.id || (o.skill_key && o.skill_key === def.key); })[0];
+      var confirmations = Math.max(0, sk.confirmations_count | 0), episodes = Math.max(0, sk.evidence_count | 0), peopleN = Math.max(0, sk.people_count | 0);
+      var published = !!(offer && offer.visibility === "all" && offer.status === "confirmed" && offer.active !== false);
+      var eligible = sk.state === "trusted" || (confirmations >= 2 && episodes >= 2 && peopleN >= 2);
+      var canPublish = eligible && (level | 0) >= 10;
+      var DefIcon = I[def.icon] || I.Bulb;
+      return <div key={sk.id || def.key} style={{ background: "var(--card)", borderRadius: 21, padding: 14, boxShadow: "var(--card-shadow)" }}><div style={{ display: "flex", gap: 11, alignItems: "center" }}><span style={{ width: 40, height: 40, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><DefIcon size={19} /></span><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 750 }}>{def.title}</div><div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>{published ? "Открыт в Нетворке" : eligible ? "Готов к публикации" : offer ? "Практика у своих" : "Заявлен"}</div></div>{published ? <span style={{ fontSize: 9.5, fontWeight: 800, color: "#7B5A00", background: "rgba(254,222,52,0.25)", borderRadius: 999, padding: "4px 8px" }}>В НЕТВОРКЕ</span> : null}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 12 }}>{[[confirmations, "роль", 2], [episodes, "дела", 2], [peopleN, "люди", 2]].map(function (x) { var done = x[0] >= x[2]; return <div key={x[1]} style={{ borderRadius: 13, background: done ? "rgba(254,222,52,0.17)" : "var(--surface-3)", padding: "8px 7px", textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 800, color: done ? "#8A6500" : "var(--text-2)" }}>{x[0]}/{x[2]}</div><div style={{ fontSize: 9.5, color: "var(--text-4)", marginTop: 2 }}>{x[1]}</div></div>; })}</div>
+        <div style={{ display: "flex", gap: 7, marginTop: 10 }}><button onClick={function () { if (!offer || !canPublish || published) editOffer(sk, offer); else publish(offer); }} className="tap hit44" style={{ flex: 1, minHeight: 43, border: 0, borderRadius: 14, background: canPublish && offer && !published ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "var(--surface-3)", color: canPublish && offer && !published ? "#0a0a0a" : "var(--text-2)", fontSize: 12.5, fontWeight: 800 }}>{!offer ? "Оформить применение" : published ? "Настроить" : eligible && (level | 0) < 10 ? "Нетворк с 10 уровня" : canPublish ? ((offer.status === "confirmed" && offer.visibility === "all") ? "Возобновить" : "Открыть в Нетворке") : "Настроить и показать своим"}</button>{published ? <button onClick={function () { pause(offer); }} className="tap hit44" style={{ minHeight: 43, border: 0, borderRadius: 14, background: "var(--surface-3)", color: "var(--text-4)", padding: "8px 12px", fontSize: 11.5, fontWeight: 750 }}>Пауза</button> : null}</div></div>;
+    })}</div> : <div style={{ background: "var(--card)", borderRadius: 22, padding: "18px 16px", boxShadow: "var(--card-shadow)" }}><div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}><span style={{ width: 40, height: 40, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><I.Plus size={18} /></span><div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 750 }}>Начни с одного навыка</div><div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.46, marginTop: 4 }}>Не перечисляй всё, что когда-либо пробовал. Выбери то, что готов применить для конкретного человека уже сейчас.</div></div></div><button onClick={openSkill} className="tap hit44" style={{ width: "100%", minHeight: 44, marginTop: 12, border: 0, borderRadius: 14, background: "var(--surface-3)", color: "var(--text)", fontSize: 13, fontWeight: 800 }}>Выбрать из каталога</button></div>}
+    <div style={{ borderRadius: 17, background: "rgba(254,222,52,0.13)", border: "1px solid rgba(215,167,25,0.23)", padding: "11px 12px", fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.46 }}><b style={{ color: "var(--text-2)" }}>Зачем тогда помощь кругу?</b> Она помогает прямо сейчас и доказывает надёжность. Если дело связано с навыком, оно ещё и строит доказательство для Нетворка. XP не покупает и не заменяет доверие.</div>
+  </React.Fragment>;
+}
+
+function AddSkillSheetLive({ onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _q = React.useState(""), q = _q[0], setQ = _q[1];
+  var _g = React.useState("all"), group = _g[0], setGroup = _g[1];
+  var _sel = React.useState(null), selected = _sel[0], setSelected = _sel[1];
+  var _b = React.useState(false), busy = _b[0], setBusy = _b[1];
+  var _e = React.useState(""), error = _e[0], setError = _e[1];
+  var shown = BOS_SKILL_CATALOG.filter(function (x) { return (group === "all" || x.group === group) && (!q.trim() || (x.title + " " + x.groupTitle).toLowerCase().indexOf(q.trim().toLowerCase()) >= 0); });
+  var save = async function () { if (!selected || busy) return; setBusy(true); setError(""); var r = null; try { if (window.bosCloud && window.bosCloud.claimSkill) r = await window.bosCloud.claimSkill(selected.key); } catch (e) {} setBusy(false); if (r && r.ok) { if (onDone) onDone(r.skill || r); s.close(); } else setError("Не удалось добавить навык. Возможно, серверная миграция ещё не применена."); };
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>{typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}<div style={_dSTitle}>Добавить навык</div><div style={_dSSub}>выбери способность, которую готов применить для другого человека</div>
+    <div style={{ position: "relative", marginTop: 15 }}><I.Search size={17} color="var(--text-4)" style={{ position: "absolute", left: 13, top: 13 }} /><input value={q} onChange={function (e) { setQ(e.target.value); }} placeholder="Найти навык" style={{ width: "100%", height: 44, border: "1px solid var(--line)", borderRadius: 14, background: "var(--card)", color: "var(--text)", padding: "0 12px 0 40px", boxSizing: "border-box", outline: "none", fontSize: 13.5 }} /></div>
+    <div className="bos-hscroll" style={{ display: "flex", gap: 6, overflowX: "auto", padding: "10px 0 3px" }}>{[{ key: "all", title: "Все" }].concat(BOS_SKILL_GROUPS).map(function (g) { var on = group === g.key; return <button key={g.key} onClick={function () { setGroup(g.key); }} className="tap hit44" style={{ minHeight: 38, flexShrink: 0, border: on ? "1px solid #D7A719" : "1px solid var(--line)", borderRadius: 999, background: on ? "rgba(254,222,52,0.20)" : "var(--card)", color: "var(--text-3)", padding: "7px 11px", fontSize: 11.5, fontWeight: 700 }}>{g.title}</button>; })}</div>
+    <div style={{ marginTop: 9, background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", overflow: "hidden", maxHeight: 340, overflowY: "auto" }}>{shown.map(function (x, i) { var on = selected && selected.key === x.key, X = I[x.icon] || I.Bulb; return <button key={x.key} onClick={function () { setSelected(x); }} className="tap hit44" style={{ width: "100%", minHeight: 52, border: 0, borderTop: i ? "1px solid var(--line)" : 0, background: on ? "rgba(254,222,52,0.16)" : "transparent", color: "var(--text)", display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", textAlign: "left" }}><span style={{ width: 32, height: 32, borderRadius: 11, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><X size={16} /></span><span style={{ flex: 1 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{x.title}</span><span style={{ display: "block", fontSize: 10.5, color: "var(--text-4)", marginTop: 2 }}>{x.groupTitle}</span></span><span style={{ width: 21, height: 21, borderRadius: "50%", display: "grid", placeItems: "center", border: on ? "1px solid #D7A719" : "1px solid var(--line)", background: on ? "#FEDE34" : "transparent" }}>{on ? <I.Check size={11} color="#0a0a0a" strokeWidth={2.6} /> : null}</span></button>; })}</div>
+    <div style={{ fontSize: 10.8, color: "var(--text-4)", lineHeight: 1.42, margin: "10px 2px 0" }}>Не нашёл точное название? Каталог расширяется через модерацию — публичные навыки нельзя вписать от балды.</div>{error ? <div role="alert" style={{ marginTop: 9, borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 10, fontSize: 11.5 }}>{error}</div> : null}
+    <button onClick={save} disabled={!selected || busy} className="tap hit44" style={{ width: "100%", minHeight: 48, marginTop: 13, border: 0, borderRadius: 16, background: selected ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "var(--surface-3)", color: selected ? "#0a0a0a" : "var(--text-4)", fontSize: 14, fontWeight: 850 }}>{busy ? "Добавляем…" : "Добавить навык"}</button>
+  </div>;
+}
+
+function SkillOfferEditorSheetLive({ skill, offer, onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var def = bosSkillDef(skill && (skill.skill_key || skill.key), skill && skill.title);
+  var _it = React.useState((offer && offer.interaction_key) || "review"), itKey = _it[0], setItKey = _it[1];
+  var _out = React.useState((offer && offer.outcome_key) || "clear_next_step"), outcome = _out[0], setOutcome = _out[1];
+  var initialMinutes = offer && parseInt(offer.when_text, 10); if ([30,45,60].indexOf(initialMinutes) < 0) initialMinutes = 30;
+  var _min = React.useState(initialMinutes), mins = _min[0], setMins = _min[1];
+  var _mode = React.useState((offer && offer.mode) || ((offer && /рядом/i.test(offer.when_text || "")) ? "nearby" : "online")), mode = _mode[0], setMode = _mode[1];
+  var _slots = React.useState((offer && offer.slots_week) || 2), slots = _slots[0], setSlots = _slots[1];
+  var _b = React.useState(false), busy = _b[0], setBusy = _b[1];
+  var _e = React.useState(""), error = _e[0], setError = _e[1];
+  var outcomes = [{ key: "clear_next_step", title: "Понятный следующий шаг", descr: "Человек уйдёт с одним конкретным действием." }, { key: "three_recommendations", title: "Разбор и 3 рекомендации", descr: "Короткая обратная связь без обещания результата." }, { key: "working_first_result", title: "Первый результат вместе", descr: "Во встрече появится рабочий черновик или практика." }];
+  var selectedOutcome = outcomes.filter(function (x) { return x.key === outcome; })[0] || outcomes[0], it = bosNetInteraction(itKey);
+  var title = outcome === "three_recommendations" ? ("Разобрать задачу по «" + def.title + "»") : outcome === "working_first_result" ? ("Сделать первый шаг в «" + def.title + "»") : (it.outcome + " · " + def.title);
+  var save = async function () { if (busy) return; setBusy(true); setError(""); var r = null; try { if (window.bosCloud && window.bosCloud.netUpsertSkillOffer) r = await window.bosCloud.netUpsertSkillOffer({ id: offer && offer.id, skill_id: skill.id, skill_key: def.key, interaction_key: itKey, outcome_key: outcome, mode: mode, title: title, descr: selectedOutcome.descr, when_text: mins + " мин", slots_week: slots }); } catch (e) {} setBusy(false); if (r && r.ok) { if (onDone) onDone(r.offer || r); s.close(); } else setError("Не удалось сохранить применение навыка."); };
+  var chip = function (on) { return { minHeight: 42, border: on ? "1px solid #D7A719" : "1px solid transparent", borderRadius: 13, background: on ? "rgba(254,222,52,0.21)" : "var(--card)", color: "var(--text)", boxShadow: on ? "none" : "var(--card-shadow)", fontSize: 11.5, fontWeight: on ? 760 : 650, padding: "8px 9px" }; };
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>{typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}<div style={_dSTitle}>{offer ? "Настроить применение" : "Применить навык"}</div><div style={_dSSub}>{def.title} · сначала это увидят твои круги</div>
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "16px 2px 8px" }}>Формат взаимодействия</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>{BOS_NET_INTERACTIONS.map(function (x) { return <button key={x.key} onClick={function () { setItKey(x.key); }} className="tap hit44" style={chip(itKey === x.key)}>{x.title}</button>; })}</div>
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "17px 2px 8px" }}>Что человек получит</div><div style={{ display: "flex", flexDirection: "column", gap: 7 }}>{outcomes.map(function (x) { var on = outcome === x.key; return <button key={x.key} onClick={function () { setOutcome(x.key); }} className="tap hit44" style={{ minHeight: 52, border: on ? "1px solid #D7A719" : "1px solid transparent", borderRadius: 15, background: on ? "rgba(254,222,52,0.18)" : "var(--card)", color: "var(--text)", boxShadow: on ? "none" : "var(--card-shadow)", padding: "10px 12px", textAlign: "left" }}><span style={{ display: "block", fontSize: 13, fontWeight: 750 }}>{x.title}</span><span style={{ display: "block", fontSize: 10.5, color: "var(--text-4)", marginTop: 3 }}>{x.descr}</span></button>; })}</div>
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "17px 2px 8px" }}>Границы</div><div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: 11 }}><div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, marginBottom: 6 }}>Время</div><div style={{ display: "flex", gap: 6 }}>{[30,45,60].map(function (x) { return <button key={x} onClick={function () { setMins(x); }} className="tap hit44" style={Object.assign({ flex: 1 }, chip(mins === x))}>{x} мин</button>; })}</div><div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, margin: "11px 0 6px" }}>Где</div><div style={{ display: "flex", gap: 6 }}>{[["online","Онлайн"],["nearby","Рядом"]].map(function (x) { return <button key={x[0]} onClick={function () { setMode(x[0]); }} className="tap hit44" style={Object.assign({ flex: 1 }, chip(mode === x[0]))}>{x[1]}</button>; })}</div><div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, margin: "11px 0 6px" }}>Мест в неделю</div><div style={{ display: "flex", gap: 6 }}>{[1,2,3,4,5].map(function (x) { return <button key={x} onClick={function () { setSlots(x); }} className="tap hit44" style={Object.assign({ flex: 1 }, chip(slots === x))}>{x}</button>; })}</div></div>
+    <div style={{ marginTop: 12, borderRadius: 16, background: "rgba(254,222,52,0.15)", padding: 12 }}><div style={{ fontSize: 10.5, color: "#8A6500", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 800 }}>Так увидит человек</div><div style={{ fontSize: 14.5, fontWeight: 750, marginTop: 5 }}>{title}</div><div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3 }}>{selectedOutcome.descr} · {mins} мин · {mode === "online" ? "онлайн" : "рядом"}</div></div>
+    <div style={{ fontSize: 10.8, color: "var(--text-4)", lineHeight: 1.42, margin: "9px 2px 0" }}>Свободного объявления нет: формат, результат и границы выбираются из безопасной структуры. После дел у своих появится кнопка «Открыть в Нетворке».</div>{error ? <div role="alert" style={{ marginTop: 9, borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 10, fontSize: 11.5 }}>{error}</div> : null}
+    <button onClick={save} disabled={busy} className="tap hit44" style={{ width: "100%", minHeight: 49, marginTop: 13, border: 0, borderRadius: 16, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 14.5, fontWeight: 850 }}>{busy ? "Сохраняем…" : "Сохранить для своих"}</button>
+  </div>;
+}
+
+function NetworkEpisodesLegacyLive({ app, onChanged }) {
+  var sheet = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var _tab = React.useState("incoming"), tab = _tab[0], setTab = _tab[1];
+  var _in = React.useState(null), incoming = _in[0], setIncoming = _in[1];
+  var _out = React.useState(null), outgoing = _out[0], setOutgoing = _out[1];
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  var refresh = function () { setTick(function (n) { return n + 1; }); if (onChanged) onChanged(); };
+  React.useEffect(function () { var on = true, C = window.bosCloud; if (!(C && C.enabled && C.enabled())) { setIncoming([]); setOutgoing([]); return; } Promise.all([C.netIncomingSkillEpisodes ? C.netIncomingSkillEpisodes({ limit: 50 }) : Promise.resolve({ episodes: [] }), C.netOutgoingSkillEpisodes ? C.netOutgoingSkillEpisodes({ limit: 50 }) : Promise.resolve({ episodes: [] })]).then(async function (r) { if (!on) return; var ins = (r[0] && r[0].episodes) || [], outs = (r[1] && r[1].episodes) || [], ids = []; ins.concat(outs).forEach(function (x) { [x.owner_id, x.booker_id].forEach(function (id) { if (id && ids.indexOf(id) < 0) ids.push(id); }); }); if (C.netProfiles && ids.length) { try { var pr = await C.netProfiles(ids), pm = {}; ((pr && pr.profiles) || []).forEach(function (p) { pm[p.id] = p; }); ins.forEach(function (x) { x.other_profile = pm[x.booker_id] || null; }); outs.forEach(function (x) { x.other_profile = pm[x.owner_id] || null; }); } catch (e) {} } if (!on) return; setIncoming(ins); setOutgoing(outs); }).catch(function () { if (on) { setIncoming([]); setOutgoing([]); } }); return function () { on = false; }; }, [tick]);
+  var list = tab === "incoming" ? incoming : outgoing;
+  var mutate = async function (row, action) { var C = window.bosCloud, fn = action === "accept" ? C.netAcceptSkillEpisode : action === "decline" ? C.netDeclineSkillEpisode : action === "cancel" ? C.netCancelSkillEpisode : action === "provider_done" ? C.netMarkSkillProviderDone : C.netMarkSkillRecipientDone; var r = null; try { if (fn) r = await fn(row.id); } catch (e) {} if (r && r.ok) refresh(); };
+  return <React.Fragment><div style={{ background: "var(--card)", borderRadius: 22, padding: 15, boxShadow: "var(--card-shadow)" }}><div style={{ fontSize: 18, fontWeight: 800 }}>Запрос — не мгновенная бронь</div><div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 5 }}>Сначала человек принимает задачу. Потом вы согласуете детали, делаете дело и оба подтверждаете завершение.</div><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 5, marginTop: 13 }}>{[["1","Запрос"],["2","Принят"],["3","Дело"],["4","Оба подтвердили"]].map(function (x, i) { return <div key={x[0]} style={{ textAlign: "center" }}><div style={{ width: 25, height: 25, borderRadius: "50%", margin: "0 auto", display: "grid", placeItems: "center", background: i === 0 ? "#FEDE34" : "var(--surface-3)", fontSize: 10.5, fontWeight: 850 }}>{x[0]}</div><div style={{ fontSize: 9.3, color: "var(--text-4)", lineHeight: 1.2, marginTop: 5 }}>{x[1]}</div></div>; })}</div></div>
+    <div style={{ display: "flex", gap: 4, background: "var(--surface-3)", borderRadius: 15, padding: 4 }}><button onClick={function () { setTab("incoming"); }} className="tap hit44" style={{ flex: 1, minHeight: 40, border: 0, borderRadius: 12, background: tab === "incoming" ? "var(--card)" : "transparent", color: tab === "incoming" ? "var(--text)" : "var(--text-4)", boxShadow: tab === "incoming" ? "var(--card-shadow)" : "none", fontSize: 12.5, fontWeight: 750 }}>Ко мне</button><button onClick={function () { setTab("outgoing"); }} className="tap hit44" style={{ flex: 1, minHeight: 40, border: 0, borderRadius: 12, background: tab === "outgoing" ? "var(--card)" : "transparent", color: tab === "outgoing" ? "var(--text)" : "var(--text-4)", boxShadow: tab === "outgoing" ? "var(--card-shadow)" : "none", fontSize: 12.5, fontWeight: 750 }}>От меня</button></div>
+    {list === null ? <div style={{ padding: 16, color: "var(--text-4)" }}>Загружаем запросы…</div> : list.length ? <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{list.map(function (row) { var o = row.offer || row.network_offers || {}, st = row.status || "requested", provider = tab === "incoming"; return <div key={row.id} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)" }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ width: 36, height: 36, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><BosHelpOfferIconLive offer={o} size={17} /></span><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 750 }}>{bosHelpOfferTitleText(o)}</div><div style={{ fontSize: 10.8, color: "var(--text-4)", marginTop: 2 }}>{st === "requested" ? "Ждёт ответа" : st === "accepted" ? "Принят · можно согласовать детали" : (st === "done" || st === "completed") ? "Состоялось · подтверждено обоими" : st === "declined" ? "Отклонён" : st === "cancelled" ? "Отменён" : st}</div></div></div>{row.request_note ? <div style={{ marginTop: 9, borderRadius: 13, background: "var(--surface-3)", padding: 9, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.4 }}>{row.request_note}</div> : null}<div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>{provider && st === "requested" ? <React.Fragment><button onClick={function () { mutate(row,"accept"); }} className="tap hit44" style={{ flex: 1, minHeight: 41, border: 0, borderRadius: 13, background: "#0a0a0a", color: "#fff", fontSize: 12, fontWeight: 800 }}>Принять</button><button onClick={function () { mutate(row,"decline"); }} className="tap hit44" style={{ minHeight: 41, border: 0, borderRadius: 13, background: "var(--surface-3)", color: "var(--text-3)", padding: "8px 12px", fontSize: 12, fontWeight: 750 }}>Отказать</button></React.Fragment> : st === "accepted" ? <React.Fragment><button onClick={function () { sheet.open(<NetworkEpisodeContactSheetLive episode={row} />); }} className="tap hit44" style={{ minHeight: 41, border: 0, borderRadius: 13, background: "var(--surface-3)", color: "var(--text-2)", padding: "8px 12px", fontSize: 12, fontWeight: 800 }}>Связаться</button><button onClick={function () { mutate(row, provider ? "provider_done" : "recipient_done"); }} className="tap hit44" style={{ flex: 1, minHeight: 41, border: 0, borderRadius: 13, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 12, fontWeight: 850 }}>С моей стороны состоялось</button></React.Fragment> : !provider && st === "requested" ? <button onClick={function () { mutate(row,"cancel"); }} className="tap hit44" style={{ flex: 1, minHeight: 41, border: 0, borderRadius: 13, background: "var(--surface-3)", color: "var(--text-3)", fontSize: 12, fontWeight: 750 }}>Отменить запрос</button> : null}</div></div>; })}</div> : <div style={{ background: "var(--card)", borderRadius: 21, padding: "19px 16px", boxShadow: "var(--card-shadow)", textAlign: "center" }}><I.MessageCircle size={24} color="var(--text-4)" /><div style={{ fontSize: 15, fontWeight: 750, marginTop: 8 }}>{tab === "incoming" ? "К тебе пока не обращались" : "Ты пока ничего не запросил"}</div><div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.43, marginTop: 4 }}>{tab === "incoming" ? "Запросы появятся после публикации подтверждённого навыка." : "Найди человека по задаче и отправь короткий структурный запрос."}</div></div>}
+  </React.Fragment>;
+}
+
+function NetworkEpisodesLive({ app, onChanged }) {
+  var sheet = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var _tab = React.useState("incoming"), tab = _tab[0], setTab = _tab[1];
+  var _in = React.useState(null), incoming = _in[0], setIncoming = _in[1];
+  var _out = React.useState(null), outgoing = _out[0], setOutgoing = _out[1];
+  var _err = React.useState(false), loadError = _err[0], setLoadError = _err[1];
+  var _tick = React.useState(0), tick = _tick[0], setTick = _tick[1];
+  var refresh = function () { setTick(function (n) { return n + 1; }); if (onChanged) onChanged(); };
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!(C && C.enabled && C.enabled())) { setIncoming([]); setOutgoing([]); return; }
+    Promise.all([
+      C.netIncomingSkillEpisodes ? C.netIncomingSkillEpisodes({ limit: 50 }) : Promise.resolve({ status: "error", episodes: [] }),
+      C.netOutgoingSkillEpisodes ? C.netOutgoingSkillEpisodes({ limit: 50 }) : Promise.resolve({ status: "error", episodes: [] })
+    ]).then(async function (r) {
+      if (!on) return;
+      var ins = (r[0] && r[0].episodes) || [], outs = (r[1] && r[1].episodes) || [];
+      setLoadError((r[0] && r[0].status === "error") || (r[1] && r[1].status === "error"));
+      var ids = [];
+      ins.concat(outs).forEach(function (x) { [x.owner_id, x.booker_id].forEach(function (id) { if (id && ids.indexOf(id) < 0) ids.push(id); }); });
+      if (C.netProfiles && ids.length) {
+        try {
+          var pr = await C.netProfiles(ids), pm = {};
+          ((pr && pr.profiles) || []).forEach(function (p) { pm[p.id] = p; });
+          ins.forEach(function (x) { x.other_profile = pm[x.booker_id] || null; });
+          outs.forEach(function (x) { x.other_profile = pm[x.owner_id] || null; });
+        } catch (e) {}
+      }
+      if (on) { setIncoming(ins); setOutgoing(outs); }
+    }).catch(function () { if (on) { setLoadError(true); setIncoming([]); setOutgoing([]); } });
+    return function () { on = false; };
+  }, [tick]);
+  var mutate = async function (row, action) {
+    var C = window.bosCloud, fn = action === "accept" ? C.netAcceptSkillEpisode : action === "decline" ? C.netDeclineSkillEpisode : action === "cancel" ? C.netCancelSkillEpisode : action === "provider_done" ? C.netMarkSkillProviderDone : C.netMarkSkillRecipientDone;
+    var r = null; try { if (fn) r = await fn(row.id); } catch (e) {}
+    if (r && r.ok) refresh();
+  };
+  var list = tab === "incoming" ? incoming : outgoing;
+  var statusText = function (st) { return st === "requested" ? "Ждёт ответа" : st === "accepted" ? "Принят · можно согласовать детали" : (st === "done" || st === "completed") ? "Состоялось · подтверждено обоими" : st === "declined" ? "Отклонён" : st === "cancelled" ? "Отменён" : st; };
+  var tabButton = function (key, label) { var on = tab === key; return <button onClick={function () { setTab(key); }} className="tap hit44" style={{ flex: 1, minHeight: 40, border: 0, borderRadius: 12, background: on ? "var(--card)" : "transparent", color: on ? "var(--text)" : "var(--text-4)", boxShadow: on ? "var(--card-shadow)" : "none", fontSize: 12.5, fontWeight: 750 }}>{label}</button>; };
+  return <React.Fragment>
+    <div style={{ background: "var(--card)", borderRadius: 22, padding: 15, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ fontSize: 18, fontWeight: 800 }}>Запрос — не мгновенная бронь</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 5 }}>Сначала человек принимает задачу. Потом вы согласуете детали, делаете дело и оба подтверждаете завершение.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 5, marginTop: 13 }}>{[["1","Запрос"],["2","Принят"],["3","Дело"],["4","Оба подтвердили"]].map(function (x, i) { return <div key={x[0]} style={{ textAlign: "center" }}><div style={{ width: 25, height: 25, borderRadius: "50%", margin: "0 auto", display: "grid", placeItems: "center", background: i === 0 ? "#FEDE34" : "var(--surface-3)", fontSize: 10.5, fontWeight: 850 }}>{x[0]}</div><div style={{ fontSize: 9.3, color: "var(--text-4)", lineHeight: 1.2, marginTop: 5 }}>{x[1]}</div></div>; })}</div>
+    </div>
+    <div style={{ display: "flex", gap: 4, background: "var(--surface-3)", borderRadius: 15, padding: 4 }}>{tabButton("incoming", "Ко мне")}{tabButton("outgoing", "От меня")}</div>
+    {loadError ? <div style={{ borderRadius: 14, background: "rgba(255,59,48,0.08)", color: "#B64A42", padding: "10px 12px", fontSize: 11.5 }}>Запросы не загрузились. Здесь не показываем выдуманные состояния.</div> : null}
+    {list === null ? <div style={{ padding: 16, color: "var(--text-4)" }}>Загружаем запросы…</div> : list.length ? <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{list.map(function (row) {
+      var o = row.network_offers || row.offer || {}, st = row.status || "requested", provider = tab === "incoming", p = row.other_profile;
+      var myDone = provider ? !!row.provider_done_at : !!row.recipient_done_at;
+      return <div key={row.id} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {p ? <BosAvatar avatar={p.avatar || "default"} size={38} /> : <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><BosHelpOfferIconLive offer={o} size={17} /></span>}
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 750 }}>{p && p.name ? (p.name + " · ") : ""}{bosHelpOfferTitleText(o)}</div><div style={{ fontSize: 10.8, color: "var(--text-4)", marginTop: 2 }}>{statusText(st)}</div></div>
+        </div>
+        {row.request_note ? <div style={{ marginTop: 9, borderRadius: 13, background: "var(--surface-3)", padding: 9, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.4 }}>{row.request_note}</div> : null}
+        <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
+          {provider && st === "requested" ? <React.Fragment><button onClick={function () { mutate(row,"accept"); }} className="tap hit44" style={{ flex: 1, minHeight: 41, border: 0, borderRadius: 13, background: "#0a0a0a", color: "#fff", fontSize: 12, fontWeight: 800 }}>Принять</button><button onClick={function () { mutate(row,"decline"); }} className="tap hit44" style={{ minHeight: 41, border: 0, borderRadius: 13, background: "var(--surface-3)", color: "var(--text-3)", padding: "8px 12px", fontSize: 12, fontWeight: 750 }}>Отказать</button></React.Fragment> : null}
+          {!provider && st === "requested" ? <button onClick={function () { mutate(row,"cancel"); }} className="tap hit44" style={{ flex: 1, minHeight: 41, border: 0, borderRadius: 13, background: "var(--surface-3)", color: "var(--text-3)", fontSize: 12, fontWeight: 750 }}>Отменить запрос</button> : null}
+          {st === "accepted" ? <React.Fragment><button onClick={function () { sheet.open(<NetworkEpisodeContactSheetLive episode={row} />); }} className="tap hit44" style={{ minHeight: 41, border: 0, borderRadius: 13, background: "var(--surface-3)", color: "var(--text-2)", padding: "8px 12px", fontSize: 12, fontWeight: 800 }}>Связаться</button><button disabled={myDone} onClick={function () { mutate(row, provider ? "provider_done" : "recipient_done"); }} className="tap hit44" style={{ flex: 1, minHeight: 41, border: 0, borderRadius: 13, background: myDone ? "var(--surface-3)" : "linear-gradient(135deg,#FEDE34,#EF9F14)", color: myDone ? "var(--text-4)" : "#0a0a0a", fontSize: 12, fontWeight: 850 }}>{myDone ? "Ждём подтверждения второй стороны" : "С моей стороны состоялось"}</button></React.Fragment> : null}
+        </div>
+      </div>;
+    })}</div> : <div style={{ background: "var(--card)", borderRadius: 21, padding: "19px 16px", boxShadow: "var(--card-shadow)", textAlign: "center" }}><I.MessageCircle size={24} color="var(--text-4)" /><div style={{ fontSize: 15, fontWeight: 750, marginTop: 8 }}>{tab === "incoming" ? "К тебе пока не обращались" : "Ты пока ничего не запросил"}</div><div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.43, marginTop: 4 }}>{tab === "incoming" ? "Запросы появятся после публикации навыка или практики у своих." : "Найди человека по задаче и отправь короткий структурный запрос."}</div></div>}
+  </React.Fragment>;
+}
+
+function NetworkEpisodeContactSheetLive({ episode }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _c = React.useState(null), contact = _c[0], setContact = _c[1];
+  var _e = React.useState(""), error = _e[0], setError = _e[1];
+  React.useEffect(function () { var on = true, C = window.bosCloud; if (!(C && C.netSkillEpisodeContact)) { setError("Контакт пока недоступен."); return; } C.netSkillEpisodeContact(episode && episode.id).then(function (r) { if (!on) return; if (r && r.status === "ready" && r.contact) setContact(r.contact); else setError("Контакт откроется только после принятия запроса."); }).catch(function () { if (on) setError("Не удалось загрузить контакт."); }); return function () { on = false; }; }, [episode && episode.id]);
+  var openTelegram = function () { var url = contact && contact.telegram_url; if (!url) return; try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url); else window.location.href = url; } catch (e) {} };
+  return <div className="bos-sheet-scroll" style={{ padding: "6px 16px 20px", color: "var(--text)", textAlign: "center" }}>{typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={{ width: 56, height: 56, borderRadius: "50%", margin: "10px auto 12px", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>{contact ? <BosAvatar avatar={contact.avatar || "default"} size={52} /> : <I.MessageCircle size={23} color="var(--text-4)" />}</div>
+    <div style={{ fontSize: 20, fontWeight: 800 }}>{contact ? (contact.first_name || "Участник") : "Согласовать детали"}</div>
+    <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.47, margin: "6px auto 15px", maxWidth: 300 }}>{error || "Запрос принят. Теперь можно договориться о времени и перейти к делу в личном чате Telegram."}</div>
+    {contact && contact.telegram_url ? <button onClick={openTelegram} className="tap hit44" style={{ width: "100%", minHeight: 49, border: 0, borderRadius: 16, background: "#0a0a0a", color: "#fff", fontSize: 14.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Send size={17} /> Открыть Telegram</button> : <button onClick={s.close} className="tap hit44" style={{ width: "100%", minHeight: 48, border: 0, borderRadius: 16, background: "var(--surface-3)", color: "var(--text-2)", fontSize: 14, fontWeight: 800 }}>Закрыть</button>}
+    <div style={{ fontSize: 10.5, color: "var(--text-5)", lineHeight: 1.4, marginTop: 10 }}>Контакт доступен только участникам принятого запроса и исчезает после взаимной блокировки.</div>
+  </div>;
 }
 
 /* «Основатель» (само-прыжок на L10) УДАЛЁН (brief 2026-07-11, Слой 0): кнопка начисляла себе
@@ -3581,9 +3970,9 @@ var BOS_HOME_WIDGETS = [
   // «Состояние» — виджет-орб (редизайн 2026-07-04): не отмечено → приглашение StateInviteLive,
   // отмечено → MoodWidgetLive (орб в цвете + след недели). Тап → Момент (жест A, route "mood").
   { id: "mood",    t: "Состояние",    d: "Как ты сейчас — свет орба", Icon: BosStateGlyph, emoji: "☀️" },
-  // «Баланс окружения» — общий тон твоих своих (светило, гибрид A+B 2026-07-09). ВЫКЛ по
+  // «Баланс окружения» — общие привычки, круги и подтверждённая помощь своих. ВЫКЛ по
   // умолчанию: включается из галереи «+», чтобы главная не перегружалась.
-  { id: "env",     t: "Баланс окружения", d: "Общий тон твоих своих", Icon: I.OrbitPeople, emoji: "🌤" },
+  { id: "env",     t: "Баланс окружения", d: "Реальные связи и общие действия", Icon: I.OrbitPeople, emoji: "🌤" },
   { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     Icon: I.Users,        emoji: "👥" },
   // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
   // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
