@@ -3012,7 +3012,9 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
     { key: "together", id: "together", iconKey: "together", accent: "#0A84FF", title: "Вместе — больше", desc: "Совместные привычки и цели", show: !hasTogether },
     { key: "helpers", id: "helpers", iconKey: "help", accent: "#EF9F14", title: "Помогай своим", desc: "Круг подтверждает твою роль", show: true },
     { key: "ch", id: "ch", iconKey: "ch", accent: "#FF453A", title: "Челленджи", desc: "Готовая привычка с призом", show: !hasChallenge },
-    { key: "partners", id: "partners", iconKey: "partners", accent: "#BF5AF2", title: "Партнёры", desc: "Впечатления за твой опыт", show: !hasSpent },
+    // «Партнёры» — постоянная дверь в мир впечатлений (David 2026-07-12: не прятать). pin: не
+    // уходит после траты XP и несмахиваема (крестика нет), но остаётся на своём месте в ряду.
+    { key: "partners", id: "partners", iconKey: "partners", accent: "#BF5AF2", title: "Партнёры", desc: "Впечатления за твой опыт", show: true, pin: true },
     { key: "people", id: "people", iconKey: "people", accent: "#30C08B", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5 },
   ];
   // порядок приоритета → кап ≤6 карточек одновременно (обложка «Суть» убрана — David: про механики
@@ -3020,7 +3022,7 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
   const nodes = [];
   if (showLevelUp) nodes.push(<DiscoveryLevelUpCard key={"lvl" + userLevel} level={userLevel} unlock={BOS_LEVEL_UNLOCKS[userLevel]} onOpen={() => { ackLevel(); openDisc("xp"); }} onDismiss={(ev) => { ev.stopPropagation(); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } ackLevel(); }} />);
   let _di = 0;
-  deckDefs.forEach((c) => { if (c.show && !dismissed[c.key]) { nodes.push(<_DiscCard key={c.key} {...c} isDark={isDark} animDelay={_di * 0.25} onOpen={() => openDisc(c.id)} onDismiss={(ev) => doDismiss(ev, c.key)} />); _di++; } });
+  deckDefs.forEach((c) => { if (c.show && (c.pin || !dismissed[c.key])) { nodes.push(<_DiscCard key={c.key} {...c} isDark={isDark} animDelay={_di * 0.25} onOpen={() => openDisc(c.id)} onDismiss={c.pin ? undefined : (ev) => doDismiss(ev, c.key)} />); _di++; } });
   const shown = nodes.slice(0, 6);
 
   return (
