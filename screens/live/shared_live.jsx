@@ -2842,18 +2842,25 @@ function BosBalanceWheelLive(props) {
               <stop offset="76%" stopColor="#F3C51A" stopOpacity="0.38" />
               <stop offset="100%" stopColor="#E8B90C" stopOpacity="0.60" />
             </radialGradient>
+            {/* Обводка + узлы: ЗОЛОТОЙ градиент на всю глубину (у центра мягче, к краям гуще золото),
+                непрозрачный — это главная линия колеса (David). */}
+            <radialGradient id={uid + "s"} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
+              <stop offset="0%" stopColor="#F8D65A" />
+              <stop offset="55%" stopColor="#F1C625" />
+              <stop offset="100%" stopColor="#DFA512" />
+            </radialGradient>
           </defs>
           {/* СЕТКА: внутренние концентрические кольца (больше сегментов) — тонкие */}
           {[0.25, 0.5, 0.75].map(function (lv, idx) { return <path key={"g" + idx} d={ringPath(lv)} fill="none" stroke={gridLine} strokeWidth="1" strokeLinejoin="round" />; })}
           {/* КАРКАС КУБА: обод (силуэт) + 6 рёбер от центра ко всем вершинам */}
           <path d={ringPath(1)} fill="none" stroke={cubeEdge} strokeWidth="1" strokeLinejoin="round" />
           {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1" />; })}
-          {/* полигон данных: ГРАДИЕНТНАЯ заливка (стекло у центра → золото к краям) + обводка */}
-          <path d={poly} fill={"url(#" + uid + ")"} stroke={goldLine} strokeWidth="2.4" strokeLinejoin="round" />
+          {/* полигон данных: заливка стекло→золото + ЗОЛОТАЯ градиентная обводка (главная линия) */}
+          <path d={poly} fill={"url(#" + uid + ")"} stroke={"url(#" + uid + "s)"} strokeWidth="2.6" strokeLinejoin="round" />
           {/* ЗОЛОТОЙ ПУНКТИР — «цель», куда стоит дотянуть каждую сферу — поверх заливки */}
-          <path d={ringPath(TARGET)} fill="none" stroke={goldLine} strokeWidth="1.4" strokeDasharray="4 4" opacity={dark ? 0.8 : 0.7} />
-          {/* узлы — сплошные амбровые точки */}
-          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3.2" fill={goldLine} />; })}
+          <path d={ringPath(TARGET)} fill="none" stroke={"url(#" + uid + "s)"} strokeWidth="1.4" strokeDasharray="4 4" opacity={dark ? 0.85 : 0.75} />
+          {/* узлы — золотые точки в том же градиенте (гуще золота к краям) */}
+          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3.3" fill={"url(#" + uid + "s)"} />; })}
         </svg>
         {/* ярлыки осей: иконка + название + процент (всегда; тап → лупа сферы). Слабейшая — золотом. */}
         {SPH.map(function (s, i) {
