@@ -2803,17 +2803,11 @@ function BosBalanceWheelLive(props) {
   var poly = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } poly += "Z";
   var grid = function (idx) { return dark ? (idx ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.09)") : (idx ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.06)"); };
   var spoke = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
-  // ── Изометрический «куб» (David: колесо вписано в 3D-каркас) ──────────────────
-  // Пойнти-топ шестиугольник = силуэт куба; ближний угол = центр. Три видимые грани
-  // (верх/право/лево) = ромбы через альтернативные вершины (спицы к P1,P3,P5) → 3D.
+  // ── Изометрический «куб» — ТОЛЬКО лёгкий каркас (David: без серых граней, легче) ──
+  // Пойнти-топ шестиугольник = силуэт куба; ближний угол = центр; три ребра от центра
+  // к альтернативным вершинам (P1,P3,P5) дают Necker-иллюзию куба без тяжёлой заливки.
   var V = function (i) { return pol(ang(i), R); };
-  var face = function (a, b, c) { var A = V(a), B = V(b), C2 = V(c); return "M" + cx + "," + cy + "L" + A[0].toFixed(1) + "," + A[1].toFixed(1) + "L" + B[0].toFixed(1) + "," + B[1].toFixed(1) + "L" + C2[0].toFixed(1) + "," + C2[1].toFixed(1) + "Z"; };
-  var faceTop = face(5, 0, 1), faceRight = face(1, 2, 3), faceLeft = face(3, 4, 5);
-  var faceFill = dark
-    ? { top: "rgba(255,255,255,0.065)", right: "rgba(255,255,255,0.022)", left: "rgba(255,255,255,0.042)" }
-    : { top: "rgba(0,0,0,0.022)", right: "rgba(0,0,0,0.06)", left: "rgba(0,0,0,0.038)" };
-  var cubeEdge = dark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.16)";
-  // Три ближних ребра куба (спицы к P1,P3,P5) — линии от центра к альтернативным вершинам.
+  var cubeEdge = dark ? "rgba(255,255,255,0.20)" : "rgba(0,0,0,0.14)";
   var nearEdges = [1, 3, 5].map(function (i) { return V(i); });
 
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
@@ -2838,10 +2832,10 @@ function BosBalanceWheelLive(props) {
         <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)", paddingBottom: 4 }}>Баланс жизни</div>
       )}
 
-      {/* Стат-строка вместо кружка в центре (David): «БАЛАНС» слева, «48% · цель 55%» справа. */}
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, padding: "0 2px 2px" }}>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "1.2px", color: "var(--text-4)" }}>БАЛАНС</span>
-        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)" }}>{total}%<span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-4)" }}> · цель {targetPct}%</span></span>
+      {/* Стат-строка вместо кружка в центре (David): только «48% · цель 55%», без подписи «БАЛАНС». */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 3, padding: "0 2px 2px" }}>
+        <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)" }}>{total}%</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-4)" }}> · цель {targetPct}%</span>
       </div>
 
       {/* РАДАР В ИЗОМЕТРИЧЕСКОМ КУБЕ: три полупрозрачные грани дают 3D-каркас; золотой пунктир —
@@ -2857,23 +2851,15 @@ function BosBalanceWheelLive(props) {
             </radialGradient>
             <filter id={uid + "g"} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5" /></filter>
           </defs>
-          {/* три грани куба (верх светлее, бока темнее) — объём */}
-          <path d={faceTop} fill={faceFill.top} stroke="none" />
-          <path d={faceLeft} fill={faceFill.left} stroke="none" />
-          <path d={faceRight} fill={faceFill.right} stroke="none" />
-          {/* рёбра куба: силуэт (обод) + три ближних ребра от центра */}
-          <path d={ringPath(1)} fill="none" stroke={cubeEdge} strokeWidth="1.1" strokeLinejoin="round" />
-          {nearEdges.map(function (e, i) { return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1.1" />; })}
-          {/* остальные спицы (к вершинам данных) — тоньше, для чтения радара */}
-          {SPH.map(function (s, i) { if (i % 2 === 1) return null; var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spoke} strokeWidth="1" />; })}
-          {/* полигон данных: свечение → градиентная заливка → обводка → золотые узлы */}
+          {/* каркас куба: силуэт (обод) + три ближних ребра от центра — лёгкие линии, без заливки */}
+          <path d={ringPath(1)} fill="none" stroke={cubeEdge} strokeWidth="1" strokeLinejoin="round" />
+          {nearEdges.map(function (e, i) { return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1" />; })}
+          {/* полигон данных: свечение → градиентная заливка → обводка → мелкие золотые узлы */}
           <path d={poly} fill="none" stroke="#FEDE34" strokeWidth="6" opacity="0.35" filter={"url(#" + uid + "g)"} />
           <path d={poly} fill={"url(#" + uid + ")"} stroke={dark ? "#E8C412" : "#E0B90B"} strokeWidth="2.2" strokeLinejoin="round" />
           {/* ЗОЛОТОЙ ПУНКТИР — «цель», куда стоит дотянуть каждую сферу (David: золотой в тон) */}
           <path d={ringPath(TARGET)} fill="none" stroke={dark ? "#E8C412" : "#D9A400"} strokeWidth="1.5" strokeDasharray="3 3.5" opacity={dark ? 0.75 : 0.65} />
-          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4" fill="#FEDE34" stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="2" />; })}
-          {/* ближний угол куба — маленькая точка-якорь вместо золотого кружка */}
-          <circle cx={cx} cy={cy} r="2.4" fill={cubeEdge} />
+          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="2.3" fill={dark ? "#E8C412" : "#E0B90B"} />; })}
         </svg>
         {/* ярлыки осей: иконка + название + процент (всегда; тап → лупа сферы). Слабейшая — золотом. */}
         {SPH.map(function (s, i) {
@@ -2885,7 +2871,7 @@ function BosBalanceWheelLive(props) {
               style={{ position: "absolute", left: ((lp[0] / W) * 100) + "%", top: ((lp[1] / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 76, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>
               <span style={{ width: 28, height: 28, borderRadius: "50%", background: isWeak ? (dark ? "rgba(240,200,40,0.16)" : "rgba(240,195,10,0.14)") : (dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)"), display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 15, color: isWeak ? goldInk : (dark ? "#c8c8cf" : "#0a0a0a") })) || s.e}</span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "-0.2px" }}>{s.l}</span>
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: isWeak ? goldInk : "var(--text-2)" }}>{s.n ? pct + "%" : "—"}</span>
+              {s.n ? <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: isWeak ? goldInk : "var(--text-2)" }}>{pct}%</span> : null}
             </button>
           );
         })}
