@@ -2850,15 +2850,14 @@ function BosBalanceWheelLive(props) {
               <stop offset="100%" stopColor="#DFA512" />
             </radialGradient>
           </defs>
-          {/* СЕТКА: внутренние концентрические кольца (больше сегментов) — тонкие */}
-          {[0.25, 0.5, 0.75].map(function (lv, idx) { return <path key={"g" + idx} d={ringPath(lv)} fill="none" stroke={gridLine} strokeWidth="1" strokeLinejoin="round" />; })}
-          {/* КАРКАС КУБА: обод (силуэт) + 6 рёбер от центра ко всем вершинам */}
-          <path d={ringPath(1)} fill="none" stroke={cubeEdge} strokeWidth="1" strokeLinejoin="round" />
-          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1" />; })}
+          {/* КРУГЛОЕ КОЛЕСО (David: старое круглое): концентрические круги + спицы к сферам */}
+          {[0.25, 0.5, 0.75].map(function (lv, idx) { return <circle key={"g" + idx} cx={cx} cy={cy} r={(R * lv).toFixed(1)} fill="none" stroke={gridLine} strokeWidth="1" />; })}
+          <circle cx={cx} cy={cy} r={R} fill="none" stroke={cubeEdge} strokeWidth="1" />
+          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={gridLine} strokeWidth="1" />; })}
           {/* полигон данных: заливка стекло→золото + ЗОЛОТАЯ градиентная обводка (главная линия) */}
           <path d={poly} fill={"url(#" + uid + ")"} stroke={"url(#" + uid + "s)"} strokeWidth="2.6" strokeLinejoin="round" />
-          {/* ЗОЛОТОЙ ПУНКТИР — «цель», куда стоит дотянуть каждую сферу — поверх заливки */}
-          <path d={ringPath(TARGET)} fill="none" stroke={"url(#" + uid + "s)"} strokeWidth="1.4" strokeDasharray="4 4" opacity={dark ? 0.85 : 0.75} />
+          {/* ЗОЛОТОЙ ПУНКТИР-цель — КРУГ (куда стоит дотянуть каждую сферу) */}
+          <circle cx={cx} cy={cy} r={(R * TARGET).toFixed(1)} fill="none" stroke={"url(#" + uid + "s)"} strokeWidth="1.4" strokeDasharray="4 4" opacity={dark ? 0.85 : 0.75} />
           {/* узлы — золотые точки в том же градиенте (гуще золота к краям) */}
           {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3.3" fill={"url(#" + uid + "s)"} />; })}
         </svg>
@@ -2895,8 +2894,13 @@ function BosBalanceWheelLive(props) {
         </button>
       )}
 
-      {/* строка методики (научная серьёзность — «что и из чего считается»). */}
+      {/* ОПИСАНИЕ «что такое Баланс жизни» — серым, со значком «!» (David: вернуть вниз). */}
       <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, padding: "0 2px" }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v7h-2V7zm0 9h2v2h-2v-2z" /></svg>
+        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Баланс жизни: ИИ раскладывает все твои привычки и цели по сферам и считает, где ты в балансе, а где просело.</div>
+      </div>
+      {/* строка методики (научная серьёзность — «что и из чего считается»). */}
+      <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 8, padding: "0 2px" }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
         <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Пунктир — уровень, до которого стоит дотянуть каждую сферу. Заполненность копится из твоих ходов — свежие весят больше.</div>
       </div>
