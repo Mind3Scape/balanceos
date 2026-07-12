@@ -2803,12 +2803,10 @@ function BosBalanceWheelLive(props) {
   var poly = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } poly += "Z";
   var grid = function (idx) { return dark ? (idx ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.09)") : (idx ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.06)"); };
   var spoke = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
-  // ── Изометрический «куб» — лёгкий каркас-линии (David: как на картинке) ──────────
-  // Полный прозрачный куб = обод (силуэт) + 6 рёбер от центра ко ВСЕМ вершинам:
-  // ближний и дальний углы куба проецируются в один центр. Без серых граней.
-  var cubeEdge = dark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.15)";
-  var goldLine = dark ? "#E7B23A" : "#E0A426";                              // обводка/пунктир/узлы — амбер-золото (как на картинке)
-  var goldFill = dark ? "rgba(231,178,58,0.24)" : "rgba(240,193,74,0.34)";  // РОВНАЯ мягкая заливка, без радиального градиента/свечения
+  // ── Каркас-сетка (David: побольше линий): куб (обод + 6 рёбер) + внутренние кольца ──
+  var cubeEdge = dark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.15)";      // обод + спицы (сильнее)
+  var gridLine = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";      // внутренние концентрические кольца (тоньше)
+  var goldLine = dark ? "#E7B23A" : "#E0A426";                              // обводка/пунктир/узлы — амбер-золото
 
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
   // Общий баланс = среднее по сферам. Цель — общий уровень, до которого стоит дотянуть каждую сферу.
@@ -2832,21 +2830,26 @@ function BosBalanceWheelLive(props) {
         <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)", paddingBottom: 4 }}>Баланс жизни</div>
       )}
 
-      {/* Стат-строка вместо кружка в центре (David): только «48% · цель 55%», без подписи «БАЛАНС». */}
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 3, padding: "0 2px 2px" }}>
-        <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)" }}>{total}%</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-4)" }}> · цель {targetPct}%</span>
-      </div>
-
-      {/* РАДАР В ИЗОМЕТРИЧЕСКОМ КУБЕ: три полупрозрачные грани дают 3D-каркас; золотой пунктир —
-          «цель»; золотая область данных поверх; ярлыки осей — HTML поверх SVG (тап → лупа сферы). */}
+      {/* РАДАР: каркас-сетка (концентрические кольца + куб) → золотой градиент данных (стекло→золото)
+          → золотой пунктир «цель»; ярлыки осей — HTML поверх SVG (тап → лупа сферы). */}
       <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "0 auto 0" }}>
         <svg width="100%" viewBox={"0 0 " + W + " " + H} style={{ display: "block", overflow: "visible" }}>
-          {/* КАРКАС КУБА: обод (силуэт) + 6 рёбер от центра ко всем вершинам — лёгкие линии */}
+          <defs>
+            {/* Заливка данных: у центра почти прозрачно («как стекло»), к краям — насыщенное золото (David). */}
+            <radialGradient id={uid} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
+              <stop offset="0%" stopColor="#FEE68A" stopOpacity="0.04" />
+              <stop offset="42%" stopColor="#FBD62A" stopOpacity="0.16" />
+              <stop offset="76%" stopColor="#F3C51A" stopOpacity="0.38" />
+              <stop offset="100%" stopColor="#E8B90C" stopOpacity="0.60" />
+            </radialGradient>
+          </defs>
+          {/* СЕТКА: внутренние концентрические кольца (больше сегментов) — тонкие */}
+          {[0.25, 0.5, 0.75].map(function (lv, idx) { return <path key={"g" + idx} d={ringPath(lv)} fill="none" stroke={gridLine} strokeWidth="1" strokeLinejoin="round" />; })}
+          {/* КАРКАС КУБА: обод (силуэт) + 6 рёбер от центра ко всем вершинам */}
           <path d={ringPath(1)} fill="none" stroke={cubeEdge} strokeWidth="1" strokeLinejoin="round" />
           {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1" />; })}
-          {/* полигон данных: РОВНАЯ мягкая заливка (без градиента и свечения) + обводка */}
-          <path d={poly} fill={goldFill} stroke={goldLine} strokeWidth="2.4" strokeLinejoin="round" />
+          {/* полигон данных: ГРАДИЕНТНАЯ заливка (стекло у центра → золото к краям) + обводка */}
+          <path d={poly} fill={"url(#" + uid + ")"} stroke={goldLine} strokeWidth="2.4" strokeLinejoin="round" />
           {/* ЗОЛОТОЙ ПУНКТИР — «цель», куда стоит дотянуть каждую сферу — поверх заливки */}
           <path d={ringPath(TARGET)} fill="none" stroke={goldLine} strokeWidth="1.4" strokeDasharray="4 4" opacity={dark ? 0.8 : 0.7} />
           {/* узлы — сплошные амбровые точки */}
@@ -2865,6 +2868,14 @@ function BosBalanceWheelLive(props) {
             </button>
           );
         })}
+      </div>
+
+      {/* Итог «N% · цель M%» — вниз, в компактный блок (David: сверху раздражало). */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
+        <div style={{ display: "inline-flex", alignItems: "baseline", gap: 5, padding: "6px 14px", borderRadius: 999, background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }}>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)" }}>{total}%</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-4)" }}>· цель {targetPct}%</span>
+        </div>
       </div>
 
       {/* ОДИН ЗОЛОТОЙ ЧИП-ПОДСКАЗКА (David): слабейшая сфера + мягкое действие; тап → разбор сферы. */}
