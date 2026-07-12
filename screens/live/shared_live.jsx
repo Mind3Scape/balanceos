@@ -2856,13 +2856,12 @@ function BosBalanceWheelLive(props) {
         {SPH.map(function (s, i) {
           var lp = pol(ang(i), labelR), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
-          var isWeak = weak && s.id === weak.id;
           return (
             <button key={"lb" + i} onClick={function () { openLupa(s); }} className="tap" data-no-haptic aria-label={s.l + " " + pct + "%"}
               style={{ position: "absolute", left: ((lp[0] / W) * 100) + "%", top: ((lp[1] / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 76, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>
-              <span style={{ width: 28, height: 28, borderRadius: "50%", background: isWeak ? (dark ? "rgba(240,200,40,0.16)" : "rgba(240,195,10,0.14)") : (dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)"), display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 15, color: isWeak ? goldInk : (dark ? "#c8c8cf" : "#0a0a0a") })) || s.e}</span>
+              <span style={{ width: 28, height: 28, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 15, color: dark ? "#c8c8cf" : "#0a0a0a" })) || s.e}</span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "-0.2px" }}>{s.l}</span>
-              {s.n ? <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: isWeak ? goldInk : "var(--text-2)" }}>{pct}%</span> : null}
+              {s.n ? <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text-2)" }}>{pct}%</span> : null}
             </button>
           );
         })}
