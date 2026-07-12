@@ -163,8 +163,15 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
 .bos-sheet:has([data-sheet-grey]) { background: var(--bg, #f2f2f4); }
 .bos-sheet.is-dark:has([data-sheet-grey]) { background: #151517; }
 /* Тёмная «звёздная» шторка «Партнёры»: контент помечает себя [data-sheet-partner] — красим САМУ
-   панель тёмным рассветом (как серые формы выше), чтобы фон дошёл до ручки независимо от темы. */
-.bos-sheet:has([data-sheet-partner]) { background: radial-gradient(130% 100% at 30% -10%, #1b1b24 0%, #101014 52%, #08080a 100%); }
+   панель тёмным рассветом (как серые формы выше), чтобы фон дошёл до ручки независимо от темы.
+   Она БОЛЬШЕ обычных (height 90%), верх скруглён сильнее (32px) + тонкая светлая кромка —
+   градиент чисто «обрезается» ровным срезом там, где шторка кончается (David 2026-07-12). */
+.bos-sheet:has([data-sheet-partner]) {
+  background: radial-gradient(130% 100% at 30% -10%, #1b1b24 0%, #101014 52%, #08080a 100%);
+  height: 90%;
+  border-radius: 32px 32px 0 0;
+  box-shadow: 0 -12px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+}
 .bos-sheet:has([data-sheet-partner]) .bos-sheet-grab { background: rgba(255,255,255,0.28); }
 @keyframes bosPartnerRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes bosPartnerShine { 0% { transform: translateX(-150%) rotate(10deg); } 55%, 100% { transform: translateX(260%) rotate(10deg); } }

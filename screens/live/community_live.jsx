@@ -2710,6 +2710,9 @@ function _partnerTicket(qrText) {
       background: "linear-gradient(135deg,#FEDE34 0%,#F5BE22 55%,#EF9F14 100%)",
       boxShadow: "0 20px 50px rgba(239,159,20,0.42),inset 0 1px 0.5px rgba(255,255,255,0.65),inset 0 -1px 2px rgba(140,80,0,0.25)" }}>
       <span aria-hidden style={{ position: "absolute", top: "-40%", bottom: "-40%", width: 52, background: "linear-gradient(105deg,transparent,rgba(255,255,255,0.45),transparent)", animation: "bosPartnerShine 2.8s ease-in-out 1.1s infinite", pointerEvents: "none" }} />
+      {/* круглые вырезы на линии отрыва (перфорация между корешком и билетом) — цвет фона шторки */}
+      <span aria-hidden style={{ position: "absolute", top: -10, right: 91, width: 20, height: 20, borderRadius: "50%", background: "#0d0d11", zIndex: 3 }} />
+      <span aria-hidden style={{ position: "absolute", bottom: -10, right: 91, width: 20, height: 20, borderRadius: "50%", background: "#0d0d11", zIndex: 3 }} />
       <div style={{ flex: 1, minWidth: 0, padding: "15px 14px", textAlign: "left" }}>
         <div style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 1.6, color: "rgba(58,42,0,0.55)" }}>ПАРТНЁРСКИЙ БИЛЕТ</div>
         <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", color: "#1d1400", marginTop: 5, lineHeight: 1.2 }}>Тренировка<br />в зале рядом</div>
@@ -2747,7 +2750,7 @@ function DiscoveryPartnersSheetLive({ app, navigate, isDark }) {
   const rise = (d) => ({ animation: "bosPartnerRise 0.7s cubic-bezier(0.22,0.8,0.32,1) both", animationDelay: d + "s" });
 
   return (
-    <div data-sheet-partner className="bos-sheet-scroll" style={{ position: "relative", paddingTop: 2, paddingLeft: 20, paddingRight: 20, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", overflowX: "hidden" }}>
+    <div data-sheet-partner className="bos-sheet-scroll" style={{ position: "relative", minHeight: "100%", paddingTop: 6, paddingLeft: 20, paddingRight: 20, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", overflowX: "hidden" }}>
       {/* фолбэк тёмного фона для webview без :has() */}
       <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: -1, background: "radial-gradient(130% 100% at 30% -10%,#1b1b24 0%,#101014 52%,#08080a 100%)" }} />
       {/* звёзды + золотой рассвет */}
@@ -2765,7 +2768,7 @@ function DiscoveryPartnersSheetLive({ app, navigate, isDark }) {
         Всё, что ты делаешь в Balance, превращается в <b style={{ color: "#fff", fontWeight: 700 }}>реальные впечатления</b> — тренировки, практики и новые места у партнёров рядом.
       </div>
 
-      <div style={{ ...rise(0.4), display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginTop: 16 }}>
+      <div style={{ ...rise(0.4), display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginTop: 16, marginBottom: 22 }}>
         {facts.map((f, i) => (
           <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.8)", background: "rgba(255,255,255,0.07)", borderRadius: 999, padding: "8px 13px", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.12)" }}>
             {_partnerFactIcon(f[0])}{f[1]}
@@ -2773,7 +2776,7 @@ function DiscoveryPartnersSheetLive({ app, navigate, isDark }) {
         ))}
       </div>
 
-      <button className="tap" onClick={goPartners} style={{ ...rise(0.55), border: 0, cursor: "pointer", width: "100%", marginTop: 20, borderRadius: 999, padding: 16, fontSize: 15.5, fontWeight: 700, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7),0 12px 30px rgba(239,159,20,0.45)" }}>Найти места рядом</button>
+      <button className="tap" onClick={goPartners} style={{ ...rise(0.55), border: 0, cursor: "pointer", width: "100%", marginTop: "auto", borderRadius: 999, padding: 16, fontSize: 15.5, fontWeight: 700, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7),0 12px 30px rgba(239,159,20,0.45)" }}>Найти места рядом</button>
       <div style={{ height: "max(12px, var(--tg-bottom-inset, 0px))" }} />
     </div>
   );
@@ -2921,7 +2924,7 @@ function _DiscCard({ id, accent, iconKey, title, desc, onOpen, onDismiss, isDark
   return (
     <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: "14px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit" }}>
       {onDismiss && <_DiscX onClick={onDismiss} color="var(--text-4)" />}
-      <span className="disc-bob" style={{ width: 56, height: 56, borderRadius: 18, background: tint, display: "grid", placeItems: "center", marginBottom: 12, animation: "discBob 3.4s ease-in-out infinite", animationDelay: (animDelay || 0) + "s" }}>{_discIcon(iconKey, 30, iconInk)}</span>
+      <span className="disc-bob" style={{ width: 56, height: 56, borderRadius: "50%", background: tint, display: "grid", placeItems: "center", marginBottom: 12, animation: "discBob 3.4s ease-in-out infinite", animationDelay: (animDelay || 0) + "s" }}>{_discIcon(iconKey, 30, iconInk)}</span>
       <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{title}</span>
       <span style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.35, marginTop: 5 }}>{desc}</span>
     </button>
