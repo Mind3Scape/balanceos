@@ -2705,14 +2705,17 @@ function _partnerQR(text, px) {
 
 // ── золотой партнёрский билет с настоящим QR ──
 function _partnerTicket(qrText) {
+  // Вырезы-полукруги на линии отрыва = НАСТОЯЩИЕ дырки через CSS-маску: сквозь них виден фон
+  // шторки (звёздный градиент), а не тёмный кружок поверх золота. Круги на разрыве у корешка
+  // (100px справа), по одному сверху и снизу билета. viewBox тянется на весь билет (maskSize 100%).
+  var notchMask = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 112' preserveAspectRatio='none'%3E%3Cpath fill='black' fill-rule='evenodd' d='M0,0 H300 V112 H0 Z M189,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 Z M189,112 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 Z'/%3E%3C/svg%3E\")";
   return (
     <div style={{ position: "relative", width: "100%", borderRadius: 18, overflow: "hidden", display: "flex",
       background: "linear-gradient(135deg,#FEDE34 0%,#F5BE22 55%,#EF9F14 100%)",
-      boxShadow: "0 20px 50px rgba(239,159,20,0.42),inset 0 1px 0.5px rgba(255,255,255,0.65),inset 0 -1px 2px rgba(140,80,0,0.25)" }}>
+      boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.65),inset 0 -1px 2px rgba(140,80,0,0.25)",
+      WebkitMaskImage: notchMask, WebkitMaskSize: "100% 100%", WebkitMaskRepeat: "no-repeat",
+      maskImage: notchMask, maskSize: "100% 100%", maskRepeat: "no-repeat" }}>
       <span aria-hidden style={{ position: "absolute", top: "-40%", bottom: "-40%", width: 52, background: "linear-gradient(105deg,transparent,rgba(255,255,255,0.45),transparent)", animation: "bosPartnerShine 2.8s ease-in-out 1.1s infinite", pointerEvents: "none" }} />
-      {/* круглые вырезы на линии отрыва (перфорация между корешком и билетом) — цвет фона шторки */}
-      <span aria-hidden style={{ position: "absolute", top: -10, right: 91, width: 20, height: 20, borderRadius: "50%", background: "#0d0d11", zIndex: 3 }} />
-      <span aria-hidden style={{ position: "absolute", bottom: -10, right: 91, width: 20, height: 20, borderRadius: "50%", background: "#0d0d11", zIndex: 3 }} />
       <div style={{ flex: 1, minWidth: 0, padding: "15px 14px", textAlign: "left" }}>
         <div style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 1.6, color: "rgba(58,42,0,0.55)" }}>ПАРТНЁРСКИЙ БИЛЕТ</div>
         <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", color: "#1d1400", marginTop: 5, lineHeight: 1.2 }}>Тренировка<br />в зале рядом</div>
@@ -2758,11 +2761,15 @@ function DiscoveryPartnersSheetLive({ app, navigate, isDark }) {
         {stars}
         <div style={{ position: "absolute", right: "-22%", top: "-8%", width: "76%", height: "46%", background: "radial-gradient(circle,rgba(239,159,20,0.18),transparent 66%)" }} />
       </div>
+      {/* мягкое затухание у верхней кромки: тёмное сверху → прозрачное вниз, чтобы градиент
+          не «обрезался» резко на краю шторки (David 2026-07-12). */}
+      <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 140, borderRadius: "32px 32px 0 0", pointerEvents: "none", background: "linear-gradient(to bottom, #0a0a0d 0%, rgba(10,10,13,0.72) 42%, rgba(10,10,13,0) 100%)" }} />
 
       <div style={{ ...rise(0.05), fontSize: 10.5, fontWeight: 800, letterSpacing: "2.6px", color: "#EF9F14", textTransform: "uppercase", marginTop: 6 }}>Мир</div>
       <div style={{ ...rise(0.15), fontSize: 26, fontWeight: 800, letterSpacing: "-0.7px", color: "#fff", marginTop: 10, lineHeight: 1.15 }}>Твой опыт<br />открывает мир</div>
 
-      <div style={{ ...rise(0.25), position: "relative", width: "100%", maxWidth: 300, margin: "20px 0 4px" }}>{_partnerTicket(qrText)}</div>
+      {/* внешнее золотое свечение — на ОБЁРТКЕ, чтобы маска вырезов на билете его не срезала */}
+      <div style={{ ...rise(0.25), position: "relative", width: "100%", maxWidth: 300, margin: "20px 0 4px", borderRadius: 18, boxShadow: "0 20px 50px rgba(239,159,20,0.42)" }}>{_partnerTicket(qrText)}</div>
 
       <div style={{ ...rise(0.25), fontSize: 14, lineHeight: 1.55, color: "rgba(255,255,255,0.55)", marginTop: 14, maxWidth: 290 }}>
         Всё, что ты делаешь в Balance, превращается в <b style={{ color: "#fff", fontWeight: 700 }}>реальные впечатления</b> — тренировки, практики и новые места у партнёров рядом.
