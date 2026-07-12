@@ -6,7 +6,7 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v709";
+const CACHE = "balanceos-v710";
 const PRECACHE = [
   "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js", "store.js", "supabase.js", "cloud.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js",
@@ -15,30 +15,30 @@ const PRECACHE = [
   // FILES on every build — do not edit between the markers (a file move would otherwise
   // silently break the offline precache).
   /* BUILD_PRECACHE_START */
-  "build/components/icons.js?v=v709",
-  "build/components/shell.js?v=v709",
-  "build/core/aliases.js?v=v709",
-  "build/core/home-kit.js?v=v709",
-  "build/core/habits-kit.js?v=v709",
-  "build/core/profile-kit.js?v=v709",
-  "build/core/community-kit.js?v=v709",
-  "build/core/extra-kit.js?v=v709",
-  "build/screens/demo/profile.js?v=v709",
-  "build/screens/demo/extra.js?v=v709",
-  "build/screens/intro.js?v=v709",
-  "build/screens/live/economy_live.js?v=v709",
-  "build/screens/live/shared_live.js?v=v709",
-  "build/screens/live/home_live.js?v=v709",
-  "build/screens/live/habits_live.js?v=v709",
-  "build/screens/live/env_balance_live.js?v=v709",
-  "build/screens/live/profile_live.js?v=v709",
-  "build/screens/live/community_live.js?v=v709",
-  "build/screens/live/home_extra_live.js?v=v709",
-  "build/screens/live/habits_extra_live.js?v=v709",
-  "build/screens/live/profile_extra_live.js?v=v709",
-  "build/screens/live/community_extra_live.js?v=v709",
-  "build/screens/live/extra_live.js?v=v709",
-  "build/app.js?v=v709",
+  "build/components/icons.js?v=v710",
+  "build/components/shell.js?v=v710",
+  "build/core/aliases.js?v=v710",
+  "build/core/home-kit.js?v=v710",
+  "build/core/habits-kit.js?v=v710",
+  "build/core/profile-kit.js?v=v710",
+  "build/core/community-kit.js?v=v710",
+  "build/core/extra-kit.js?v=v710",
+  "build/screens/demo/profile.js?v=v710",
+  "build/screens/demo/extra.js?v=v710",
+  "build/screens/intro.js?v=v710",
+  "build/screens/live/economy_live.js?v=v710",
+  "build/screens/live/shared_live.js?v=v710",
+  "build/screens/live/home_live.js?v=v710",
+  "build/screens/live/habits_live.js?v=v710",
+  "build/screens/live/env_balance_live.js?v=v710",
+  "build/screens/live/profile_live.js?v=v710",
+  "build/screens/live/community_live.js?v=v710",
+  "build/screens/live/home_extra_live.js?v=v710",
+  "build/screens/live/habits_extra_live.js?v=v710",
+  "build/screens/live/profile_extra_live.js?v=v710",
+  "build/screens/live/community_extra_live.js?v=v710",
+  "build/screens/live/extra_live.js?v=v710",
+  "build/app.js?v=v710",
   /* BUILD_PRECACHE_END */
   "assets/sphere.png",
   // Лица-мемоджи в precache («секунда на лицах»): activate стирает старый кэш целиком, и без этого
@@ -52,17 +52,20 @@ const PRECACHE = [
 
 // Big, immutable files (vendor libs, images, icons) → cache-first, ignoring any query.
 const CACHE_FIRST = /\/(vendor|assets|icons)\//;
-// Precompiled UI: every build/*.js URL carries a ?v=APP_VERSION stamp and is immutable for
-// that version, so it's served cache-first KEYED BY THE FULL URL (?v= included). A version
-// bump changes the key → automatic cache miss → fresh network fetch, with NO ignoreSearch
-// skew that could pair new HTML with stale JS mid-deploy. This removes the per-cold-start
-// round-trip these 24 files used to cost under the old network-first rule.
+// Precompiled UI: every build/*.js URL carries a ?v=APP_VERSION stamp. Served
+// stale-while-revalidate (see fetch handler): the cached copy paints instantly, while a
+// background refetch keeps the cache honest so a stale first fetch can't pin old code.
 const BUILD_FIRST = /\/build\//;
 
 self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    await Promise.all(PRECACHE.map((u) => cache.add(u).catch(() => {})));
+    // {cache:"reload"} bypasses the browser HTTP cache so a fresh SW never precaches a
+    // stale copy the browser was still holding (one source of "version bumped but the
+    // screen didn't"). CDN-edge staleness is separately covered by SWR in fetch below.
+    await Promise.all(PRECACHE.map((u) =>
+      fetch(u, { cache: "reload" }).then((res) => { if (res && res.ok) return cache.put(u, res); }).catch(() => {})
+    ));
     self.skipWaiting();
   })());
 });
@@ -83,15 +86,20 @@ self.addEventListener("fetch", (e) => {
   const path = new URL(request.url).pathname;
 
   if (BUILD_FIRST.test(path)) {
-    // Versioned build/*.js → cache-first, EXACT (version-keyed) match so a new ?v=
-    // is a clean miss → fresh fetch, never a stale hit.
+    // Versioned build/*.js → STALE-WHILE-REVALIDATE. Serve the cached copy instantly (fast
+    // cold start), but ALWAYS refetch in the background and overwrite the cache. This
+    // self-heals the case where the very first fetch of a ?v= URL hit a stale CDN edge and
+    // pinned old bytes: the next launch's background refresh (CDN now fresh) replaces them,
+    // so a version bump can no longer leave one screen stuck on old code. Conditional
+    // requests make an unchanged file a cheap 304, so the cost is negligible.
     e.respondWith((async () => {
       const cache = await caches.open(CACHE);
       const hit = await cache.match(request);
-      if (hit) return hit;
-      const res = await fetch(request);
-      if (res && res.ok) cache.put(request, res.clone());
-      return res;
+      const net = fetch(request, { cache: "no-cache" }).then((res) => {
+        if (res && res.ok) cache.put(request, res.clone());
+        return res;
+      }).catch(() => null);
+      return hit || (await net) || fetch(request);
     })());
     return;
   }
