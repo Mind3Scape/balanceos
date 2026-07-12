@@ -2803,10 +2803,10 @@ function BosBalanceWheelLive(props) {
   var poly = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } poly += "Z";
   var grid = function (idx) { return dark ? (idx ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.09)") : (idx ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.06)"); };
   var spoke = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
-  // ── Каркас-сетка (David: побольше линий): куб (обод + 6 рёбер) + внутренние кольца ──
-  var cubeEdge = dark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.15)";      // обод + спицы (сильнее)
-  var gridLine = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";      // внутренние концентрические кольца (тоньше)
-  var goldLine = dark ? "#E7B23A" : "#E0A426";                              // обводка/пунктир/узлы — амбер-золото
+  // ── КРУГЛОЕ КОЛЕСО как в v600 (David: перенести старое 1-в-1) ──────────────────
+  var gridCol = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";       // внешний круг
+  var spokeCol = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";      // спицы
+  var greenDash = dark ? "rgba(52,199,89,0.42)" : "rgba(52,199,89,0.36)";   // зелёный пунктир-цель (как v600)
 
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
   // Общий баланс = среднее по сферам. Цель — общий уровень, до которого стоит дотянуть каждую сферу.
@@ -2835,31 +2835,20 @@ function BosBalanceWheelLive(props) {
       <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "0 auto 0" }}>
         <svg width="100%" viewBox={"0 0 " + W + " " + H} style={{ display: "block", overflow: "visible" }}>
           <defs>
-            {/* Заливка данных: у центра почти прозрачно («как стекло»), к краям — насыщенное золото (David). */}
-            <radialGradient id={uid} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
-              <stop offset="0%" stopColor="#FEE68A" stopOpacity="0.04" />
-              <stop offset="42%" stopColor="#FBD62A" stopOpacity="0.16" />
-              <stop offset="76%" stopColor="#F3C51A" stopOpacity="0.38" />
-              <stop offset="100%" stopColor="#E8B90C" stopOpacity="0.60" />
-            </radialGradient>
-            {/* Обводка + узлы: ЗОЛОТОЙ градиент на всю глубину (у центра мягче, к краям гуще золото),
-                непрозрачный — это главная линия колеса (David). */}
-            <radialGradient id={uid + "s"} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
-              <stop offset="0%" stopColor="#F8D65A" />
-              <stop offset="55%" stopColor="#F1C625" />
-              <stop offset="100%" stopColor="#DFA512" />
+            {/* Заливка как в v600: тёплое золото гуще в ЦЕНТРЕ, тает к краям. */}
+            <radialGradient id={uid} cx="50%" cy="46%" r="60%">
+              <stop offset="0%" stopColor="#FFD64A" stopOpacity="0.46" />
+              <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12" />
             </radialGradient>
           </defs>
-          {/* КРУГЛОЕ КОЛЕСО (David: старое круглое): концентрические круги + спицы к сферам */}
-          {[0.25, 0.5, 0.75].map(function (lv, idx) { return <circle key={"g" + idx} cx={cx} cy={cy} r={(R * lv).toFixed(1)} fill="none" stroke={gridLine} strokeWidth="1" />; })}
-          <circle cx={cx} cy={cy} r={R} fill="none" stroke={cubeEdge} strokeWidth="1" />
-          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={gridLine} strokeWidth="1" />; })}
-          {/* полигон данных: заливка стекло→золото + ЗОЛОТАЯ градиентная обводка (главная линия) */}
-          <path d={poly} fill={"url(#" + uid + ")"} stroke={"url(#" + uid + "s)"} strokeWidth="2.6" strokeLinejoin="round" />
-          {/* ЗОЛОТОЙ ПУНКТИР-цель — КРУГ (куда стоит дотянуть каждую сферу) */}
-          <circle cx={cx} cy={cy} r={(R * TARGET).toFixed(1)} fill="none" stroke={"url(#" + uid + "s)"} strokeWidth="1.4" strokeDasharray="4 4" opacity={dark ? 0.85 : 0.75} />
-          {/* узлы — золотые точки в том же градиенте (гуще золота к краям) */}
-          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3.3" fill={"url(#" + uid + "s)"} />; })}
+          {/* КРУГЛОЕ КОЛЕСО как в v600: спицы + внешний круг + ЗЕЛЁНЫЙ пунктир-цель */}
+          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spokeCol} strokeWidth="1" />; })}
+          <circle cx={cx} cy={cy} r={R} fill="none" stroke={gridCol} strokeWidth="1" />
+          <circle cx={cx} cy={cy} r={(R * TARGET).toFixed(1)} fill="none" stroke={greenDash} strokeWidth="1" strokeDasharray="2.5 4.5" />
+          {/* полигон данных: тёплая заливка + ровная золото-оранжевая обводка (v600) */}
+          <path d={poly} fill={"url(#" + uid + ")"} stroke="#FFB020" strokeWidth="2" strokeLinejoin="round" />
+          {/* узлы — по зоне (зел./жёлт./оранж.), белая обводка (v600) */}
+          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3" fill={bosZoneColor(s.v)} stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="1.4" />; })}
         </svg>
         {/* ярлыки осей: иконка + название + процент (всегда; тап → лупа сферы). Слабейшая — золотом. */}
         {SPH.map(function (s, i) {
@@ -2868,7 +2857,7 @@ function BosBalanceWheelLive(props) {
           return (
             <button key={"lb" + i} onClick={function () { openLupa(s); }} className="tap" data-no-haptic aria-label={s.l + " " + pct + "%"}
               style={{ position: "absolute", left: ((lp[0] / W) * 100) + "%", top: ((lp[1] / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 76, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>
-              <span style={{ width: 28, height: 28, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 15, color: dark ? "#c8c8cf" : "#0a0a0a" })) || s.e}</span>
+              <span style={{ display: "grid", placeItems: "center", flexShrink: 0, height: 24 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 19, color: dark ? "#d6d6dc" : "#101828" })) || s.e}</span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "-0.2px" }}>{s.l}</span>
               {s.n ? <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text-2)" }}>{pct}%</span> : null}
             </button>

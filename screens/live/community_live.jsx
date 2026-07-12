@@ -1436,7 +1436,15 @@ function CommunityLive() {
       {/* Top bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
         <div style={{ flex: 1, fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Сообщество</div>
-        {/* «Новая команда» убрана: круги создаются на вкладке Привычки → «+». Сообщество = только найти/расти. */}
+        {/* Живой пульс (VISION): сколько разных людей отметились сегодня. Раньше стоял отдельной
+            строкой под пилюлями — увёл наверх вправо, напротив заголовка (David 2026-07-12),
+            чтобы лента шла сразу под фильтрами без лишнего отступа. */}
+        {!searching && pulseN > 0 && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: "#34C759", boxShadow: "0 0 0 3px rgba(52,199,89,0.16)", flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: "var(--text-3)", whiteSpace: "nowrap" }}>{pulseN} {_pulseWord(pulseN)}</span>
+          </span>
+        )}
       </div>
 
       {/* ПОИСК по всей ленте: круги (живые + облачные) · партнёры · программы. */}
@@ -1480,13 +1488,7 @@ function CommunityLive() {
       </div>
       )}
 
-      {/* Живая строка (VISION): сколько разных людей поставили отметку сегодня. */}
-      {!searching && pulseN > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 4px 0" }}>
-          <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: "#34C759", boxShadow: "0 0 0 3px rgba(52,199,89,0.16)", flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: "var(--text-3)" }}>Сейчас {pulseN} {_pulseWord(pulseN)}</span>
-        </div>
-      )}
+      {/* Живой пульс переехал в шапку (вправо от «Сообщество») — отдельной строки под пилюлями больше нет. */}
 
       {/* РЕЗУЛЬТАТЫ ПОИСКА — те же карточки, что в ленте; тап ведёт туда же. */}
       {searching && (
@@ -1558,13 +1560,8 @@ function CommunityLive() {
             <BosBlock name="circle-requests"><CircleRequestsLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             <BosBlock name="circle-help"><CircleHelpLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             <BosBlock name="my-contribution"><MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
-            {/* ПАРТНЁРЫ — ОДИН блок на «Все» (David: «Партнёры рядом» и «потратить XP» — это одно и то
-                же, не делить). Карта уведена на чип «Партнёры» (тут её НЕТ). Витрина под замком по уровню. */}
-            {typeof PartnersShowcaseLive === "function" && (
-              <DiscoveryVeil gate={BOS_DISC_GATES.showcase} level={userLevel} isDark={isDark} label={"Откроется с " + BOS_DISC_GATES.showcase + " уровня"}>
-                <PartnersShowcaseLive app={app} navigate={navigate} onAll={() => setFilter("partners")} />
-              </DiscoveryVeil>
-            )}
+            {/* ПАРТНЁРЫ убраны с «Все» (David 2026-07-12): карусель дублировала вкладку «Партнёры»,
+                где уже есть карта + полная сетка. Партнёры живут только на своём чипе. */}
             {/* «Как работает сообщество» — подсказка-футер из макета (Круг → Дело → Спасибо). */}
             <BosBlock name="how-works">
               <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof DiscoveryHelpersSheetLive === "function") _openSheet(<DiscoveryHelpersSheetLive app={app} navigate={navigate} isDark={isDark} />); }} className="tap"
