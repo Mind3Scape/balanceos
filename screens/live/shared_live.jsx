@@ -2803,12 +2803,12 @@ function BosBalanceWheelLive(props) {
   var poly = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } poly += "Z";
   var grid = function (idx) { return dark ? (idx ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.09)") : (idx ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.06)"); };
   var spoke = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
-  // ── Изометрический «куб» — ТОЛЬКО лёгкий каркас (David: без серых граней, легче) ──
-  // Пойнти-топ шестиугольник = силуэт куба; ближний угол = центр; три ребра от центра
-  // к альтернативным вершинам (P1,P3,P5) дают Necker-иллюзию куба без тяжёлой заливки.
-  var V = function (i) { return pol(ang(i), R); };
-  var cubeEdge = dark ? "rgba(255,255,255,0.20)" : "rgba(0,0,0,0.14)";
-  var nearEdges = [1, 3, 5].map(function (i) { return V(i); });
+  // ── Изометрический «куб» — лёгкий каркас-линии (David: как на картинке) ──────────
+  // Полный прозрачный куб = обод (силуэт) + 6 рёбер от центра ко ВСЕМ вершинам:
+  // ближний и дальний углы куба проецируются в один центр. Без серых граней.
+  var cubeEdge = dark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.15)";
+  var goldLine = dark ? "#E7B23A" : "#E0A426";                              // обводка/пунктир/узлы — амбер-золото (как на картинке)
+  var goldFill = dark ? "rgba(231,178,58,0.24)" : "rgba(240,193,74,0.34)";  // РОВНАЯ мягкая заливка, без радиального градиента/свечения
 
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
   // Общий баланс = среднее по сферам. Цель — общий уровень, до которого стоит дотянуть каждую сферу.
@@ -2842,24 +2842,15 @@ function BosBalanceWheelLive(props) {
           «цель»; золотая область данных поверх; ярлыки осей — HTML поверх SVG (тап → лупа сферы). */}
       <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "0 auto 0" }}>
         <svg width="100%" viewBox={"0 0 " + W + " " + H} style={{ display: "block", overflow: "visible" }}>
-          <defs>
-            <radialGradient id={uid} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
-              <stop offset="0%" stopColor="#FEDE34" stopOpacity="0.05" />
-              <stop offset="48%" stopColor="#FEDE34" stopOpacity="0.20" />
-              <stop offset="78%" stopColor="#F6CF1B" stopOpacity="0.42" />
-              <stop offset="100%" stopColor="#EFC30A" stopOpacity="0.62" />
-            </radialGradient>
-            <filter id={uid + "g"} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5" /></filter>
-          </defs>
-          {/* каркас куба: силуэт (обод) + три ближних ребра от центра — лёгкие линии, без заливки */}
+          {/* КАРКАС КУБА: обод (силуэт) + 6 рёбер от центра ко всем вершинам — лёгкие линии */}
           <path d={ringPath(1)} fill="none" stroke={cubeEdge} strokeWidth="1" strokeLinejoin="round" />
-          {nearEdges.map(function (e, i) { return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1" />; })}
-          {/* полигон данных: свечение → градиентная заливка → обводка → мелкие золотые узлы */}
-          <path d={poly} fill="none" stroke="#FEDE34" strokeWidth="6" opacity="0.35" filter={"url(#" + uid + "g)"} />
-          <path d={poly} fill={"url(#" + uid + ")"} stroke={dark ? "#E8C412" : "#E0B90B"} strokeWidth="2.2" strokeLinejoin="round" />
-          {/* ЗОЛОТОЙ ПУНКТИР — «цель», куда стоит дотянуть каждую сферу (David: золотой в тон) */}
-          <path d={ringPath(TARGET)} fill="none" stroke={dark ? "#E8C412" : "#D9A400"} strokeWidth="1.5" strokeDasharray="3 3.5" opacity={dark ? 0.75 : 0.65} />
-          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="2.3" fill={dark ? "#E8C412" : "#E0B90B"} />; })}
+          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1" />; })}
+          {/* полигон данных: РОВНАЯ мягкая заливка (без градиента и свечения) + обводка */}
+          <path d={poly} fill={goldFill} stroke={goldLine} strokeWidth="2.4" strokeLinejoin="round" />
+          {/* ЗОЛОТОЙ ПУНКТИР — «цель», куда стоит дотянуть каждую сферу — поверх заливки */}
+          <path d={ringPath(TARGET)} fill="none" stroke={goldLine} strokeWidth="1.4" strokeDasharray="4 4" opacity={dark ? 0.8 : 0.7} />
+          {/* узлы — сплошные амбровые точки */}
+          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3.2" fill={goldLine} />; })}
         </svg>
         {/* ярлыки осей: иконка + название + процент (всегда; тап → лупа сферы). Слабейшая — золотом. */}
         {SPH.map(function (s, i) {
