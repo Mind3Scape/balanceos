@@ -162,6 +162,13 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
    доходил до скруглённого верха и не кончался при прокрутке (белые полосы — баг David). */
 .bos-sheet:has([data-sheet-grey]) { background: var(--bg, #f2f2f4); }
 .bos-sheet.is-dark:has([data-sheet-grey]) { background: #151517; }
+/* Тёмная «звёздная» шторка «Партнёры»: контент помечает себя [data-sheet-partner] — красим САМУ
+   панель тёмным рассветом (как серые формы выше), чтобы фон дошёл до ручки независимо от темы. */
+.bos-sheet:has([data-sheet-partner]) { background: radial-gradient(130% 100% at 30% -10%, #1b1b24 0%, #101014 52%, #08080a 100%); }
+.bos-sheet:has([data-sheet-partner]) .bos-sheet-grab { background: rgba(255,255,255,0.28); }
+@keyframes bosPartnerRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes bosPartnerShine { 0% { transform: translateX(-150%) rotate(10deg); } 55%, 100% { transform: translateX(260%) rotate(10deg); } }
+
 .bos-sheet-handle { padding: 8px 0 6px; display: flex; justify-content: center; touch-action: none; cursor: grab; flex: 0 0 auto; }
 .bos-sheet-grab { width: 38px; height: 5px; border-radius: 3px; background: rgba(120,120,128,0.4); }
 .bos-sheet.is-dark .bos-sheet-grab { background: rgba(235,235,245,0.3); }
