@@ -2560,6 +2560,15 @@ var BOS_SPHERE_PRESET = {
   body: { i: "💪", t: "Зарядка" }, mind: { i: "🧠", t: "Чтение" }, work: { i: "💼", t: "Фокус-блок по работе" },
   bond: { i: "❤️", t: "Позвонить близкому" }, soul: { i: "✨", t: "Благодарность" }, rest: { i: "🌿", t: "Отдых 15 минут" },
 };
+// Мягкое действие-подсказка для слабейшей сферы (золотой чип под колесом): «5 минут … уже поднимут сферу».
+var BOS_SPHERE_NUDGE = {
+  body: "5 минут зарядки уже поднимут сферу",
+  mind: "5 минут чтения уже поднимут сферу",
+  work: "один фокус-блок уже поднимет сферу",
+  bond: "звонок близкому уже поднимет сферу",
+  soul: "5 минут тишины уже поднимут сферу",
+  rest: "15 минут отдыха уже поднимут сферу",
+};
 // Корни слов (в нижнем регистре, поиск подстрокой) — покрывают кастомные названия.
 var BOS_SPHERE_KW = {
   body: ["отжим", "присед", "планк", "турник", "бег", "бега", "пробеж", "зал", "спорт", "трениров", "тренаж", "фитнес", "качал", "штанг", "гантел", "упражн", "йог", "растяж", "гибк", "вода", "воды", "воду", "стакан", "шаг", "ходь", "прогул", "сон", "спать", "выспат", "высып", "душ", "закал", "зарядк", "разминк", "велосип", "плаван", "бассейн", "пресс", "мышц", "похуд", "питани", "завтрак", "сахар", "диет", "витамин", "здоров", "body", "gym", "run", "walk", "water", "sleep", "step", "workout", "fitness", "yoga"],
@@ -2793,48 +2802,51 @@ function BosBalanceWheelLive(props) {
   var ringPath = function (lv) { var p = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * lv); p += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } return p + "Z"; };
   var poly = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } poly += "Z";
   var grid = function (idx) { return dark ? (idx ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.09)") : (idx ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.06)"); };
-  var spoke = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
-  var tickCol = dark ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.28)";
+  var spoke = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  // ── Изометрический «куб» (David: колесо вписано в 3D-каркас) ──────────────────
+  // Пойнти-топ шестиугольник = силуэт куба; ближний угол = центр. Три видимые грани
+  // (верх/право/лево) = ромбы через альтернативные вершины (спицы к P1,P3,P5) → 3D.
+  var V = function (i) { return pol(ang(i), R); };
+  var face = function (a, b, c) { var A = V(a), B = V(b), C2 = V(c); return "M" + cx + "," + cy + "L" + A[0].toFixed(1) + "," + A[1].toFixed(1) + "L" + B[0].toFixed(1) + "," + B[1].toFixed(1) + "L" + C2[0].toFixed(1) + "," + C2[1].toFixed(1) + "Z"; };
+  var faceTop = face(5, 0, 1), faceRight = face(1, 2, 3), faceLeft = face(3, 4, 5);
+  var faceFill = dark
+    ? { top: "rgba(255,255,255,0.065)", right: "rgba(255,255,255,0.022)", left: "rgba(255,255,255,0.042)" }
+    : { top: "rgba(0,0,0,0.022)", right: "rgba(0,0,0,0.06)", left: "rgba(0,0,0,0.038)" };
+  var cubeEdge = dark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.16)";
+  // Три ближних ребра куба (спицы к P1,P3,P5) — линии от центра к альтернативным вершинам.
+  var nearEdges = [1, 3, 5].map(function (i) { return V(i); });
 
-  var expandedState = React.useState(function () { try { return localStorage.getItem("bos:wheelExpanded") !== "0"; } catch (e) { return true; } }), expanded = expandedState[0], setExpanded = expandedState[1];
-  var chips = bosWheelChips(data, app);
-  var askWheel = function () { if (navigate) navigate("ai-chat", { prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть." }); };
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
-  // Общий баланс = среднее по сферам (центр колеса). Тренд — куда движется большинство.
+  // Общий баланс = среднее по сферам. Цель — общий уровень, до которого стоит дотянуть каждую сферу.
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
-  var _up = 0, _dn = 0; SPH.forEach(function (s) { if (s.n) { if (s.tr === "up") _up++; else if (s.tr === "dn") _dn++; } });
-  var overallTr = _up > _dn ? "up" : (_dn > _up ? "dn" : "flat");
-  var MIN_LEVEL = 0.5; // «адекватная средняя» — зелёный пунктир, куда стоит дотянуть каждую сферу
-  var trGlyph = function (tr) { return tr === "up" ? "▲" : tr === "dn" ? "▼" : "—"; };
-  var trColor = function (tr) { return tr === "up" ? "#34C759" : tr === "dn" ? "#FF8A3D" : (dark ? "#8e8e93" : "#9c9ca3"); };
-  // Единые подсказки: слабая сфера + пустые сферы, ОДНИМ языком (тап → разбор сферы). Без тройного «разобрать с ИИ».
+  var TARGET = 0.55;                 // «цель» — золотой пунктир, куда стоит дотянуть каждую сферу (David: 55%)
+  var targetPct = Math.round(TARGET * 100);
+  // Слабейшая непустая сфера (для одного золотого чипа-подсказки + подсветки её процента золотом).
   var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
   var emptySph = SPH.filter(function (s) { return !s.n; });
-  var hints = [];
-  if (weak) hints.push({ s: weak, t: weak.l + " · " + Math.round(weak.v * 100) + "% — ниже остальных", dot: "#FF8A3D" });
-  emptySph.slice(0, 3).forEach(function (s) { hints.push({ s: s, t: "Пусто в «" + s.l.toLowerCase() + "» — заведи первую привычку", dot: "#C7C7CC" }); });
-  var eyeBtn = (
-    <button onClick={function () { var nv = !expanded; setExpanded(nv); try { localStorage.setItem("bos:wheelExpanded", nv ? "1" : "0"); } catch (e) {} }} className="tap" data-no-haptic aria-label={expanded ? "Скрыть проценты и разбор" : "Показать проценты и разбор"} aria-pressed={expanded}
-      style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: expanded ? (dark ? "rgba(255,255,255,0.12)" : "#eef0f3") : "var(--surface-3)", color: "var(--text-3)", transition: "background 0.15s" }}>
-      <I.Eye size={17} filled={expanded} />
-    </button>
-  );
+  // Один золотой чип: слабейшая сфера + мягкое действие; если все пустые — приглашение завести привычку.
+  var nudge = null;
+  if (weak) nudge = { s: weak, t: "«" + weak.l + "» отстаёт — " + (BOS_SPHERE_NUDGE[weak.id] || "небольшой ход уже поднимет сферу") };
+  else if (emptySph.length) nudge = { s: emptySph[0], t: "Заведи первую привычку — колесо начнёт заполняться" };
+
+  var goldInk = dark ? "#F0C838" : "#C8930A";  // золотой текст на карточке (читаемый в обеих темах)
 
   return (
     <div style={bare ? { padding: "0" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
-      {/* Шапка — только когда есть название (иначе глазик плавает у радара, не в пустой строке). */}
+      {/* Заголовок «Баланс жизни» — только в отдельном виде; в пилюлях-табах его роль играет сегмент. */}
       {!hideTitle && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 6 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
-          {eyeBtn}
-        </div>
+        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)", paddingBottom: 4 }}>Баланс жизни</div>
       )}
 
-      {/* РАДАР: SVG-сетка + золотой радиальный градиент; зелёный пунктир — «адекватная средняя»;
-          В ЦЕНТРЕ — золотая область с ОБЩИМ процентом; ярлыки осей — HTML поверх (проценты по глазику). */}
-      <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "2px auto 0" }}>
-        {/* Глазик — в правом верхнем углу РАДАРА (рядом с тем, чем управляет), когда шапки нет. */}
-        {hideTitle && <div style={{ position: "absolute", top: 2, right: 2, zIndex: 3 }}>{eyeBtn}</div>}
+      {/* Стат-строка вместо кружка в центре (David): «БАЛАНС» слева, «48% · цель 55%» справа. */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, padding: "0 2px 2px" }}>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "1.2px", color: "var(--text-4)" }}>БАЛАНС</span>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)" }}>{total}%<span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-4)" }}> · цель {targetPct}%</span></span>
+      </div>
+
+      {/* РАДАР В ИЗОМЕТРИЧЕСКОМ КУБЕ: три полупрозрачные грани дают 3D-каркас; золотой пунктир —
+          «цель»; золотая область данных поверх; ярлыки осей — HTML поверх SVG (тап → лупа сферы). */}
+      <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "0 auto 0" }}>
         <svg width="100%" viewBox={"0 0 " + W + " " + H} style={{ display: "block", overflow: "visible" }}>
           <defs>
             <radialGradient id={uid} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
@@ -2845,62 +2857,55 @@ function BosBalanceWheelLive(props) {
             </radialGradient>
             <filter id={uid + "g"} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5" /></filter>
           </defs>
-          {/* кольца-шестиугольники 25/50/75/100 + обод */}
-          {[0.25, 0.5, 0.75, 1].map(function (lv, idx) { return <path key={"r" + idx} d={ringPath(lv)} fill="none" stroke={grid(idx === 3 ? 1 : 0)} strokeWidth="1" />; })}
-          {/* спицы */}
-          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spoke} strokeWidth="1" />; })}
+          {/* три грани куба (верх светлее, бока темнее) — объём */}
+          <path d={faceTop} fill={faceFill.top} stroke="none" />
+          <path d={faceLeft} fill={faceFill.left} stroke="none" />
+          <path d={faceRight} fill={faceFill.right} stroke="none" />
+          {/* рёбра куба: силуэт (обод) + три ближних ребра от центра */}
+          <path d={ringPath(1)} fill="none" stroke={cubeEdge} strokeWidth="1.1" strokeLinejoin="round" />
+          {nearEdges.map(function (e, i) { return <line key={"ce" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={cubeEdge} strokeWidth="1.1" />; })}
+          {/* остальные спицы (к вершинам данных) — тоньше, для чтения радара */}
+          {SPH.map(function (s, i) { if (i % 2 === 1) return null; var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spoke} strokeWidth="1" />; })}
           {/* полигон данных: свечение → градиентная заливка → обводка → золотые узлы */}
           <path d={poly} fill="none" stroke="#FEDE34" strokeWidth="6" opacity="0.35" filter={"url(#" + uid + "g)"} />
           <path d={poly} fill={"url(#" + uid + ")"} stroke={dark ? "#E8C412" : "#E0B90B"} strokeWidth="2.2" strokeLinejoin="round" />
-          {/* ЗЕЛЁНЫЙ ПУНКТИР — «адекватная средняя», куда стоит дотянуть (David: вернуть) */}
-          <path d={ringPath(MIN_LEVEL)} fill="none" stroke="#34C759" strokeWidth="1.5" strokeDasharray="3 3.5" opacity={dark ? 0.7 : 0.6} />
+          {/* ЗОЛОТОЙ ПУНКТИР — «цель», куда стоит дотянуть каждую сферу (David: золотой в тон) */}
+          <path d={ringPath(TARGET)} fill="none" stroke={dark ? "#E8C412" : "#D9A400"} strokeWidth="1.5" strokeDasharray="3 3.5" opacity={dark ? 0.75 : 0.65} />
           {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4" fill="#FEDE34" stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="2" />; })}
+          {/* ближний угол куба — маленькая точка-якорь вместо золотого кружка */}
+          <circle cx={cx} cy={cy} r="2.4" fill={cubeEdge} />
         </svg>
-        {/* ЦЕНТР — золотая область с ОБЩИМ процентом + тренд (David: вернуть в центр с цифрой) */}
-        <div style={{ position: "absolute", left: "50%", top: ((cy / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 66, height: 66, borderRadius: "50%", background: "radial-gradient(circle at 50% 38%, #FEDE34, #EFC30A)", boxShadow: "0 5px 16px rgba(239,195,10,0.42), inset 0 1px 2px rgba(255,255,255,0.5)", display: "grid", placeItems: "center", pointerEvents: "none" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
-            <span style={{ fontSize: 23, fontWeight: 900, color: "#0a0a0a", letterSpacing: "-0.6px" }}>{total}<span style={{ fontSize: 12, fontWeight: 800 }}>%</span></span>
-            <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(0,0,0,0.55)", marginTop: 3, display: "flex", alignItems: "center", gap: 2, textTransform: "uppercase", letterSpacing: "0.4px" }}>{overallTr !== "flat" && <span style={{ color: overallTr === "up" ? "#0a7d34" : "#a34a00" }}>{overallTr === "up" ? "▲" : "▼"}</span>}баланс</span>
-          </div>
-        </div>
-        {/* ярлыки осей: иконка + название (+ ПРОЦЕНТ и стрелка — только по глазику; тап → лупа сферы) */}
+        {/* ярлыки осей: иконка + название + процент (всегда; тап → лупа сферы). Слабейшая — золотом. */}
         {SPH.map(function (s, i) {
           var lp = pol(ang(i), labelR), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
+          var isWeak = weak && s.id === weak.id;
           return (
             <button key={"lb" + i} onClick={function () { openLupa(s); }} className="tap" data-no-haptic aria-label={s.l + " " + pct + "%"}
               style={{ position: "absolute", left: ((lp[0] / W) * 100) + "%", top: ((lp[1] / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 76, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>
-              <span style={{ width: 26, height: 26, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: dark ? "#c8c8cf" : "#0a0a0a" })) || s.e}</span>
+              <span style={{ width: 28, height: 28, borderRadius: "50%", background: isWeak ? (dark ? "rgba(240,200,40,0.16)" : "rgba(240,195,10,0.14)") : (dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)"), display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 15, color: isWeak ? goldInk : (dark ? "#c8c8cf" : "#0a0a0a") })) || s.e}</span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "-0.2px" }}>{s.l}</span>
-              {expanded && <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)", display: "flex", alignItems: "center", gap: 2 }}>{s.n ? pct + "%" : "—"}<span style={{ fontSize: 8, fontWeight: 800, color: trColor(s.tr) }}>{s.n ? trGlyph(s.tr) : ""}</span></span>}
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: isWeak ? goldInk : "var(--text-2)" }}>{s.n ? pct + "%" : "—"}</span>
             </button>
           );
         })}
       </div>
 
-      {expanded && (<>
-      {/* ЕДИНЫЕ ПОДСКАЗКИ — все одним видом (слабая + пустые сферы), тап → разбор сферы. Без тройного «разобрать с ИИ». */}
-      {hints.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12 }}>
-          {hints.map(function (h, hi) {
-            return (
-              <button key={hi} onClick={function () { openLupa(h.s); }} className="tap" data-no-haptic
-                style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"), borderRadius: 14, padding: "9px 11px", cursor: "pointer", textAlign: "left" }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: h.dot, flexShrink: 0 }} />
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{h.t}</span>
-                {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={14} color={dark ? "#8e8e93" : "#9c9ca3"} /> : null}
-              </button>
-            );
-          })}
-        </div>
+      {/* ОДИН ЗОЛОТОЙ ЧИП-ПОДСКАЗКА (David): слабейшая сфера + мягкое действие; тап → разбор сферы. */}
+      {nudge && (
+        <button onClick={function () { openLupa(nudge.s); }} className="tap" data-no-haptic
+          style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginTop: 14, background: dark ? "rgba(240,200,40,0.12)" : "rgba(240,195,10,0.10)", border: "0.5px solid " + (dark ? "rgba(240,200,40,0.30)" : "rgba(216,164,0,0.28)"), borderRadius: 16, padding: "12px 13px", cursor: "pointer", textAlign: "left" }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: dark ? "rgba(240,200,40,0.22)" : "rgba(240,195,10,0.18)" }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[nudge.s.id]) || "Sparkles", { size: 16, color: goldInk })) || nudge.s.e}</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.35 }}>{nudge.t}</span>
+          {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} color={goldInk} /> : null}
+        </button>
       )}
 
       {/* строка методики (научная серьёзность — «что и из чего считается»). */}
       <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, padding: "0 2px" }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
-        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Заполненность сферы копится из твоих ходов по её привычкам и целям — свежие весят больше. Зелёный пунктир — уровень, до которого стоит дотянуть каждую сферу.</div>
+        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Пунктир — уровень, до которого стоит дотянуть каждую сферу. Заполненность копится из твоих ходов — свежие весят больше.</div>
       </div>
-      </>)}
     </div>
   );
 }
