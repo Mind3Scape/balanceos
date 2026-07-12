@@ -1558,11 +1558,16 @@ function CommunityLive() {
             {/* «Мои круги» УБРАНЫ (David 2026-07-11: «круги и так на Главной, тут не нужны»). Свои
                 публичные круги теперь видны в «Открытых» (фильтр «Круги», раздел «Твои открытые»). */}
             <BosBlock name="circle-requests"><CircleRequestsLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
+            {/* СКРЫТО (David 2026-07-12): «Помощь от своих» (circle-help) и «Мой вклад ·
+                черновик для общих кругов» (my-contribution) убраны с «Все». Компоненты живы —
+                вернуть = раскомментировать.
             <BosBlock name="circle-help"><CircleHelpLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             <BosBlock name="my-contribution"><MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
+            */}
             {/* ПАРТНЁРЫ убраны с «Все» (David 2026-07-12): карусель дублировала вкладку «Партнёры»,
                 где уже есть карта + полная сетка. Партнёры живут только на своём чипе. */}
-            {/* «Как работает сообщество» — подсказка-футер из макета (Круг → Дело → Спасибо). */}
+            {/* СКРЫТО (David 2026-07-12): футер-подсказка «Как работает сообщество» (Круг → Дело →
+                Спасибо) убрана с «Все». Вернуть = раскомментировать.
             <BosBlock name="how-works">
               <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof DiscoveryHelpersSheetLive === "function") _openSheet(<DiscoveryHelpersSheetLive app={app} navigate={navigate} isDark={isDark} />); }} className="tap"
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
@@ -1574,6 +1579,7 @@ function CommunityLive() {
                 <I.ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0 }} />
               </button>
             </BosBlock>
+            */}
           </React.Fragment>
         )}
         {filter === "partners" && (
