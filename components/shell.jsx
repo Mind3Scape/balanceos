@@ -683,15 +683,42 @@ function bosTodayKey(d) {
   return x.getFullYear() + "-" + (m < 10 ? "0" + m : m) + "-" + (day < 10 ? "0" + day : day);
 }
 function bosDayKeyOffset(n) { var x = new Date(); x.setDate(x.getDate() - n); return bosTodayKey(x); }
+// Пн-first weekday (0=Пн … 6=Вс) of a "YYYY-MM-DD" key — parsed as LOCAL date parts (never
+// Date.parse, which reads bare dates as UTC and shifts the weekday near midnight).
+function bosDowOfKey(k) {
+  var p = String(k).split("-");
+  return (new Date(+p[0], +p[1] - 1, +p[2]).getDay() + 6) % 7;
+}
+// A habit's days mask (7-long Пн..Вс 0/1) is a REAL schedule only when it excludes something:
+// missing mask, all-ones and (defensively) all-zeros all mean «каждый день».
+function bosDaysMask(days) {
+  if (!days || days.length !== 7) return null;
+  var on = 0; for (var i = 0; i < 7; i++) if (days[i]) on++;
+  return (on === 0 || on === 7) ? null : days;
+}
 // Consecutive-day streak from a {dateKey:true} log: counts back from today, or from yesterday
 // if today isn't done yet (an open day doesn't break a streak — only a fully missed day does).
-function bosStreak(log) {
+// With a days mask (Пн..Вс schedule) off-days are SKIPPED, not broken on: пропуск чужого дня
+// не рвёт серию — рвёт только пропущенный СВОЙ день.
+function bosStreak(log, days) {
   if (!log) return 0;
-  var start = log[bosTodayKey()] ? 0 : 1;
-  if (start === 1 && !log[bosDayKeyOffset(1)]) return 0;
-  var n = 0;
-  for (var i = start; i < 3650; i++) { if (log[bosDayKeyOffset(i)]) n++; else break; }
-  return n;
+  var mask = bosDaysMask(days);
+  if (!mask) {
+    var start = log[bosTodayKey()] ? 0 : 1;
+    if (start === 1 && !log[bosDayKeyOffset(1)]) return 0;
+    var n = 0;
+    for (var i = start; i < 3650; i++) { if (log[bosDayKeyOffset(i)]) n++; else break; }
+    return n;
+  }
+  var cnt = 0;
+  for (var j = 0; j < 3650; j++) {
+    var k = bosDayKeyOffset(j);
+    if (log[k]) { cnt++; continue; }          // done days always count, scheduled or not
+    if (!mask[bosDowOfKey(k)]) continue;      // off-day, nothing expected — skip
+    if (j === 0) continue;                    // today is scheduled but still open — grace
+    break;                                    // a scheduled day was missed — streak ends
+  }
+  return cnt;
 }
 // How many distinct days the user has logged their state. Mood index 0 (Спокойствие) is a
 // REAL entry, so presence is tested with != null, never truthiness.
@@ -836,7 +863,7 @@ function bosRollHabit(h) {
   //  log-less `done:true` habit look permanently completed and never reset overnight.)
   var tk = bosTodayKey();
   var log = h.log ? Object.assign({}, h.log) : {};
-  return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log) });
+  return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log, h.days) });
 }
 
 /* ── User avatar — pick a Memoji, an Emoji, or keep the default face. ──
@@ -985,7 +1012,7 @@ function AppProvider({ children }) {
     // TEAM habit adopted onto your personal list: mirror today's mark to the team log so the team
     // goal counts it — отмечаешь у себя, идёт в командный счёт (David: «приходит как личная»).
     try { if (h.teamHabitId && _liveCloud() && window.bosCloud.toggleTeamHabitToday) window.bosCloud.toggleTeamHabitToday(h.teamHabitId, on); } catch (e) {}
-    return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log) });
+    return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log, h.days) });
   }));
   const addHabit = (h) => {
     const nh = { id: _nid(), done: false, streak: 0, ...h, cloudId: (h && h.cloudId) || _uuid() };

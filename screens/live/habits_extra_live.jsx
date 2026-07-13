@@ -57,6 +57,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     ? params.habit.days.slice()
     : ((preset && Array.isArray(preset.days) && preset.days.length === 7) ? preset.days.slice() : [1, 1, 1, 1, 1, 1, 1]));
   const toggleDay = (i) => setDays(d => d.map((v, j) => j === i ? (v ? 0 : 1) : v));
+  // Тогл «Дни недели»: включён, если маска РЕАЛЬНО что-то исключает (не все семь дней).
+  const [daysOn, setDaysOn] = useHS((typeof bosDaysMask === "function") ? !!bosDaysMask(editing && Array.isArray(params.habit.days) ? params.habit.days : null) : false);
   // Reminder — a single setting: on/off + a time. Seeded from the habit when editing.
   const [reminderOn, setReminderOn] = useHS(editing ? !!(params.habit.reminder && params.habit.reminder.on) : false); // David-редизайн: спокойный минимум — напоминание opt-in (дни живут внутри)
   const [reminderTime, setReminderTime] = useHS(editing && params.habit.reminder && params.habit.reminder.time ? params.habit.reminder.time : (preset?.time || "09:00"));
@@ -319,30 +321,50 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         </div>
       )}
 
-      {/* ── НАПОМИНАНИЕ — тумблер → дни недели + время. У общей привычки скрыто (у каждого своё). ── */}
+      {/* ── ДНИ НЕДЕЛИ — базовый тогл расписания (David, небо-нить-финал): по умолчанию каждый
+            день; включил → выбрал свои дни. Пишет ту же маску days, что и раньше жила только
+            внутри «Напоминания» — напоминание автоматически ходит по дням привычки. Пропуск
+            чужого дня не рвёт серию (bosStreak), календарь гасит чужие клетки. ── */}
+      {!teamFor && (
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Calendar size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Дни недели</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{daysOn ? daysSummary(days) : "Каждый день. Включи и выбери свои."}</div>
+          </div>
+          <Switch small on={daysOn} onChange={(v) => { setDaysOn(v); if (!v) setDays([1, 1, 1, 1, 1, 1, 1]); }} />
+        </div>
+        {daysOn && (
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", gap: 6, justifyContent: "space-between" }}>
+            {WEEKDAY_LABELS.map((w, i) => {
+              const on = !!days[i];
+              return (
+                <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
+                  style={{ flex: 1, aspectRatio: "1/1", maxWidth: 34, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 11.5, fontWeight: 600, letterSpacing: "-0.2px",
+                    background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
+                    boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none", transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>{w}</button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* ── НАПОМИНАНИЕ — тумблер → время. Дни переехали в свой ряд «Дни недели» выше — пуш
+            ходит по дням привычки. У общей привычки скрыто (у каждого своё). ── */}
       {!teamFor && (
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Bell size={19} color="var(--text-3)" /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Напоминание</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{reminderOn ? (daysSummary(days) + " · напомним в " + reminderTime) : "Без напоминаний. Тут же — дни и время."}</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{reminderOn ? (daysSummary(days) + " · напомним в " + reminderTime) : "Без напоминаний. Пуш придёт по дням привычки."}</div>
           </div>
           <Switch small on={reminderOn} onChange={setReminderOn} />
         </div>
         {reminderOn && (
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-            <div style={{ display: "flex", gap: 6, justifyContent: "space-between", marginBottom: 14 }}>
-              {WEEKDAY_LABELS.map((w, i) => {
-                const on = !!days[i];
-                return (
-                  <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
-                    style={{ flex: 1, aspectRatio: "1/1", maxWidth: 34, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 11.5, fontWeight: 600, letterSpacing: "-0.2px",
-                      background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
-                      boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none", transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>{w}</button>
-                );
-              })}
-            </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 14, color: "var(--text-2)" }}><I.Clock size={16} color="var(--text-3)" /> Время</span>
               <input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value || "09:00")}

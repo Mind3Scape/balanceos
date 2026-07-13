@@ -526,7 +526,12 @@ function bosCellInk(hx, p, isDark) {
 }
 
 /* PeopleMonthCalendar → live-only: always the REAL calendar (demo's frozen showcase date gone). */
-function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false, defaultView = "month", tintInk = null, hidePicker = false }) {
+function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false, defaultView = "month", tintInk = null, hidePicker = false, schedDays = null }) {
+  // «Дни недели»: schedDays = 7-маска Пн..Вс. Чужой (не назначенный) пустой день рисуется
+  // ПРИГЛУШЁННЫМ — он и не ожидался, пропуск не читается как провал. Отмеченный день в любом
+  // случае показывается в полную силу (сделал в выходной — молодец, это честная отметка).
+  const _sched = (typeof bosDaysMask === "function") ? bosDaysMask(schedDays) : null;
+  const _offMon = (monIdx) => !!(_sched && !_sched[monIdx]);
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -716,9 +721,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
               // Сегодня = единое стеклянное кольцо (bosTodayRing) в ТОНЕ привычки, как снаружи; без «+».
               const sh = [filled ? bosCellGlass(isDark) : "", wd.isToday ? bosTodayRing(isDark, hx) : ""].filter(Boolean).join(", ") || "none";
               var wchk = (hx && hx[0] === "#" && ("" + hx).toLowerCase() !== "#0a0a0a" && hx !== "#8E8E93") ? hx : "var(--text)";
+              const wOff = _offMon(i) && !(pct > 0);
               return (
                 <button key={i} onClick={itx ? fireToday : undefined} className="tap" style={{ aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, background: "transparent", cursor: itx ? "pointer" : "default", position: "relative", display: "grid", placeItems: "center" }}>
-                  <span aria-hidden style={{ position: "absolute", inset: 0 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { today: wd.isToday })}</span>
+                  <span aria-hidden style={{ position: "absolute", inset: 0, opacity: wOff ? 0.38 : 1 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { today: wd.isToday })}</span>
                   {itx && done ? <span style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}><I.Check size={13} strokeWidth={3} color={wchk} /></span> : null}
                 </button>
               );
@@ -743,7 +749,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             «Красиво» прячет числа/подписи/навигацию для глазастой сетки. */}
         {view === "month" && (
         <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 252, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
-          {cells.map((c) => {
+          {cells.map((c, _ci) => {
             // Соседние месяцы (prev/next) = еле заметный ПОЛНЫЙ кружок (David: «продолжить еле заметными
             // кружочками слева и справа, чтобы месяц был ближе к ГРЯДКЕ»). Полный размер достраивает
             // прямоугольник-грядку; opacity ниже пустого дня (track) → месяц мягко «бледнеет» по краям,
@@ -775,12 +781,14 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             const onClick = itx ? fireToday : (compact ? undefined : () => setSelDay(c.d));
             var mchk = (hx && hx[0] === "#" && ("" + hx).toLowerCase() !== "#0a0a0a" && hx !== "#8E8E93") ? hx : "var(--text)";
             var ringInk = fut ? "var(--text-4)" : "var(--text)";
+            // Сетка месяца начинается с ВС (startWeekday по getDay) → Пн-first индекс = (кол+6)%7.
+            var mOff = _offMon((_ci % 7 + 6) % 7) && !(pct > 0);
             return (
               <button key={c.key} {...(itx ? { "data-no-haptic": "" } : {})} onClick={onClick} className="tap" style={{
                 aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center",
                 fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: (itx || !compact) ? "pointer" : "default",
                 background: "transparent", color: ringInk, position: "relative" }}>
-                <span aria-hidden style={{ position: "absolute", inset: 0 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { today: isToday, sel: (!compact && isSel && !isToday) })}</span>
+                <span aria-hidden style={{ position: "absolute", inset: 0, opacity: mOff ? 0.38 : 1 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { today: isToday, sel: (!compact && isSel && !isToday) })}</span>
                 {(itx && done)
                   ? <span style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}><I.Check size={14} strokeWidth={3} color={mchk} /></span>
                   : (!compact && !fut && <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>)}
@@ -828,7 +836,9 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                     // горизонтального скролла (David: «колесо вокруг сегодня обрезается»). Нейтральный тон
                     // виден и на пустой клетке, и на залитой (в отличие от hx, который сливается с заливкой).
                     const sh = [filled ? bosCellGlass(isDark) : "", isToday ? ("inset 0 0 0 1.6px " + todayRingY) : ""].filter(Boolean).join(", ") || "none";
-                    const yst = { width: 13, height: 13, borderRadius: "50%", background: bg, boxShadow: sh };
+                    // Грядка колонко-мажорная (7 строк Пн..Вс) → i%7 = Пн-first день недели.
+                    const yOff = _offMon(i % 7) && !filled;
+                    const yst = { width: 13, height: 13, borderRadius: "50%", background: bg, boxShadow: sh, opacity: yOff ? 0.38 : 1 };
                     if (itx) return <button key={i} onClick={fireToday} data-no-haptic className="tap" title={(MONTHS[s.m] || "") + " " + s.d} style={{ ...yst, border: 0, padding: 0, cursor: "pointer" }} />;
                     return <span key={i} title={(MONTHS[s.m] || "") + " " + s.d} style={yst} />;
                   })}
@@ -6938,8 +6948,14 @@ function HomeWeekStripLive(props) {
     <div style={{ display: "flex" }}>
       {keys.map(function (k, i) {
         // День = стеклянное КОЛЬЦО-заполнение: доля выполненных сегодня привычек (David v660).
-        var doneN = habits.length ? habits.filter(function (h) { return h.log && h.log[k]; }).length : 0;
-        var pct = habits.length ? doneN / habits.length : 0;
+        // «Дни недели»: привычка с расписанием в чужой день НЕ входит в знаменатель — кольцо
+        // требует только то, что на этот день назначено (отметил в чужой день → всё равно idёт в счёт).
+        var due = habits.filter(function (h) {
+          var m = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
+          return (h.log && h.log[k]) || !m || !!m[i];
+        });
+        var doneN = due.length ? due.filter(function (h) { return h.log && h.log[k]; }).length : 0;
+        var pct = due.length ? doneN / due.length : 0;
         var isToday = k === todayK;
         return (
           <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>

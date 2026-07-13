@@ -246,7 +246,7 @@ function ChallengeIntroSheet({ c, dark, onStart, onBack }) {
 function ChallengeProgressChip({ habit }) {
   var ch = habit && habit.challenge;
   if (!ch || !ch.days) return null;
-  var streak = (typeof bosStreak === "function") ? bosStreak(habit.log || []) : 0;
+  var streak = (typeof bosStreak === "function") ? bosStreak(habit.log || [], habit.days) : 0;
   var remaining = ch.days - streak;
   if (remaining <= 0) return null;                        // приз забран → чистая карточка
   var pct = Math.max(0.06, Math.min(1, streak / ch.days)); // чуть-чуть даже на нуле, чтобы кольцо жило

@@ -80,8 +80,12 @@ function HabitDetailLive() {
   // Real stats from the check-in log (h.log = {dateKey:true}).
   const _log = h.log || {};
   const _logDays = Object.keys(_log).filter((k) => _log[k] && /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
-  const _bestRun = (days) => { if (!days.length) return 0; let b = 1, c = 1; for (let i = 1; i < days.length; i++) { const diff = Math.round((new Date(days[i] + "T00:00:00") - new Date(days[i - 1] + "T00:00:00")) / 86400000); if (diff === 1) { c++; if (c > b) b = c; } else if (diff > 1) c = 1; } return b; };
-  const streak = (typeof bosStreak === "function") ? bosStreak(_log) : (h.streak || 0);
+  // Дни недели: разрыв между отметками не рвёт «Лучшую», если ВСЕ дни в разрыве — чужие
+  // (не из расписания привычки). Маска null = каждый день → прежнее поведение.
+  const _mask = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
+  const _gapIsRest = (a, diff) => { if (!_mask) return false; for (let dd = 1; dd < diff; dd++) { const t = new Date(a); t.setDate(t.getDate() + dd); if (_mask[(t.getDay() + 6) % 7]) return false; } return true; };
+  const _bestRun = (days) => { if (!days.length) return 0; let b = 1, c = 1; for (let i = 1; i < days.length; i++) { const a = new Date(days[i - 1] + "T00:00:00"); const diff = Math.round((new Date(days[i] + "T00:00:00") - a) / 86400000); if (diff === 1 || (diff > 1 && _gapIsRest(a, diff))) { c++; if (c > b) b = c; } else if (diff > 1) c = 1; } return b; };
+  const streak = (typeof bosStreak === "function") ? bosStreak(_log, h.days) : (h.streak || 0);
   const best   = Math.max(streak, _bestRun(_logDays));
   const total  = _logDays.length;
 
@@ -192,7 +196,7 @@ function HabitDetailLive() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: _tinted ? _sk.txt : "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
             <div style={{ fontSize: 13, color: _tinted ? _sk.sub : "var(--text-4)", marginTop: 3 }}>
-              Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
+              {(_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно"}{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
             </div>
           </div>
           <div style={{ flexShrink: 0, width: 54, height: 54, display: "grid", placeItems: "center" }}>
@@ -208,7 +212,7 @@ function HabitDetailLive() {
 
         {/* Календарь — ПРЯМО на тонированном фоне, единый тон (David: «как в макете, без подложки»). */}
         <div style={{ marginTop: 18 }}>
-          <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" tintInk={_tinted ? _sk.txt : null} />
+          <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" tintInk={_tinted ? _sk.txt : null} schedDays={h.days} />
         </div>
 
         {/* Серия / Лучшая / Всего — снизу; на тоне линия и иконки светлее/в тон. */}
@@ -409,7 +413,7 @@ function GoalDetailPersonalLive() {
               <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{h.goalOnly && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· в цели</span>}</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(typeof bosStreak === "function") ? bosStreak(h.log) : (h.streak || 0)}д серия</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(typeof bosStreak === "function") ? bosStreak(h.log, h.days) : (h.streak || 0)}д серия</div>
               </div>
               <I.ChevronRight size={16} color="var(--text-4)" />
             </button>
