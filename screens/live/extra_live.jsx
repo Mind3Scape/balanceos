@@ -210,26 +210,6 @@ function HabitDetailLive() {
           </div>
         </div>
 
-        {/* «НЕБО-НИТЬ» — у СОВМЕСТНОЙ привычки по умолчанию (David: «как только что-то совместное —
-            включается»); гасится тоглом «Нить дня» в редакторе (h.threadOff). Кто во сколько был
-            сегодня — те же лица, то же небо, что в круге. В чужой день (дни недели) нить дремлет. */}
-        {_shared && h.threadOff !== true && typeof SkyThreadLive === "function" && (() => {
-          const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
-          const _marks = buddies.filter((m) => m.todayAt).map((m) => ({ id: m.id, name: m.me ? "Ты" : m.name, avatar: m.avatar, me: !!m.me, ts: new Date(m.todayAt) }));
-          const _doneToday = buddies.filter((m) => (m.days && _tk && m.days[_tk]) || (m.me && h.done)).length;
-          let _rest = null;
-          if (_mask && _tk && typeof bosDowOfKey === "function" && !_mask[bosDowOfKey(_tk)]) {
-            const _wd = ["в понедельник", "во вторник", "в среду", "в четверг", "в пятницу", "в субботу", "в воскресенье"];
-            let _next = null; for (let d = 1; d <= 7 && _next == null; d++) { const i = (bosDowOfKey(_tk) + d) % 7; if (_mask[i]) _next = i; }
-            _rest = (typeof daysSummary === "function" ? daysSummary(h.days) : "не сегодня") + (_next != null ? " — следующая встреча " + _wd[_next] : "");
-          }
-          return (
-            <div style={{ marginTop: 18 }}>
-              <SkyThreadLive marks={_marks} total={buddies.length} doneCount={_doneToday} isDark={isDark} rest={_rest} />
-            </div>
-          );
-        })()}
-
         {/* Календарь — ПРЯМО на тонированном фоне, единый тон (David: «как в макете, без подложки»). */}
         <div style={{ marginTop: 18 }}>
           <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" tintInk={_tinted ? _sk.txt : null} schedDays={h.days} />
@@ -245,6 +225,26 @@ function HabitDetailLive() {
         </div>
 
       </div>
+
+      {/* ТАЙМЛАЙН — ОТДЕЛЬНЫМ блоком под карточкой (David): у совместной привычки по умолчанию,
+          гасится тоглом «Таймлайн» в редакторе (h.threadOff). Те же лица и небо, что в круге;
+          в чужой день по «Дням недели» — дремлет и говорит, когда следующая встреча. */}
+      {_shared && h.threadOff !== true && typeof SkyThreadLive === "function" && (() => {
+        const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+        const _marks = buddies.filter((m) => m.todayAt).map((m) => ({ id: m.id, name: m.me ? "Ты" : m.name, avatar: m.avatar, me: !!m.me, ts: new Date(m.todayAt) }));
+        const _doneToday = buddies.filter((m) => (m.days && _tk && m.days[_tk]) || (m.me && h.done)).length;
+        let _rest = null;
+        if (_mask && _tk && typeof bosDowOfKey === "function" && !_mask[bosDowOfKey(_tk)]) {
+          const _wd = ["в понедельник", "во вторник", "в среду", "в четверг", "в пятницу", "в субботу", "в воскресенье"];
+          let _next = null; for (let d = 1; d <= 7 && _next == null; d++) { const i = (bosDowOfKey(_tk) + d) % 7; if (_mask[i]) _next = i; }
+          _rest = (typeof daysSummary === "function" ? daysSummary(h.days) : "не сегодня") + (_next != null ? " — следующая встреча " + _wd[_next] : "");
+        }
+        return (
+          <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+            <SkyThreadLive marks={_marks} total={buddies.length} doneCount={_doneToday} isDark={isDark} rest={_rest} />
+          </div>
+        );
+      })()}
 
       {/* СКРЫТО (David: «убери баннеры „Веди вместе“ и „Инсайт“ — может, потом пригодятся»).
           Приглашение переехало в стеклянную кнопку «поделиться» в шапке. Код сохранён:

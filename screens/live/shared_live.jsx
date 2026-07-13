@@ -2089,18 +2089,19 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
       </span>
     );
   };
-  var face = function (m, size, gold) {
+  // Все лица в ЕДИНОЙ белой обводке — без золотого кольца у свежего (David: «не надо выделять»).
+  var face = function (m, size) {
     return (
-      <span style={{ display: "inline-block", borderRadius: "50%", border: "2.5px solid " + (gold ? "#FEDE34" : (isDark ? "#2c2f36" : "#fff")), boxShadow: "0 2px 7px rgba(0,0,0,0.2)", lineHeight: 0, background: isDark ? "#2c2f36" : "#fff" }}>
+      <span style={{ display: "inline-block", borderRadius: "50%", border: "2.5px solid " + (isDark ? "#2c2f36" : "#fff"), boxShadow: "0 2px 7px rgba(0,0,0,0.2)", lineHeight: 0, background: isDark ? "#2c2f36" : "#fff" }}>
         <BuddyFaceLive avatar={m.avatar} name={m.name} size={size} />
       </span>
     );
   };
-  // Градиент совпадает со шкалой 4→28ч: рассвет у левого края (4-5 утра), светлый день в
-  // середине, закат ~19-20ч (~64%), с 20ч (66.7%) и до конца — ночь.
+  // Градиент совпадает со шкалой 4→28ч и течёт РАВНОМЕРНО (David: «стрёмный неравномерный»):
+  // рассвет → светлый день → золото → закат → сумерки → ночь, стопы без сгущений и полос.
   var strip = {
     position: "absolute", left: 2, right: 2, top: 38, height: 12, borderRadius: 999,
-    background: "linear-gradient(90deg, #ffd9a0 0%, #fdf3d9 14%, #fdf7e8 33%, #fdf6e2 50%, #fbe6ae 58%, #f2ae54 64%, #6a7089 70%, #2e3342 80%, #262a38 100%)",
+    background: "linear-gradient(90deg, #ffd9a0 0%, #fdeec9 16%, #fdf6e2 33%, #fbedc4 50%, #f5c069 60%, #e29a5c 67%, #7d7490 76%, #3c4156 86%, #262a38 100%)",
     boxShadow: "inset 0 1px 2px rgba(0,0,0,0.14)",
   };
   var doneN = doneCount != null ? doneCount : ms.length;
@@ -2117,13 +2118,15 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
         <div style={strip} />
         {/* Вуаль на будущем: прожитая часть дня яркая, непрожитая — под матовой дымкой. */}
         {!rest && <div style={{ position: "absolute", top: 37, height: 14, left: nowPct + "%", right: 1, borderRadius: "0 999px 999px 0", background: isDark ? "rgba(12,14,18,0.45)" : "rgba(255,255,255,0.55)" }} />}
+        {/* «Сейчас» — тихая золотая точка ПОД лицами (zIndex ниже), без мигания и цифр (David). */}
+        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: 36, width: 16, height: 16, borderRadius: "50%", transform: "translateX(-50%)", zIndex: 1, background: "radial-gradient(circle at 50% 40%, #FEDE34, #EF9F14)", border: "3px solid " + (isDark ? "#2c2f36" : "#fff"), boxShadow: "0 0 8px rgba(239,159,20,0.45)", opacity: rest ? 0.55 : 1 }} />
         {!rest && groups.map(function (g, gi) {
           var lastGroup = gi === groups.length - 1;
           if (g.items.length === 1) {
-            var m = g.items[0], big = lastGroup, sz = big ? 31 : 23;
+            var m = g.items[0], big = lastGroup, sz = big ? 30 : 23;
             return (
-              <span key={gi} style={{ position: "absolute", left: g.pct + "%", top: big ? 26 : 31, transform: "translateX(-50%)", zIndex: 2 }}>
-                {face(m, sz, big)}
+              <span key={gi} style={{ position: "absolute", left: g.pct + "%", top: big ? 27 : 31, transform: "translateX(-50%)", zIndex: 2 }}>
+                {face(m, sz)}
               </span>
             );
           }
@@ -2131,13 +2134,11 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
             <span key={gi} style={{ position: "absolute", left: g.pct + "%", top: 31, transform: "translateX(-50%)", display: "flex", zIndex: 2 }}>
               <span style={{ position: "absolute", top: -15, left: "50%", transform: "translateX(-50%)", fontSize: 9.5, fontWeight: 800, color: "#7a5b00", background: "rgba(254,222,52,0.4)", borderRadius: 999, padding: "1.5px 7px", whiteSpace: "nowrap" }}>×{g.items.length}</span>
               {g.items.slice(0, 3).map(function (m, mi) {
-                return <span key={mi} style={{ marginLeft: mi ? -10 : 0 }}>{face(m, 23, false)}</span>;
+                return <span key={mi} style={{ marginLeft: mi ? -10 : 0 }}>{face(m, 23)}</span>;
               })}
             </span>
           );
         })}
-        {/* «Сейчас» — тихая золотая точка, без мигания и без цифр (David: «и так понятно»). */}
-        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: 36, width: 16, height: 16, borderRadius: "50%", transform: "translateX(-50%)", zIndex: 3, background: "radial-gradient(circle at 50% 40%, #FEDE34, #EF9F14)", border: "3px solid " + (isDark ? "#2c2f36" : "#fff"), boxShadow: "0 0 8px rgba(239,159,20,0.45)", opacity: rest ? 0.55 : 1 }} />
         {Glyph("dawn", 16.7)}
         {Glyph("sun", 50)}
         {Glyph("moon", 83.3)}
@@ -2895,114 +2896,196 @@ function BosSphereLupaSheetLive(props) {
 }
 
 // РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint, openSheet }.
+// ЖИВОЕ КОЛЕСО БАЛАНСА (Living Radar v2, макет David «Balance Wheel Living Radar v2»).
+// Радар-гексагон + 6 стеклянных сфер-узлов вокруг него. Тап по сфере (или циферблату) →
+// FLIP-анимация: диск сжимается в угол, узлы перестраиваются в список с барами, «шапка детали»
+// въезжает, появляется «назад». Тап по строке в деталях → прежняя «лупа» сферы (глубина сохранена).
+// Позиции left/top/transform узлов и диска ставит императивный FLIP (через ref-ы), а ширину/непрозрачность
+// переключает класс .detail — поэтому React НЕ трогает эти стили и не воюет с анимацией.
 function BosBalanceWheelLive(props) {
-  var app = props.app, dark = !!props.dark, navigate = props.navigate, tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"], hideTitle = !!props.hideTitle, bare = !!props.bare;
+  var app = props.app, dark = !!props.dark, navigate = props.navigate, hideTitle = !!props.hideTitle, bare = !!props.bare;
   var openSheet = props.openSheet || function () {};
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
   var data = bosWheelData(app);
   var SPH = data.spheres, N = SPH.length;
-  // Геометрия радара (макет V2): фикс-размер для точного позиционирования HTML-ярлыков поверх SVG.
-  var W = 300, H = 288, cx = 150, cy = 142, R = 82, labelR = R + 30, TAU = Math.PI * 2;
-  var ang = function (i) { return i / N * TAU - Math.PI / 2; };
-  var pol = function (a, r) { return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; };
-  var ringPath = function (lv) { var p = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * lv); p += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } return p + "Z"; };
-  var poly = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } poly += "Z";
-  var grid = function (idx) { return dark ? (idx ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.09)") : (idx ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.06)"); };
-  var spoke = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
-  // ── КРУГЛОЕ КОЛЕСО как в v600 (David: перенести старое 1-в-1) ──────────────────
-  var gridCol = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";       // внешний круг
-  var spokeCol = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";      // спицы
-  var greenDash = dark ? "rgba(52,199,89,0.42)" : "rgba(52,199,89,0.36)";   // зелёный пунктир-цель (как v600)
 
-  var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
-  // Общий баланс = среднее по сферам. Цель — общий уровень, до которого стоит дотянуть каждую сферу.
+  // ── геометрия радара (SVG viewBox -150..150; узлы — HTML в px поверх сцены) ──
+  var OUT = 104;                              // радиус внешнего гексагона в SVG-единицах
+  var TARGET = 0.55, targetPct = Math.round(TARGET * 100);
+  var pt = function (i, r) { var t = i * Math.PI / 3; return (r * Math.sin(t)).toFixed(1) + "," + (-r * Math.cos(t)).toFixed(1); };
+  var hex = function (L) { var a = []; for (var i = 0; i < N; i++) a.push(pt(i, OUT * L)); return a.join(" "); };
+  var dataPts = SPH.map(function (s, i) { return pt(i, OUT * Math.max(s.v, 0.05)); }).join(" ");
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
-  var TARGET = 0.55;                 // «цель» — золотой пунктир, куда стоит дотянуть каждую сферу (David: 55%)
-  var targetPct = Math.round(TARGET * 100);
-  // Слабейшая непустая сфера (для одного золотого чипа-подсказки + подсветки её процента золотом).
+  var gridCol = dark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.07)";
+  var spokeCol = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  var goldDash = dark ? "rgba(240,200,40,0.45)" : "rgba(216,164,0,0.42)";
+  var goldInk = dark ? "#F0C838" : "#C8930A";
+  var iconCol = dark ? "#e8e8ea" : "#101828";
+
+  // позиции 6 узлов вокруг радара (совпадают по индексу с BOS_SPHERES: Тело сверху, по часовой)
+  var POS = [[0, -124], [106, -62], [106, 62], [0, 124], [-106, 62], [-106, -62]];
+  var DIALY = 172, LIST_TOP = 34, ROW_H = 54, LIST_LEFT = 8;
+
+  // слабейшая непустая сфера — для «шапки детали» и золотого чипа-подсказки
   var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
   var emptySph = SPH.filter(function (s) { return !s.n; });
-  // Один золотой чип: слабейшая сфера + мягкое действие; если все пустые — приглашение завести привычку.
+  var cap = function (t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
+  function hintFor(s) {
+    var q = "«" + s.l + "»";
+    if (!s.n) return [q + " пока пустует", "Заведи первую привычку — сфера начнёт наполняться."];
+    if (weak && s.id === weak.id) return [q + " отстаёт сильнее всех", cap(BOS_SPHERE_NUDGE[s.id] || "небольшой ход уже поднимет сферу") + "."];
+    if (s.v >= 0.7) return [q + " — твоя сильная сфера", "Здесь ты на подъёме. Оставь силы на остальные."];
+    return [q + " в движении", cap(BOS_SPHERE_NUDGE[s.id] || "небольшой ход уже поднимет сферу") + "."];
+  }
+
   var nudge = null;
   if (weak) nudge = { s: weak, t: "«" + weak.l + "» отстаёт — " + (BOS_SPHERE_NUDGE[weak.id] || "небольшой ход уже поднимет сферу") };
   else if (emptySph.length) nudge = { s: emptySph[0], t: "Заведи первую привычку — колесо начнёт заполняться" };
 
-  var goldInk = dark ? "#F0C838" : "#C8930A";  // золотой текст на карточке (читаемый в обеих темах)
+  var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
+
+  // ── ref-ы для императивного FLIP ──
+  var rootRef = React.useRef(null), stageRef = React.useRef(null), dialRef = React.useRef(null);
+  var dhRef = React.useRef(null), dsRef = React.useRef(null), nodeRefs = React.useRef({});
+  var animatingRef = React.useRef(false), isDetailRef = React.useRef(false);
+  var byV = SPH.slice().sort(function (a, b) { return b.v - a.v; });          // список деталей: сильные сверху
+
+  function placeWheel() {
+    SPH.forEach(function (s, i) {
+      var n = nodeRefs.current[s.id]; if (!n) return;
+      n.style.transition = "none";
+      n.style.left = "calc(50% + " + POS[i][0] + "px)";
+      n.style.top = (DIALY + POS[i][1]) + "px";
+      n.style.transform = "translate(-50%,-50%)";
+    });
+  }
+  React.useLayoutEffect(function () { if (!isDetailRef.current && !animatingRef.current) placeWheel(); });
+
+  function dialDetailTransform() {
+    var cont = rootRef.current.getBoundingClientRect();
+    var d = dialRef.current.getBoundingClientRect();
+    var dcx = d.left + d.width / 2, dcy = d.top + d.height / 2;
+    var tx = cont.left + 46, ty = cont.top + 30;                              // угол-«бейдж» рядом с шапкой
+    return "translate(-50%,-50%) translate(" + (tx - dcx).toFixed(1) + "px," + (ty - dcy).toFixed(1) + "px) scale(.4)";
+  }
+
+  function flip(toDetail) {
+    if (animatingRef.current) return;
+    animatingRef.current = true;
+    var stage = stageRef.current, root = rootRef.current, dial = dialRef.current;
+    var order = SPH.map(function (s) { return s.id; });
+
+    // 1. FIRST — запомнить экранные позиции узлов
+    var first = {}; order.forEach(function (id) { var n = nodeRefs.current[id]; first[id] = n.getBoundingClientRect(); });
+
+    // 2. мгновенно применить целевую раскладку (список ↔ колесо)
+    if (toDetail) {
+      byV.forEach(function (s, i) {
+        var n = nodeRefs.current[s.id];
+        n.style.transition = "none"; n.style.left = LIST_LEFT + "px"; n.style.top = (LIST_TOP + i * ROW_H) + "px"; n.style.transform = "translate(0,0)";
+      });
+    } else placeWheel();
+    root.classList.toggle("detail", toDetail);
+
+    // диск: WAAPI (CSS-переход застревал)
+    var dialFrom = getComputedStyle(dial).transform;
+    var dialTo = toDetail ? dialDetailTransform() : "translate(-50%,-50%)";
+    dial.getAnimations().forEach(function (a) { a.cancel(); });
+    dial.animate([{ transform: dialFrom }, { transform: dialTo }], { duration: 680, easing: "cubic-bezier(.5,.05,.15,1)", fill: "forwards" });
+
+    // 3. LAST — измерить и инвертировать
+    var off = {}; order.forEach(function (id) { var last = nodeRefs.current[id].getBoundingClientRect(); off[id] = { dx: first[id].left - last.left, dy: first[id].top - last.top }; });
+    order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transform = "translate(" + off[id].dx + "px," + off[id].dy + "px) " + (toDetail ? "" : "translate(-50%,-50%)"); });
+    void stage.offsetWidth;
+
+    // 4. анимировать к нулю со стаггером
+    var seq = toDetail ? byV.map(function (s) { return s.id; }) : order;
+    seq.forEach(function (id, i) { var n = nodeRefs.current[id]; n.style.transition = "transform .66s cubic-bezier(.5,.05,.15,1) " + (i * 0.045) + "s"; n.style.transform = toDetail ? "translate(0,0)" : "translate(-50%,-50%)"; });
+
+    setTimeout(function () { animatingRef.current = false; }, 760);
+    isDetailRef.current = toDetail;
+  }
+
+  function openDetail(id) {
+    var s = null; SPH.forEach(function (x) { if (x.id === id) s = x; }); if (!s) return;
+    var h = hintFor(s);
+    if (dhRef.current) dhRef.current.textContent = h[0];
+    if (dsRef.current) dsRef.current.textContent = h[1];
+    flip(true);
+  }
+  function onNodeTap(e) {
+    var el = e.target.closest ? e.target.closest(".lr-node") : null; if (!el) return;
+    var id = el.getAttribute("data-id");
+    if (!isDetailRef.current) openDetail(id);
+    else { var s = null; SPH.forEach(function (x) { if (x.id === id) s = x; }); if (s) openLupa(s); }
+  }
 
   return (
-    <div style={bare ? { padding: "0" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
-      {/* Заголовок «Баланс жизни» — только в отдельном виде; в пилюлях-табах его роль играет сегмент. */}
-      {!hideTitle && (
-        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)", paddingBottom: 4 }}>Баланс жизни</div>
-      )}
-
-      {/* РАДАР: каркас-сетка (концентрические кольца + куб) → золотой градиент данных (стекло→золото)
-          → золотой пунктир «цель»; ярлыки осей — HTML поверх SVG (тап → лупа сферы). */}
-      <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "0 auto 0" }}>
-        <svg width="100%" viewBox={"0 0 " + W + " " + H} style={{ display: "block", overflow: "visible" }}>
-          <defs>
-            {/* Заливка как в v600: тёплое золото гуще в ЦЕНТРЕ, тает к краям. */}
-            <radialGradient id={uid} cx="50%" cy="46%" r="60%">
-              <stop offset="0%" stopColor="#FFD64A" stopOpacity="0.46" />
-              <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12" />
-            </radialGradient>
-          </defs>
-          {/* КРУГЛОЕ КОЛЕСО как в v600: спицы + внешний круг + ЗЕЛЁНЫЙ пунктир-цель */}
-          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spokeCol} strokeWidth="1" />; })}
-          <circle cx={cx} cy={cy} r={R} fill="none" stroke={gridCol} strokeWidth="1" />
-          <circle cx={cx} cy={cy} r={(R * TARGET).toFixed(1)} fill="none" stroke={greenDash} strokeWidth="1" strokeDasharray="2.5 4.5" />
-          {/* полигон данных: тёплая заливка + ровная золото-оранжевая обводка (v600) */}
-          <path d={poly} fill={"url(#" + uid + ")"} stroke="#FFB020" strokeWidth="2" strokeLinejoin="round" />
-          {/* узлы — по зоне (зел./жёлт./оранж.), белая обводка (v600) */}
-          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3" fill={bosZoneColor(s.v)} stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="1.4" />; })}
-        </svg>
-        {/* ярлыки осей: иконка + название + процент (всегда; тап → лупа сферы). Слабейшая — золотом. */}
-        {SPH.map(function (s, i) {
-          var lp = pol(ang(i), labelR), pct = s.n ? Math.round(s.v * 100) : 0;
-          var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
-          return (
-            <button key={"lb" + i} onClick={function () { openLupa(s); }} className="tap" data-no-haptic aria-label={s.l + " " + pct + "%"}
-              style={{ position: "absolute", left: ((lp[0] / W) * 100) + "%", top: ((lp[1] / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 76, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>
-              <span style={{ display: "grid", placeItems: "center", flexShrink: 0, height: 24 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 19, color: dark ? "#d6d6dc" : "#101828" })) || s.e}</span>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "-0.2px" }}>{s.l}</span>
-              {s.n ? <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text-2)" }}>{pct}%</span> : null}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Итог «N% · цель M%» — вниз, в компактный блок (David: сверху раздражало). */}
-      <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
-        <div style={{ display: "inline-flex", alignItems: "baseline", gap: 5, padding: "6px 14px", borderRadius: 999, background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }}>
-          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)" }}>{total}%</span>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-4)" }}>· цель {targetPct}%</span>
-        </div>
-      </div>
-
-      {/* ОДИН ЗОЛОТОЙ ЧИП-ПОДСКАЗКА (David): слабейшая сфера + мягкое действие; тап → разбор сферы. */}
-      {nudge && (
-        <button onClick={function () { openLupa(nudge.s); }} className="tap" data-no-haptic
-          style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginTop: 14, background: dark ? "rgba(240,200,40,0.12)" : "rgba(240,195,10,0.10)", border: "0.5px solid " + (dark ? "rgba(240,200,40,0.30)" : "rgba(216,164,0,0.28)"), borderRadius: 16, padding: "12px 13px", cursor: "pointer", textAlign: "left" }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: dark ? "rgba(240,200,40,0.22)" : "rgba(240,195,10,0.18)" }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[nudge.s.id]) || "Sparkles", { size: 16, color: goldInk })) || nudge.s.e}</span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.35 }}>{nudge.t}</span>
-          {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} color={goldInk} /> : null}
+    <div style={bare ? { padding: 0 } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "14px 16px 12px" }}>
+      <div className="bosLR" ref={rootRef}>
+        {/* шапка: назад ↔ заголовок / «шапка детали» */}
+        <button className="lr-back tap" data-no-haptic aria-label="Назад" onClick={function () { if (isDetailRef.current) flip(false); }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={dark ? "#c9c9ce" : "#575757"} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
-      )}
+        {!hideTitle && <div className="lr-title">Баланс жизни</div>}
+        <div className="lr-dhead"><div className="h" ref={dhRef}>Твой баланс дня</div><div className="s" ref={dsRef}>Нажми на любую сферу, чтобы разобрать её ход.</div></div>
 
-      {/* ОПИСАНИЕ «что такое Баланс жизни» — серым, со значком «!» (David: вернуть вниз). */}
-      <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, padding: "0 2px" }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v7h-2V7zm0 9h2v2h-2v-2z" /></svg>
-        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Баланс жизни: ИИ раскладывает все твои привычки и цели по сферам и считает, где ты в балансе, а где просело.</div>
-      </div>
-      {/* строка методики (научная серьёзность — «что и из чего считается»). */}
-      <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 8, padding: "0 2px" }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
-        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Пунктир — уровень, до которого стоит дотянуть каждую сферу. Заполненность копится из твоих ходов — свежие весят больше.</div>
+        {/* сцена: радар-циферблат + узлы-сферы */}
+        <div className="lr-stage" ref={stageRef} onClick={onNodeTap}>
+          <div className="lr-dial" ref={dialRef} onClick={function () { if (!isDetailRef.current) openDetail((weak || SPH[0]).id); }}>
+            <svg viewBox="-150 -150 300 300">
+              <defs>
+                <radialGradient id={uid} cx="50%" cy="46%" r="62%">
+                  <stop offset="0%" stopColor="#FFD64A" stopOpacity="0.50" />
+                  <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12" />
+                </radialGradient>
+              </defs>
+              <polygon points={hex(1)} fill="none" stroke={gridCol} strokeWidth="1" />
+              <polygon points={hex(0.667)} fill="none" stroke={gridCol} strokeWidth="1" opacity="0.7" />
+              <polygon points={hex(0.333)} fill="none" stroke={gridCol} strokeWidth="1" opacity="0.5" />
+              {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1" />; })}
+              <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.2" strokeDasharray="3 5" strokeLinecap="round" />
+              <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="1.8" strokeLinejoin="round" />
+              {SPH.map(function (s, i) { var p = pt(i, OUT * Math.max(s.v, 0.05)).split(","); return <circle key={"dt" + i} cx={p[0]} cy={p[1]} r={s.id === (weak && weak.id) ? 3.2 : 2.6} fill="#EF9F14" />; })}
+            </svg>
+            <div className="lr-center"><div className="pc">{total}<small>%</small></div><div className="cap">БАЛАНС</div></div>
+          </div>
+
+          {SPH.map(function (s) {
+            var pct = s.n ? Math.round(s.v * 100) : 0;
+            var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
+            return (
+              <div key={s.id} className="lr-node" data-id={s.id} ref={function (el) { nodeRefs.current[s.id] = el; }}>
+                <span className="lr-disc">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 19, color: iconCol })) || s.e}</span>
+                <span className="lr-meta">
+                  <span className="lbl">{s.l}</span>
+                  <span className="bar"><i style={{ "--w": pct + "%" }} /></span>
+                  <span className="val">{pct}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* низ (только в состоянии колеса): золотой чип-подсказка + строка методики */}
+        <div className="lr-foot">
+          {nudge && (
+            <button onClick={function () { openLupa(nudge.s); }} className="tap" data-no-haptic
+              style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", background: dark ? "rgba(240,200,40,0.12)" : "rgba(240,195,10,0.10)", border: "0.5px solid " + (dark ? "rgba(240,200,40,0.30)" : "rgba(216,164,0,0.28)"), borderRadius: 16, padding: "12px 13px", cursor: "pointer", textAlign: "left" }}>
+              <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: dark ? "rgba(240,200,40,0.22)" : "rgba(240,195,10,0.18)" }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[nudge.s.id]) || "Sparkles", { size: 16, color: goldInk })) || nudge.s.e}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.35 }}>{nudge.t}</span>
+              {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} color={goldInk} /> : null}
+            </button>
+          )}
+          <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 11, padding: "0 2px" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
+            <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Пунктир — уровень, до которого стоит дотянуть каждую сферу. Заполненность копится из твоих ходов — свежие весят больше.</div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
 // ПРЕВРАЩЕНИЕ ЦЕЛИ В КРУГ «НА МЕСТЕ» (David: «тумблер соло↔вместе на той же цели, без пересоздания»).
 // Цель СТАНОВИТСЯ кругом, ПЕРЕНОСЯ всё: имя/значок/цель/срок + СВОИ ПРИВЫЧКИ (они уходят в круг как
 // командные, а личные копии линкуются teamId/teamHabitId → отметка у себя миррорится в командный счёт,
