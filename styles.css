@@ -643,3 +643,48 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.55), inset 0 -2px 3px rgba(0,0,0,0.14), 0 1px 2px rgba(0,0,0,0.10);
 }
 
+
+/* ── ЖИВОЕ КОЛЕСО БАЛАНСА (Living Radar v2, макет «Balance Wheel Living Radar v2») ──
+   Радар-гексагон + 6 стеклянных сфер-узлов вокруг него. Тап по сфере → FLIP-анимация:
+   диск-циферблат сжимается в угол, узлы перестраиваются в список с барами (детали).
+   Позиции left/top/transform узлов и диска ставит СКРИПТ (FLIP); ширина/непрозрачность
+   переключаются классом .detail. Цвета — через переменные темы (тёмная работает сама). */
+.bosLR { position: relative; height: 500px; }
+.bosLR .lr-back { position: absolute; left: 0; top: 4px; width: 34px; height: 34px; border-radius: 50%; background: var(--surface-3); border: 0; display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .4s; z-index: 8; }
+.bosLR .lr-title { position: absolute; left: 6px; top: 9px; font-size: 17px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); transition: opacity .3s; z-index: 4; }
+.bosLR .lr-dhead { position: absolute; left: 118px; top: 4px; right: 4px; opacity: 0; transform: translateY(6px); pointer-events: none; transition: opacity .4s .25s, transform .4s .25s; z-index: 4; }
+.bosLR .lr-dhead .h { font-size: 17px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.1; color: var(--text); }
+.bosLR .lr-dhead .s { font-size: 12px; color: var(--text-3); margin-top: 5px; line-height: 1.42; }
+
+.bosLR .lr-stage { position: absolute; left: 0; right: 0; top: 44px; height: 360px; }
+.bosLR .lr-dial { position: absolute; left: 50%; top: 172px; width: 252px; height: 252px; transform: translate(-50%,-50%); z-index: 2; cursor: pointer; will-change: transform; }
+.bosLR .lr-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.bosLR .lr-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; transition: opacity .3s; }
+.bosLR .lr-center .pc { font-size: 36px; font-weight: 800; letter-spacing: -1.3px; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+.bosLR .lr-center .pc small { font-size: 18px; letter-spacing: 0; }
+.bosLR .lr-center .cap { font-size: 8.5px; font-weight: 800; letter-spacing: 2px; color: var(--text-4); margin-top: 4px; }
+
+.bosLR .lr-node { position: absolute; left: 50%; top: 172px; display: flex; align-items: center; gap: 12px; width: 44px; z-index: 5; cursor: pointer; transform: translate(-50%,-50%); }
+.bosLR .lr-disc { width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; position: relative; color: var(--text);
+  background: linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.6)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%), var(--surface-3, #eef0f4);
+  box-shadow: inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.08); }
+.theme-dark .bosLR .lr-disc { box-shadow: inset 0 1px 0.5px rgba(255,255,255,0.14), inset 0 0 0 0.7px rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.30); }
+.bosLR .lr-meta { position: absolute; left: 60px; display: flex; align-items: center; gap: 11px; width: 0; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.bosLR .lr-meta .lbl { width: 54px; font-size: 13.5px; font-weight: 600; color: var(--text-2); letter-spacing: -0.2px; flex-shrink: 0; }
+.bosLR .lr-meta .bar { flex: 1; height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; box-shadow: inset 0 1px 1.5px rgba(0,0,0,0.06); }
+.bosLR .lr-meta .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0) 58%), linear-gradient(90deg, #EF9F14, #FEDE34); box-shadow: inset 0 -1px 1px rgba(0,0,0,0.14); transition: width .7s cubic-bezier(.5,.05,.15,1) .25s; }
+.bosLR .lr-meta .val { width: 30px; text-align: right; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-3); flex-shrink: 0; }
+
+.bosLR .lr-foot { position: absolute; left: 0; right: 0; top: 410px; transition: opacity .35s; }
+
+/* ── состояние DETAIL ── */
+.bosLR.detail .lr-title { opacity: 0; pointer-events: none; }
+.bosLR.detail .lr-dhead { opacity: 1; transform: none; }
+.bosLR.detail .lr-back { opacity: 1; pointer-events: auto; }
+.bosLR.detail .lr-center .pc { font-size: 44px; }
+.bosLR.detail .lr-center .cap { opacity: 0; }
+.bosLR.detail .lr-dial { cursor: default; }
+.bosLR.detail .lr-node { width: 284px; }
+.bosLR.detail .lr-meta { position: static; flex: 1; width: auto; opacity: 1; pointer-events: auto; }
+.bosLR.detail .lr-meta .bar i { width: var(--w); }
+.bosLR.detail .lr-foot { opacity: 0; pointer-events: none; }
