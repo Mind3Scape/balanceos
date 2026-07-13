@@ -344,12 +344,11 @@ function AILive() {
         </div>
       </div>
 
-      {/* БАЛАНС ЖИЗНИ ↔ БАЛАНС ОКРУЖЕНИЯ — один блок со стеклянным переключателем наверху.
-          Жизнь = личный ритм по сферам; Окружение = реальные общие действия и помощь своих,
-          без оценки чужого состояния. Заголовок = активная пилюля. */}
-      {!isBlank && typeof BosBalanceTabsLive === "function" && (
+      {/* БАЛАНС ЖИЗНИ — личный ритм по сферам (колесо). «Баланс окружения» отложён
+          (2026-07-13, см. _parked/env-balance/): переключатель балансов убран, осталось колесо жизни. */}
+      {!isBlank && typeof BosBalanceWheelLive === "function" && (
         <div style={{ marginTop: 14 }}>
-          <BosBalanceTabsLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />
+          <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />
         </div>
       )}
 

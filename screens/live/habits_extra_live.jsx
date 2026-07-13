@@ -599,13 +599,8 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         </div>
         <Switch small on={circleVis === "public"} onChange={(v) => setCircleVis(v ? "public" : "private")} />
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Баланс круга</div>
-          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Раздел на странице цели: как круг держит её — темп каждого. Видят только участники.</div>
-        </div>
-        <Switch small on={circleBalanceOn} onChange={setCircleBalanceOn} />
-      </div>
+      {/* Тумблер «Баланс круга» отложён 2026-07-13 (см. _parked/env-balance/). Переменная
+          circleBalanceOn остаётся = true, протянута в сохранение — бэкенд не тронут. */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Поставить XP на финиш</div>

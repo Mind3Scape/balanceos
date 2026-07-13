@@ -4792,18 +4792,7 @@ function TeamDetailLive() {
           </>),
         } : null),
         // «Календарь» и «Люди» подняты в TeamPeopleCalendarLive наверх (David fork 3) — здесь убраны.
-        (circleBalOn ? {
-          // БАЛАНС КРУГА — отдельная аналитика темпа В РАМКАХ ЦЕЛИ (кольцо-состояние
-          // круга + темп каждого + поддержи отстающего). Секцией между Календарём и Людьми (David).
-          // Гейт: раздел прячется целиком, если владелец выключил тумблер «Баланс круга» (circleBalOn).
-          key: "circle", icon: <I.Sparkles size={16} color="var(--text-3)" />, title: "Баланс круга",
-          summary: (_rosterLive && members.length >= 2) ? "как круг держит цель — темп каждого" : "нужно ≥2 участника",
-          render: () => ((_rosterLive && members.length >= 2 && typeof BosCircleBalanceLive === "function")
-            ? <BosCircleBalanceLive bare
-                members={ranked.map(function (m) { var _p = _pulseFor(m); return { id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, you: m.id === meId, pace: (_p == null ? (flowSet[m.id] ? 1 : 0) : _p) }; })}
-                fallbackProgress={gp} dark={isDark} navigate={navigate} />
-            : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Появится, когда в круге будет хотя бы двое.</div>),
-        } : null),
+        // «Баланс круга» отложён 2026-07-13 (см. _parked/env-balance/) — секция убрана.
         null,
       ].filter(Boolean)} />
 

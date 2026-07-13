@@ -101,7 +101,6 @@ const LIVE_SCREENS = {
   "team-detail": () => TeamDetailLive,
   profile: () => ProfileLive,
   ai: () => AILive,
-  "env-balance": () => BosEnvBalanceFullLive,   // подробный экран «Баланс окружения» (из блока на стр. ИИ)
   "habit-detail": () => HabitDetailLive,
   "goal-detail": () => GoalDetailLive,
   mood: () => MoodLive,

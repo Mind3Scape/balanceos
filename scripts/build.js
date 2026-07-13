@@ -33,7 +33,6 @@ const FILES = [
   "screens/live/shared_live.jsx",
   "screens/live/home_live.jsx",
   "screens/live/habits_live.jsx",
-  "screens/live/env_balance_live.jsx",
   "screens/live/profile_live.jsx",
   "screens/live/community_live.jsx",
   "screens/live/home_extra_live.jsx",

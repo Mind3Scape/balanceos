@@ -732,17 +732,7 @@ function HomeLive() {
       );
     }
 
-    if (id === "env") {
-      // «Баланс окружения» — компактный снимок реальных общих контекстов (env_balance_live). ВЫКЛ по умолчанию.
-      const _envHide = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:env") }];
-      return (
-        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
-          <SwipeRow rowBg={rowBg} dark={isDark} actions={_envHide}>
-            {(typeof EnvPulseWidgetLive === "function") ? <EnvPulseWidgetLive navigate={navigate} isDark={isDark} /> : null}
-          </SwipeRow>
-        </div>
-      );
-    }
+    // «Баланс окружения» (виджет "env") отложён 2026-07-13 — см. _parked/env-balance/.
 
     if (id === "tasks") {
       // «Дела» — локальный todo-виджет (списки-вкладки, разовые дела). Свайп ряда → «Убрать».
