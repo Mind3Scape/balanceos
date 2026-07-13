@@ -59,6 +59,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   const toggleDay = (i) => setDays(d => d.map((v, j) => j === i ? (v ? 0 : 1) : v));
   // Тогл «Дни недели»: включён, если маска РЕАЛЬНО что-то исключает (не все семь дней).
   const [daysOn, setDaysOn] = useHS((typeof bosDaysMask === "function") ? !!bosDaysMask(editing && Array.isArray(params.habit.days) ? params.habit.days : null) : false);
+  // «Нить дня» — кто когда отметился, лица на линии дня. По умолчанию ВКЛ; живёт во всём
+  // совместном сама, тогл может погасить (David: базовый тогл, не отдельный экран настроек).
+  const [threadOn, setThreadOn] = useHS(editing ? params.habit.threadOff !== true : true);
   // Reminder — a single setting: on/off + a time. Seeded from the habit when editing.
   const [reminderOn, setReminderOn] = useHS(editing ? !!(params.habit.reminder && params.habit.reminder.on) : false); // David-редизайн: спокойный минимум — напоминание opt-in (дни живут внутри)
   const [reminderTime, setReminderTime] = useHS(editing && params.habit.reminder && params.habit.reminder.time ? params.habit.reminder.time : (preset?.time || "09:00"));
@@ -146,6 +149,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       goalPerDay: countTimes ? Math.max(2, goal) : 1,      // счётчик: ≥2 раза (1 раз = обычная галочка); без верхнего потолка
       duration: countMin ? Math.max(5, duration) : 0,      // таймер: минуты
       reminder: { on: reminderOn, time: reminderTime },
+      threadOff: !threadOn,                                // «Нить дня»: по умолчанию ВКЛ (false), тогл гасит
     };
     if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
@@ -415,6 +419,19 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         </div>
       )}
 
+      {/* ── НИТЬ ДНЯ — базовый тогл (David, небо-нить-финал): кто когда отметился, лица на линии
+            дня. По умолчанию ВКЛ — включается сама, как только привычка совместная; тогл гасит. ── */}
+      {!teamFor && (
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sun size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Нить дня</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Кто когда отметился — лица на линии дня. Живёт, когда ведёте вместе.</div>
+          </div>
+          <Switch small on={threadOn} onChange={setThreadOn} />
+        </div>
+      )}
+
       {/* Привычка ДЛЯ цели — «вести только внутри цели» (скрыть из общего списка). David: рояль. */}
       {goalFor && (
         <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
@@ -521,6 +538,8 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // «Баланс круга» — раздел-аналитика на странице цели (кольцо-состояние круга + темп каждого).
   // По умолчанию ВКЛ; владелец может выключить. Хранится на команде (teams.circle_balance_on).
   const [circleBalanceOn, setCircleBalanceOn] = useHS(g0?.circleBalanceOn !== false);
+  // «Нить дня» круга — по умолчанию ВКЛ; живёт в goal-jsonb команды (threadOff), без новой колонки.
+  const [threadOn, setThreadOn] = useHS(!(g0?.threadOff === true || (g0?.goal && typeof g0.goal === "object" && g0.goal.threadOff === true)));
   const CIRCLE_MODES = [
     // Иконки режимов — монохромные SVG (David: «все системные модики у нас чёрно-белые SVG»): счёт = столбики, серия = пламя.
     { id: "collective", icon: I.ChartBar, t: "Общий счёт",     d: "Отметки всех складываются в одно число." },
@@ -557,11 +576,11 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           : (_gRaw && typeof _gRaw === "object" && typeof _gRaw.title === "string" && _gRaw.title.trim()) ? _gRaw.title.trim()
           : (tgt + (unit ? " " + unit : ""));
         const _desc = (desc || "").trim();
-        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc, circleBalanceOn };
+        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc, circleBalanceOn, threadOff: !threadOn };
         app?.updateTeam(g0._id, patch);
         try {
           if (g0.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
-            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, accent: color, vis: circleVis, goalKind: goalText, goalTarget: tgt, circleBalanceOn, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc, accent: color } });
+            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, accent: color, vis: circleVis, goalKind: goalText, goalTarget: tgt, circleBalanceOn, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc, accent: color, threadOff: !threadOn } });
           }
         } catch (e) {}
         close();
@@ -620,6 +639,14 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{circleVis === "public" ? "Виден в поиске — войдёт кто угодно." : "Только по личной ссылке-приглашению."}</div>
         </div>
         <Switch small on={circleVis === "public"} onChange={(v) => setCircleVis(v ? "public" : "private")} />
+      </div>
+      {/* «Нить дня» круга — тот же базовый тогл, что у привычки (David): по умолчанию ВКЛ. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Нить дня</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Кто когда отметился — лица на линии дня в комнате круга.</div>
+        </div>
+        <Switch small on={threadOn} onChange={setThreadOn} />
       </div>
       {/* Тумблер «Баланс круга» отложён 2026-07-13 (см. _parked/env-balance/). Переменная
           circleBalanceOn остаётся = true, протянута в сохранение — бэкенд не тронут. */}

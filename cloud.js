@@ -1023,15 +1023,24 @@
     try {
       var mem = await c.from("shared_habit_members").select("user_id,profiles(username,avatar)").eq("code", code);
       if (mem.error) return null;
-      var logs = await c.from("shared_habit_logs").select("user_id,day").eq("code", code);
+      // created_at — время отметки для «небо-нити» (patch_sky_thread.sql). До патча колонки нет —
+      // слоёный фолбэк: селект без неё, нить просто не увидит времён (счёт дня работает всегда).
+      var logs = await c.from("shared_habit_logs").select("user_id,day,created_at").eq("code", code);
+      if (logs.error) logs = await c.from("shared_habit_logs").select("user_id,day").eq("code", code);
       var rows = (logs && logs.data) || [];
       // Owner — so the client knows whether I may REMOVE members (only the owner can; swipe-remove
       // is shown only to them so it never offers an action RLS would refuse).
       var sh = await c.from("shared_habits").select("owner_id").eq("code", code).maybeSingle();
       var ownerId = (sh && sh.data && sh.data.owner_id) || null;
+      var today = _localDay();
       var members = (mem.data || []).map(function (m) {
-        var days = {}; rows.forEach(function (r) { if (r.user_id === m.user_id) days["" + r.day] = true; });
-        return { id: m.user_id, me: m.user_id === me, isOwner: ownerId != null && m.user_id === ownerId, name: (m.profiles && m.profiles.username) || "Друг", avatar: (m.profiles && m.profiles.avatar) || "default", days: days };
+        var days = {}, todayAt = null;
+        rows.forEach(function (r) {
+          if (r.user_id !== m.user_id) return;
+          days["" + r.day] = true;
+          if ("" + r.day === today && r.created_at && (!todayAt || r.created_at < todayAt)) todayAt = r.created_at;
+        });
+        return { id: m.user_id, me: m.user_id === me, isOwner: ownerId != null && m.user_id === ownerId, name: (m.profiles && m.profiles.username) || "Друг", avatar: (m.profiles && m.profiles.avatar) || "default", days: days, todayAt: todayAt };
       });
       members.sort(function (a, b) { return (b.me ? 1 : 0) - (a.me ? 1 : 0); }); // self first
       return { members: members, ownerId: ownerId };

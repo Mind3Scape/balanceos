@@ -4574,7 +4574,8 @@ function TeamDetailLive() {
   const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: H.btnBg, color: H.btnInk, flexShrink: 0 };
   const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: H.chipBg, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: H.chipInk, whiteSpace: "nowrap" };
   const heroChipAI = Object.assign({}, heroChip, { background: H.chipAiBg, color: H.chipAiInk, boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)" });
-  const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: desc, joined: t.joined, circleBalanceOn: circleBalOn, habitIds: [] };
+  const _threadOff = t.threadOff === true || (t.goal && typeof t.goal === "object" && t.goal.threadOff === true);
+  const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: desc, joined: t.joined, circleBalanceOn: circleBalOn, threadOff: _threadOff, habitIds: [] };
   // Сводки для свёрнутых секций единого блока (David: «краткая сводка на каждом»).
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
   const _habitWordT = (n) => (n % 10 === 1 && n % 100 !== 11) ? "привычка" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "привычки" : "привычек");
@@ -4633,7 +4634,7 @@ function TeamDetailLive() {
       {/* «НЕБО-НИТЬ» — первый блок комнаты (David, макет небо-нить-финал): кто во сколько
           отметился сегодня, лица на полосе неба, пульс-точка «сейчас». Живёт только у
           облачных кругов (у локальных нет чужих отметок — нечего стелить на небо). */}
-      {_rosterLive && typeof SkyThreadLive === "function" && (
+      {_rosterLive && !_threadOff && typeof SkyThreadLive === "function" && (
         <div style={{ ...card, borderRadius: 22, padding: 16, marginTop: 4 }}>
           <SkyThreadLive
             marks={skyMarks}
