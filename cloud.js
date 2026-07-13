@@ -1082,6 +1082,31 @@
     } catch (e) { return null; }
   }
 
+  // «НЕБО-НИТЬ» (лента дня в комнате круга): времена СЕГОДНЯШНИХ отметок каждого участника +
+  // возраст круга. created_at в team_habit_logs писался всегда — его просто никто не читал.
+  // По человеку берём его ПЕРВУЮ отметку за сегодня («когда пришёл»), не последнюю.
+  async function teamTodayTimes(teamId) {
+    var c = client(); var me = await uid();
+    if (!c || !me || !teamId) return { times: {}, createdAt: null };
+    try {
+      var out = { times: {}, createdAt: null };
+      try {
+        var tm = await c.from("teams").select("created_at").eq("id", teamId).maybeSingle();
+        if (tm && tm.data && tm.data.created_at) out.createdAt = tm.data.created_at;
+      } catch (e0) {}
+      var th = await c.from("team_habits").select("id").eq("team_id", teamId);
+      var ids = ((th && th.data) || []).map(function (r) { return r.id; });
+      if (!ids.length) return out;
+      var lg = await c.from("team_habit_logs").select("user_id,created_at").in("team_habit_id", ids).eq("day", _localDay());
+      var rows = (lg && lg.data) || [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i]; if (!r || !r.user_id || !r.created_at) continue;
+        if (!out.times[r.user_id] || r.created_at < out.times[r.user_id]) out.times[r.user_id] = r.created_at;
+      }
+      return out;
+    } catch (e) { return { times: {}, createdAt: null }; }
+  }
+
   // Current consecutive-day streak ending today (or yesterday, if today isn't marked yet)
   // from a {dayKey:true} set. Used to derive the «серия у каждого» goal mode.
   // ЛОКАЛЬНЫЙ день-ключ YYYY-MM-DD (как bosTodayKey в shell + как ключи _bosStreakDays). Командный
@@ -1726,7 +1751,7 @@
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, sharedHabitMemberIdsStrict: sharedHabitMemberIdsStrict, removeSharedHabitMember: removeSharedHabitMember,
-    teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
+    teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,

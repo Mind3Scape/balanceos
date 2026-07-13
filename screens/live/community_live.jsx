@@ -4453,6 +4453,23 @@ function TeamDetailLive() {
     load(); const iv = setInterval(load, 20000);
     return () => { on = false; clearInterval(iv); };
   }, [_rosterLive, t.cloudId, habitsTick]);
+  // «НЕБО-НИТЬ»: времена сегодняшних отметок (created_at из team_habit_logs — писался всегда,
+  // читается впервые) + возраст круга для «N-й день». Тот же лёгкий полл, что и у прогресса.
+  const [skyT, setSkyT] = React.useState(() => _bosTeamGet("sky:" + t.cloudId));
+  React.useEffect(() => {
+    let on = true;
+    if (!_rosterLive || !t.cloudId || !window.bosCloud.teamTodayTimes) { setSkyT(null); return; }
+    const load = () => window.bosCloud.teamTodayTimes(t.cloudId).then((d) => { if (on && d) setSkyT(_bosTeamPut("sky:" + t.cloudId, d)); }).catch(() => {});
+    load(); const iv = setInterval(load, 25000);
+    return () => { on = false; clearInterval(iv); };
+  }, [_rosterLive, t.cloudId, habitsTick]);
+  // Лица на нить: участник появляется в момент своей ПЕРВОЙ отметки за сегодня.
+  const skyMarks = React.useMemo(() => {
+    if (!skyT || !skyT.times || !Array.isArray(members)) return [];
+    return members.filter((m) => skyT.times[m.id]).map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, ts: new Date(skyT.times[m.id]) }));
+  }, [skyT, members, meId]);
+  // «Живёт N-й день» — возраст круга от created_at (стрейк-механика огня — позже).
+  const circleAgeDays = (skyT && skyT.createdAt) ? Math.max(1, Math.floor((Date.now() - new Date(skyT.createdAt).getTime()) / 86400000) + 1) : null;
   // PAYOUT — when a STAKED goal is reached, OPEN the bank: idempotently settle MY row (co-op:
   // +stake; race: leader +bank), refresh the global team-goal XP so the level lifts, then read
   // everyone's payouts for the card. Settle runs once per mount (settledRef); the read re-runs on
@@ -4603,7 +4620,7 @@ function TeamDetailLive() {
           <div style={{ fontSize: 21, fontWeight: 700, color: H.ink, marginTop: 5, letterSpacing: "-0.4px" }}>{t.name}</div>
           {/* Контекст цели (режим + приватность) — ТИХОЙ строкой под именем, чтобы чипы ниже несли
               ТОЛЬКО метрики (David: «чипы со смыслом, не хаотично раскиданы»). */}
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: H.sub, marginTop: 4 }}>{modeMeta.e} {modeMeta.t} · {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: H.sub, marginTop: 4 }}>{modeMeta.e} {modeMeta.t} · {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}{circleAgeDays ? " · живёт " + circleAgeDays + "-й день" : ""}</div>
           {desc ? <div style={{ fontSize: 13, color: H.sub, marginTop: 7, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 14 }}>
@@ -4612,6 +4629,23 @@ function TeamDetailLive() {
       </div>
 
       <div style={{ padding: "8px 16px 0" }}>
+
+      {/* «НЕБО-НИТЬ» — первый блок комнаты (David, макет небо-нить-финал): кто во сколько
+          отметился сегодня, лица на полосе неба, пульс-точка «сейчас». Живёт только у
+          облачных кругов (у локальных нет чужих отметок — нечего стелить на небо). */}
+      {_rosterLive && typeof SkyThreadLive === "function" && (
+        <div style={{ ...card, borderRadius: 22, padding: 16, marginTop: 4 }}>
+          <SkyThreadLive
+            marks={skyMarks}
+            total={Array.isArray(members) ? members.length : 0}
+            doneCount={skyMarks.length}
+            isDark={isDark}
+            chip={circleAgeDays
+              ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(254,222,52,0.28)", color: "#7a5b00", borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>🔥 {circleAgeDays}-й день</span>
+              : <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(52,199,89,0.13)", color: "#1E8E4E", borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34C759", display: "inline-block" }} /> живёт</span>}
+          />
+        </div>
+      )}
 
       {/* ЛЮДИ + КАЛЕНДАРЬ единым блоком наверху (Сообщество v2, David fork 3): слайдер лиц с
           ролями → выбранный человек → его календарь кольцами. Заменяет секции «Люди»/«Календарь»
