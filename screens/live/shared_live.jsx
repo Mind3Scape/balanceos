@@ -2050,16 +2050,22 @@ function BuddyFaceLive({ avatar, name, size }) {
   return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", color: "var(--disc-ink, #5b6473)", fontWeight: 600, fontSize: Math.round(size * 0.44), letterSpacing: "-0.2px", lineHeight: 1, fontFamily: "-apple-system, system-ui, sans-serif" })}>{initial}</div>;
 }
 
-/* ── «НЕБО-НИТЬ» — лента дня: кто во сколько отметился (David, макет 2026-07-13-небо-нить-финал).
-   Ось = тонкая полоса неба (рассвет→день→закат→ночь, шкала 6:00–24:00); лица участников ложатся
-   на неё в час своей отметки (BuddyFaceLive — тот же атом, что везде); близкие по времени отметки
-   складываются в гроздь с бейджем ×N; «сейчас» — пульсирующая золотая точка БЕЗ цифр времени;
-   непрожитая часть дня прикрыта матовой вуалью; под осью — монохромные заливные SVG-иконки суток
-   (рассвет · солнце · закат · луна) вместо слов. Самая свежая отметка крупнее и в золотом кольце.
+/* ── «ТАЙМЛАЙН» (David зовёт его так везде в приложении) — лента дня: кто во сколько отметился.
+   Ось = тонкая полоса неба на ПОЛНЫЕ СУТКИ 4:00 → 28:00 (утро начинается в 4-5 утра; всё до
+   4 утра — ещё ночь ПРОШЕДШЕГО дня и живёт справа, поэтому в полночь точка «сейчас» честно
+   стоит в ночной зоне, а не прыгает в утро). Лица участников ложатся в час своей отметки
+   (BuddyFaceLive — тот же атом, что везде); близкие отметки складываются в гроздь ×N; «сейчас» —
+   тихая золотая точка (без мигания и без цифр); непрожитая часть дня под матовой вуалью; под
+   осью — ТРИ заливные SVG-иконки строго на третях шкалы: утро (16.7%) · день (50%) · ночь (83.3%),
+   зоны по 8 часов: утро 4-12, день 12-20, ночь 20-4. Свежая отметка крупнее и в золотом кольце.
    marks = [{id, name, avatar, me, ts:Date}] — по одному на человека (его первая отметка сегодня).
-   rest = строка «почему сегодня тихо» (день отдыха по расписанию) → нить дремлет. */
+   rest = строка «почему сегодня тихо» (день отдыха по расписанию) → таймлайн дремлет. */
 function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, isDark = false, rest = null, title = "Сегодня" }) {
-  var pctOf = function (d) { var hr = d.getHours() + d.getMinutes() / 60; return Math.max(2, Math.min(98, ((hr - 6) / 18) * 100)); };
+  var pctOf = function (d) {
+    var hr = d.getHours() + d.getMinutes() / 60;
+    if (hr < 4) hr += 24; // 0:00–3:59 = хвост ночи, правый край шкалы
+    return Math.max(1.5, Math.min(98.5, ((hr - 4) / 24) * 100));
+  };
   var nowPct = pctOf(new Date());
   var ms = (marks || []).filter(function (m) { return m && m.ts; }).slice().sort(function (a, b) { return a.ts - b.ts; });
   // Гроздья: лица ближе ~7% оси друг к другу складываются в стопку ×N — никаких наездов.
@@ -2070,14 +2076,13 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
     else groups.push({ pct: p, items: [ms[i]] });
   }
   var glCol = isDark ? "rgba(255,255,255,0.38)" : "#a8adb8";
+  // ТРИ иконки суток — симметрично, на третях шкалы (центры 8-часовых зон): утро · день · ночь.
   var Glyph = function (kind, left) {
     var d = kind === "dawn"
       ? [<path key="a" d="M8 5.5a3.2 3.2 0 0 1 3.2 3.2H4.8A3.2 3.2 0 0 1 8 5.5z" />, <rect key="b" x="1.5" y="9.6" width="13" height="1.4" rx="0.7" />, <path key="c" d="M7.3 1.2h1.4v2.2H7.3zM2.9 3.3l1-1 1.4 1.4-1 1zM12.1 2.3l1 1-1.4 1.4-1-1z" />]
       : kind === "sun"
         ? [<circle key="a" cx="8" cy="8" r="3.1" />, <path key="b" d="M7.3 0.8h1.4v2.4H7.3zM7.3 12.8h1.4v2.4H7.3zM0.8 7.3h2.4v1.4H0.8zM12.8 7.3h2.4v1.4h-2.4zM2.5 3.5l1-1 1.7 1.7-1 1zM10.8 11.8l1-1 1.7 1.7-1 1zM13.5 2.5l1 1-1.7 1.7-1-1zM3.2 10.8l1 1-1.7 1.7-1-1z" />]
-        : kind === "dusk"
-          ? [<path key="a" d="M8 6a3.2 3.2 0 0 1 3.2 3.1H4.8A3.2 3.2 0 0 1 8 6z" />, <rect key="b" x="1.5" y="10.2" width="13" height="1.4" rx="0.7" />]
-          : [<path key="a" d="M13.6 9.8A6 6 0 1 1 6.2 2.4a4.8 4.8 0 0 0 7.4 7.4z" />];
+        : [<path key="a" d="M13.6 9.8A6 6 0 1 1 6.2 2.4a4.8 4.8 0 0 0 7.4 7.4z" />];
     return (
       <span key={kind} aria-hidden style={{ position: "absolute", top: 60, left: left + "%", transform: "translateX(-50%)", lineHeight: 0 }}>
         <svg width="15" height="15" viewBox="0 0 16 16" style={{ fill: glCol }}>{d}</svg>
@@ -2091,9 +2096,11 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
       </span>
     );
   };
+  // Градиент совпадает со шкалой 4→28ч: рассвет у левого края (4-5 утра), светлый день в
+  // середине, закат ~19-20ч (~64%), с 20ч (66.7%) и до конца — ночь.
   var strip = {
     position: "absolute", left: 2, right: 2, top: 38, height: 12, borderRadius: 999,
-    background: "linear-gradient(90deg, #ffd9a0 0%, #fdf3d9 22%, #fdf6e2 45%, #fbe6ae 62%, #f2ae54 76%, #6a7089 88%, #2e3342 100%)",
+    background: "linear-gradient(90deg, #ffd9a0 0%, #fdf3d9 14%, #fdf7e8 33%, #fdf6e2 50%, #fbe6ae 58%, #f2ae54 64%, #6a7089 70%, #2e3342 80%, #262a38 100%)",
     boxShadow: "inset 0 1px 2px rgba(0,0,0,0.14)",
   };
   var doneN = doneCount != null ? doneCount : ms.length;
@@ -2129,12 +2136,11 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
             </span>
           );
         })}
-        {/* «Сейчас» — золотая пульс-точка на самой нити, без цифр (David). */}
-        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: 36, width: 16, height: 16, borderRadius: "50%", transform: "translateX(-50%)", zIndex: 3, background: "radial-gradient(circle at 50% 40%, #FEDE34, #EF9F14)", border: "3px solid " + (isDark ? "#2c2f36" : "#fff"), animation: rest ? "none" : "bosSkyPulse 2s ease-in-out infinite", opacity: rest ? 0.55 : 1 }} />
-        {Glyph("dawn", 5)}
-        {Glyph("sun", 39)}
-        {Glyph("dusk", 75)}
-        {Glyph("moon", 96)}
+        {/* «Сейчас» — тихая золотая точка, без мигания и без цифр (David: «и так понятно»). */}
+        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: 36, width: 16, height: 16, borderRadius: "50%", transform: "translateX(-50%)", zIndex: 3, background: "radial-gradient(circle at 50% 40%, #FEDE34, #EF9F14)", border: "3px solid " + (isDark ? "#2c2f36" : "#fff"), boxShadow: "0 0 8px rgba(239,159,20,0.45)", opacity: rest ? 0.55 : 1 }} />
+        {Glyph("dawn", 16.7)}
+        {Glyph("sun", 50)}
+        {Glyph("moon", 83.3)}
       </div>
     </div>
   );

@@ -419,13 +419,13 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         </div>
       )}
 
-      {/* ── НИТЬ ДНЯ — базовый тогл (David, небо-нить-финал): кто когда отметился, лица на линии
-            дня. По умолчанию ВКЛ — включается сама, как только привычка совместная; тогл гасит. ── */}
+      {/* ── ТАЙМЛАЙН — базовый тогл (David: «называй его везде таймлайн»): кто когда отметился,
+            лица на линии дня. По умолчанию ВКЛ — включается сам, как только привычка совместная. ── */}
       {!teamFor && (
         <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sun size={19} color="var(--text-3)" /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Нить дня</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Таймлайн</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Кто когда отметился — лица на линии дня. Живёт, когда ведёте вместе.</div>
           </div>
           <Switch small on={threadOn} onChange={setThreadOn} />
@@ -640,10 +640,10 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         </div>
         <Switch small on={circleVis === "public"} onChange={(v) => setCircleVis(v ? "public" : "private")} />
       </div>
-      {/* «Нить дня» круга — тот же базовый тогл, что у привычки (David): по умолчанию ВКЛ. */}
+      {/* «Таймлайн» круга — тот же базовый тогл, что у привычки (David): по умолчанию ВКЛ. */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Нить дня</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Таймлайн</div>
           <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Кто когда отметился — лица на линии дня в комнате круга.</div>
         </div>
         <Switch small on={threadOn} onChange={setThreadOn} />
