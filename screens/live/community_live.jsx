@@ -74,6 +74,15 @@ function LiveTeamCard({ t, navigate, rhythm }) {
     }).catch(() => {});
     return () => { on = false; };
   }, [rhythm, t.cloudId]);
+  // Непрочитанные в чате круга → значок на ВНЕШНЕЙ карточке (David: «сразу видно, что в круге
+   // новые сообщения»). Лёгкий count-only peek с кэшем 60с (bosTeamUnreadPeek).
+  const [unreadN, setUnreadN] = React.useState(0);
+  React.useEffect(() => {
+    if (!(_cloud && typeof bosTeamUnreadPeek === "function")) return;
+    let on = true;
+    bosTeamUnreadPeek(t.cloudId).then((u) => { if (on && u) setUnreadN(u.count || 0); }).catch(() => {});
+    return () => { on = false; };
+  }, [t.cloudId]);
   const _loading = _cloud && roster === null; // cloud roster not back yet → skeleton, never «ты один»
   const members = _cloud ? (roster || []) : (t.members || []);
   const count = members.length;
@@ -92,6 +101,12 @@ function LiveTeamCard({ t, navigate, rhythm }) {
   return (
     <div className="tap" onClick={() => navigate("team-detail", { team: t })} style={{ background: "var(--card)", boxShadow: "var(--card-shadow)", borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
       <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, null)}</div>
+      {unreadN > 0 && (
+        <span aria-label={"новых сообщений: " + unreadN} style={{ position: "absolute", top: 12, right: 12, zIndex: 2, display: "inline-flex", alignItems: "center", gap: 4, background: "#FF3B30", color: "#fff", borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 800, boxShadow: "0 2px 8px rgba(255,59,48,0.4)" }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z"/></svg>
+          {unreadN > 99 ? "99+" : unreadN}
+        </span>
+      )}
       <div style={{ position: "relative" }}>
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -4253,6 +4268,206 @@ function TeamPeopleCalendarLive({ mainProg, members, meId, navigate, teamName, i
   );
 }
 
+/* День-статистика по карте отметок {"YYYY-MM-DD":true}: текущая серия · лучшая · всего.
+   Всё честно из реальных дней участника (никаких выдуманных чисел). */
+function _bosDaysStats(days) {
+  var keys = Object.keys(days || {}).filter(function (k) { return days[k]; });
+  var total = keys.length;
+  if (!total) return { streak: 0, best: 0, total: 0 };
+  var set = {}; keys.forEach(function (k) { set[k] = true; });
+  var toDate = function (k) { var p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); };
+  var dayKey = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  var sorted = keys.slice().sort();
+  var best = 1, run = 1;
+  for (var i = 1; i < sorted.length; i++) {
+    var diff = Math.round((toDate(sorted[i]) - toDate(sorted[i - 1])) / 86400000);
+    if (diff === 1) { run++; if (run > best) best = run; } else if (diff !== 0) run = 1;
+  }
+  var cur = new Date(); cur.setHours(0, 0, 0, 0);
+  if (!set[dayKey(cur)]) cur.setDate(cur.getDate() - 1); // «сегодня ещё не отметился» серию не рвёт
+  var streak = 0;
+  while (set[dayKey(cur)]) { streak++; cur.setDate(cur.getDate() - 1); }
+  return { streak: streak, best: best, total: total };
+}
+
+/* ЛЮДИ + КАЛЕНДАРЬ круга по макету «Цель с табами» Ц2 — ДВА отдельных блока:
+   (1) лица-селектор «Все · Ты · …» с L-бейджами и кольцом выбора + строка о выбранном;
+   (2) календарь выбранного: тепло-карта года (точки) / месяц (squircle) + серия·лучшая·всего.
+   Тап по лицу фильтрует календарь и статы на человека (или «Все» = объединение круга). */
+function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, teamName, isDark, accent }) {
+  var base = (Array.isArray(mainProg) && mainProg.length)
+    ? mainProg
+    : (members || []).map(function (m) { return { id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, days: {} }; });
+  var roleById = {}; (members || []).forEach(function (m) { if (m) roleById[m.id] = m.role; });
+  var _s = React.useState("me"); var selKey = _s[0], setSelKey = _s[1]; // "all" | "me" | <member id>
+  var _cm = React.useState("year"); var calMode = _cm[0], setCalMode = _cm[1];
+  var _lv = React.useState({}); var levels = _lv[0], setLevels = _lv[1];
+  var idsSig = base.map(function (p) { return p.id; }).filter(Boolean).join(",");
+  React.useEffect(function () {
+    var ids = base.map(function (p) { return p.id; }).filter(Boolean);
+    if (!ids.length || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.profilesPublic)) return;
+    var on = true;
+    window.bosCloud.profilesPublic(ids).then(function (pub) { if (!on || !pub) return; var m = {}; Object.keys(pub).forEach(function (id) { if (pub[id] && pub[id].level) m[id] = pub[id].level; }); setLevels(m); }).catch(function () {});
+    return function () { on = false; };
+  }, [idsSig]);
+  if (!base.length) return null;
+
+  // Дни выбранного: конкретный человек → его days; «Все» → объединение с долей круга за день.
+  var meP = base.find(function (p) { return p.me; }) || base[0];
+  var selP = selKey === "all" ? null : (selKey === "me" ? meP : (base.find(function (p) { return p.id === selKey; }) || meP));
+  var allFrac = {}; // dateKey -> доля круга, что отметилась (для «Все»)
+  if (selKey === "all") {
+    var n = base.length || 1;
+    base.forEach(function (p) { Object.keys(p.days || {}).forEach(function (k) { if (p.days[k]) allFrac[k] = (allFrac[k] || 0) + 1 / n; }); });
+  }
+  var selDays = selKey === "all"
+    ? (function () { var d = {}; Object.keys(allFrac).forEach(function (k) { d[k] = true; }); return d; })()
+    : (selP && selP.days) || {};
+  var stats = _bosDaysStats(selDays);
+  var dayWord = function (n) { return (n % 10 === 1 && n % 100 !== 11) ? "день" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "дня" : "дней"); };
+  var roleLabel = function (p) {
+    if (roleById[p.id] === "owner") return "Организатор";
+    var last = ("" + (p.name || "")).trim().slice(-1).toLowerCase();
+    return (last === "а" || last === "я") ? "Участница" : "Участник";
+  };
+  var dayKey = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var todayK = dayKey(today);
+
+  var card = { background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)" };
+  var lit = accent || (isDark ? "#e6e6ea" : "#0a0a0a");
+
+  // ── лица ──
+  var faceBtn = function (key, avatar, name, lvl, isYou, roleP) {
+    var on = selKey === key;
+    return (
+      <button key={key} onClick={function () { setSelKey(key); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" data-no-haptic
+        style={{ flexShrink: 0, border: 0, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 60 }}>
+        <span style={{ position: "relative", borderRadius: "50%", boxShadow: on ? ("0 0 0 2px var(--card), 0 0 0 4px " + lit) : "none", transition: "box-shadow 0.15s", opacity: on ? 1 : 0.9 }}>
+          {avatar === "__all__"
+            ? <span style={{ width: 46, height: 46, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 20 }}>👥</span>
+            : <BuddyFaceLive avatar={avatar} name={name} size={46} />}
+          {lvl ? <span style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", background: "#0a0a0a", color: "#FEDE34", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", border: "1.5px solid var(--card)", whiteSpace: "nowrap" }}>{lvl}</span> : null}
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 600, color: on ? "var(--text)" : "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 60, textAlign: "center" }}>{name}</span>
+      </button>
+    );
+  };
+
+  // ── тепло-карта года (26 недель × 7) ──
+  var weekdayMon = (today.getDay() + 6) % 7;
+  var start = new Date(today); start.setDate(start.getDate() - (25 * 7 + weekdayMon));
+  var cols = [];
+  for (var c = 0; c < 26; c++) {
+    var colCells = [];
+    for (var r = 0; r < 7; r++) {
+      var d = new Date(start); d.setDate(start.getDate() + c * 7 + r);
+      var k = dayKey(d);
+      var future = d > today;
+      var frac = selKey === "all" ? (allFrac[k] || 0) : (selDays[k] ? 1 : 0);
+      var cls = future ? "future" : (frac >= 0.99 ? "l4" : frac >= 0.66 ? "l3" : frac >= 0.34 ? "l2" : frac > 0 ? "l1" : "");
+      colCells.push({ k: k, cls: cls, today: k === todayK });
+    }
+    cols.push(colCells);
+  }
+  var hmColor = { "": (isDark ? "rgba(255,255,255,0.07)" : "#ececec"), l1: "#c9c9c9", l2: "#8f8f8f", l3: "#4a4a4a", l4: "#111", future: "transparent" };
+
+  // ── месяц (squircle) ──
+  var mToday = today, mY = mToday.getFullYear(), mM = mToday.getMonth();
+  var first = new Date(mY, mM, 1);
+  var lead = (first.getDay() + 6) % 7; // пн-первый
+  var daysInMonth = new Date(mY, mM + 1, 0).getDate();
+  var monthCells = [];
+  for (var g = 0; g < lead; g++) monthCells.push(null);
+  for (var dd = 1; dd <= daysInMonth; dd++) {
+    var dk = mY + "-" + String(mM + 1).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
+    var dDate = new Date(mY, mM, dd);
+    var fut = dDate > today;
+    var f = selKey === "all" ? (allFrac[dk] || 0) : (selDays[dk] ? 1 : 0);
+    monthCells.push({ d: dd, k: dk, frac: f, future: fut, today: dk === todayK });
+  }
+  var monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  var cdFill = function (frac, isToday, future) {
+    if (future) return { background: "transparent", boxShadow: "inset 0 0 0 0.7px var(--line)", color: "var(--text-5)" };
+    var bg = frac >= 0.99 ? "#0a0a0a" : frac >= 0.5 ? "#9a9aa2" : frac > 0 ? "#d9d9de" : (isDark ? "rgba(255,255,255,0.06)" : "#eef0f4");
+    var col = frac >= 0.5 ? "#fff" : "var(--text-3)";
+    var s = { background: bg, color: col };
+    if (isToday) s.boxShadow = "inset 0 0 0 2px #FEDE34";
+    return s;
+  };
+
+  var seg = function (label, val) {
+    var on = calMode === val;
+    return <button onClick={function () { setCalMode(val); }} className="tap" data-no-haptic
+      style={{ border: 0, borderRadius: 999, padding: "5px 12px", fontSize: 12, fontWeight: on ? 700 : 600, cursor: "pointer",
+        background: on ? "var(--card)" : "transparent", color: on ? "var(--text)" : "var(--text-4)", boxShadow: on ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{label}</button>;
+  };
+
+  return (
+    <>
+      {/* (1) ЛЮДИ — отдельный блок */}
+      <div style={{ ...card, padding: "14px 14px 16px", marginTop: 12 }}>
+        <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "6px 2px 8px", margin: "-4px -2px 0", scrollbarWidth: "none" }}>
+          {faceBtn("all", "__all__", "Все", null, false, null)}
+          {base.map(function (p) {
+            return faceBtn(p.me ? "me" : p.id, p.avatar, p.me ? "Ты" : ("" + (p.name || "")).split(" ")[0], p.id ? levels[p.id] : null, p.me, p);
+          })}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 2px 0" }}>
+          <div style={{ fontSize: 13.5, color: "var(--text-3)", lineHeight: 1.4, minWidth: 0 }}>
+            {selKey === "all"
+              ? <span><b style={{ color: "var(--text)" }}>Весь круг</b> · {stats.total} {dayWord(stats.total)} отмечено вместе</span>
+              : <span><b style={{ color: "var(--text)" }}>{selP && selP.me ? "Ты" : (selP && selP.name)}{selP && !selP.me && selP.id && levels[selP.id] ? " · уровень " + levels[selP.id] : ""}</b> · серия {stats.streak} {dayWord(stats.streak)}{selP ? " · " + roleLabel(selP).toLowerCase() : ""}</span>}
+          </div>
+          {selKey !== "all" && selP && !selP.me && <button onClick={function () { navigate("contact-detail", { person: { id: selP.id, name: selP.name, avatar: selP.avatar, level: levels[selP.id] || null, teamName: teamName, from: "team-detail" } }); }} className="tap" data-haptic="selection" style={{ border: 0, background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>Профиль <I.ChevronRight size={13} /></button>}
+        </div>
+      </div>
+
+      {/* (2) КАЛЕНДАРЬ — отдельный блок: год-теплокарта / месяц + серия·лучшая·всего */}
+      <div style={{ ...card, padding: "16px 16px 14px", marginTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.2px", color: "var(--text)" }}>{calMode === "year" ? mY : (monthNames[mM] + " " + mY)}</div>
+          <div style={{ display: "inline-flex", background: "var(--surface-3)", borderRadius: 999, padding: 4, gap: 2 }}>{seg("Месяц", "month")}{seg("Год", "year")}</div>
+        </div>
+
+        {calMode === "year" ? (
+          <div style={{ overflowX: "auto", scrollbarWidth: "none" }}>
+            <div style={{ display: "grid", gridAutoFlow: "column", gridTemplateRows: "repeat(7, 10px)", gap: 3, width: "max-content", margin: "0 auto" }}>
+              {cols.map(function (col, ci) { return col.map(function (cell, ri) {
+                return <span key={ci + "-" + ri} title={cell.k} style={{ width: 10, height: 10, borderRadius: 3, background: hmColor[cell.cls], boxShadow: cell.today ? "inset 0 0 0 1.5px #FEDE34" : (cell.cls === "future" ? "inset 0 0 0 0.7px " + (isDark ? "rgba(255,255,255,0.12)" : "#e3e3e3") : "none") }} />;
+              }); })}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, padding: "0 1px 5px" }}>
+              {["пн", "вт", "ср", "чт", "пт", "сб", "вс"].map(function (w) { return <span key={w} style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.5, color: "var(--text-5)", textAlign: "center", textTransform: "uppercase" }}>{w}</span>; })}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
+              {monthCells.map(function (cell, i) {
+                if (!cell) return <span key={"g" + i} />;
+                var s = cdFill(cell.frac, cell.today, cell.future);
+                return <span key={cell.k} style={{ aspectRatio: "1", borderRadius: 11, display: "grid", placeItems: "center", fontSize: 11, fontWeight: cell.today ? 800 : 600, ...s }}>{cell.d}</span>;
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", marginTop: 14, borderTop: "1px solid var(--line)" }}>
+          {[["серия", stats.streak, "д"], ["лучшая", stats.best, "д"], ["всего", stats.total, ""]].map(function (s, i) {
+            return (
+              <div key={i} style={{ textAlign: "center", padding: "14px 6px 4px", position: "relative", boxShadow: i ? "inset 1px 0 0 var(--line)" : "none" }}>
+                <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)" }}>{s[1]}{s[2] ? <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-4)" }}>{s[2]}</span> : null}</div>
+                <div style={{ fontSize: 11, letterSpacing: 1.2, color: "var(--text-5)", textTransform: "uppercase", marginTop: 2, fontWeight: 600 }}>{s[0]}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function TeamDetailLive() {
   const { navigate, params } = useNav();
   const app = useApp();
@@ -4654,45 +4869,41 @@ function TeamDetailLive() {
     .concat(!_rosterLoading ? [members.length + " " + _peopleWord(members.length)] : []);
   const ringCirc = 2 * Math.PI * 26;
   const ringColor = teamColor || "#EF9F14"; // золото-оранж (палитра chrome: бел/чёрн/золото)
-  const navBtn = { width: 42, height: 42, borderRadius: 999, border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "#e9e9e9", display: "grid", placeItems: "center", color: "var(--text-3)", cursor: "pointer", flexShrink: 0 };
+  // Круглые стеклянные кнопки чрома (правка/позвать) — настоящий frosted-glass, как остальной хром.
+  const _glass = (typeof bosGlassChrome === "function") ? bosGlassChrome(isDark) : {};
+  const navBtn = { ..._glass, width: 42, height: 42, borderRadius: 999, border: 0, display: "grid", placeItems: "center", color: isDark ? "#fff" : "#0a0a0a", cursor: "pointer", flexShrink: 0 };
+  const _inTG = (typeof window !== "undefined" && window.__TG); // в Telegram есть родная «назад» — свою прячем
   const tabItem = (on) => ({ flex: 1, textAlign: "center", borderRadius: 999, padding: "9px 0", fontSize: 14, fontWeight: on ? 700 : 600, color: on ? "var(--text)" : "var(--text-4)", background: on ? (isDark ? "rgba(255,255,255,0.14)" : "#fff") : "transparent", boxShadow: on ? "0 1px 2px rgba(35,44,93,.06), 0 1px 1px rgba(0,0,0,.04)" : "none", cursor: "pointer", border: 0, fontFamily: "inherit", transition: "background .15s, color .15s" });
   const contentCard = { ...card, borderRadius: 22, padding: 16, marginTop: 12 };
-  // Одна строка привычки — общий рендер для вкладки «Привычки» (перенос из бывшего аккордеона).
+  // Одна строка привычки (макет Ц2): значок + имя/подпись слева, ЧЕКБОКС-отметка СПРАВА.
+  // «Вести у себя»/усыновление временно убрано (David: воскресим позже) — тут только отметка круга.
   const renderHabitRow = (h, i) => {
     const done = myDone(h);
     const adopted = adoptedFor(h);
     const markInTeam = () => (adopted ? markAdopted(h) : toggleMyTeamHabit(h));
     return (
       <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 2px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "var(--line)") : 0 }}>
-        {_rosterLive ? (
-          <button onClick={markInTeam} className="tap" aria-label="Отметить сегодня"
-            style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
-              background: done ? (h.color || ringInk) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
-              boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }}>
-            {done && <I.Check size={16} strokeWidth={3} color="#fff" />}
-          </button>
-        ) : (
-          <span aria-hidden style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }} />
-        )}
-        <button className="tap" onClick={() => { if (adopted) navigate("habit-detail", { habit: adopted, from: "team-detail" }); }} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, padding: 0, background: "transparent", border: 0, textAlign: "left", color: "var(--text)", cursor: adopted ? "pointer" : "default" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{adopted && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· у себя</span>}</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>
-              {h.isMain && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EF9F14", display: "inline-block" }} />Якорь</span>}
-              {(h.doneToday != null && h.total != null) ? (h.doneToday + " из " + h.total + " сегодня") : "общая привычка"}
-            </div>
+        <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{adopted && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· у себя</span>}</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>
+            {h.isMain && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EF9F14", display: "inline-block" }} />Якорь</span>}
+            {(h.doneToday != null && h.total != null) ? (h.doneToday + " из " + h.total + " сегодня") : "общая привычка"}
           </div>
-          {adopted && <I.ChevronRight size={16} color="var(--text-4)" />}
-        </button>
+        </div>
         {_isOwner && (
           <button onClick={() => openEditTeamHabit(h)} className="tap" data-haptic="selection" aria-label="Изменить общую привычку" style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 999, border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)", cursor: "pointer" }}><I.Pencil size={14} strokeWidth={2} /></button>
         )}
-        {_rosterLive && !adopted && (
-          <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вести у себя</button>
-        )}
-        {_rosterLive && adopted && adopted.shelved && (
-          <button onClick={() => { if (app?.updateHabit) app.updateHabit(adopted.id, { shelved: false }); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вернуть к себе</button>
+        {/* ЧЕКБОКС-отметка — справа (макет). Локальный круг без облака: неактивный кружок. */}
+        {_rosterLive ? (
+          <button onClick={markInTeam} className="tap" aria-label="Отметить сегодня"
+            style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+              background: done ? (h.color || ringInk) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+              boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.16)") }}>
+            {done && <I.Check size={15} strokeWidth={3} color="#fff" />}
+          </button>
+        ) : (
+          <span aria-hidden style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.16)") }} />
         )}
       </div>
     );
@@ -4700,11 +4911,12 @@ function TeamDetailLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* НАВИГАЦИЯ: назад слева; правка(владелец) + позвать справа (макет: ‹ Назад · ✎ ↑). */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={{ ...navBtn, width: "auto", height: 42, padding: "0 16px 0 11px", gap: 4, display: "inline-flex", alignItems: "center", fontSize: 15, fontWeight: 600, color: "var(--text-3)" }}>
-          <I.ChevronLeft size={19} strokeWidth={2.4} /> Назад
-        </button>
+      {/* НАВИГАЦИЯ: только действия справа — правка(владелец) + позвать. «Назад» не рисуем:
+          в Telegram есть родная кнопка (David); в браузере/PWA даём запасную стеклянную слева. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, minHeight: 42 }}>
+        {_inTG
+          ? <span />
+          : <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={navBtn}><I.ChevronLeft size={20} strokeWidth={2.4} /></button>}
         <div style={{ display: "flex", gap: 8 }}>
           {_isOwner && <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" data-haptic="selection" aria-label="Настройки цели" style={navBtn}><I.Pencil size={16} strokeWidth={2} /></button>}
           <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={navBtn}><I.Share size={16} strokeWidth={2} /></button>
@@ -4734,18 +4946,19 @@ function TeamDetailLive() {
           <button style={tabItem(tab === "chat")} onClick={() => { setTab("chat"); markChatRead(); }} className="tap" data-haptic="selection">{unread ? "Чат · " + unread : "Чат"}</button>
         </div>
 
-        {/* ── ОБЗОР — орбита + контекст + описание ── */}
+        {/* ── ОБЗОР — орбита + контекст + описание. Воздух сверху/снизу, чтобы орбита НЕ
+            наезжала на тумблер и на текст (David). ── */}
         {tab === "overview" && (
-          <div style={{ textAlign: "center", paddingTop: 8 }}>
+          <div style={{ textAlign: "center", paddingTop: 18 }}>
             {gStyle.orbits ? (
-              <div style={{ width: 224, height: 224, margin: "6px auto 0", display: "grid", placeItems: "center" }}>
+              <div style={{ width: 192, height: 192, margin: "0 auto", display: "grid", placeItems: "center", overflow: "hidden" }}>
                 <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
                   habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
                   people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done, progress: _pulseFor(f) }))}
-                  size={224} dark={isDark} progress={gp} />
+                  size={192} dark={isDark} progress={gp} />
               </div>
             ) : (
-              <div style={{ position: "relative", width: 150, height: 150, margin: "6px auto 0" }}>
+              <div style={{ position: "relative", width: 150, height: 150, margin: "0 auto" }}>
                 <svg width="150" height="150" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
                   <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)"} strokeWidth="13" />
                   {gp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={ringInk} strokeWidth="13" strokeLinecap="round" strokeDasharray={2 * Math.PI * 54} strokeDashoffset={2 * Math.PI * 54 * (1 - gp)} style={{ transition: "stroke-dashoffset 0.6s ease" }} />}
@@ -4753,12 +4966,12 @@ function TeamDetailLive() {
                 <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 34, null)}</div>
               </div>
             )}
-            <div style={{ fontSize: 13.5, color: "var(--text-4)", marginTop: 10 }}>{modeMeta.e} {modeMeta.t} · {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}{circleAgeDays ? " · живёт " + circleAgeDays + "-й день" : ""}</div>
-            {desc ? <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, margin: "12px auto 4px", maxWidth: 300 }}>{desc}</div> : null}
+            <div style={{ fontSize: 13.5, color: "var(--text-4)", marginTop: 18 }}>{modeMeta.e} {modeMeta.t} · {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}{circleAgeDays ? " · живёт " + circleAgeDays + "-й день" : ""}</div>
+            {desc ? <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, margin: "10px auto 2px", maxWidth: 300 }}>{desc}</div> : null}
           </div>
         )}
 
-        {/* ── ПРИВЫЧКИ — список привычек круга (люди + календарь идут отдельным блоком ниже) ── */}
+        {/* ── ПРИВЫЧКИ — список привычек круга (люди + календарь идут отдельными блоками ниже) ── */}
         {tab === "habits" && (
           <div style={{ marginTop: 6 }}>
             {[main].concat(others).filter(Boolean).map((h, i) => renderHabitRow(h, i))}
@@ -4775,14 +4988,13 @@ function TeamDetailLive() {
           </div>
         )}
 
-        {/* ── ЧАТ — лента круга прямо тут (встроенный TeamChatLive) ── */}
-        {tab === "chat" && (
-          <div style={{ marginTop: 12 }}>
-            {typeof TeamChatLive === "function"
-              ? <TeamChatLive embed team={t} />
-              : <div style={{ padding: "20px 2px", fontSize: 13, color: "var(--text-4)", textAlign: "center" }}>Чат недоступен</div>}
-          </div>
-        )}
+        {/* ── ЧАТ — лента круга прямо тут. Держим СМОНТИРОВАННЫМ всегда (display), чтобы при
+            возврате на вкладку не мигало «пусто → прогрузка» и блок не скакал (David). ── */}
+        <div style={{ marginTop: 12, display: tab === "chat" ? "block" : "none" }}>
+          {typeof TeamChatLive === "function"
+            ? <TeamChatLive embed team={t} />
+            : <div style={{ padding: "20px 2px", fontSize: 13, color: "var(--text-4)", textAlign: "center" }}>Чат недоступен</div>}
+        </div>
       </div>
 
       {/* Люди + календарь — отдельный блок под табами (только на вкладке «Привычки», макет Ц2).
@@ -4808,8 +5020,13 @@ function TeamDetailLive() {
               </div>
             </div>
           )}
-          <TeamPeopleCalendarLive mainProg={mainProg} members={members} meId={meId} navigate={navigate}
-            teamName={t.name} isDark={isDark} accent={ringInk} onInvite={() => openSheet(<TeamShareSheetLive team={t} />)} />
+          <CirclePeopleCalendarBlockLive mainProg={mainProg} members={members} meId={meId} navigate={navigate}
+            teamName={t.name} isDark={isDark} accent={ringInk} />
+          {/* Позвать людей — один спокойный CTA под блоками (макет «КРУГ — идеал»). */}
+          <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" style={{ width: "100%", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", border: 0, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text-2)", cursor: "pointer", fontSize: 14.5, fontWeight: 600 }}>
+            <span style={{ width: 26, height: 26, borderRadius: "50%", display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={14} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+            Позвать людей
+          </button>
         </BosBlock>
       )}
 
