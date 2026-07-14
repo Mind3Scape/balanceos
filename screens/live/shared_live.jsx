@@ -2896,21 +2896,22 @@ function BosSphereLupaSheetLive(props) {
 }
 
 // РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint, openSheet }.
-// ЖИВОЕ КОЛЕСО БАЛАНСА (Living Radar). Радар-гексагон + 6 сфер-узлов (стеклянный диск +
-// кольцо-заполнение вокруг). Процент баланса — в ПИЛЮЛЕ в шапке (не в центре круга).
-// Тап по сфере → панель РАЗДВИГАЕТСЯ ВНИЗ со списком привычек/целей этой сферы + подпись
-// «Balance AI сам раскладывает…». Тап по той же сфере или по шапке панели — сворачивается
-// обратно (без кнопки «назад»). Тап по строке-«разобрать» → прежняя лупа сферы.
+// ЖИВОЕ КОЛЕСО БАЛАНСА (Living Radar). Два жеста:
+//  • тап по СФЕРЕ-узлу → аккордеон раздвигается вниз со списком привычек/целей этой сферы;
+//  • тап по КОЛЕСУ (радар в центре) → FLIP-анимация: диск отъезжает вверх, сферы разлетаются
+//    в список с процентами (ранжир по убыванию). Повторный тап по диску — обратно в колесо.
+// Кнопки «назад» нет. Тап по строке в списке → лупа сферы. Процент баланса — пилюля в шапке.
 function BosBalanceWheelLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate, hideTitle = !!props.hideTitle, bare = !!props.bare;
   var openSheet = props.openSheet || function () {};
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
   var data = bosWheelData(app);
   var SPH = data.spheres, N = SPH.length;
-  var sel = React.useState(null); var selId = sel[0], setSel = sel[1];
+  var stt = React.useState(null); var selId = stt[0], setSel = stt[1];
 
-  // ── геометрия радара + позиции узлов ──
+  // геометрия
   var OUT = 104, R_NODE = 120, TARGET = 0.55, targetPct = Math.round(TARGET * 100);
+  var LIST_LEFT = 6, LIST_TOP = 150, ROW_H = 58;
   var pt = function (i, r) { var t = i * Math.PI / 3; return (r * Math.sin(t)).toFixed(1) + "," + (-r * Math.cos(t)).toFixed(1); };
   var hex = function (L) { var a = []; for (var i = 0; i < N; i++) a.push(pt(i, OUT * L)); return a.join(" "); };
   var dataPts = SPH.map(function (s, i) { return pt(i, OUT * Math.max(s.v, 0.05)); }).join(" ");
@@ -2921,9 +2922,8 @@ function BosBalanceWheelLive(props) {
   var goldInk = dark ? "#F0C838" : "#C8930A";
   var trackCol = dark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var iconCol = dark ? "#e8e8ea" : "#101828";
-  var RC = 2 * Math.PI * 20;                                   // длина окружности кольца-заполнения
+  var RC = 2 * Math.PI * 20;
 
-  // слабейшая непустая сфера — для золотого чипа-подсказки в свёрнутом виде
   var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
   var emptySph = SPH.filter(function (s) { return !s.n; });
   var cap = function (t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
@@ -2940,19 +2940,64 @@ function BosBalanceWheelLive(props) {
 
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
   var selSphere = null; SPH.forEach(function (s) { if (s.id === selId) selSphere = s; });
+  var byV = SPH.slice().sort(function (a, b) { return b.v - a.v; });   // ранжир для списка процентов
+
+  // ── ref-ы для FLIP «колесо → список процентов» ──
+  var rootRef = React.useRef(null), radarRef = React.useRef(null), dialRef = React.useRef(null);
+  var nodeRefs = React.useRef({}), isListRef = React.useRef(false), animatingRef = React.useRef(false);
+
+  function nodeWheelPos(i) { var t = i * Math.PI / 3; return { x: R_NODE * Math.sin(t), y: -R_NODE * Math.cos(t) }; }
+  function placeWheel() {
+    SPH.forEach(function (s, i) {
+      var n = nodeRefs.current[s.id]; if (!n) return;
+      var p = nodeWheelPos(i);
+      n.style.transition = "none";
+      n.style.left = "calc(50% + " + p.x.toFixed(1) + "px)";
+      n.style.top = (152 + p.y).toFixed(1) + "px";
+      n.style.transform = "translate(-50%,-50%)";
+    });
+  }
+  React.useLayoutEffect(function () { if (!isListRef.current && !animatingRef.current) placeWheel(); });
+
+  function dialListTransform() {
+    var r = radarRef.current.getBoundingClientRect(), d = dialRef.current.getBoundingClientRect();
+    var dcx = d.left + d.width / 2, dcy = d.top + d.height / 2;
+    var tx = r.left + r.width / 2, ty = r.top + 74;
+    return "translate(-50%,-50%) translate(" + (tx - dcx).toFixed(1) + "px," + (ty - dcy).toFixed(1) + "px) scale(.55)";
+  }
+  function flipList(toList) {
+    if (animatingRef.current) return; animatingRef.current = true;
+    var root = rootRef.current, dial = dialRef.current;
+    var order = SPH.map(function (s) { return s.id; });
+    var first = {}; order.forEach(function (id) { first[id] = nodeRefs.current[id].getBoundingClientRect(); });
+    if (toList) {
+      byV.forEach(function (s, i) { var n = nodeRefs.current[s.id]; n.style.transition = "none"; n.style.left = LIST_LEFT + "px"; n.style.top = (LIST_TOP + i * ROW_H) + "px"; n.style.transform = "translate(0,0)"; });
+    } else placeWheel();
+    root.classList.toggle("list", toList);
+    var from = getComputedStyle(dial).transform, to = toList ? dialListTransform() : "translate(-50%,-50%)";
+    dial.getAnimations().forEach(function (a) { a.cancel(); });
+    dial.animate([{ transform: from }, { transform: to }], { duration: 640, easing: "cubic-bezier(.32,.72,0,1)", fill: "forwards" });
+    var off = {}; order.forEach(function (id) { var last = nodeRefs.current[id].getBoundingClientRect(); off[id] = { dx: first[id].left - last.left, dy: first[id].top - last.top }; });
+    order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transform = "translate(" + off[id].dx + "px," + off[id].dy + "px) " + (toList ? "" : "translate(-50%,-50%)"); });
+    void root.offsetWidth;
+    var seq = toList ? byV.map(function (s) { return s.id; }) : order;
+    seq.forEach(function (id, i) { var n = nodeRefs.current[id]; n.style.transition = "transform .62s cubic-bezier(.32,.72,0,1) " + (i * 0.04) + "s"; n.style.transform = toList ? "translate(0,0)" : "translate(-50%,-50%)"; });
+    setTimeout(function () { animatingRef.current = false; }, 720);
+    isListRef.current = toList;
+  }
+  function tapRadar() { if (isListRef.current) flipList(false); else { setSel(null); flipList(true); } }
+  function tapNode(s) { if (isListRef.current) openLupa(s); else setSel(s.id === selId ? null : s.id); }
 
   return (
     <div style={bare ? { padding: 0 } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "14px 16px 14px" }}>
-      <div className="bosLR">
-        {/* шапка: «Баланс жизни» + пилюля «N% · цель M%» справа */}
+      <div className="bosLR" ref={rootRef}>
         <div className="lr-head">
           {!hideTitle ? <span className="lr-title">Баланс жизни</span> : <span />}
           <span className="lr-pill"><b>{total}%</b><span>· цель {targetPct}%</span></span>
         </div>
 
-        {/* радар + узлы-сферы */}
-        <div className="lr-radar">
-          <svg className="lr-svg" viewBox="-150 -150 300 300">
+        <div className="lr-radar" ref={radarRef}>
+          <svg className="lr-svg" ref={dialRef} viewBox="-150 -150 300 300" onClick={tapRadar}>
             <defs>
               <radialGradient id={uid} cx="50%" cy="46%" r="62%">
                 <stop offset="0%" stopColor="#FFD64A" stopOpacity="0.50" />
@@ -2968,19 +3013,17 @@ function BosBalanceWheelLive(props) {
           </svg>
 
           {SPH.map(function (s, i) {
-            var t = i * Math.PI / 3, x = R_NODE * Math.sin(t), y = -R_NODE * Math.cos(t);
             var fill = s.n ? Math.max(s.v, 0.03) : 0, off = (RC * (1 - fill)).toFixed(1);
+            var pct = s.n ? Math.round(s.v * 100) : 0;
             var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
             var on = s.id === selId;
             return (
-              <button key={s.id} className={"lr-node" + (on ? " sel" : "")} onClick={function () { setSel(on ? null : s.id); }}
-                style={{ left: "calc(50% + " + x.toFixed(1) + "px)", top: (152 + y).toFixed(1) + "px" }}>
+              <button key={s.id} className={"lr-node" + (on ? " sel" : "")} data-id={s.id} ref={function (el) { nodeRefs.current[s.id] = el; }}
+                onClick={function () { tapNode(s); }}>
                 <span className="lr-orb">
                   <svg className="lr-ring" viewBox="0 0 46 46">
                     <defs>
-                      <linearGradient id={uid + "r" + i} x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0" stopColor="#EF9F14" /><stop offset="1" stopColor="#FEDE34" />
-                      </linearGradient>
+                      <linearGradient id={uid + "r" + i} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#EF9F14" /><stop offset="1" stopColor="#FEDE34" /></linearGradient>
                     </defs>
                     <circle cx="23" cy="23" r="20" fill="none" stroke={trackCol} strokeWidth="3" />
                     {fill > 0 ? <circle cx="23" cy="23" r="20" fill="none" stroke={"url(#" + uid + "r" + i + ")"} strokeWidth="3" strokeLinecap="round" strokeDasharray={RC.toFixed(1)} strokeDashoffset={off} transform="rotate(-90 23 23)" style={{ transition: "stroke-dashoffset .7s cubic-bezier(.32,.72,0,1)" }} /> : null}
@@ -2988,12 +3031,13 @@ function BosBalanceWheelLive(props) {
                   <span className="lr-disc">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 17, color: iconCol })) || s.e}</span>
                 </span>
                 <span className="lr-nm">{s.l}</span>
+                <span className="lr-meta"><span className="lr-bar"><i style={{ "--w": pct + "%" }} /></span><span className="lr-val">{pct}</span></span>
               </button>
             );
           })}
         </div>
 
-        {/* ── ПАНЕЛЬ СФЕРЫ (раздвигается вниз) ── */}
+        {/* аккордеон одной сферы (тап по узлу) */}
         {selSphere ? (function () {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
@@ -3006,44 +3050,27 @@ function BosBalanceWheelLive(props) {
                 <span className="h"><b>{h[0]}{s.n ? " · " + pct + "%" : ""}</b><span>{h[1]}</span></span>
                 <svg className="lr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
               </button>
-
               {s.items && s.items.length ? (
                 <div className="lr-items">
-                  {s.items.map(function (it, j) {
-                    return (
-                      <div className="lr-item" key={j}>
-                        <span className="ico">{it.emoji}</span>
-                        <span className="nm">{it.name}</span>
-                        <span className="tag">{it.kind === "goal" ? "цель" : "привычка"}</span>
-                      </div>
-                    );
-                  })}
+                  {s.items.map(function (it, j) { return (
+                    <div className="lr-item" key={j}><span className="ico">{it.emoji}</span><span className="nm">{it.name}</span><span className="tag">{it.kind === "goal" ? "цель" : "привычка"}</span></div>
+                  ); })}
                 </div>
               ) : (
                 <div className="lr-empty">
                   <p>В сфере «{s.l}» пока нет привычек. Заведи первую — и сфера начнёт наполняться.</p>
-                  <button className="lr-addbtn" onClick={function (e) { e.stopPropagation(); openLupa(s); }}>
-                    {typeof I !== "undefined" && I.Plus ? <I.Plus size={14} /> : "＋"} Добавить привычку
-                  </button>
+                  <button className="lr-addbtn" onClick={function (e) { e.stopPropagation(); openLupa(s); }}>{typeof I !== "undefined" && I.Plus ? <I.Plus size={14} /> : "＋"} Добавить привычку</button>
                 </div>
               )}
-
-              {/* подпись: ИИ сам раскладывает привычки по сферам */}
               <div className="lr-ai">
                 <span className="lr-aiico"><svg width="13" height="13" viewBox="0 0 24 24" fill={goldInk}><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg></span>
                 <span className="s"><b>Balance AI</b> сам раскладывает твои привычки и цели по шести сферам жизни и считает, где ты в балансе — тебе ничего не нужно сортировать вручную.</span>
               </div>
-
-              {s.n ? (
-                <button className="lr-more" onClick={function () { openLupa(s); }}>
-                  Разобрать сферу с Balance AI
-                  {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={14} color={dark ? "#8e8e93" : "#9c9ca3"} /> : "→"}
-                </button>
-              ) : null}
+              {s.n ? <button className="lr-more" onClick={function () { openLupa(s); }}>Разобрать сферу с Balance AI{typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={14} color={dark ? "#8e8e93" : "#9c9ca3"} /> : "→"}</button> : null}
             </div>
           );
         })() : (
-          <div style={{ marginTop: 2 }}>
+          <div className="lr-foot" style={{ marginTop: 2 }}>
             {nudge && (
               <button onClick={function () { setSel(nudge.s.id); }} className="tap" data-no-haptic
                 style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", background: dark ? "rgba(240,200,40,0.12)" : "rgba(240,195,10,0.10)", border: "0.5px solid " + (dark ? "rgba(240,200,40,0.30)" : "rgba(216,164,0,0.28)"), borderRadius: 16, padding: "12px 13px", cursor: "pointer", textAlign: "left" }}>
@@ -3054,7 +3081,7 @@ function BosBalanceWheelLive(props) {
             )}
             <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, padding: "0 2px" }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
-              <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Кольцо у сферы — её заполненность. Копится из твоих ходов, свежие весят больше; пунктир — уровень, до которого стоит дотянуть. Тап по сфере — что в неё входит.</div>
+              <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Кольцо у сферы — её заполненность. Тап по сфере — что в неё входит; тап по кругу — все сферы в процентах.</div>
             </div>
           </div>
         )}

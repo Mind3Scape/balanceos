@@ -698,3 +698,24 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .bosLR .lr-ai .s { flex: 1; font-size: 12.5px; line-height: 1.5; color: var(--text-3); font-weight: 500; }
 .bosLR .lr-ai .s b { color: var(--text-2); font-weight: 700; }
 .bosLR .lr-aiico { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; background: rgba(240,195,10,0.18); }
+
+/* ── режим СПИСКА ПРОЦЕНТОВ (тап по кругу → FLIP) ────────────────────────
+   Диск отъезжает вверх, узлы разлетаются в ранжированный список: диск · имя ·
+   бар · процент. Кольцо-заполнение прячется (его роль берёт бар). */
+.bosLR .lr-svg { cursor: pointer; }
+.bosLR .lr-radar { transition: height .5s cubic-bezier(.32,.72,0,1); }
+.bosLR .lr-meta { display: none; }
+.bosLR .lr-bar { flex: 1; height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; box-shadow: inset 0 1px 1.5px rgba(0,0,0,0.06); }
+.bosLR .lr-bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0) 58%), linear-gradient(90deg, #EF9F14, #FEDE34); transition: width .6s cubic-bezier(.32,.72,0,1) .15s; }
+.bosLR .lr-val { width: 30px; text-align: right; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-3); flex-shrink: 0; }
+
+.bosLR.list .lr-radar { height: 500px; }
+.bosLR.list .lr-node { flex-direction: row; gap: 11px; width: calc(100% - 12px); }
+.bosLR.list .lr-orb { width: 40px; height: 40px; flex-shrink: 0; }
+.bosLR.list .lr-ring { opacity: 0; }
+.bosLR.list .lr-disc { width: 34px; height: 34px; }
+.bosLR.list .lr-nm { width: 52px; flex-shrink: 0; text-align: left; font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+.bosLR.list .lr-node.sel .lr-nm { color: var(--text-2); }
+.bosLR.list .lr-meta { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+.bosLR.list .lr-bar i { width: var(--w); }
+.bosLR.list .lr-foot, .bosLR.list .lr-panel { display: none; }
