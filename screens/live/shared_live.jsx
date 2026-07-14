@@ -2100,10 +2100,12 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
     );
   };
   // Все лица в ЕДИНОЙ белой обводке — без золотого кольца у свежего (David: «не надо выделять»).
-  var face = function (m, size) {
+  // Свежий проклик (m.fresh) прилетает на шкалу с пружинным «pop» + короткая золотая волна вокруг.
+  var face = function (m, size, fresh) {
     return (
-      <span style={{ display: "inline-block", borderRadius: "50%", border: "2.5px solid " + (isDark ? "#2c2f36" : "#fff"), boxShadow: "0 2px 7px rgba(0,0,0,0.2)", lineHeight: 0, background: isDark ? "#2c2f36" : "#fff" }}>
+      <span style={{ position: "relative", display: "inline-block", borderRadius: "50%", border: "2.5px solid " + (isDark ? "#2c2f36" : "#fff"), boxShadow: "0 2px 7px rgba(0,0,0,0.2)", lineHeight: 0, background: isDark ? "#2c2f36" : "#fff", animation: fresh ? "bosSkyPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both" : "none" }}>
         <BuddyFaceLive avatar={m.avatar} name={m.name} size={size} />
+        {fresh && <span aria-hidden style={{ position: "absolute", inset: -3, borderRadius: "50%", border: "2px solid rgba(254,222,52,0.9)", animation: "bosSkyRipple 0.7s ease-out 0.08s both", pointerEvents: "none" }} />}
       </span>
     );
   };
@@ -2111,7 +2113,7 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
   // плотный рассвет → тёплое золото дня → янтарный закат → глубокие сумерки → тёмная ночь.
   var strip = {
     position: "absolute", left: 2, right: 2, top: 26, height: 13, borderRadius: 999,
-    background: "linear-gradient(90deg, #ffc873 0%, #ffe3a1 16%, #ffedb8 33%, #ffe29a 50%, #ffb45e 60%, #e88a4a 67%, #5d5f86 76%, #2c3050 86%, #1c1f33 100%)",
+    background: "linear-gradient(90deg, #ffc873 0%, #ffe3a1 16%, #ffedb8 33%, #ffe29a 50%, #ffb45e 58%, #e88a4a 66%, #b06a4a 73%, #5c3d3e 82%, #241c22 92%, #0a0a0a 100%)",
     boxShadow: "inset 0 1px 2px rgba(0,0,0,0.16)",
   };
   var doneN = doneCount != null ? doneCount : ms.length;
@@ -2135,8 +2137,8 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
           if (g.items.length === 1) {
             var m = g.items[0], big = lastGroup, sz = big ? 30 : 23;
             return (
-              <span key={gi} style={{ position: "absolute", left: g.pct + "%", top: big ? 15 : 19, transform: "translateX(-50%)", zIndex: 2 }}>
-                {face(m, sz)}
+              <span key={gi} style={{ position: "absolute", left: g.pct + "%", top: big ? 15 : 19, transform: "translateX(-50%)", zIndex: m.fresh ? 3 : 2 }}>
+                {face(m, sz, m.fresh)}
               </span>
             );
           }
@@ -2144,7 +2146,7 @@ function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, i
             <span key={gi} style={{ position: "absolute", left: g.pct + "%", top: 19, transform: "translateX(-50%)", display: "flex", zIndex: 2 }}>
               <span style={{ position: "absolute", top: -15, left: "50%", transform: "translateX(-50%)", fontSize: 9.5, fontWeight: 800, color: "#7a5b00", background: "rgba(254,222,52,0.4)", borderRadius: 999, padding: "1.5px 7px", whiteSpace: "nowrap" }}>×{g.items.length}</span>
               {g.items.slice(0, 3).map(function (m, mi) {
-                return <span key={mi} style={{ marginLeft: mi ? -10 : 0 }}>{face(m, 23)}</span>;
+                return <span key={mi} style={{ marginLeft: mi ? -10 : 0 }}>{face(m, 23, m.fresh)}</span>;
               })}
             </span>
           );
@@ -2958,7 +2960,6 @@ function BosBalanceWheelLive(props) {
   if (weak) nudge = { s: weak, t: "«" + weak.l + "» отстаёт — " + (BOS_SPHERE_NUDGE[weak.id] || "небольшой ход уже поднимет сферу") };
   else if (emptySph.length) nudge = { s: emptySph[0], t: "Заведи первую привычку — колесо начнёт заполняться" };
 
-  var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
   var selSphere = null; SPH.forEach(function (s) { if (s.id === selId) selSphere = s; });
   var byV = SPH.slice().sort(function (a, b) { return b.v - a.v; });
 
@@ -2989,24 +2990,27 @@ function BosBalanceWheelLive(props) {
     if (animatingRef.current) return; animatingRef.current = true;
     var root = rootRef.current, dial = dialRef.current;
     var order = SPH.map(function (s) { return s.id; });
-    var first = {}; order.forEach(function (id) { var o = orbOf(id); first[id] = o.getBoundingClientRect(); });   // якорь — КРУЖОК
+    var first = {}; order.forEach(function (id) { first[id] = orbOf(id).getBoundingClientRect(); });   // якорь — КРУЖОК
+    root.classList.add("flying");                                                                     // прячем имена/полосы, пока летят кружки
     if (toList) {
       byV.forEach(function (s, i) { var n = nodeRefs.current[s.id]; n.style.transition = "none"; n.style.left = LIST_LEFT + "px"; n.style.top = (LIST_TOP + i * ROW_H) + "px"; n.style.transform = "translate(0,0)"; });
     } else placeWheel();
     root.classList.toggle("list", toList);
     var from = getComputedStyle(dial).transform, to = toList ? dialListTransform() : "translate(-50%,-50%)";
     dial.getAnimations().forEach(function (a) { a.cancel(); });
-    dial.animate([{ transform: from }, { transform: to }], { duration: 620, easing: EASE, fill: "forwards" });
+    dial.animate([{ transform: from }, { transform: to }], { duration: 560, easing: EASE, fill: "forwards" });
+    // якорь — КРУЖОК: смещаем узел так, чтобы кружок стартовал из своей прежней точки (иконка не прыгает)
     var off = {}; order.forEach(function (id) { var lo = orbOf(id).getBoundingClientRect(); off[id] = { dx: first[id].left - lo.left, dy: first[id].top - lo.top }; });
     order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transform = "translate(" + off[id].dx.toFixed(1) + "px," + off[id].dy.toFixed(1) + "px) " + (toList ? "" : "translate(-50%,-50%)"); });
     void root.offsetWidth;
-    var seq = toList ? byV.map(function (s) { return s.id; }) : order;
-    seq.forEach(function (id, i) { var n = nodeRefs.current[id]; n.style.transition = "transform .6s " + EASE + " " + (i * 0.028).toFixed(3) + "s"; n.style.transform = toList ? "translate(0,0)" : "translate(-50%,-50%)"; });
-    setTimeout(function () { animatingRef.current = false; }, 720);
+    order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transition = "transform .56s " + EASE; n.style.transform = toList ? "translate(0,0)" : "translate(-50%,-50%)"; });
+    setTimeout(function () { animatingRef.current = false; root.classList.remove("flying"); }, 580);   // сели → имена/полосы проявляются
     isListRef.current = toList;
   }
   function tapRadar() { if (isListRef.current) flipList(false); else { setSel(null); flipList(true); } }
-  function tapNode(s) { if (isListRef.current) openLupa(s); else setSel(s.id === selId ? null : s.id); }
+  // Стандарт: тап по сфере ВЕЗДЕ раскрывает аккордеон (как на «Балансе жизни»). В режиме списка
+  // сначала плавно сворачиваем колесо, затем открываем аккордеон — тот же результат, что в колесе.
+  function tapNode(s) { if (isListRef.current) { setSel(s.id); flipList(false); } else setSel(s.id === selId ? null : s.id); }
 
   var strokeFx = { vectorEffect: "non-scaling-stroke" };
   return (
@@ -3082,14 +3086,13 @@ function BosBalanceWheelLive(props) {
               ) : (
                 <div className="lr-empty">
                   <p>В сфере «{s.l}» пока нет привычек. Заведи первую — и сфера начнёт наполняться.</p>
-                  <button className="lr-addbtn" onClick={function (e) { e.stopPropagation(); openLupa(s); }}>{typeof I !== "undefined" && I.Plus ? <I.Plus size={14} /> : "＋"} Добавить привычку</button>
+                  <button className="lr-addbtn" onClick={function (e) { e.stopPropagation(); var pr = (typeof BOS_SPHERE_PRESET !== "undefined" && BOS_SPHERE_PRESET[s.id]) || { i: "✨", t: s.l }; if (typeof HabitFormSheetLive === "function") openSheet(<HabitFormSheetLive mode="create" preset={{ i: pr.i, t: pr.t, sphere: s.id }} navigate={navigate} />); else if (navigate) navigate("home"); }}>{typeof I !== "undefined" && I.Plus ? <I.Plus size={14} /> : "＋"} Добавить привычку</button>
                 </div>
               )}
               <div className="lr-ai">
                 <span className="lr-aiico"><svg width="13" height="13" viewBox="0 0 24 24" fill={goldInk}><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg></span>
                 <span className="s"><b>Balance AI</b> сам раскладывает твои привычки и цели по шести сферам жизни и считает, где ты в балансе — тебе ничего не нужно сортировать вручную.</span>
               </div>
-              {s.n ? <button className="lr-more" onClick={function () { openLupa(s); }}>Разобрать сферу с Balance AI{typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={14} color={dark ? "#8e8e93" : "#9c9ca3"} /> : "→"}</button> : null}
             </div>
           );
         })() : (

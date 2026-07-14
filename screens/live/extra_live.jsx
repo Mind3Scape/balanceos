@@ -168,6 +168,34 @@ function HabitDetailLive() {
     if (days.length) { try { window.bosCloud.setSharedLogBulk(h.shareCode, days); } catch (e) {} }
   }, [h.shareCode]);
 
+  // ТАЙМЛАЙН — ПЕРВЫМ блоком (David: «этот блок теперь на самый верх»): у совместной привычки по
+  // умолчанию, гасится тоглом «Таймлайн» в редакторе (h.threadOff). Те же лица и небо, что в круге;
+  // в чужой день по «Дням недели» — дремлет и говорит, когда следующая встреча.
+  // МГНОВЕННОСТЬ: свой проклик рисуем СРАЗУ (оптимистично, ts=сейчас, fresh=pop-анимация) — не ждём
+  // облачного round-trip'а. Раньше лицо всплывало лишь после выхода-входа (David: «должно сразу же»).
+  const _threadBlock = (_shared && h.threadOff !== true && typeof SkyThreadLive === "function") ? (() => {
+    const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+    const _marks = buddies.filter((m) => m.todayAt).map((m) => ({ id: m.id, name: m.me ? "Ты" : m.name, avatar: m.avatar, me: !!m.me, ts: (typeof bosParseTs === "function" ? bosParseTs(m.todayAt) : new Date(m.todayAt)) }));
+    // Я отметился сегодня, но облачная метка ещё не доехала → показываю себя ЖИВЫМ прямо сейчас.
+    const _iDid = h.done || (_isQuant && _qCount > 0);
+    const _meB = buddies.find((m) => m.me);
+    if (_iDid && _meB && !_marks.some((m) => m.me)) {
+      _marks.push({ id: _meB.id, name: "Ты", avatar: _meB.avatar, me: true, ts: new Date(), fresh: true });
+    }
+    const _doneToday = buddies.filter((m) => (m.days && _tk && m.days[_tk]) || (m.me && _iDid)).length;
+    let _rest = null;
+    if (_mask && _tk && typeof bosDowOfKey === "function" && !_mask[bosDowOfKey(_tk)]) {
+      const _wd = ["в понедельник", "во вторник", "в среду", "в четверг", "в пятницу", "в субботу", "в воскресенье"];
+      let _next = null; for (let d = 1; d <= 7 && _next == null; d++) { const i = (bosDowOfKey(_tk) + d) % 7; if (_mask[i]) _next = i; }
+      _rest = (typeof daysSummary === "function" ? daysSummary(h.days) : "не сегодня") + (_next != null ? " — следующая встреча " + _wd[_next] : "");
+    }
+    return (
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginBottom: 12, boxShadow: "var(--card-shadow)" }}>
+        <SkyThreadLive marks={_marks} total={buddies.length} doneCount={_doneToday} isDark={isDark} rest={_rest} />
+      </div>
+    );
+  })() : null;
+
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
@@ -182,6 +210,9 @@ function HabitDetailLive() {
           <EditGlassButtonLive onClick={() => openSheet(<HabitFormSheetLive mode="edit" habit={h} navigate={navigate} />)} />
         </div>
       } />
+
+      {/* ТАЙМЛАЙН — самым верхним блоком (David). */}
+      {_threadBlock}
 
       {/* ЕДИНЫЙ БЛОК (David: «как на макете — всё внутри одного блока»): герой (иконка+название+отметка)
           → календарь (пилюля справа) → Серия/Лучшая/Всего снизу — всё в одной карточке, не тремя. */}
@@ -225,26 +256,6 @@ function HabitDetailLive() {
         </div>
 
       </div>
-
-      {/* ТАЙМЛАЙН — ОТДЕЛЬНЫМ блоком под карточкой (David): у совместной привычки по умолчанию,
-          гасится тоглом «Таймлайн» в редакторе (h.threadOff). Те же лица и небо, что в круге;
-          в чужой день по «Дням недели» — дремлет и говорит, когда следующая встреча. */}
-      {_shared && h.threadOff !== true && typeof SkyThreadLive === "function" && (() => {
-        const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
-        const _marks = buddies.filter((m) => m.todayAt).map((m) => ({ id: m.id, name: m.me ? "Ты" : m.name, avatar: m.avatar, me: !!m.me, ts: (typeof bosParseTs === "function" ? bosParseTs(m.todayAt) : new Date(m.todayAt)) }));
-        const _doneToday = buddies.filter((m) => (m.days && _tk && m.days[_tk]) || (m.me && h.done)).length;
-        let _rest = null;
-        if (_mask && _tk && typeof bosDowOfKey === "function" && !_mask[bosDowOfKey(_tk)]) {
-          const _wd = ["в понедельник", "во вторник", "в среду", "в четверг", "в пятницу", "в субботу", "в воскресенье"];
-          let _next = null; for (let d = 1; d <= 7 && _next == null; d++) { const i = (bosDowOfKey(_tk) + d) % 7; if (_mask[i]) _next = i; }
-          _rest = (typeof daysSummary === "function" ? daysSummary(h.days) : "не сегодня") + (_next != null ? " — следующая встреча " + _wd[_next] : "");
-        }
-        return (
-          <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
-            <SkyThreadLive marks={_marks} total={buddies.length} doneCount={_doneToday} isDark={isDark} rest={_rest} />
-          </div>
-        );
-      })()}
 
       {/* СКРЫТО (David: «убери баннеры „Веди вместе“ и „Инсайт“ — может, потом пригодятся»).
           Приглашение переехало в стеклянную кнопку «поделиться» в шапке. Код сохранён:
