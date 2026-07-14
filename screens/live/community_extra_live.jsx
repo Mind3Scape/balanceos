@@ -971,6 +971,7 @@ function TeamChatLive(props) {
       who: mine ? myName : (prof ? prof.name : "Участник"),
       c: prof ? prof.c : bosUserColor(r.user_id), avatar: prof ? prof.avatar : null,
       t: r.text || undefined, img: r.image_url || undefined, time: bosMsgTime(r.created_at),
+      ts: r.created_at ? new Date(r.created_at).getTime() : Date.now(), // для слияния с сервис-событиями по времени
     };
   }, [myName]);
 
@@ -1011,7 +1012,7 @@ function TeamChatLive(props) {
     return () => { vv.removeEventListener("resize", onVV); };
   }, [embed]);
 
-  const push = (m) => setMsgs(list => [...list, { who: myName, me: true, c: "#FEDE34", time: nowLabel(), ...m }]);
+  const push = (m) => setMsgs(list => [...list, { who: myName, me: true, c: "#FEDE34", time: nowLabel(), ts: Date.now(), ...m }]);
   // Append a freshly-sent cloud row (in case realtime is slow), de-duped by id.
   const absorb = (row) => { if (row) setMsgs((prev) => prev.some((m) => m.id === row.id) ? prev : prev.concat([mapRow(row)])); };
   const send = () => {
@@ -1054,12 +1055,47 @@ function TeamChatLive(props) {
     </div>
   );
 
+  // СЕРВИС-СОБЫТИЯ (как в мессенджерах): «Круг создан», «X отметил(а)сь в HH:MM» и т.п.
+  // Приходят пропом sysEvents из экрана цели (реальные данные: teamTodayTimes/created_at),
+  // вплетаются в ленту по времени между сообщениями. Пол не угадываем → нейтральное «(а)».
+  const _sysTime = (ts) => { try { var d = new Date(ts); var mm = d.getMinutes(); return d.getHours() + ":" + (mm < 10 ? "0" + mm : mm); } catch (e) { return ""; } };
+  const merged = [];
+  msgs.forEach((m, i) => merged.push({ type: "msg", ts: m.ts || 0, m: m, key: "m" + (m.id != null ? m.id : i) }));
+  (props.sysEvents || []).forEach((e, i) => merged.push({ type: "sys", ts: e.ts || 0, e: e, key: "s" + (e.kind || "") + i + "-" + (e.ts || 0) }));
+  merged.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const sysLine = (e, key) => (
+    <div key={key} style={{ textAlign: "center", fontSize: 12, color: "var(--text-5)", margin: "3px 0", lineHeight: 1.45 }}>
+      {e.kind === "created"
+        ? <span>✨ Круг создан</span>
+        : <span><b style={{ color: "var(--text-3)", fontWeight: 700 }}>{e.me ? "Ты" : e.name}</b> отметил(а)сь в {_sysTime(e.ts)} 🔥</span>}
+    </div>
+  );
+  const msgBubble = (m, key) => m.me ? (
+    <div key={key} style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ maxWidth: "78%", background: mineBubble, color: mineText, borderRadius: "18px 18px 5px 18px", padding: m.img ? 8 : "9px 13px" }}>
+        {m.img ? <RealPhoto src={m.img} cap={m.cap} light/> : <div style={{ fontSize: 14.5, lineHeight: 1.4 }}>{m.t}</div>}
+        <div style={{ fontSize: 10, opacity: 0.55, textAlign: "right", marginTop: 3 }}>{m.time}</div>
+      </div>
+    </div>
+  ) : (
+    <div key={key} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+      {typeof BuddyFaceLive === "function"
+        ? <BuddyFaceLive avatar={m.avatar} name={m.who} size={30} />
+        : <span style={{ width: 30, height: 30, borderRadius: "50%", background: m.c, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{(m.who || "?")[0]}</span>}
+      <div style={{ maxWidth: "78%", background: otherBubble, borderRadius: "18px 18px 18px 5px", padding: m.img ? 8 : "9px 13px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: m.img ? 4 : 2 }}>{m.who}</div>
+        {m.img ? <RealPhoto src={m.img} cap={m.cap}/> : <div style={{ fontSize: 14.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
+        <div style={{ fontSize: 10, color: "var(--text-4)", textAlign: "right", marginTop: 3 }}>{m.time}</div>
+      </div>
+    </div>
+  );
+
   // Лента + композер — общие для обоих режимов; отличается только внешняя рамка.
   const feed = (
       <div ref={scrollRef} className="screen-scroll" style={embed
         ? { flex: 1, minHeight: 0, overflowY: "auto", padding: "2px 2px 8px", display: "flex", flexDirection: "column", gap: 10, WebkitOverflowScrolling: "touch" }
         : { flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-        {msgs.length === 0 ? (
+        {merged.length === 0 ? (
           <div style={{ margin: "auto", textAlign: "center", padding: "0 30px" }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>💬</div>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 4 }}>Это ваш общий чат</div>
@@ -1068,25 +1104,7 @@ function TeamChatLive(props) {
         ) : (
           <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-4)", margin: "2px 0 2px" }}>Сегодня</div>
         )}
-        {msgs.map((m, i) => m.me ? (
-          <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
-            <div style={{ maxWidth: "78%", background: mineBubble, color: mineText, borderRadius: "18px 18px 5px 18px", padding: m.img ? 8 : "9px 13px" }}>
-              {m.img ? <RealPhoto src={m.img} cap={m.cap} light/> : <div style={{ fontSize: 14.5, lineHeight: 1.4 }}>{m.t}</div>}
-              <div style={{ fontSize: 10, opacity: 0.55, textAlign: "right", marginTop: 3 }}>{m.time}</div>
-            </div>
-          </div>
-        ) : (
-          <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-            {typeof BuddyFaceLive === "function"
-              ? <BuddyFaceLive avatar={m.avatar} name={m.who} size={30} />
-              : <span style={{ width: 30, height: 30, borderRadius: "50%", background: m.c, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{(m.who || "?")[0]}</span>}
-            <div style={{ maxWidth: "78%", background: otherBubble, borderRadius: "18px 18px 18px 5px", padding: m.img ? 8 : "9px 13px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: m.img ? 4 : 2 }}>{m.who}</div>
-              {m.img ? <RealPhoto src={m.img} cap={m.cap}/> : <div style={{ fontSize: 14.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
-              <div style={{ fontSize: 10, color: "var(--text-4)", textAlign: "right", marginTop: 3 }}>{m.time}</div>
-            </div>
-          </div>
-        ))}
+        {merged.map((it) => it.type === "sys" ? sysLine(it.e, it.key) : msgBubble(it.m, it.key))}
       </div>
   );
   // Встроенный композер живёт ВНИЗУ полноэкранной flex-колонки чата (как чат ИИ) — клавиатура

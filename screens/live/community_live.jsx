@@ -5108,7 +5108,10 @@ function TeamDetailLive() {
             На активной вкладке — flex:1, чтобы лента заполнила экран, композер сел на низ. ── */}
         <div style={{ marginTop: 12, display: chatMode ? "flex" : "none", flexDirection: "column", flex: chatMode ? 1 : "none", minHeight: 0 }}>
           {typeof TeamChatLive === "function"
-            ? <TeamChatLive embed active={chatMode} team={t} />
+            ? <TeamChatLive embed active={chatMode} team={t}
+                sysEvents={[].concat(
+                  (skyT && skyT.createdAt) ? [{ kind: "created", ts: new Date(skyT.createdAt).getTime() }] : [],
+                  (skyMarks || []).map((m) => ({ kind: "mark", ts: (m.ts instanceof Date ? m.ts.getTime() : new Date(m.ts).getTime()), name: m.me ? "Ты" : ("" + (m.name || "")).split(" ")[0], me: !!m.me })))} />
             : <div style={{ padding: "20px 2px", fontSize: 13, color: "var(--text-4)", textAlign: "center" }}>Чат недоступен</div>}
         </div>
       </div>
@@ -5146,13 +5149,8 @@ function TeamDetailLive() {
         </BosBlock>
       )}
 
-      {/* ПОКИНУТЬ — только участник (владелец удаляет круг из шторки правки). */}
-      {!_isOwner && (
-        <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: false, navigate, openSheet, returnTo: from })} className="tap"
-          style={{ width: "100%", marginTop: 24, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-          <I.Logout size={17}/> Покинуть цель
-        </button>
-      )}
+      {/* «Покинуть цель» убрана (David): выйти = зажать круг на главной и удалить у себя —
+          это и есть покидание. Отдельная красная кнопка внутри не нужна. */}
     </div>
   );
 }
