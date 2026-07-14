@@ -2909,31 +2909,50 @@ function _DiscX({ onClick, color }) {
 
 // ── крупные заливные иконки карточек (David: крупнее + свой цвет + анимация) ──
 function _discIcon(key, size, color) {
+  // Заливные монохромные глифы, перерисованы по макету «Guide Cards V1 Refined» (David
+  // 2026-07-14): ничего не режется от края, сердце/пламя/кубок узнаваемы, «вместе» — две
+  // фигуры с полупрозрачным вторым планом.
   var body = {
     xp: <path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" />,
-    together: <g><circle cx="9" cy="8" r="3.4" /><path d="M3 19.4c0-3.3 2.7-5.6 6-5.6s6 2.3 6 5.6c0 .7-.55 1.25-1.25 1.25H4.25C3.55 20.65 3 20.1 3 19.4z" /><circle cx="17.2" cy="9" r="2.5" opacity="0.5" /><path d="M14.9 14.9c.7-.28 1.5-.42 2.3-.42 2.4 0 4.3 1.85 4.3 4.25 0 .55-.45 1-1 1h-3.4z" opacity="0.5" /></g>,
-    ch: <path d="M12 2c1.2 3.4-.8 4.6-.8 6.8a3 3 0 0 0 5.9.6C18.6 11 20 13.2 20 15.3A8 8 0 1 1 4 15.3c0-2.6 1.6-4.2 2.6-5.8.5 1.9 1.4 2.6 2.5 2.6C8 9 10 5.4 12 2z" />,
-    partners: <path d="M20.5 8.6V6.4c0-1-.8-1.8-1.8-1.8H5.3c-1 0-1.8.8-1.8 1.8v2.2a3.4 3.4 0 0 1 0 6.8v2.2c0 1 .8 1.8 1.8 1.8h13.4c1 0 1.8-.8 1.8-1.8v-2.2a3.4 3.4 0 0 1 0-6.8zM14 15.6l-2-1.3-2 1.3.6-2.3-1.8-1.5 2.3-.2 1-2.2 1 2.2 2.3.2-1.9 1.5z" />,
+    together: <g><circle cx="9" cy="8.2" r="3.2" /><path d="M3.2 18.6c0-3 2.6-5.1 5.8-5.1s5.8 2.1 5.8 5.1c0 .66-.54 1.2-1.2 1.2H4.4c-.66 0-1.2-.54-1.2-1.2z" /><circle cx="16.8" cy="9" r="2.4" opacity="0.45" /><path d="M15 14.6c.6-.2 1.3-.32 2-.32 2.3 0 4.1 1.75 4.1 4 0 .5-.4.9-.9.9h-3.1c.1-.36.15-.74.15-1.14 0-1.3-.85-2.6-2.25-3.44z" opacity="0.45" /></g>,
+    ch: <path d="M13.1 2.6c.35-.3.88-.06.9.4.08 2.06.77 3.3 2.02 4.72 1.35 1.54 2.78 3.28 2.78 6.08 0 4.14-3.06 7.4-6.8 7.4s-6.8-3.26-6.8-7.4c0-2.06 1.02-4.13 2.42-5.55.32-.33.87-.14.92.32.09.83.35 1.6.85 2.13C10.6 8.2 10.2 5.1 13.1 2.6zM12 18.9c1.5 0 2.7-1.25 2.7-2.9 0-1.2-.68-2.03-1.36-2.86-.3-.37-.87-.35-1.16.03-.6.8-1.88 1.66-1.88 2.98 0 1.5 1.2 2.75 1.7 2.75z" />,
+    partners: <path d="M20 8.9V6.8c0-.94-.76-1.7-1.7-1.7H5.7c-.94 0-1.7.76-1.7 1.7v2.1a3.1 3.1 0 0 1 0 6.2v2.1c0 .94.76 1.7 1.7 1.7h12.6c.94 0 1.7-.76 1.7-1.7v-2.1a3.1 3.1 0 0 1 0-6.2zM13.8 15.1L12 13.9l-1.8 1.2.55-2.1-1.65-1.35 2.1-.18.8-2 .8 2 2.1.18-1.65 1.35z" />,
     people: <g><circle cx="10" cy="8" r="3.6" /><path d="M3.6 19.6c0-3.6 2.9-6 6.4-6 1.1 0 2.2.25 3.1.72a4.7 4.7 0 0 0-1.2 3.1v2.8H5.1c-.9 0-1.5-.6-1.5-.62z" /><path d="M17.5 12.8a3 3 0 0 0-3 3v.6h-.1c-.7 0-1.3.6-1.3 1.3v2.9c0 .7.6 1.3 1.3 1.3h6.2c.7 0 1.3-.6 1.3-1.3v-2.9c0-.7-.6-1.3-1.3-1.3h-.1v-.6a3 3 0 0 0-3-3zm0 1.6c.8 0 1.4.6 1.4 1.4v.6h-2.8v-.6c0-.8.6-1.4 1.4-1.4z" /></g>,
-    help: <path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" />,
-    lock: <path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" />,
+    help: <path d="M12 20.4l-1.3-1.18C6.1 15.06 3.2 12.4 3.2 9.15 3.2 6.5 5.28 4.4 7.93 4.4c1.5 0 2.94.7 3.87 1.8l.2.24.2-.24c.93-1.1 2.37-1.8 3.87-1.8 2.65 0 4.73 2.1 4.73 4.75 0 3.25-2.9 5.91-7.5 10.07z" />,
+    lock: <path d="M12 3.8c2.65 0 4.8 2.15 4.8 4.8v1.9h.5c.94 0 1.7.76 1.7 1.7v6.5c0 .94-.76 1.7-1.7 1.7H6.7c-.94 0-1.7-.76-1.7-1.7v-6.5c0-.94.76-1.7 1.7-1.7h.5V8.6c0-2.65 2.15-4.8 4.8-4.8zm0 2.1a2.7 2.7 0 0 0-2.7 2.7v1.9h5.4V8.6A2.7 2.7 0 0 0 12 5.9z" />,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>{body[key] || null}</svg>;
 }
 
-// ── карточка колоды: БЕЛАЯ карточка, цвет ТОЛЬКО в плашке иконки (David: живые «слишком
-//    цветастые» — макет 2026-07-10). Крупная анимированная иконка в accent, без XP-меты. ──
-function _DiscCard({ id, accent, iconKey, title, desc, onOpen, onDismiss, isDark, animDelay }) {
-  var tint = accent
-    ? (typeof bosMixHex === "function" ? bosMixHex(accent, isDark ? "#101014" : "#ffffff", isDark ? 0.7 : 0.84) : accent)
-    : "var(--surface-3)";
-  var iconInk = accent || "var(--text)";
+// ── карточка колоды по макету «Guide Cards V1 Refined» (David 2026-07-14): хром бел·чёрн·золото.
+//    Белая карточка, номер сверху, серебристая плашка-глиф 48px с монохромным чёрным глифом,
+//    заголовок+подпись прижаты вниз. Открытая карточка (шторку уже смотрели) — золотое кольцо
+//    вокруг глифа + золотой чип «ОТКРЫТО ✓», номер прячется. Закрытая «Люди» (до 10 ур.) —
+//    чёрная плашка с золотым замком. Цветных акцентов больше нет. ──
+function _DiscCard({ num, iconKey, title, desc, onOpen, onDismiss, isDark, open, locked }) {
+  var GOLD = BOS_GOLD, GOLD2 = "#EF9F14";
+  var plateBg = locked
+    ? "#0a0a0a"
+    : (isDark ? "linear-gradient(180deg,#2a2a30,#1e1e24)" : "linear-gradient(180deg,#f4f4f4,#e9e9e9)");
+  var plateShadow = locked
+    ? "none"
+    : (isDark
+        ? "inset 0 1px 0 rgba(255,255,255,0.10),inset 0 -1px 2px rgba(0,0,0,0.4)"
+        : "inset 0 1px 0 rgba(255,255,255,0.9),inset 0 -1px 2px rgba(0,0,0,0.05)");
+  if (open && !locked) plateShadow = plateShadow + ",0 0 0 2px " + GOLD;
+  var iconInk = locked ? GOLD : (isDark ? "#f0f0f0" : "#0a0a0a");
   return (
-    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: "14px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit" }}>
-      {onDismiss && <_DiscX onClick={onDismiss} color="var(--text-4)" />}
-      <span className="disc-bob" style={{ width: 56, height: 56, borderRadius: "50%", background: tint, display: "grid", placeItems: "center", marginBottom: 12, animation: "discBob 3.4s ease-in-out infinite", animationDelay: (animDelay || 0) + "s" }}>{_discIcon(iconKey, 30, iconInk)}</span>
-      <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{title}</span>
-      <span style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.35, marginTop: 5 }}>{desc}</span>
+    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 180, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: "14px 13px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit", opacity: locked ? 0.92 : 1 }}>
+      {onDismiss && !locked && <_DiscX onClick={onDismiss} color={isDark ? "var(--text-4)" : "#b3b3b3"} />}
+      {open && !locked && (
+        <span style={{ position: "absolute", left: 13, top: 13, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 9, fontWeight: 800, letterSpacing: 0.6, color: "#7a6205", background: "linear-gradient(180deg,#FFE96A," + GOLD + ")", borderRadius: 99, padding: "3px 7px", boxShadow: "0 1px 3px rgba(239,159,20,0.35)", zIndex: 2 }}>
+          <svg width="8" height="8" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#7a6205" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>ОТКРЫТО
+        </span>
+      )}
+      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.2, color: "var(--text-4)", visibility: (open && !locked) ? "hidden" : "visible" }}>{num}</span>
+      <span style={{ width: 48, height: 48, borderRadius: "50%", background: plateBg, boxShadow: plateShadow, display: "grid", placeItems: "center", margin: "10px 0" }}>{_discIcon(iconKey, locked ? 19 : 24, iconInk)}</span>
+      <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.18, marginTop: "auto" }}>{title}</span>
+      <span style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.35, marginTop: 4 }}>{desc}</span>
     </button>
   );
 }
@@ -2942,19 +2961,23 @@ function _DiscCard({ id, accent, iconKey, title, desc, onOpen, onDismiss, isDark
 // Что открывается на уровне — для празднующей карточки level-up (fixes «уровень не празднуется»).
 var BOS_LEVEL_UNLOCKS = { 3: "Первая публикация · Разбор привычек", 5: "Карточка «Люди» в ленте", 10: "Нетворк · рынок пользы" };
 
-// обложка «звёздное небо» → шторка «Суть» (без крестика)
+// обложка «Суть» → шторка «Суть». Макет «Guide Cards V1 Refined» (David 2026-07-14): тёмная
+// карточка со сдержанной золотой дугой-«горизонтом» сверху (звёздное небо убрано) и живой
+// золотой кнопкой «начать →». Без крестика — вход в гид не прячем.
 function DiscoveryCoverCard({ onOpen }) {
+  var GOLD = BOS_GOLD;
   return (
-    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 196, height: 172, borderRadius: 22, border: 0, padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "#fff", fontFamily: "inherit", background: "radial-gradient(140% 110% at 82% -8%, #23232e 0%, #14141a 45%, #08080a 100%)" }}>
+    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 180, borderRadius: 22, border: 0, padding: "14px 13px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "#fff", fontFamily: "inherit", background: "linear-gradient(180deg,#161619 0%,#0a0a0c 100%)" }}>
       <span aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-        {[[12, 14, 2, 0, 0.75], [32, 8, 1.5, 0, 0.5], [78, 12, 2.5, 1, 0.9], [64, 22, 1.5, 0, 0.6], [88, 38, 2, 0, 0.7], [22, 34, 1.5, 1, 0.85], [46, 30, 1.5, 0, 0.4], [70, 48, 1.5, 0, 0.5]].map((s, i) => (
-          <span key={i} style={{ position: "absolute", left: s[0] + "%", top: s[1] + "%", width: s[2], height: s[2], borderRadius: "50%", background: s[3] ? BOS_GOLD : "#fff", opacity: s[4], boxShadow: s[3] ? "0 0 5px rgba(254,222,52,0.85)" : "0 0 3px rgba(255,255,255,0.5)" }} />
-        ))}
+        <span style={{ position: "absolute", left: "50%", top: "-46%", width: "150%", height: "100%", transform: "translateX(-50%)", borderRadius: "50%", boxShadow: "0 0 0 1px rgba(254,222,52,0.22),0 10px 30px rgba(254,222,52,0.10)" }} />
+        <span style={{ position: "absolute", left: "50%", top: "-46%", width: "150%", height: "100%", transform: "translateX(-50%)", borderRadius: "50%", background: "radial-gradient(ellipse at 50% 100%,rgba(239,159,20,0.14),transparent 60%)" }} />
       </span>
-      <span style={{ position: "relative", fontSize: 9.5, fontWeight: 800, letterSpacing: 1.5, color: "rgba(255,255,255,0.5)", marginBottom: 7 }}>С ЧЕГО НАЧАТЬ</span>
-      <span style={{ position: "relative", fontSize: 16, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>Как устроен Balance</span>
-      <span style={{ position: "relative", fontSize: 11.5, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>День · опыт · свои · мир</span>
-      <span style={{ position: "relative", marginTop: "auto", fontSize: 11, fontWeight: 800, background: BOS_GOLD, color: "#0a0a0a", borderRadius: 999, padding: "3.5px 9px" }}>Суть · 1 минута ›</span>
+      <span style={{ position: "relative", fontSize: 10, fontWeight: 800, letterSpacing: 1.2, color: "rgba(255,255,255,0.45)" }}>СУТЬ</span>
+      <span style={{ position: "relative", fontSize: 16, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.18, marginTop: "auto" }}>Как устроен Balance</span>
+      <span style={{ position: "relative", fontSize: 11.5, color: "rgba(255,255,255,0.62)", lineHeight: 1.35, marginTop: 4 }}>одна минута — и всё ясно</span>
+      <span style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 5, marginTop: 9, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, color: "#0a0a0a", background: "linear-gradient(180deg,#FFE96A," + GOLD + ")", borderRadius: 99, padding: "5px 10px", boxShadow: "0 2px 8px rgba(254,222,52,0.35)" }}>начать
+        <svg width="9" height="9" viewBox="0 0 10 10"><path d="M2 5h6M5.4 2.4L8 5 5.4 7.6" fill="none" stroke="#0a0a0a" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </span>
     </button>
   );
 }
@@ -3015,29 +3038,55 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
   };
 
-  // колода по правилам: стартовые с L1, «Люди» с L5; уход по прожитости. У каждой — свой цвет
-  // (David: «разные карточки разного цвета — сразу обращаешь внимание»).
+  // «прожита» ли карточка (шторку уже открывали) — для золотого статуса «ОТКРЫТО» по макету.
+  const seen = bosDiscBag("bos:discoverySeen");
+
+  // колода по правилам: стартовые с L1, «Люди» с L5; уход по прожитости. Хром бел·чёрн·золото
+  // (макет «Guide Cards V1 Refined»): цвет живёт только в золотом статусе, глифы монохромные.
   const deckDefs = [
-    { key: "xp", id: "xp", iconKey: "xp", accent: "#FF9F0A", title: "Опыт и уровень", desc: "Каждый ход — шаг по пути", show: true },
-    { key: "together", id: "together", iconKey: "together", accent: "#0A84FF", title: "Вместе — больше", desc: "Совместные привычки и цели", show: !hasTogether },
-    { key: "helpers", id: "helpers", iconKey: "help", accent: "#EF9F14", title: "Помогай своим", desc: "Круг подтверждает твою роль", show: true },
-    { key: "ch", id: "ch", iconKey: "ch", accent: "#FF453A", title: "Челленджи", desc: "Готовая привычка с призом", show: !hasChallenge },
+    { key: "xp", id: "xp", iconKey: "xp", title: "Опыт и уровень", desc: "Каждый ход — шаг по пути", show: true },
+    { key: "together", id: "together", iconKey: "together", title: "Вместе — больше", desc: "Совместные привычки и цели", show: !hasTogether },
+    { key: "helpers", id: "helpers", iconKey: "help", title: "Помогай своим", desc: "Круг подтверждает твою роль", show: true },
+    { key: "ch", id: "ch", iconKey: "ch", title: "Челленджи", desc: "Готовая привычка с призом", show: !hasChallenge },
     // «Партнёры» — постоянная дверь в мир впечатлений (David 2026-07-12: не прятать). pin: не
     // уходит после траты XP и несмахиваема (крестика нет), но остаётся на своём месте в ряду.
-    { key: "partners", id: "partners", iconKey: "partners", accent: "#BF5AF2", title: "Партнёры", desc: "Впечатления за твой опыт", show: true, pin: true },
-    { key: "people", id: "people", iconKey: "people", accent: "#30C08B", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5 },
+    { key: "partners", id: "partners", iconKey: "partners", title: "Партнёры", desc: "Впечатления за твой опыт", show: true, pin: true },
+    // «Люди» до 10 уровня — закрытый круг: чёрная плашка + золотой замок (макет).
+    { key: "people", id: "people", iconKey: userLevel < 10 ? "lock" : "people", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5, locked: userLevel < 10 },
   ];
-  // порядок приоритета → кап ≤6 карточек одновременно (обложка «Суть» убрана — David: про механики
-  // рассказываем отдельными карточками, отдельный «как устроено» не нужен).
-  const nodes = [];
-  if (showLevelUp) nodes.push(<DiscoveryLevelUpCard key={"lvl" + userLevel} level={userLevel} unlock={BOS_LEVEL_UNLOCKS[userLevel]} onOpen={() => { ackLevel(); openDisc("xp"); }} onDismiss={(ev) => { ev.stopPropagation(); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } ackLevel(); }} />);
-  let _di = 0;
-  deckDefs.forEach((c) => { if (c.show && (c.pin || !dismissed[c.key])) { nodes.push(<_DiscCard key={c.key} {...c} isDark={isDark} animDelay={_di * 0.25} onOpen={() => openDisc(c.id)} onDismiss={c.pin ? undefined : (ev) => doDismiss(ev, c.key)} />); _di++; } });
-  const shown = nodes.slice(0, 6);
+  // Механики, реально попадающие в ряд (кап ≤6) — нумеруем позиционно 01…06, прогресс «N из M».
+  const mech = deckDefs.filter((c) => c.show && (c.pin || !dismissed[c.key])).slice(0, 6);
+  const total = mech.length;
+  const openCount = mech.filter((c) => !!seen[c.id]).length;
+
+  const mechCards = mech.map((c, i) => (
+    <_DiscCard key={c.key} num={c.locked ? (("0" + (i + 1)).slice(-2) + " · С 10 УРОВНЯ") : ("0" + (i + 1)).slice(-2)}
+      iconKey={c.iconKey} title={c.title} desc={c.desc} isDark={isDark} open={!!seen[c.id]} locked={c.locked}
+      onOpen={() => openDisc(c.id)} onDismiss={(c.pin || c.locked) ? undefined : (ev) => doDismiss(ev, c.key)} />
+  ));
+
+  // Ряд по макету: обложка «Суть» → (празднование уровня, если есть) → карточки механик.
+  const rail = [<DiscoveryCoverCard key="cover" onOpen={() => openDisc("core")} />];
+  if (showLevelUp) rail.push(<DiscoveryLevelUpCard key={"lvl" + userLevel} level={userLevel} unlock={BOS_LEVEL_UNLOCKS[userLevel]} onOpen={() => { ackLevel(); openDisc("xp"); }} onDismiss={(ev) => { ev.stopPropagation(); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } ackLevel(); }} />);
+  mechCards.forEach((n) => rail.push(n));
 
   return (
-    <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "10px 12px 12px 4px", margin: "2px -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
-      {shown}
+    <div>
+      {/* Заголовок ленты по макету: «Открой Balance» + точки-прогресс «N из M». */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 4px 10px" }}>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px" }}>Открой Balance</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" }}>
+          <span style={{ display: "inline-flex", gap: 3 }}>
+            {Array.from({ length: total }).map((_, i) => (
+              <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: i < openCount ? "#EF9F14" : (isDark ? "#4a4a4a" : "#d6d6d6") }} />
+            ))}
+          </span>
+          {openCount} из {total}
+        </span>
+      </div>
+      <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "4px 12px 12px 4px", margin: "0 -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+        {rail}
+      </div>
     </div>
   );
 }
