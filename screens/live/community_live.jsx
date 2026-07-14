@@ -4641,269 +4641,185 @@ function TeamDetailLive() {
   // Сводки для свёрнутых секций единого блока (David: «краткая сводка на каждом»).
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
   const _habitWordT = (n) => (n % 10 === 1 && n % 100 !== 11) ? "привычка" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "привычки" : "привычек");
-  return (
-    <div className="page-in" style={{ paddingBottom: 24 }}>
-      {/* HERO — full-bleed до самого верха, снизу скруглён (как у партнёра). Внутри: назад слева;
-          правка(владелец)/позвать/ЧАТ стеклом справа; орбита-пульс, %, имя, описание; вся инфа
-          под орбитой = ЧИПЫ (люди/осталось/режим/приватность) + 1-2 чипа «от ИИ». David-редизайн. */}
-      <div style={{ position: "relative", background: H.bg,
-          marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
-          padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
-          borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={heroBtn}><I.ChevronLeft size={20} strokeWidth={2.4} /></button>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {_isOwner && <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" data-haptic="selection" aria-label="Настройки цели" style={heroBtn}><I.Pencil size={16} strokeWidth={2} /></button>}
-            <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={heroBtn}><I.Share size={16} strokeWidth={2} /></button>
-            {/* ЧАТ — стеклянная кнопка-ПИЛЮЛЯ справа В HERO с надписью «Чат» (David: «добавь подпись
-                Чат справа от иконки и сделай чуть шире двух слева»); значок непрочитанных сохранён. */}
-            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, display: "flex", alignItems: "center", justifyContent: "center", width: "auto", borderRadius: 999, padding: "0 16px", gap: 7, position: "relative" }}><I.MessageCircle size={16} strokeWidth={2} /><span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>Чат</span>
-              {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -3, right: -3, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 17, height: 17, padding: "0 4px", display: "grid", placeItems: "center", border: "1.5px solid " + (H.onDark ? "rgba(0,0,0,0.45)" : "#fff") }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
-            </button>
+  // ── ЦЕЛЬ С ТАБАМИ (макет «Цель с табами», David) ──────────────────────────────
+  // Одна страница, три состояния: Обзор · Привычки · Чат. Шапка (кольцо-заряд + имя +
+  // строка «прогресс · огонь · люди») постоянна; тумблер живёт в блоке содержимого.
+  const [tab, setTab] = React.useState("overview");
+  const unread = (_chatLive && chatPeek && chatPeek.unread) ? chatPeek.unread : 0;
+  const pct = Math.round(gp * 100);
+  // «огонь» = доля круга, что уже отметилась сегодня (живая, из потока), а не выдуманный %.
+  const firePct = (members.length && !_rosterLoading) ? Math.round((inFlowToday / members.length) * 100) : null;
+  const headParts = [pct + "%"]
+    .concat(firePct != null ? ["огонь " + firePct + "%"] : [])
+    .concat(!_rosterLoading ? [members.length + " " + _peopleWord(members.length)] : []);
+  const ringCirc = 2 * Math.PI * 26;
+  const ringColor = teamColor || "#EF9F14"; // золото-оранж (палитра chrome: бел/чёрн/золото)
+  const navBtn = { width: 42, height: 42, borderRadius: 999, border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "#e9e9e9", display: "grid", placeItems: "center", color: "var(--text-3)", cursor: "pointer", flexShrink: 0 };
+  const tabItem = (on) => ({ flex: 1, textAlign: "center", borderRadius: 999, padding: "9px 0", fontSize: 14, fontWeight: on ? 700 : 600, color: on ? "var(--text)" : "var(--text-4)", background: on ? (isDark ? "rgba(255,255,255,0.14)" : "#fff") : "transparent", boxShadow: on ? "0 1px 2px rgba(35,44,93,.06), 0 1px 1px rgba(0,0,0,.04)" : "none", cursor: "pointer", border: 0, fontFamily: "inherit", transition: "background .15s, color .15s" });
+  const contentCard = { ...card, borderRadius: 22, padding: 16, marginTop: 12 };
+  // Одна строка привычки — общий рендер для вкладки «Привычки» (перенос из бывшего аккордеона).
+  const renderHabitRow = (h, i) => {
+    const done = myDone(h);
+    const adopted = adoptedFor(h);
+    const markInTeam = () => (adopted ? markAdopted(h) : toggleMyTeamHabit(h));
+    return (
+      <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 2px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "var(--line)") : 0 }}>
+        {_rosterLive ? (
+          <button onClick={markInTeam} className="tap" aria-label="Отметить сегодня"
+            style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+              background: done ? (h.color || ringInk) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+              boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }}>
+            {done && <I.Check size={16} strokeWidth={3} color="#fff" />}
+          </button>
+        ) : (
+          <span aria-hidden style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }} />
+        )}
+        <button className="tap" onClick={() => { if (adopted) navigate("habit-detail", { habit: adopted, from: "team-detail" }); }} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, padding: 0, background: "transparent", border: 0, textAlign: "left", color: "var(--text)", cursor: adopted ? "pointer" : "default" }}>
+          <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{adopted && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· у себя</span>}</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>
+              {h.isMain && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EF9F14", display: "inline-block" }} />Якорь</span>}
+              {(h.doneToday != null && h.total != null) ? (h.doneToday + " из " + h.total + " сегодня") : "общая привычка"}
+            </div>
           </div>
-        </div>
-        <div style={{ textAlign: "center", marginTop: 4 }}>
-          {gStyle.orbits ? (
-            <div style={{ width: 172, height: 172, margin: "0 auto", display: "grid", placeItems: "center" }}>
-              <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
-                habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
-                people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done, progress: _pulseFor(f) }))}
-                size={172} dark={isDark} progress={gp} />
-            </div>
-          ) : (
-            <div style={{ position: "relative", width: 150, height: 150, margin: "0 auto" }}>
-              <svg width="150" height="150" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
-                <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)"} strokeWidth="13" />
-                {gp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={ringInk} strokeWidth="13" strokeLinecap="round" strokeDasharray={2 * Math.PI * 54} strokeDashoffset={2 * Math.PI * 54 * (1 - gp)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(gDone ? { filter: "drop-shadow(0 0 6px " + ringInk + "80)" } : {}) }} />}
-              </svg>
-              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 34, null)}</div>
-            </div>
-          )}
-          <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: H.ink }}><CountC value={Math.round(gp * 100)} />%</div>
-          <div style={{ fontSize: 21, fontWeight: 700, color: H.ink, marginTop: 5, letterSpacing: "-0.4px" }}>{t.name}</div>
-          {/* Контекст цели (режим + приватность) — ТИХОЙ строкой под именем, чтобы чипы ниже несли
-              ТОЛЬКО метрики (David: «чипы со смыслом, не хаотично раскиданы»). */}
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: H.sub, marginTop: 4 }}>{modeMeta.e} {modeMeta.t} · {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}{circleAgeDays ? " · живёт " + circleAgeDays + "-й день" : ""}</div>
-          {desc ? <div style={{ fontSize: 13, color: H.sub, marginTop: 7, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 14 }}>
-          {teamChips.map((ch, i) => <span key={i} style={ch.hot ? heroChipAI : heroChip}>{ch.t}</span>)}
+          {adopted && <I.ChevronRight size={16} color="var(--text-4)" />}
+        </button>
+        {_isOwner && (
+          <button onClick={() => openEditTeamHabit(h)} className="tap" data-haptic="selection" aria-label="Изменить общую привычку" style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 999, border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)", cursor: "pointer" }}><I.Pencil size={14} strokeWidth={2} /></button>
+        )}
+        {_rosterLive && !adopted && (
+          <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вести у себя</button>
+        )}
+        {_rosterLive && adopted && adopted.shelved && (
+          <button onClick={() => { if (app?.updateHabit) app.updateHabit(adopted.id, { shelved: false }); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вернуть к себе</button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      {/* НАВИГАЦИЯ: назад слева; правка(владелец) + позвать справа (макет: ‹ Назад · ✎ ↑). */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={{ ...navBtn, width: "auto", height: 42, padding: "0 16px 0 11px", gap: 4, display: "inline-flex", alignItems: "center", fontSize: 15, fontWeight: 600, color: "var(--text-3)" }}>
+          <I.ChevronLeft size={19} strokeWidth={2.4} /> Назад
+        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {_isOwner && <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" data-haptic="selection" aria-label="Настройки цели" style={navBtn}><I.Pencil size={16} strokeWidth={2} /></button>}
+          <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={navBtn}><I.Share size={16} strokeWidth={2} /></button>
         </div>
       </div>
 
-      <div style={{ padding: "8px 16px 0" }}>
-
-      {/* «НЕБО-НИТЬ» — первый блок комнаты (David, макет небо-нить-финал): кто во сколько
-          отметился сегодня, лица на полосе неба, пульс-точка «сейчас». Живёт только у
-          облачных кругов (у локальных нет чужих отметок — нечего стелить на небо). */}
-      {_rosterLive && !_threadOff && typeof SkyThreadLive === "function" && (
-        <div style={{ ...card, borderRadius: 22, padding: 16, marginTop: 4 }}>
-          <SkyThreadLive
-            marks={skyMarks}
-            total={Array.isArray(members) ? members.length : 0}
-            doneCount={skyMarks.length}
-            isDark={isDark}
-            chip={circleAgeDays
-              ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(254,222,52,0.28)", color: "#7a5b00", borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>🔥 {circleAgeDays}-й день</span>
-              : <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(52,199,89,0.13)", color: "#1E8E4E", borderRadius: 999, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34C759", display: "inline-block" }} /> живёт</span>}
-          />
+      {/* ШАПКА — постоянна: кольцо-заряд с эмблемой + имя + строка прогресс·огонь·люди. */}
+      <div style={{ ...card, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ position: "relative", width: 58, height: 58, flexShrink: 0 }}>
+          <svg width="58" height="58" viewBox="0 0 58 58">
+            <circle cx="29" cy="29" r="26" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "#efefef"} strokeWidth="4" />
+            {gp > 0 && <circle cx="29" cy="29" r="26" fill="none" stroke={ringColor} strokeWidth="4" strokeLinecap="round" strokeDasharray={(gp * ringCirc) + " " + ringCirc} transform="rotate(-90 29 29)" style={{ transition: "stroke-dasharray .6s ease", ...(gDone ? { filter: "drop-shadow(0 0 5px " + ringColor + "80)" } : {}) }} />}
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 24, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 24, null)}</div>
         </div>
-      )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+          <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 2 }}>{headParts.join(" · ")}</div>
+        </div>
+      </div>
 
-      {/* ЛЮДИ + КАЛЕНДАРЬ единым блоком наверху (Сообщество v2, David fork 3): слайдер лиц с
-          ролями → выбранный человек → его календарь кольцами. Заменяет секции «Люди»/«Календарь»
-          из аккордеона ниже. Живой ростер + mainProg; для соло-круга показывает тебя. */}
-      {_rosterLive && (
+      {/* СОДЕРЖИМОЕ + ТУМБЛЕР: табы живут внутри блока (макет). */}
+      <div style={contentCard}>
+        <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.06)" : "#efefef", borderRadius: 999, padding: 5, gap: 4 }}>
+          <button style={tabItem(tab === "overview")} onClick={() => setTab("overview")} className="tap" data-haptic="selection">Обзор</button>
+          <button style={tabItem(tab === "habits")} onClick={() => setTab("habits")} className="tap" data-haptic="selection">Привычки</button>
+          <button style={tabItem(tab === "chat")} onClick={() => { setTab("chat"); markChatRead(); }} className="tap" data-haptic="selection">{unread ? "Чат · " + unread : "Чат"}</button>
+        </div>
+
+        {/* ── ОБЗОР — орбита + контекст + описание ── */}
+        {tab === "overview" && (
+          <div style={{ textAlign: "center", paddingTop: 8 }}>
+            {gStyle.orbits ? (
+              <div style={{ width: 224, height: 224, margin: "6px auto 0", display: "grid", placeItems: "center" }}>
+                <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
+                  habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
+                  people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done, progress: _pulseFor(f) }))}
+                  size={224} dark={isDark} progress={gp} />
+              </div>
+            ) : (
+              <div style={{ position: "relative", width: 150, height: 150, margin: "6px auto 0" }}>
+                <svg width="150" height="150" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)"} strokeWidth="13" />
+                  {gp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={ringInk} strokeWidth="13" strokeLinecap="round" strokeDasharray={2 * Math.PI * 54} strokeDashoffset={2 * Math.PI * 54 * (1 - gp)} style={{ transition: "stroke-dashoffset 0.6s ease" }} />}
+                </svg>
+                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 34, null)}</div>
+              </div>
+            )}
+            <div style={{ fontSize: 13.5, color: "var(--text-4)", marginTop: 10 }}>{modeMeta.e} {modeMeta.t} · {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}{circleAgeDays ? " · живёт " + circleAgeDays + "-й день" : ""}</div>
+            {desc ? <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, margin: "12px auto 4px", maxWidth: 300 }}>{desc}</div> : null}
+          </div>
+        )}
+
+        {/* ── ПРИВЫЧКИ — список привычек круга (люди + календарь идут отдельным блоком ниже) ── */}
+        {tab === "habits" && (
+          <div style={{ marginTop: 6 }}>
+            {[main].concat(others).filter(Boolean).map((h, i) => renderHabitRow(h, i))}
+            {teamHabits.length === 0 && (
+              <div style={{ padding: "14px 2px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>{_isOwner ? "Пока нет общих привычек. Добавь первую — она станет якорем цели." : "Пока нет общих привычек — их добавляет создатель цели."}</div>
+            )}
+            {_isOwner && (
+              <button className="tap" onClick={openAddHabit}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 2px", borderTop: teamHabits.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "var(--line)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
+                <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+                <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── ЧАТ — лента круга прямо тут (встроенный TeamChatLive) ── */}
+        {tab === "chat" && (
+          <div style={{ marginTop: 12 }}>
+            {typeof TeamChatLive === "function"
+              ? <TeamChatLive embed team={t} />
+              : <div style={{ padding: "20px 2px", fontSize: 13, color: "var(--text-4)", textAlign: "center" }}>Чат недоступен</div>}
+          </div>
+        )}
+      </div>
+
+      {/* Люди + календарь — отдельный блок под табами (только на вкладке «Привычки», макет Ц2).
+          Тап по лицу фильтрует календарь на человека. Живёт только у облачных кругов. */}
+      {tab === "habits" && _rosterLive && (
         <BosBlock name="team-people-calendar">
+          {/* Заявки на вступление — владельцу, только когда есть ожидающие (иначе экран = макет). */}
+          {_isOwner && pending.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div className="section-label">Заявки на вступление ({pending.length})</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                {pending.map((p) => (
+                  <div key={p.id} style={{ ...card, borderRadius: 22, padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
+                    <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{p.name || "Гость"}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>хочет вступить</div>
+                    </div>
+                    <button onClick={() => approveReq(p.id)} className="tap" style={{ flexShrink: 0, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 600 }}>Принять</button>
+                    <button onClick={() => rejectReq(p.id)} className="tap" aria-label="Отклонить" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 999, width: 34, height: 34, fontSize: 16, lineHeight: 1 }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <TeamPeopleCalendarLive mainProg={mainProg} members={members} meId={meId} navigate={navigate}
             teamName={t.name} isDark={isDark} accent={ringInk} onInvite={() => openSheet(<TeamShareSheetLive team={t} />)} />
         </BosBlock>
       )}
 
-      {/* СТАВКА/БАНК — карточкой под статами (перенесено из бывшей мега-карточки, логика та же). */}
-      {stake > 0 && !gDone && (
-        <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 38, height: 38, borderRadius: 13, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>🪙</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Банк {bank} XP</div>
-            <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{isRace ? "Лидер гонки забирает всё" : `Дойдёте — каждому вернётся +${stake}`}</div>
-          </div>
-        </div>
-      )}
-      {gDone && stake > 0 && (
-        <div style={{ marginTop: 12, padding: "13px 15px", borderRadius: 22, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a" }}>
-          <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: "-0.2px" }}>🎉 Цель достигнута — банк раскрыт!</div>
-          <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, lineHeight: 1.4 }}>
-            {isRace
-              ? (myPay > 0 ? `Ты лидер гонки — весь банк твой: +${myPay} XP 👑` : `Банк ${bank} XP забрал лидер гонки`)
-              : `Тебе +${myPay || stake} XP, и столько же каждому`}
-          </div>
-        </div>
-      )}
-      {/* (Убраны чипы-люди под банком — David: дублируют раздел «Люди» ниже, где и так есть все
-          участники + кнопка «Позвать людей». Вклад/выплата теперь читаются в самом разделе.) */}
-
-      {/* Заявки на вступление — владельцу, ПЕРЕД единым блоком (это действие, не раздел). */}
-      {_isOwner && pending.length > 0 && (<>
-        <div className="section-label" style={{ marginTop: 22 }}>Заявки на вступление ({pending.length})</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-          {pending.map((p, pi) => (
-            <div key={p.id} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
-              <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{p.name || "Гость"}</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>хочет вступить</div>
-              </div>
-              <button onClick={() => approveReq(p.id)} className="tap" style={{ flexShrink: 0, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 600 }}>Принять</button>
-              <button onClick={() => rejectReq(p.id)} className="tap" aria-label="Отклонить" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 999, width: 34, height: 34, fontSize: 16, lineHeight: 1 }}>✕</button>
-            </div>
-          ))}
-        </div>
-      </>)}
-
-      {/* ЕДИНЫЙ РАСКРЫВАЮЩИЙСЯ БЛОК: Привычки · Календарь · Баланс круга · Люди. ВСЕ свёрнуты по
-          умолчанию (David: человек раскрывает сам). «Баланс круга» — между Календарём и Людьми. */}
-      <BosSectionsAccordionLive dark={isDark} defaultOpen={null} sections={[
-        {
-          key: "habits", icon: <I.Flame size={17} color="var(--text-3)" />, title: "Привычки",
-          summary: teamHabits.length ? (teamHabits.length + " " + _habitWordT(teamHabits.length) + " · сегодня " + _myDoneCount + " из " + teamHabits.length) : "Пока пусто — добавь первую",
-          render: () => (<>
-        {[main].concat(others).filter(Boolean).map((h, i) => {
-          const done = myDone(h);
-          const adopted = adoptedFor(h);
-          const markInTeam = () => (adopted ? markAdopted(h) : toggleMyTeamHabit(h));
-          return (
-            <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
-              {_rosterLive ? (
-                <button onClick={markInTeam} className="tap" aria-label="Отметить сегодня"
-                  style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
-                    background: done ? (h.color || ringInk) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
-                    boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }}>
-                  {done && <I.Check size={16} strokeWidth={3} color="#fff" />}
-                </button>
-              ) : (
-                <span aria-hidden style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }} />
-              )}
-              <button className="tap" onClick={() => { if (adopted) navigate("habit-detail", { habit: adopted, from: "team-detail" }); }} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, padding: 0, background: "transparent", border: 0, textAlign: "left", color: "var(--text)", cursor: adopted ? "pointer" : "default" }}>
-                <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{adopted && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· у себя</span>}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>
-                    {h.isMain && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EF9F14", display: "inline-block" }} />Якорь</span>}
-                    {(h.doneToday != null && h.total != null) ? (h.doneToday + " из " + h.total + " сегодня") : "общая привычка"}
-                  </div>
-                </div>
-                {adopted && <I.ChevronRight size={16} color="var(--text-4)" />}
-              </button>
-              {/* D: владелец правит ОПРЕДЕЛЕНИЕ общей привычки (та же полная форма) — прогресс цел. */}
-              {_isOwner && (
-                <button onClick={() => openEditTeamHabit(h)} className="tap" data-haptic="selection" aria-label="Изменить общую привычку" style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 999, border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)", cursor: "pointer" }}><I.Pencil size={14} strokeWidth={2} /></button>
-              )}
-              {_rosterLive && !adopted && (
-                <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вести у себя</button>
-              )}
-              {/* Г: копия «убрана с моей страницы» (shelved) — вернуть можно ОТСЮДА, со страницы
-                  круга (David). История и опыт целы — просто снимаем с полки. */}
-              {_rosterLive && adopted && adopted.shelved && (
-                <button onClick={() => { if (app?.updateHabit) app.updateHabit(adopted.id, { shelved: false }); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вернуть к себе</button>
-              )}
-            </div>
-          );
-        })}
-        {teamHabits.length === 0 && (
-          <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>{_isOwner ? "Пока нет общих привычек. Добавь первую — она станет якорем цели." : "Пока нет общих привычек — их добавляет создатель цели."}</div>
-        )}
-        {/* Создавать общие привычки может ТОЛЬКО владелец цели (David: участники не должны заводить
-            привычки для всех). Участник видит их и может «вести у себя», но не создаёт. RLS дублирует
-            гейт (patch_team_habits_owner_only.sql) — UI-обход не пройдёт. */}
-        {_isOwner && (
-        <button className="tap" onClick={openAddHabit}
-          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: teamHabits.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
-          <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
-        </button>
-        )}
-          </>) },
-        // ДЕЛА — задания совместной цели: автор ставит, участник отмечает своё + видит «кто выполнил».
-        // Раздел появляется только когда облако поддерживает team_tasks (после patch_team_tasks.sql).
-        (_rosterLive && _teamTasksAvail ? {
-          key: "tasks", icon: <I.Check size={17} color="var(--text-3)" />, title: "Дела и просьбы",
-          summary: (_requests.length || _plainTasks.length)
-            ? [(_requests.length ? (_requests.length + " " + (_requests.length === 1 ? "просьба" : (_requests.length < 5 ? "просьбы" : "просьб"))) : ""), (_plainTasks.length ? (_teamTasksMine + " из " + _plainTasks.length + " у тебя") : "")].filter(Boolean).join(" · ")
-            : (_isOwner ? "Поставь задание или попроси круг" : "Попроси круг о помощи"),
-          render: () => (<>
-            {/* ПРОСЬБЫ — дело, которое берёт один: «Откликнуться» → volunteer_id. */}
-            {_requests.map((tk, i) => {
-              const taken = !!tk.volunteerId;
-              return (
-                <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(254,222,52,0.22)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg></span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tk.text}</div>
-                    <div style={{ fontSize: 12, color: taken ? "#1E8E4E" : "var(--text-4)", marginTop: 1 }}>{taken ? ("✓ взял: " + (tk.volunteerMe ? "Ты" : (tk.volunteerName || "участник"))) : "просьба круга · ждёт отклика"}</div>
-                  </div>
-                  {tk.volunteerMe
-                    ? <button onClick={() => claimRequest(tk, false)} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 999, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Ты откликнулся</button>
-                    : taken
-                      ? null
-                      : <button onClick={() => openSheet(<RespondRequestSheetLive text={tk.text} teamName={t.name} onConfirm={() => claimRequest(tk, true)} />)} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Откликнуться</button>}
-                  {_isOwner && <button onClick={() => removeTeamTaskCloud(tk.id)} className="tap" aria-label="Убрать просьбу" style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: 0, background: "transparent", color: "var(--text-5)", cursor: "pointer", display: "grid", placeItems: "center" }}><I.X size={14} /></button>}
-                </div>
-              );
-            })}
-            {/* ЗАДАНИЯ владельца — отмечаешь СВОЁ выполнение. */}
-            {_plainTasks.map((tk, i) => (
-              <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: (i || _requests.length) ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
-                <button onClick={() => toggleMyTeamTask(tk)} className={"check-btn" + (tk.doneByMe ? "" : " unchecked")} aria-label={tk.doneByMe ? "Снять мою отметку" : "Я выполнил"}
-                  style={{ width: 26, height: 26, flexShrink: 0, cursor: "pointer", ...(tk.doneByMe ? { "--check-color": accent } : {}) }}>
-                  {tk.doneByMe && <I.Check size={14} strokeWidth={3} color="#fff" />}
-                </button>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, color: tk.doneByMe ? "var(--text-4)" : "var(--text)", textDecoration: tk.doneByMe ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tk.text}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>{(tk.doneCount || 0) + " из " + _teamTasksTotal + " выполнили"}</div>
-                </div>
-                {_isOwner && (
-                  <button onClick={() => removeTeamTaskCloud(tk.id)} className="tap" aria-label="Удалить задание" style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: "var(--text-5)", cursor: "pointer", display: "grid", placeItems: "center" }}><I.X size={15} /></button>
-                )}
-              </div>
-            ))}
-            {_teamTasks.length === 0 && (
-              <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>{_isOwner ? "Пока пусто. Поставь задание или попроси круг о помощи." : "Пока пусто. Попроси круг о помощи — кто-то откликнется."}</div>
-            )}
-            {/* Задание — только владелец (RLS). */}
-            {_isOwner && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: _teamTasks.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
-                <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={14} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
-                <input value={newTeamTask} onChange={(e) => setNewTeamTask(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTeamTaskCloud(); } }} placeholder="Добавить задание…"
-                  style={{ flex: 1, minWidth: 0, background: "transparent", border: 0, outline: 0, fontSize: 15, color: "var(--text)", fontFamily: "inherit" }} />
-                {newTeamTask.trim() && <button onClick={addTeamTaskCloud} className="tap" style={{ flexShrink: 0, border: 0, background: accent, color: "#fff", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Добавить</button>}
-              </div>
-            )}
-            {/* Попросить круг — ЛЮБОЙ участник (kind='request'). */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") }}>
-              <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(254,222,52,0.22)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg></span>
-              <input value={newTeamRequest} onChange={(e) => setNewTeamRequest(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTeamRequestCloud(); } }} placeholder="Попросить круг о помощи…"
-                style={{ flex: 1, minWidth: 0, background: "transparent", border: 0, outline: 0, fontSize: 15, color: "var(--text)", fontFamily: "inherit" }} />
-              {newTeamRequest.trim() && <button onClick={addTeamRequestCloud} className="tap" style={{ flexShrink: 0, border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Попросить</button>}
-            </div>
-          </>),
-        } : null),
-        // «Календарь» и «Люди» подняты в TeamPeopleCalendarLive наверх (David fork 3) — здесь убраны.
-        // «Баланс круга» отложён 2026-07-13 (см. _parked/env-balance/) — секция убрана.
-        null,
-      ].filter(Boolean)} />
-
-      {/* Чат цели переехал в hero-шапку справа (David: «доступ к чату стеклянной кнопкой в блоке»). */}
-
-      {/* ПОКИНУТЬ — только участник (у него нет карандаша). Владелец УДАЛЯЕТ круг со шторки правки
-          (карандаш) — David: «удалить никчему на главной внутри круга». */}
+      {/* ПОКИНУТЬ — только участник (владелец удаляет круг из шторки правки). */}
       {!_isOwner && (
         <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: false, navigate, openSheet, returnTo: from })} className="tap"
-          style={{ width: "100%", marginTop: 26, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          style={{ width: "100%", marginTop: 24, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
           <I.Logout size={17}/> Покинуть цель
         </button>
       )}
-      </div>
     </div>
   );
 }

@@ -911,11 +911,16 @@ function CourseDetailLive() {
    demo/fresh SEED conversation (and its emoji-placeholder Photo path) is gone.
    A cloud-linked team gets the REAL shared+realtime chat; a not-yet-synced local
    team keeps the per-team persisted history (survives reloads). ─── */
-function TeamChatLive() {
+function TeamChatLive(props) {
+  props = props || {};
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
-  const team = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", members: [] };
+  // embed=true → чат живёт ВНУТРИ вкладки «Чат» на экране цели (без своей шапки/полноэкранной
+  // высоты). Иначе — как раньше: отдельный экран team-chat с PageHeader. Команда берётся из props
+  // (встраивание) или из параметров навигации (отдельный экран).
+  const embed = !!props.embed;
+  const team = props.team || params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", members: [] };
   // D4 — a cloud-linked team gets the REAL shared+realtime chat; a local-only team
   // (no cloudId yet) keeps the local persisted behaviour below.
   const cloud = (window.bosCloud && window.bosCloud.enabled() && team.cloudId) ? window.bosCloud : null;
@@ -1025,14 +1030,11 @@ function TeamChatLive() {
     </div>
   );
 
-  return (
-    <div className="page-in" style={{ height: "calc(100% + 90px)", margin: "-60px 0 -30px", display: "flex", flexDirection: "column", paddingTop: "max(60px, var(--tg-top-inset, 0px))", overflow: "hidden" }}>
-      <div style={{ padding: "0 14px" }}>
-        <PageHeader title={team.name} onBack={() => navigate("team-detail", { team, from: params?.from })}
-          right={(() => { const n = memberCount != null ? memberCount : (team.members && team.members.length); return n ? <span style={{ fontSize: 12, color: "var(--text-4)", whiteSpace: "nowrap" }}>{n} 👥</span> : null; })()} />
-      </div>
-
-      <div ref={scrollRef} className="screen-scroll" style={{ flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+  // Лента + композер — общие для обоих режимов; отличается только внешняя рамка.
+  const feed = (
+      <div ref={scrollRef} className="screen-scroll" style={embed
+        ? { maxHeight: "56vh", overflowY: "auto", padding: "2px 2px 10px", display: "flex", flexDirection: "column", gap: 10, WebkitOverflowScrolling: "touch" }
+        : { flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         {msgs.length === 0 ? (
           <div style={{ margin: "auto", textAlign: "center", padding: "0 30px" }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>💬</div>
@@ -1062,8 +1064,11 @@ function TeamChatLive() {
           </div>
         ))}
       </div>
-
-      <div style={{ flexShrink: 0, background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)", padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "flex-end", gap: 8 }}>
+  );
+  const composer = (
+      <div style={embed
+        ? { flexShrink: 0, display: "flex", alignItems: "flex-end", gap: 8, marginTop: 4 }
+        : { flexShrink: 0, background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)", padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "flex-end", gap: 8 }}>
         <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
         <button onClick={pickPhoto} className="tap" aria-label="Прикрепить фото" style={{ width: 38, height: 38, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -1074,6 +1079,18 @@ function TeamChatLive() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? "#fff" : "var(--text-4)"} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
         </button>
       </div>
+  );
+  // Встраивание в вкладку «Чат» — только лента + композер, без шапки и полноэкранной высоты.
+  if (embed) return (<div style={{ display: "flex", flexDirection: "column" }}>{feed}{composer}</div>);
+
+  return (
+    <div className="page-in" style={{ height: "calc(100% + 90px)", margin: "-60px 0 -30px", display: "flex", flexDirection: "column", paddingTop: "max(60px, var(--tg-top-inset, 0px))", overflow: "hidden" }}>
+      <div style={{ padding: "0 14px" }}>
+        <PageHeader title={team.name} onBack={() => navigate("team-detail", { team, from: params?.from })}
+          right={(() => { const n = memberCount != null ? memberCount : (team.members && team.members.length); return n ? <span style={{ fontSize: 12, color: "var(--text-4)", whiteSpace: "nowrap" }}>{n} 👥</span> : null; })()} />
+      </div>
+      {feed}
+      {composer}
     </div>
   );
 }
