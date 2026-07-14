@@ -175,12 +175,17 @@ function HabitDetailLive() {
   // облачного round-trip'а. Раньше лицо всплывало лишь после выхода-входа (David: «должно сразу же»).
   const _threadBlock = (_shared && h.threadOff !== true && typeof SkyThreadLive === "function") ? (() => {
     const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
-    const _marks = buddies.filter((m) => m.todayAt).map((m) => ({ id: m.id, name: m.me ? "Ты" : m.name, avatar: m.avatar, me: !!m.me, ts: (typeof bosParseTs === "function" ? bosParseTs(m.todayAt) : new Date(m.todayAt)) }));
-    // Я отметился сегодня, но облачная метка ещё не доехала → показываю себя ЖИВЫМ прямо сейчас.
+    const _pt = (x) => (typeof bosParseTs === "function" ? bosParseTs(x) : new Date(x));
+    // ДРУГИЕ — из облака. МОЁ лицо НЕ берём из облака (оно отстаёт): ведём его локальной галочкой,
+    // чтобы снятие чекмарка убирало меня СРАЗУ, а не ждало полла (David: «должно исчезать в реалтайме»).
+    const _marks = buddies.filter((m) => m.todayAt && !m.me).map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, me: false, ts: _pt(m.todayAt) }));
     const _iDid = h.done || (_isQuant && _qCount > 0);
     const _meB = buddies.find((m) => m.me);
-    if (_iDid && _meB && !_marks.some((m) => m.me)) {
-      _marks.push({ id: _meB.id, name: "Ты", avatar: _meB.avatar, me: true, ts: new Date(), fresh: true });
+    if (_iDid && _meB) {
+      // Уже есть облачная метка (отметился раньше сегодня) → показываю в её реальное время без «pop».
+      // Только что тапнул, облако не доехало → рисую себя СЕЙЧАС с пружинной анимацией.
+      const _cloudAt = _meB.todayAt;
+      _marks.push({ id: _meB.id, name: "Ты", avatar: _meB.avatar, me: true, ts: _cloudAt ? _pt(_cloudAt) : new Date(), fresh: !_cloudAt });
     }
     const _doneToday = buddies.filter((m) => (m.days && _tk && m.days[_tk]) || (m.me && _iDid)).length;
     let _rest = null;

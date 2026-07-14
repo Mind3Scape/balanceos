@@ -4464,10 +4464,23 @@ function TeamDetailLive() {
     return () => { on = false; clearInterval(iv); };
   }, [_rosterLive, t.cloudId, habitsTick]);
   // Лица на нить: участник появляется в момент своей ПЕРВОЙ отметки за сегодня.
+  // МОЁ присутствие ведётся ЛОКАЛЬНОЙ галочкой (doneByMe), не облаком: отметил любую привычку круга
+  // → появляюсь СРАЗУ (fresh=pop, пока облако не доехало); снял галочку → исчезаю в реалтайме, даже
+  // если облако ещё держит старую метку (David: «нестабильно появлялась/исчезала»).
+  const _iDidCircle = (liveTeamHabits || []).some((h) => h.doneByMe);
   const skyMarks = React.useMemo(() => {
-    if (!skyT || !skyT.times || !Array.isArray(members)) return [];
-    return members.filter((m) => skyT.times[m.id]).map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, ts: (typeof bosParseTs === "function" ? bosParseTs(skyT.times[m.id]) : new Date(skyT.times[m.id])) }));
-  }, [skyT, members, meId]);
+    if (!Array.isArray(members)) return [];
+    const _t = (skyT && skyT.times) || {};
+    const _pt = (x) => (typeof bosParseTs === "function" ? bosParseTs(x) : new Date(x));
+    // Все, кроме меня — из облака (первая отметка за сегодня).
+    const out = members.filter((m) => m.id !== meId && _t[m.id]).map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, me: false, ts: _pt(_t[m.id]) }));
+    const meM = members.find((m) => m.id === meId);
+    if (_iDidCircle && meM) {
+      const cloudTs = _t[meId];
+      out.push({ id: meM.id, name: meM.name, avatar: meM.avatar, me: true, ts: cloudTs ? _pt(cloudTs) : new Date(), fresh: !cloudTs });
+    }
+    return out;
+  }, [skyT, members, meId, _iDidCircle]);
   // «Живёт N-й день» — возраст круга от created_at (стрейк-механика огня — позже).
   const circleAgeDays = (skyT && skyT.createdAt) ? Math.max(1, Math.floor((Date.now() - new Date(skyT.createdAt).getTime()) / 86400000) + 1) : null;
   // PAYOUT — when a STAKED goal is reached, OPEN the bank: idempotently settle MY row (co-op:
