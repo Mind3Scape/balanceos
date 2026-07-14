@@ -3081,7 +3081,9 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
   ));
 
   // Ряд по макету: обложка «Суть» → (празднование уровня, если есть) → карточки механик.
-  const rail = [<DiscoveryCoverCard key="cover" onOpen={() => openDisc("core")} />];
+  // Обложка «Как устроен Balance» открывает НАСТОЯЩИЙ гид (GuideLive), а не мини-шторку «core»
+  // (David 2026-07-14: «пусть всплывает наш гайд, а не заглушка»). Гид ушёл из настроек — тут его дом.
+  const rail = [<DiscoveryCoverCard key="cover" onOpen={() => { bosDiscMark("bos:discoverySeen", "core"); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} />];
   if (showLevelUp) rail.push(<DiscoveryLevelUpCard key={"lvl" + userLevel} level={userLevel} unlock={BOS_LEVEL_UNLOCKS[userLevel]} onOpen={() => { ackLevel(); openDisc("xp"); }} onDismiss={(ev) => { ev.stopPropagation(); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } ackLevel(); }} />);
   mechCards.forEach((n) => rail.push(n));
 
@@ -3700,7 +3702,97 @@ function ThanksSheetLive({ offerId, toId, toName, week, onDone }) {
   );
 }
 
+// ── «ОТКРЫТЫЕ КРУГИ» — карусель под гидом на «Все» (David 2026-07-14) ──────────────────────
+// Заменила «Просьбы твоих кругов». Показывает НАСТОЯЩИЕ публичные круги из облака (тот, что уже
+// живёт, + новые) первыми, затем — заготовленные ПОПУЛЯРНЫЕ шаблоны (POPULAR_OPEN_CIRCLES): тап
+// заводит ТВОЙ публичный круг, который тут же виден другим. Без бутафорских участников. «Все →»
+// ведёт на полный список (чип «Круги»). Пусто/оффлайн → остаются заготовки, раздел не мёртвый.
+function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var _l = React.useState(null), list = _l[0], setList = _l[1];   // реальные публичные круги (null=грузим)
+  var _b = React.useState({}), busy = _b[0], setBusy = _b[1];
+  var _rq = React.useState({}), reqd = _rq[0], setReqd = _rq[1];
+  React.useEffect(function () {
+    var on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.discoverTeams) {
+        window.bosCloud.discoverTeams().then(function (ts) { if (on) setList(Array.isArray(ts) ? ts : []); }).catch(function () { if (on) setList([]); });
+      } else setList([]);
+    } catch (e) { setList([]); }
+    return function () { on = false; };
+  }, []);
+  // круги, где я уже состою/владею — не показываем (это витрина чужого/нового)
+  var mineById = {}; ((app && app.teams) || []).forEach(function (t) { if (t && t.cloudId) mineById[t.cloudId] = t; });
+  var real = (list || []).filter(function (t) { return t && !mineById[t.id]; });
+  // какие популярные шаблоны я уже завёл (по seedId) — помечаем «Ты в деле»
+  var mineSeed = {}; ((app && app.teams) || []).forEach(function (t) { if (t && t.seedId) mineSeed[t.seedId] = t; });
+  var join = function (t) {
+    if (busy[t.id] || reqd[t.id]) return;
+    setBusy(function (b) { return Object.assign({}, b, { [t.id]: true }); });
+    try {
+      window.bosCloud.requestJoin(t.id).then(function (res) {
+        setBusy(function (b) { return Object.assign({}, b, { [t.id]: false }); });
+        if (!res) return;
+        if (res.pending) { setReqd(function (r) { return Object.assign({}, r, { [t.id]: true }); }); return; }
+        // мгновенное вступление (до системы одобрения) — уводим в деталь круга
+        navigate("team-detail", { team: { cloudId: t.id, name: t.name, emblem: t.emblem || "✨", vis: t.vis, joined: true, members: [] }, from: "community" });
+      });
+    } catch (e) { setBusy(function (b) { return Object.assign({}, b, { [t.id]: false }); }); }
+  };
+  var startSeed = function (seed) {
+    var mine = mineSeed[seed.id];
+    if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
+    s.open(<ChallengeStartSheetLive seed={seed} openCircle={true} onStart={function () { bosStartSeedCircleLive(app, navigate, seed, "public"); }} />);
+  };
+  var CARD = { position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 158, borderRadius: 20, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", color: "var(--text)", fontFamily: "inherit" };
+  var TILE = { width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 };
+  var chip = function (txt, live) { return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: live ? "#B4820A" : "var(--text-4)", background: live ? "rgba(240,195,10,0.14)" : "var(--surface-3)", borderRadius: 999, padding: "3px 8px", marginTop: 9 }}>{txt}</span>; };
+  var cards = [];
+  // 1) реальные открытые круги — «живые»
+  real.slice(0, 6).forEach(function (t) {
+    var pending = !!reqd[t.id];
+    cards.push(
+      <div key={"real:" + t.id} style={CARD}>
+        <span style={TILE}>{typeof bosIcon === "function" ? bosIcon(t.emblem || "✨", 23, null) : (t.emblem || "✨")}</span>
+        <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, marginTop: 11 }}>{t.name}</span>
+        {chip("🌐 " + (t.members || 0) + " участ.", true)}
+        <button onClick={function () { join(t); }} disabled={busy[t.id] || pending} className="tap" data-haptic="selection"
+          style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "9px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: pending ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: pending ? "var(--text-3)" : "var(--cta-ink, #fff)" }}>{pending ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
+      </div>
+    );
+  });
+  // 2) заготовленные популярные — «заведи открытый»
+  POPULAR_OPEN_CIRCLES.forEach(function (seed) {
+    var joined = !!mineSeed[seed.id];
+    cards.push(
+      <button key={"seed:" + seed.id} onClick={function () { startSeed(seed); }} className="tap" style={CARD}>
+        <span style={TILE}>{typeof bosIcon === "function" ? bosIcon(seed.emblem, 23, null) : seed.emblem}</span>
+        <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, marginTop: 11 }}>{seed.name}</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.35, marginTop: 4, minHeight: 30 }}>{seed.hook}</span>
+        {chip(joined ? "Ты в деле ✓" : (seed.goalText + " · +" + seed.reward + " XP"), false)}
+      </button>
+    );
+  });
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 4px 2px" }}>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px" }}>🌐 Открытые круги</span>
+        {onAll && (
+          <button onClick={onAll} className="tap" data-haptic="selection" style={{ border: 0, background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 1, fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", padding: 0 }}>
+            Все <I.ChevronRight size={13} color="var(--text-4)" />
+          </button>
+        )}
+      </div>
+      <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "10px 12px 4px 4px", margin: "0 -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+        {cards}
+      </div>
+    </div>
+  );
+}
+
 // ── «ПРОСЬБЫ ТВОИХ КРУГОВ» — открытые просьбы (kind='request', без отклика) на главной ──
+// АРХИВ (David 2026-07-14): убрана с «Все» — периодически всплывала, пользы мало. Компонент жив,
+// но нигде не смонтирован. Вернуть = снова поставить <CircleRequestsLive/> в ленту.
 function CircleRequestsLive({ app, navigate, isDark }) {
   var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
   var teams = ((app && app.teams) || []).filter(function (t) { return t && t.cloudId; });
@@ -3988,7 +4080,9 @@ function CommunityLive() {
             <BosBlock name="suggest"><CommunitySuggestLive app={app} navigate={navigate} isDark={isDark} onOpen={() => setFilter("circles")} /></BosBlock>
             {/* «Мои круги» УБРАНЫ (David 2026-07-11: «круги и так на Главной, тут не нужны»). Свои
                 публичные круги теперь видны в «Открытых» (фильтр «Круги», раздел «Твои открытые»). */}
-            <BosBlock name="circle-requests"><CircleRequestsLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
+            {/* Под гидом — карусель ОТКРЫТЫХ кругов (David 2026-07-14): реальные публичные круги +
+                заготовленные популярные шаблоны. Заменила «Просьбы твоих кругов» (в архив). */}
+            <BosBlock name="open-circles"><OpenCirclesRailLive app={app} navigate={navigate} isDark={isDark} onAll={() => setFilter("circles")} /></BosBlock>
             {/* СКРЫТО (David 2026-07-12): «Помощь от своих» (circle-help) и «Мой вклад ·
                 черновик для общих кругов» (my-contribution) убраны с «Все». Компоненты живы —
                 вернуть = раскомментировать.
@@ -4434,7 +4528,7 @@ function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, team
           <div style={{ overflowX: "auto", scrollbarWidth: "none" }}>
             <div style={{ display: "grid", gridAutoFlow: "column", gridTemplateRows: "repeat(7, 10px)", gap: 3, width: "max-content", margin: "0 auto" }}>
               {cols.map(function (col, ci) { return col.map(function (cell, ri) {
-                return <span key={ci + "-" + ri} title={cell.k} style={{ width: 10, height: 10, borderRadius: 3, background: hmColor[cell.cls], boxShadow: cell.today ? "inset 0 0 0 1.5px #FEDE34" : (cell.cls === "future" ? "inset 0 0 0 0.7px " + (isDark ? "rgba(255,255,255,0.12)" : "#e3e3e3") : "none") }} />;
+                return <span key={ci + "-" + ri} title={cell.k} style={{ width: 10, height: 10, borderRadius: "50%", background: hmColor[cell.cls], boxShadow: cell.today ? "inset 0 0 0 1.5px #FEDE34" : (cell.cls === "future" ? "inset 0 0 0 0.7px " + (isDark ? "rgba(255,255,255,0.12)" : "#e3e3e3") : "none") }} />;
               }); })}
             </div>
           </div>
@@ -4447,7 +4541,7 @@ function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, team
               {monthCells.map(function (cell, i) {
                 if (!cell) return <span key={"g" + i} />;
                 var s = cdFill(cell.frac, cell.today, cell.future);
-                return <span key={cell.k} style={{ aspectRatio: "1", borderRadius: 11, display: "grid", placeItems: "center", fontSize: 11, fontWeight: cell.today ? 800 : 600, ...s }}>{cell.d}</span>;
+                return <span key={cell.k} style={{ aspectRatio: "1", borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 11, fontWeight: cell.today ? 800 : 600, ...s }}>{cell.d}</span>;
               })}
             </div>
           </div>
@@ -4859,7 +4953,8 @@ function TeamDetailLive() {
   // ── ЦЕЛЬ С ТАБАМИ (макет «Цель с табами», David) ──────────────────────────────
   // Одна страница, три состояния: Обзор · Привычки · Чат. Шапка (кольцо-заряд + имя +
   // строка «прогресс · огонь · люди») постоянна; тумблер живёт в блоке содержимого.
-  const [tab, setTab] = React.useState("overview");
+  const [tab, setTab] = React.useState("habits"); // David: открываем сразу на «Привычки»
+  const chatMode = tab === "chat";
   const unread = (_chatLive && chatPeek && chatPeek.unread) ? chatPeek.unread : 0;
   const pct = Math.round(gp * 100);
   // «огонь» = доля круга, что уже отметилась сегодня (живая, из потока), а не выдуманный %.
@@ -4910,10 +5005,12 @@ function TeamDetailLive() {
   };
 
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+    // На вкладке «Чат» страница = полноэкранная flex-колонка (как чат ИИ): низ-композер сам
+    // прилипает к клавиатуре, страница не скроллится. На остальных вкладках — обычный скролл.
+    <div className="page-in" style={chatMode ? { padding: "0 16px", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" } : { padding: "0 16px 24px" }}>
       {/* НАВИГАЦИЯ: только действия справа — правка(владелец) + позвать. «Назад» не рисуем:
           в Telegram есть родная кнопка (David); в браузере/PWA даём запасную стеклянную слева. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, minHeight: 42 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, minHeight: 42, flexShrink: 0 }}>
         {_inTG
           ? <span />
           : <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={navBtn}><I.ChevronLeft size={20} strokeWidth={2.4} /></button>}
@@ -4924,7 +5021,7 @@ function TeamDetailLive() {
       </div>
 
       {/* ШАПКА — постоянна: кольцо-заряд с эмблемой + имя + строка прогресс·огонь·люди. */}
-      <div style={{ ...card, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ ...card, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
         <div style={{ position: "relative", width: 58, height: 58, flexShrink: 0 }}>
           <svg width="58" height="58" viewBox="0 0 58 58">
             <circle cx="29" cy="29" r="26" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "#efefef"} strokeWidth="4" />
@@ -4938,24 +5035,26 @@ function TeamDetailLive() {
         </div>
       </div>
 
-      {/* СОДЕРЖИМОЕ + ТУМБЛЕР: табы живут внутри блока (макет). */}
-      <div style={contentCard}>
-        <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.06)" : "#efefef", borderRadius: 999, padding: 5, gap: 4 }}>
+      {/* СОДЕРЖИМОЕ + ТУМБЛЕР: табы живут внутри блока (макет). На «Чате» блок тянется на всю
+          оставшуюся высоту (flex:1), чтобы лента заполняла экран, а композер сел на низ. */}
+      <div style={chatMode ? { ...contentCard, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginBottom: 12 } : contentCard}>
+        <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.06)" : "#efefef", borderRadius: 999, padding: 5, gap: 4, flexShrink: 0 }}>
           <button style={tabItem(tab === "overview")} onClick={() => setTab("overview")} className="tap" data-haptic="selection">Обзор</button>
           <button style={tabItem(tab === "habits")} onClick={() => setTab("habits")} className="tap" data-haptic="selection">Привычки</button>
           <button style={tabItem(tab === "chat")} onClick={() => { setTab("chat"); markChatRead(); }} className="tap" data-haptic="selection">{unread ? "Чат · " + unread : "Чат"}</button>
         </div>
 
-        {/* ── ОБЗОР — орбита + контекст + описание. Воздух сверху/снизу, чтобы орбита НЕ
-            наезжала на тумблер и на текст (David). ── */}
+        {/* ── ОБЗОР — орбита + контекст + описание. Коробка ЗАМЕТНО больше самой орбиты, чтобы
+            спутники-лица помещались целиком и НЕ обрезались тумблером сверху / текстом снизу
+            (David: «увеличь блок, чтобы орбиты помещались хорошо»). Без overflow-обрезки. ── */}
         {tab === "overview" && (
-          <div style={{ textAlign: "center", paddingTop: 18 }}>
+          <div style={{ textAlign: "center", paddingTop: 20 }}>
             {gStyle.orbits ? (
-              <div style={{ width: 192, height: 192, margin: "0 auto", display: "grid", placeItems: "center", overflow: "hidden" }}>
+              <div style={{ width: 236, height: 236, margin: "0 auto", display: "grid", placeItems: "center" }}>
                 <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
                   habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
                   people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done, progress: _pulseFor(f) }))}
-                  size={192} dark={isDark} progress={gp} />
+                  size={200} dark={isDark} progress={gp} />
               </div>
             ) : (
               <div style={{ position: "relative", width: 150, height: 150, margin: "0 auto" }}>
@@ -4989,10 +5088,11 @@ function TeamDetailLive() {
         )}
 
         {/* ── ЧАТ — лента круга прямо тут. Держим СМОНТИРОВАННЫМ всегда (display), чтобы при
-            возврате на вкладку не мигало «пусто → прогрузка» и блок не скакал (David). ── */}
-        <div style={{ marginTop: 12, display: tab === "chat" ? "block" : "none" }}>
+            возврате на вкладку не мигало «пусто → прогрузка» и блок не скакал (David).
+            На активной вкладке — flex:1, чтобы лента заполнила экран, композер сел на низ. ── */}
+        <div style={{ marginTop: 12, display: chatMode ? "flex" : "none", flexDirection: "column", flex: chatMode ? 1 : "none", minHeight: 0 }}>
           {typeof TeamChatLive === "function"
-            ? <TeamChatLive embed team={t} />
+            ? <TeamChatLive embed active={chatMode} team={t} />
             : <div style={{ padding: "20px 2px", fontSize: 13, color: "var(--text-4)", textAlign: "center" }}>Чат недоступен</div>}
         </div>
       </div>

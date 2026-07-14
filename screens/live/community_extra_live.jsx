@@ -925,6 +925,7 @@ function TeamChatLive(props) {
   // высоты). Иначе — как раньше: отдельный экран team-chat с PageHeader. Команда берётся из props
   // (встраивание) или из параметров навигации (отдельный экран).
   const embed = !!props.embed;
+  const active = props.active !== false; // встроенный чат: видима ли вкладка (для докрутки вниз)
   const team = props.team || params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", members: [] };
   // D4 — a cloud-linked team gets the REAL shared+realtime chat; a local-only team
   // (no cloudId yet) keeps the local persisted behaviour below.
@@ -993,20 +994,21 @@ function TeamChatLive(props) {
     return () => { on = false; try { unsub(); } catch (e) {} };
   }, [cloudId, mapRow]);
 
-  // ВЫСОТА КЛАВИАТУРЫ (только встроенный чат): когда клавиатура выезжает, композер должен
-  // «прилипнуть» к её верхней кромке, чтобы поле ввода и кнопка отправки всегда были видны
-  // (David). Считаем через visualViewport: сколько экрана съела клавиатура снизу.
-  const [kb, setKb] = React.useState(0);
+  // Встроенный чат: при показе вкладки И при выезде клавиатуры — докручиваем ленту В САМЫЙ НИЗ
+  // (David: «открываю чат — сразу последнее сообщение, не середина»). Композер прилипает к
+  // клавиатуре сам, потому что чат — полноэкранная flex-колонка (как чат ИИ), низ = композер.
+  React.useLayoutEffect(() => {
+    if (!embed || !active) return;
+    const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight;
+    const t1 = setTimeout(() => { const e2 = scrollRef.current; if (e2) e2.scrollTop = e2.scrollHeight; }, 60);
+    return () => clearTimeout(t1);
+  }, [embed, active, msgs.length]);
   React.useEffect(() => {
     if (!embed || typeof window === "undefined" || !window.visualViewport) return;
     const vv = window.visualViewport;
-    const onVV = () => {
-      const gap = Math.max(0, (window.innerHeight || 0) - vv.height - vv.offsetTop);
-      setKb(gap > 90 ? Math.round(gap) : 0); // порог, чтобы адресная строка/мелкие сдвиги не считались клавиатурой
-      requestAnimationFrame(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; });
-    };
-    vv.addEventListener("resize", onVV); vv.addEventListener("scroll", onVV);
-    return () => { vv.removeEventListener("resize", onVV); vv.removeEventListener("scroll", onVV); };
+    const onVV = () => { requestAnimationFrame(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }); };
+    vv.addEventListener("resize", onVV);
+    return () => { vv.removeEventListener("resize", onVV); };
   }, [embed]);
 
   const push = (m) => setMsgs(list => [...list, { who: myName, me: true, c: "#FEDE34", time: nowLabel(), ...m }]);
@@ -1055,7 +1057,7 @@ function TeamChatLive(props) {
   // Лента + композер — общие для обоих режимов; отличается только внешняя рамка.
   const feed = (
       <div ref={scrollRef} className="screen-scroll" style={embed
-        ? { minHeight: 300, maxHeight: "56vh", overflowY: "auto", padding: "2px 2px 10px", paddingBottom: kb > 0 ? 66 : 10, display: "flex", flexDirection: "column", gap: 10, WebkitOverflowScrolling: "touch" }
+        ? { flex: 1, minHeight: 0, overflowY: "auto", padding: "2px 2px 8px", display: "flex", flexDirection: "column", gap: 10, WebkitOverflowScrolling: "touch" }
         : { flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         {msgs.length === 0 ? (
           <div style={{ margin: "auto", textAlign: "center", padding: "0 30px" }}>
@@ -1087,14 +1089,11 @@ function TeamChatLive(props) {
         ))}
       </div>
   );
-  // Встроенный композер: пока клавиатура открыта — position:fixed к её верхней кромке
-  // (bottom = высота клавиатуры), чтобы поле и «отправить» всегда были на виду.
-  const composerFixed = embed && kb > 0;
+  // Встроенный композер живёт ВНИЗУ полноэкранной flex-колонки чата (как чат ИИ) — клавиатура
+   // выезжает → колонка ужимается → композер сам «прилипает» к верхней кромке клавиатуры.
   const composer = (
       <div style={embed
-        ? (composerFixed
-          ? { position: "fixed", left: 12, right: 12, bottom: kb, zIndex: 60, display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 10px", borderRadius: 18, background: isDark ? "rgba(24,24,28,0.94)" : "rgba(255,255,255,0.96)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", boxShadow: "0 -2px 18px rgba(0,0,0,0.14)" }
-          : { flexShrink: 0, display: "flex", alignItems: "flex-end", gap: 8, marginTop: 4 })
+        ? { flexShrink: 0, display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 8, paddingBottom: "calc(2px + var(--bos-safe-bottom, 0px))" }
         : { flexShrink: 0, background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)", padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "flex-end", gap: 8 }}>
         <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
         <button onClick={pickPhoto} className="tap" aria-label="Прикрепить фото" style={{ width: 38, height: 38, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
@@ -1107,8 +1106,9 @@ function TeamChatLive(props) {
         </button>
       </div>
   );
-  // Встраивание в вкладку «Чат» — только лента + композер, без шапки и полноэкранной высоты.
-  if (embed) return (<div style={{ display: "flex", flexDirection: "column" }}>{feed}{composer}</div>);
+  // Встраивание в вкладку «Чат» — полноэкранная flex-колонка (лента flex:1 + композер внизу),
+  // как чат ИИ: без своей шапки, высоту даёт родитель (вкладка «Чат» = flex:1).
+  if (embed) return (<div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>{feed}{composer}</div>);
 
   return (
     <div className="page-in" style={{ height: "calc(100% + 90px)", margin: "-60px 0 -30px", display: "flex", flexDirection: "column", paddingTop: "max(60px, var(--tg-top-inset, 0px))", overflow: "hidden" }}>
