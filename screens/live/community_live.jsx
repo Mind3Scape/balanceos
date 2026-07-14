@@ -5020,24 +5020,39 @@ function TeamDetailLive() {
         </div>
       </div>
 
-      {/* ШАПКА — постоянна: кольцо-заряд с эмблемой + имя + строка прогресс·огонь·люди. */}
-      <div style={{ ...card, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
-        <div style={{ position: "relative", width: 58, height: 58, flexShrink: 0 }}>
-          <svg width="58" height="58" viewBox="0 0 58 58">
-            <circle cx="29" cy="29" r="26" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "#efefef"} strokeWidth="4" />
-            {gp > 0 && <circle cx="29" cy="29" r="26" fill="none" stroke={ringColor} strokeWidth="4" strokeLinecap="round" strokeDasharray={(gp * ringCirc) + " " + ringCirc} transform="rotate(-90 29 29)" style={{ transition: "stroke-dasharray .6s ease", ...(gDone ? { filter: "drop-shadow(0 0 5px " + ringColor + "80)" } : {}) }} />}
-          </svg>
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 24, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 24, null)}</div>
+      {/* ШАПКА — постоянна. На «Чате» — КОМПАКТНАЯ строка (маленькое кольцо + имя), чтобы чат
+          получил почти весь экран как чат ИИ и не «сжимался» при клавиатуре (David). */}
+      {chatMode ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 2px 8px", flexShrink: 0 }}>
+          <div style={{ position: "relative", width: 34, height: 34, flexShrink: 0 }}>
+            <svg width="34" height="34" viewBox="0 0 58 58">
+              <circle cx="29" cy="29" r="26" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "#efefef"} strokeWidth="5" />
+              {gp > 0 && <circle cx="29" cy="29" r="26" fill="none" stroke={ringColor} strokeWidth="5" strokeLinecap="round" strokeDasharray={(gp * ringCirc) + " " + ringCirc} transform="rotate(-90 29 29)" />}
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 15, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 15, null)}</div>
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-          <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 2 }}>{headParts.join(" · ")}</div>
+      ) : (
+        <div style={{ ...card, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+          <div style={{ position: "relative", width: 58, height: 58, flexShrink: 0 }}>
+            <svg width="58" height="58" viewBox="0 0 58 58">
+              <circle cx="29" cy="29" r="26" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "#efefef"} strokeWidth="4" />
+              {gp > 0 && <circle cx="29" cy="29" r="26" fill="none" stroke={ringColor} strokeWidth="4" strokeLinecap="round" strokeDasharray={(gp * ringCirc) + " " + ringCirc} transform="rotate(-90 29 29)" style={{ transition: "stroke-dasharray .6s ease", ...(gDone ? { filter: "drop-shadow(0 0 5px " + ringColor + "80)" } : {}) }} />}
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 24, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 24, null)}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 2 }}>{headParts.join(" · ")}</div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* СОДЕРЖИМОЕ + ТУМБЛЕР: табы живут внутри блока (макет). На «Чате» блок тянется на всю
-          оставшуюся высоту (flex:1), чтобы лента заполняла экран, а композер сел на низ. */}
-      <div style={chatMode ? { ...contentCard, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginBottom: 12 } : contentCard}>
+          оставшуюся высоту (flex:1), чтобы лента заполняла экран, а композер сел на низ.
+          Bleed нижнего паддинга страницы (−30) — чтобы отыграть ещё высоты под ленту. */}
+      <div style={chatMode ? { ...contentCard, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 0, marginBottom: "calc(-30px - var(--bos-safe-bottom, 0px))", paddingBottom: "calc(6px + var(--bos-safe-bottom, 0px))" } : contentCard}>
         <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.06)" : "#efefef", borderRadius: 999, padding: 5, gap: 4, flexShrink: 0 }}>
           <button style={tabItem(tab === "overview")} onClick={() => setTab("overview")} className="tap" data-haptic="selection">Обзор</button>
           <button style={tabItem(tab === "habits")} onClick={() => setTab("habits")} className="tap" data-haptic="selection">Привычки</button>
@@ -5048,9 +5063,9 @@ function TeamDetailLive() {
             спутники-лица помещались целиком и НЕ обрезались тумблером сверху / текстом снизу
             (David: «увеличь блок, чтобы орбиты помещались хорошо»). Без overflow-обрезки. ── */}
         {tab === "overview" && (
-          <div style={{ textAlign: "center", paddingTop: 20 }}>
+          <div style={{ textAlign: "center", paddingTop: 22 }}>
             {gStyle.orbits ? (
-              <div style={{ width: 236, height: 236, margin: "0 auto", display: "grid", placeItems: "center" }}>
+              <div style={{ width: 236, height: 236, margin: "15px auto 15px", display: "grid", placeItems: "center" }}>
                 <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
                   habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
                   people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done, progress: _pulseFor(f) }))}
