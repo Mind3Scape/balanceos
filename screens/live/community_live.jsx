@@ -5006,8 +5006,9 @@ function TeamDetailLive() {
 
   return (
     // На вкладке «Чат» страница = полноэкранная flex-колонка (как чат ИИ): низ-композер сам
-    // прилипает к клавиатуре, страница не скроллится. На остальных вкладках — обычный скролл.
-    <div className="page-in" style={chatMode ? { padding: "0 16px", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" } : { padding: "0 16px 24px" }}>
+    // прилипает к клавиатуре. Bleed'им ТОЛЬКО нижние 30px дизайн-паддинга (как AIChatLive),
+    // но НЕ safe-area — иначе композер уезжает под home-indicator/клавиатуру и обрезается (David).
+    <div className="page-in" style={chatMode ? { padding: "0 16px", height: "calc(100% + 30px)", marginBottom: "-30px", display: "flex", flexDirection: "column", overflow: "hidden" } : { padding: "0 16px 24px" }}>
       {/* НАВИГАЦИЯ: только действия справа — правка(владелец) + позвать. «Назад» не рисуем:
           в Telegram есть родная кнопка (David); в браузере/PWA даём запасную стеклянную слева. */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, minHeight: 42, flexShrink: 0 }}>
@@ -5052,7 +5053,7 @@ function TeamDetailLive() {
       {/* СОДЕРЖИМОЕ + ТУМБЛЕР: табы живут внутри блока (макет). На «Чате» блок тянется на всю
           оставшуюся высоту (flex:1), чтобы лента заполняла экран, а композер сел на низ.
           Bleed нижнего паддинга страницы (−30) — чтобы отыграть ещё высоты под ленту. */}
-      <div style={chatMode ? { ...contentCard, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 0, marginBottom: "calc(-30px - var(--bos-safe-bottom, 0px))", paddingBottom: "calc(6px + var(--bos-safe-bottom, 0px))" } : contentCard}>
+      <div style={chatMode ? { ...contentCard, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 0, paddingBottom: 8 } : contentCard}>
         <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.06)" : "#efefef", borderRadius: 999, padding: 5, gap: 4, flexShrink: 0 }}>
           <button style={tabItem(tab === "overview")} onClick={() => setTab("overview")} className="tap" data-haptic="selection">Обзор</button>
           <button style={tabItem(tab === "habits")} onClick={() => setTab("habits")} className="tap" data-haptic="selection">Привычки</button>

@@ -1093,7 +1093,7 @@ function TeamChatLive(props) {
    // выезжает → колонка ужимается → композер сам «прилипает» к верхней кромке клавиатуры.
   const composer = (
       <div style={embed
-        ? { flexShrink: 0, display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 8, paddingBottom: "calc(2px + var(--bos-safe-bottom, 0px))" }
+        ? { flexShrink: 0, display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 8, paddingBottom: 8 }
         : { flexShrink: 0, background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)", padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "flex-end", gap: 8 }}>
         <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
         <button onClick={pickPhoto} className="tap" aria-label="Прикрепить фото" style={{ width: 38, height: 38, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
