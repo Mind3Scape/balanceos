@@ -2897,10 +2897,11 @@ function BosSphereLupaSheetLive(props) {
 
 // РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint, openSheet }.
 // ЖИВОЕ КОЛЕСО БАЛАНСА (Living Radar). Два жеста:
-//  • тап по СФЕРЕ-узлу → аккордеон раздвигается вниз со списком привычек/целей этой сферы;
-//  • тап по КОЛЕСУ (радар в центре) → FLIP-анимация: диск отъезжает вверх, сферы разлетаются
-//    в список с процентами (ранжир по убыванию). Повторный тап по диску — обратно в колесо.
-// Кнопки «назад» нет. Тап по строке в списке → лупа сферы. Процент баланса — пилюля в шапке.
+//  • тап по СФЕРЕ-узлу → аккордеон вниз со списком её привычек/целей;
+//  • тап по КОЛЕСУ (радар) → FLIP: радар уезжает ВЛЕВО-вверх маленьким, справа — короткая
+//    подсказка Balance AI под твой контекст, а 6 сфер разлетаются в ранжир-список «% ».
+// FLIP заякорен на КРУЖКЕ-сфере (.lr-orb), поэтому иконка не прыгает при перестроении.
+// Линии радара — non-scaling-stroke: не утоньшаются, когда радар становится маленьким.
 function BosBalanceWheelLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate, hideTitle = !!props.hideTitle, bare = !!props.bare;
   var openSheet = props.openSheet || function () {};
@@ -2909,22 +2910,22 @@ function BosBalanceWheelLive(props) {
   var SPH = data.spheres, N = SPH.length;
   var stt = React.useState(null); var selId = stt[0], setSel = stt[1];
 
-  // геометрия
   var OUT = 104, R_NODE = 120, TARGET = 0.55, targetPct = Math.round(TARGET * 100);
-  var LIST_LEFT = 6, LIST_TOP = 150, ROW_H = 58;
+  var LIST_LEFT = 6, LIST_TOP = 142, ROW_H = 54;
   var pt = function (i, r) { var t = i * Math.PI / 3; return (r * Math.sin(t)).toFixed(1) + "," + (-r * Math.cos(t)).toFixed(1); };
   var hex = function (L) { var a = []; for (var i = 0; i < N; i++) a.push(pt(i, OUT * L)); return a.join(" "); };
   var dataPts = SPH.map(function (s, i) { return pt(i, OUT * Math.max(s.v, 0.05)); }).join(" ");
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
-  var gridCol = dark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.07)";
-  var spokeCol = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
-  var goldDash = dark ? "rgba(240,200,40,0.45)" : "rgba(216,164,0,0.42)";
+  var gridCol = dark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.10)";
+  var spokeCol = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  var goldDash = dark ? "rgba(240,200,40,0.50)" : "rgba(216,164,0,0.46)";
   var goldInk = dark ? "#F0C838" : "#C8930A";
   var trackCol = dark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var iconCol = dark ? "#e8e8ea" : "#101828";
   var RC = 2 * Math.PI * 20;
 
   var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
+  var strong = null; SPH.forEach(function (s) { if (s.n && (!strong || s.v > strong.v)) strong = s; });
   var emptySph = SPH.filter(function (s) { return !s.n; });
   var cap = function (t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
   function hintFor(s) {
@@ -2934,26 +2935,35 @@ function BosBalanceWheelLive(props) {
     if (s.v >= 0.7) return [q + " — твоя сильная сфера", "Здесь ты на подъёме. Оставь силы на остальные."];
     return [q + " в движении", cap(BOS_SPHERE_NUDGE[s.id] || "небольшой ход уже поднимет сферу") + "."];
   }
+  // короткая подсказка ИИ под контекст — для режима списка (справа от маленького радара)
+  function insightNode() {
+    var filled = SPH.filter(function (s) { return s.n; });
+    if (!filled.length) return <span>Заведи первую привычку — <b>Balance AI</b> начнёт собирать твой баланс по сферам.</span>;
+    var en = SPH.length - filled.length;
+    if (filled.length <= 2 && en >= 3) return <span>Ты вкладываешься в {filled.map(function (s) { return "«" + s.l + "»"; }).join(" и ")}. Ещё {en} {en === 1 ? "сфера ждёт" : (en < 5 ? "сферы ждут" : "сфер ждут")} первого хода.</span>;
+    if (strong && weak && strong.id !== weak.id) return <span>Сильнее всего — «{strong.l}». «{weak.l}» просел: {BOS_SPHERE_NUDGE[weak.id] || "небольшой ход поднимет сферу"}.</span>;
+    return <span>Сферы держатся ровно — редкий баланс. Так держать.</span>;
+  }
   var nudge = null;
   if (weak) nudge = { s: weak, t: "«" + weak.l + "» отстаёт — " + (BOS_SPHERE_NUDGE[weak.id] || "небольшой ход уже поднимет сферу") };
   else if (emptySph.length) nudge = { s: emptySph[0], t: "Заведи первую привычку — колесо начнёт заполняться" };
 
   var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
   var selSphere = null; SPH.forEach(function (s) { if (s.id === selId) selSphere = s; });
-  var byV = SPH.slice().sort(function (a, b) { return b.v - a.v; });   // ранжир для списка процентов
+  var byV = SPH.slice().sort(function (a, b) { return b.v - a.v; });
 
-  // ── ref-ы для FLIP «колесо → список процентов» ──
   var rootRef = React.useRef(null), radarRef = React.useRef(null), dialRef = React.useRef(null);
   var nodeRefs = React.useRef({}), isListRef = React.useRef(false), animatingRef = React.useRef(false);
+  var EASE = "cubic-bezier(.32,.72,0,1)";
+  var orbOf = function (id) { var n = nodeRefs.current[id]; return n && n.querySelector(".lr-orb"); };
 
-  function nodeWheelPos(i) { var t = i * Math.PI / 3; return { x: R_NODE * Math.sin(t), y: -R_NODE * Math.cos(t) }; }
   function placeWheel() {
     SPH.forEach(function (s, i) {
       var n = nodeRefs.current[s.id]; if (!n) return;
-      var p = nodeWheelPos(i);
+      var t = i * Math.PI / 3;
       n.style.transition = "none";
-      n.style.left = "calc(50% + " + p.x.toFixed(1) + "px)";
-      n.style.top = (152 + p.y).toFixed(1) + "px";
+      n.style.left = "calc(50% + " + (R_NODE * Math.sin(t)).toFixed(1) + "px)";
+      n.style.top = (152 - R_NODE * Math.cos(t)).toFixed(1) + "px";
       n.style.transform = "translate(-50%,-50%)";
     });
   }
@@ -2962,32 +2972,33 @@ function BosBalanceWheelLive(props) {
   function dialListTransform() {
     var r = radarRef.current.getBoundingClientRect(), d = dialRef.current.getBoundingClientRect();
     var dcx = d.left + d.width / 2, dcy = d.top + d.height / 2;
-    var tx = r.left + r.width / 2, ty = r.top + 74;
-    return "translate(-50%,-50%) translate(" + (tx - dcx).toFixed(1) + "px," + (ty - dcy).toFixed(1) + "px) scale(.55)";
+    var tx = r.left + 56, ty = r.top + 60;                          // маленький радар — ВЛЕВО-вверх
+    return "translate(-50%,-50%) translate(" + (tx - dcx).toFixed(1) + "px," + (ty - dcy).toFixed(1) + "px) scale(.58)";
   }
   function flipList(toList) {
     if (animatingRef.current) return; animatingRef.current = true;
     var root = rootRef.current, dial = dialRef.current;
     var order = SPH.map(function (s) { return s.id; });
-    var first = {}; order.forEach(function (id) { first[id] = nodeRefs.current[id].getBoundingClientRect(); });
+    var first = {}; order.forEach(function (id) { var o = orbOf(id); first[id] = o.getBoundingClientRect(); });   // якорь — КРУЖОК
     if (toList) {
       byV.forEach(function (s, i) { var n = nodeRefs.current[s.id]; n.style.transition = "none"; n.style.left = LIST_LEFT + "px"; n.style.top = (LIST_TOP + i * ROW_H) + "px"; n.style.transform = "translate(0,0)"; });
     } else placeWheel();
     root.classList.toggle("list", toList);
     var from = getComputedStyle(dial).transform, to = toList ? dialListTransform() : "translate(-50%,-50%)";
     dial.getAnimations().forEach(function (a) { a.cancel(); });
-    dial.animate([{ transform: from }, { transform: to }], { duration: 640, easing: "cubic-bezier(.32,.72,0,1)", fill: "forwards" });
-    var off = {}; order.forEach(function (id) { var last = nodeRefs.current[id].getBoundingClientRect(); off[id] = { dx: first[id].left - last.left, dy: first[id].top - last.top }; });
-    order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transform = "translate(" + off[id].dx + "px," + off[id].dy + "px) " + (toList ? "" : "translate(-50%,-50%)"); });
+    dial.animate([{ transform: from }, { transform: to }], { duration: 620, easing: EASE, fill: "forwards" });
+    var off = {}; order.forEach(function (id) { var lo = orbOf(id).getBoundingClientRect(); off[id] = { dx: first[id].left - lo.left, dy: first[id].top - lo.top }; });
+    order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transform = "translate(" + off[id].dx.toFixed(1) + "px," + off[id].dy.toFixed(1) + "px) " + (toList ? "" : "translate(-50%,-50%)"); });
     void root.offsetWidth;
     var seq = toList ? byV.map(function (s) { return s.id; }) : order;
-    seq.forEach(function (id, i) { var n = nodeRefs.current[id]; n.style.transition = "transform .62s cubic-bezier(.32,.72,0,1) " + (i * 0.04) + "s"; n.style.transform = toList ? "translate(0,0)" : "translate(-50%,-50%)"; });
+    seq.forEach(function (id, i) { var n = nodeRefs.current[id]; n.style.transition = "transform .6s " + EASE + " " + (i * 0.028).toFixed(3) + "s"; n.style.transform = toList ? "translate(0,0)" : "translate(-50%,-50%)"; });
     setTimeout(function () { animatingRef.current = false; }, 720);
     isListRef.current = toList;
   }
   function tapRadar() { if (isListRef.current) flipList(false); else { setSel(null); flipList(true); } }
   function tapNode(s) { if (isListRef.current) openLupa(s); else setSel(s.id === selId ? null : s.id); }
 
+  var strokeFx = { vectorEffect: "non-scaling-stroke" };
   return (
     <div style={bare ? { padding: 0 } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "14px 16px 14px" }}>
       <div className="bosLR" ref={rootRef}>
@@ -3004,13 +3015,16 @@ function BosBalanceWheelLive(props) {
                 <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12" />
               </radialGradient>
             </defs>
-            <polygon points={hex(1)} fill="none" stroke={gridCol} strokeWidth="1" />
-            <polygon points={hex(0.667)} fill="none" stroke={gridCol} strokeWidth="1" opacity="0.7" />
-            <polygon points={hex(0.333)} fill="none" stroke={gridCol} strokeWidth="1" opacity="0.5" />
-            {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1" />; })}
-            <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.2" strokeDasharray="3 5" strokeLinecap="round" />
-            <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="1.8" strokeLinejoin="round" />
+            <polygon points={hex(1)} fill="none" stroke={gridCol} strokeWidth="1.2" style={strokeFx} />
+            <polygon points={hex(0.667)} fill="none" stroke={gridCol} strokeWidth="1.1" opacity="0.75" style={strokeFx} />
+            <polygon points={hex(0.333)} fill="none" stroke={gridCol} strokeWidth="1.1" opacity="0.5" style={strokeFx} />
+            {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1.1" style={strokeFx} />; })}
+            <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.3" strokeDasharray="3 5" strokeLinecap="round" style={strokeFx} />
+            <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="2" strokeLinejoin="round" style={strokeFx} />
           </svg>
+
+          {/* подсказка ИИ — видна только в режиме списка, справа от маленького радара */}
+          <div className="lr-insight"><span className="t">{insightNode()}</span></div>
 
           {SPH.map(function (s, i) {
             var fill = s.n ? Math.max(s.v, 0.03) : 0, off = (RC * (1 - fill)).toFixed(1);
@@ -3026,7 +3040,7 @@ function BosBalanceWheelLive(props) {
                       <linearGradient id={uid + "r" + i} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#EF9F14" /><stop offset="1" stopColor="#FEDE34" /></linearGradient>
                     </defs>
                     <circle cx="23" cy="23" r="20" fill="none" stroke={trackCol} strokeWidth="3" />
-                    {fill > 0 ? <circle cx="23" cy="23" r="20" fill="none" stroke={"url(#" + uid + "r" + i + ")"} strokeWidth="3" strokeLinecap="round" strokeDasharray={RC.toFixed(1)} strokeDashoffset={off} transform="rotate(-90 23 23)" style={{ transition: "stroke-dashoffset .7s cubic-bezier(.32,.72,0,1)" }} /> : null}
+                    {fill > 0 ? <circle cx="23" cy="23" r="20" fill="none" stroke={"url(#" + uid + "r" + i + ")"} strokeWidth="3" strokeLinecap="round" strokeDasharray={RC.toFixed(1)} strokeDashoffset={off} transform="rotate(-90 23 23)" style={{ transition: "stroke-dashoffset .7s " + EASE }} /> : null}
                   </svg>
                   <span className="lr-disc">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 17, color: iconCol })) || s.e}</span>
                 </span>
@@ -3037,7 +3051,6 @@ function BosBalanceWheelLive(props) {
           })}
         </div>
 
-        {/* аккордеон одной сферы (тап по узлу) */}
         {selSphere ? (function () {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
