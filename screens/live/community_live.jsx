@@ -4466,7 +4466,7 @@ function TeamDetailLive() {
   // Лица на нить: участник появляется в момент своей ПЕРВОЙ отметки за сегодня.
   const skyMarks = React.useMemo(() => {
     if (!skyT || !skyT.times || !Array.isArray(members)) return [];
-    return members.filter((m) => skyT.times[m.id]).map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, ts: new Date(skyT.times[m.id]) }));
+    return members.filter((m) => skyT.times[m.id]).map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, ts: (typeof bosParseTs === "function" ? bosParseTs(skyT.times[m.id]) : new Date(skyT.times[m.id])) }));
   }, [skyT, members, meId]);
   // «Живёт N-й день» — возраст круга от created_at (стрейк-механика огня — позже).
   const circleAgeDays = (skyT && skyT.createdAt) ? Math.max(1, Math.floor((Date.now() - new Date(skyT.createdAt).getTime()) / 86400000) + 1) : null;

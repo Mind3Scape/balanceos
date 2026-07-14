@@ -350,7 +350,13 @@
           return false; // обычная сеть/сервер — ретрай
         }
         case "sharedLog":
-          if (a.on) { var rs = await c.from("shared_habit_logs").upsert({ code: a.code, user_id: id, day: a.day }, { onConflict: "code,user_id,day", ignoreDuplicates: true }); return !rs.error; }
+          if (a.on) {
+            // Время отметки пишет КЛИЕНТ (a.ts = момент нажатия): серверный default врёт после
+            // ретраев очереди, а у строк из-под старого кода/патча — вовсе время миграции.
+            // Слоёно: колонки created_at может не быть до patch_sky_thread.sql → повтор без неё.
+            if (a.ts) { var rs1 = await c.from("shared_habit_logs").upsert({ code: a.code, user_id: id, day: a.day, created_at: a.ts }, { onConflict: "code,user_id,day", ignoreDuplicates: true }); if (!rs1.error) return true; }
+            var rs = await c.from("shared_habit_logs").upsert({ code: a.code, user_id: id, day: a.day }, { onConflict: "code,user_id,day", ignoreDuplicates: true }); return !rs.error;
+          }
           { var rsd = await c.from("shared_habit_logs").delete().eq("code", a.code).eq("user_id", id).eq("day", a.day); return !rsd.error; }
         case "snapshot": {
           var rp = await c.from("user_state").upsert({ id: id, snapshot: a.env, updated_at: new Date().toISOString() }, { onConflict: "id" });
@@ -845,7 +851,8 @@
       // { error } — раньше мы всё равно возвращали true, и галочка «врала» (стоит, а на сервере
       // пусто → пропадала при след. загрузке). Теперь честно возвращаем успех записи.
       var r;
-      if (on) { r = await c.from("team_habit_logs").upsert({ team_habit_id: habitId, user_id: me, day: today }, { onConflict: "team_habit_id,user_id,day", ignoreDuplicates: true }); }
+      // created_at пишет КЛИЕНТ — момент нажатия, а не серверный default (для «Таймлайна»).
+      if (on) { r = await c.from("team_habit_logs").upsert({ team_habit_id: habitId, user_id: me, day: today, created_at: new Date().toISOString() }, { onConflict: "team_habit_id,user_id,day", ignoreDuplicates: true }); }
       else { r = await c.from("team_habit_logs").delete().eq("team_habit_id", habitId).eq("user_id", me).eq("day", today); }
       return !(r && r.error);
     } catch (e) { return false; }
@@ -1004,7 +1011,8 @@
   }
   async function setSharedLog(code, day, on) {
     if (!code || !day) return false;
-    return _durable({ type: "sharedLog", key: "sharedLog:" + code + ":" + day, args: { code: code, day: day, on: !!on } });
+    // ts = момент нажатия (для «Таймлайна»): очередь может доехать позже, но время отметки честное.
+    return _durable({ type: "sharedLog", key: "sharedLog:" + code + ":" + day, args: { code: code, day: day, on: !!on, ts: new Date().toISOString() } });
   }
   // Bulk-mirror MANY of your days into the shared log at once (idempotent) — backfills your existing
   // streak so buddies see your PAST days, not only new ones. RLS lets you write your own rows, so no

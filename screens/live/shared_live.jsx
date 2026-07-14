@@ -2060,6 +2060,16 @@ function BuddyFaceLive({ avatar, name, size }) {
    зоны по 8 часов: утро 4-12, день 12-20, ночь 20-4. Свежая отметка крупнее и в золотом кольце.
    marks = [{id, name, avatar, me, ts:Date}] — по одному на человека (его первая отметка сегодня).
    rest = строка «почему сегодня тихо» (день отдыха по расписанию) → таймлайн дремлет. */
+/* Надёжный разбор timestamptz из Supabase для «Таймлайна». Postgres отдаёт МИКРОсекунды
+   («…T07:51:34.873423+00:00») — Safari/WebKit на такой дробной части может вернуть Invalid
+   Date. Нормализуем: пробел→T, дробная часть до миллисекунд, без зоны = UTC (Supabase всегда UTC). */
+function bosParseTs(s) {
+  if (s instanceof Date) return s;
+  var t = ("" + s).trim().replace(" ", "T").replace(/\.(\d{3})\d+/, ".$1");
+  if (!/([zZ]|[+-]\d\d:?\d\d)$/.test(t)) t += "Z";
+  var d = new Date(t);
+  return isNaN(d.getTime()) ? new Date(s) : d;
+}
 function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, isDark = false, rest = null, title = "Сегодня" }) {
   var pctOf = function (d) {
     var hr = d.getHours() + d.getMinutes() / 60;

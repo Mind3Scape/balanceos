@@ -231,7 +231,7 @@ function HabitDetailLive() {
           в чужой день по «Дням недели» — дремлет и говорит, когда следующая встреча. */}
       {_shared && h.threadOff !== true && typeof SkyThreadLive === "function" && (() => {
         const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
-        const _marks = buddies.filter((m) => m.todayAt).map((m) => ({ id: m.id, name: m.me ? "Ты" : m.name, avatar: m.avatar, me: !!m.me, ts: new Date(m.todayAt) }));
+        const _marks = buddies.filter((m) => m.todayAt).map((m) => ({ id: m.id, name: m.me ? "Ты" : m.name, avatar: m.avatar, me: !!m.me, ts: (typeof bosParseTs === "function" ? bosParseTs(m.todayAt) : new Date(m.todayAt)) }));
         const _doneToday = buddies.filter((m) => (m.days && _tk && m.days[_tk]) || (m.me && h.done)).length;
         let _rest = null;
         if (_mask && _tk && typeof bosDowOfKey === "function" && !_mask[bosDowOfKey(_tk)]) {
