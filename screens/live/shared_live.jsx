@@ -2993,7 +2993,9 @@ function BosBalanceWheelLive(props) {
     var first = {}; order.forEach(function (id) { first[id] = orbOf(id).getBoundingClientRect(); });   // якорь — КРУЖОК
     root.classList.add("flying");                                                                     // прячем имена/полосы, пока летят кружки
     if (toList) {
-      byV.forEach(function (s, i) { var n = nodeRefs.current[s.id]; n.style.transition = "none"; n.style.left = LIST_LEFT + "px"; n.style.top = (LIST_TOP + i * ROW_H) + "px"; n.style.transform = "translate(0,0)"; });
+      // --si = порядковый номер строки сверху вниз: шкалы вырастают каскадом (лёгкая волна),
+      // а не все разом (David 2026-07-14). CSS читает var(--si) в transition-delay шкалы.
+      byV.forEach(function (s, i) { var n = nodeRefs.current[s.id]; n.style.setProperty("--si", i); n.style.transition = "none"; n.style.left = LIST_LEFT + "px"; n.style.top = (LIST_TOP + i * ROW_H) + "px"; n.style.transform = "translate(0,0)"; });
     } else placeWheel();
     root.classList.toggle("list", toList);
     var from = getComputedStyle(dial).transform, to = toList ? dialListTransform() : "translate(-50%,-50%)";
@@ -3035,6 +3037,19 @@ function BosBalanceWheelLive(props) {
             {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1.1" style={strokeFx} />; })}
             <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.3" strokeDasharray="3 5" strokeLinecap="round" style={strokeFx} />
             <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="2" strokeLinejoin="round" style={strokeFx} />
+            {/* Точки-якоря на вершинах осей (David 2026-07-14): «непонятно, к кому какой угол привязан».
+                По одной аккуратной точке на конце каждой оси — прямо под своей сферой. Заполненная —
+                золотая с ободком, пустая — тихая серая. Небольшие, но заметные; тянутся к иконке сферы. */}
+            {SPH.map(function (s, i) {
+              var p = pt(i, OUT).split(",");
+              var lit = !!s.n;
+              return (
+                <g key={"vtx" + i}>
+                  <circle cx={p[0]} cy={p[1]} r="4.6" fill={dark ? "#161619" : "#fff"} style={strokeFx} />
+                  <circle cx={p[0]} cy={p[1]} r="2.8" fill={lit ? "#EF9F14" : gridCol} stroke={lit ? "#FEDE34" : "none"} strokeWidth={lit ? 0.9 : 0} style={strokeFx} />
+                </g>
+              );
+            })}
           </svg>
 
           {/* подсказка ИИ — видна только в режиме списка, справа от маленького радара */}
@@ -5448,14 +5463,28 @@ const SEED_CIRCLES = [
   { id: "seed-meditate", name: "Тихий час",      emblem: "🧘", goalText: "30 дней", target: 30, unit: "дней", type: "streak",     reward: 300, hook: "5 минут тишины каждый день — месяц",     practice: { name: "Медитация",      emoji: "🧘" } },
   { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "месяц",   target: 30, unit: "дней", type: "collective", reward: 300, hook: "По главе в день — за месяц целая книга", practice: { name: "Чтение",         emoji: "📖" } },
 ];
+/* ЗАГОТОВЛЕННЫЕ ОТКРЫТЫЕ КРУГИ (David 2026-07-14): популярные темы трекеров привычек — ЗОЖ и
+   чистое питание. Это ШАБЛОНЫ: старт создаёт ТВОЙ ПУБЛИЧНЫЙ круг (vis="public") → он тут же
+   виден другим в витрине открытых, к нему можно присоединиться. Без бутафорских участников —
+   круг оживает настоящими людьми. Темы подобраны по популярности (вода, питание, движение,
+   сон, цифровой детокс, благодарность). Форма как у SEED_CIRCLES → bosStartSeedCircleLive(…, "public"). */
+const POPULAR_OPEN_CIRCLES = [
+  { id: "open-water",    name: "Вода каждый день", emblem: "💧", goalText: "30 дней", target: 30, unit: "дней", type: "streak",     reward: 300, hook: "Восемь стаканов в день — месяц вместе",   practice: { name: "Стакан воды",     emoji: "💧" } },
+  { id: "open-clean",    name: "Чистое питание",   emblem: "🥗", goalText: "21 день", target: 21, unit: "дней", type: "streak",     reward: 250, hook: "Три недели без лишнего сахара",          practice: { name: "Чистая еда",      emoji: "🥗" } },
+  { id: "open-run",      name: "Бег по утрам",     emblem: "🏃", goalText: "21 день", target: 21, unit: "дней", type: "collective", reward: 250, hook: "Утренняя пробежка — заряд на весь день", practice: { name: "Пробежка",        emoji: "🏃" } },
+  { id: "open-sleep",    name: "Сон до полуночи",  emblem: "🌙", goalText: "14 дней", target: 14, unit: "дней", type: "streak",     reward: 200, hook: "Ложимся вовремя — просыпаемся легко",     practice: { name: "Сон вовремя",     emoji: "🌙" } },
+  { id: "open-detox",    name: "Час без экрана",   emblem: "📵", goalText: "14 дней", target: 14, unit: "дней", type: "streak",     reward: 200, hook: "Каждый вечер — час живой жизни",         practice: { name: "Без телефона",    emoji: "📵" } },
+  { id: "open-thanks",   name: "Три благодарности", emblem: "🙏", goalText: "30 дней", target: 30, unit: "дней", type: "collective", reward: 300, hook: "Три хороших момента дня — каждый вечер",   practice: { name: "Благодарность",   emoji: "🙏" } },
+];
 /* Старт челленджа-круга — ОБЩАЯ логика (v526: её зовут и плитки новой мозаики «Найти»,
    и прежняя горизонтальная витрина): круг в «Цели» + практика в «Привычки» + облако. */
-function bosStartSeedCircleLive(app, navigate, s) {
+function bosStartSeedCircleLive(app, navigate, s, vis) {
+  vis = vis || "private";   // «Открытые круги» стартуют публичными (vis="public") → сразу видны другим в витрине
   if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
   const existing = (app?.teams || []).find((t) => t.seedId === s.id);
   if (existing) { navigate("team-detail", { team: existing }); return; } // уже начал → просто в круг
   const teamObj = {
-    name: s.name, emblem: s.emblem, accent: s.accent, vis: "private", seedId: s.id,
+    name: s.name, emblem: s.emblem, accent: s.accent, vis: vis, seedId: s.id,
     goal: s.goalText, type: s.type, target: s.target || 0, current: 0, unit: s.unit || "",
     stake: s.reward || 0, date: "", progress: 0, members: [],   // ПРИЗ за финиш = ставка (unlock-only, без списания)
   };
@@ -5464,7 +5493,7 @@ function bosStartSeedCircleLive(app, navigate, s) {
   let opened = false;
   try {
     if (nt && window.bosCloud && window.bosCloud.enabled()) {
-      window.bosCloud.createTeam({ name: s.name, emblem: s.emblem, vis: "private", goalKind: s.goalText, goalTarget: s.target || 0, goal: { type: s.type, target: s.target || 0, unit: s.unit || "", stake: s.reward || 0 } })
+      window.bosCloud.createTeam({ name: s.name, emblem: s.emblem, vis: vis, goalKind: s.goalText, goalTarget: s.target || 0, goal: { type: s.type, target: s.target || 0, unit: s.unit || "", stake: s.reward || 0 } })
         .then(async (row) => {
           if (row && row.id) {
             if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
@@ -6197,12 +6226,12 @@ function LivingCircleCardLive({ circle: s, onTap, w = null, variant = "chips" })
 /* ШТОРКА старта челленджа (v527, David: «шторка вступления угрожающая, как удалить — не в
    тему»): ТЁПЛОЕ приглашение вместо confirm-модалки — эмблема в стекле, что получишь
    (круг + ежедневная практика + приз), «Начать» как праздник, «Не сейчас» тихой строкой. */
-function ChallengeStartSheetLive({ seed: s, onStart }) {
+function ChallengeStartSheetLive({ seed: s, onStart, openCircle }) {
   const sheet = (typeof useSheet === "function") ? useSheet() : null;
   const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   const close = () => { try { if (sheet && sheet.close) sheet.close(); } catch (e) {} };
   const rows = [
-    ["🌱", "Круг появится в «Целях» — зови своих"],
+    openCircle ? ["🌐", "Открытый круг — другие смогут присоединиться"] : ["🌱", "Круг появится в «Целях» — зови своих"],
     [(s.practice && s.practice.emoji) || "🔥", "Практика «" + ((s.practice && s.practice.name) || "каждый день") + "» — в «Привычках»"],
     ["⚡", "+" + (s.reward || 0) + " XP за финиш — пропуск не сжигает бонус"],
   ];
@@ -6211,7 +6240,7 @@ function ChallengeStartSheetLive({ seed: s, onStart }) {
       <div style={{ display: "flex", justifyContent: "center" }}>
         <div style={{ width: 76, height: 76, borderRadius: 21, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 37 }}>{typeof bosIcon === "function" ? bosIcon(s.emblem, 37, null) : s.emblem}</div>
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>Челлендж · {s.goalText}</div>
+      <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>{openCircle ? "Открытый круг" : "Челлендж"} · {s.goalText}</div>
       <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", marginTop: 3 }}>{s.name}</div>
       <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5, padding: "0 6px", textWrap: "balance" }}>{s.hook}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 16, textAlign: "left" }}>

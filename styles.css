@@ -736,5 +736,7 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
    чтобы широкая строка с полосой не «висела» у верха, и проявляем их уже на месте. */
 .bosLR .lr-meta { transition: opacity .26s ease; }
 .bosLR.flying .lr-nm, .bosLR.flying .lr-meta { opacity: 0; transition: none; }
-/* полоса заполнения наливается уже после приземления */
-.bosLR.list .lr-bar i { transition: width .55s cubic-bezier(.32,.72,0,1) .5s; }
+/* полоса заполнения наливается уже после приземления — КАСКАДОМ сверху вниз (David 2026-07-14):
+   каждая следующая шкала стартует чуть позже (var(--si) задаётся в flipList), лёгкая короткая волна
+   вместо «весь блок разом». Имена/значения тоже проявляются с тем же шагом — единое движение. */
+.bosLR.list .lr-bar i { transition: width .5s cubic-bezier(.32,.72,0,1) calc(.5s + var(--si, 0) * .055s); }

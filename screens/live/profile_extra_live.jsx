@@ -434,7 +434,7 @@ function SettingsLive() {
       ])}
 
       {group("О приложении", [
-        row(I.Compass, "Как устроен Balance", () => navigate("guide", { from: "settings" })),
+        // «Как устроен Balance» УБРАН из настроек (David 2026-07-14) — гид теперь на «Сообществе».
         row(I.Sparkles, "Манифест", () => navigate("manifest", { from: "settings" })),
         row(null, "Политика конфиденциальности", () => openSheet(<InfoSheet title="Политика конфиденциальности" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>)),
         row(null, "Условия использования", () => openSheet(<InfoSheet title="Условия использования" body={TERMS_BODY} cta="Готово" dark={routeDark}/>), true),

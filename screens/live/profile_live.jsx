@@ -187,53 +187,17 @@ function ProfileLive() {
           </div>
           <I.ChevronRight size={18} className="bos-sys-text-2" />
         </button>
-        <button onClick={() => navigate("friends", { from: "profile" })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
-          {chip(I.Users)}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Друзья</div>
-            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{livePeople.length > 0 ? (livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите")) : "Позови первого — он появится на орбите"}</div>
-          </div>
-          {livePeople.length > 0 && <div style={{ marginRight: 4, flexShrink: 0 }}><PeopleStackLive people={livePeople} size={24} max={4} /></div>}
-          <I.ChevronRight size={18} className="bos-sys-text-2" />
-        </button>
+        {/* «Друзья» УБРАНЫ (David 2026-07-14): люди объединяются в совместных привычках/целях/кругах,
+            отдельная вкладка «Друзья» пользы не несла. Маршрут "friends" жив (нотификации), только строки нет. */}
       </div>
 
       {/* App menu — one grouped iOS card, hairline-divided rows */}
       {/* App menu — Настройки first, Уведомления under (David). ИИ-инсайты removed (ИИ is its
           own tab) and История removed (it's reachable from the home calendar). */}
       <div className="bos-sys-card" style={{ marginTop: 12, padding: 0, overflow: "hidden" }}>
-        {/* «Как устроен Balance» — гид-мануал по экономике (XP → уровень → партнёры → нетворк →
-            Вселенная); ПЕРВОЙ строкой — новичку важнее настроек (David: «гид как в игре»). */}
-        {navRow(I.Compass, "Как устроен Balance", "guide")}
-        {/* «Обучение» переехало со страницы «Привычки» (слияние с главной): три статьи —
-            шторкой рядом с гидом. */}
-        <button onClick={() => openSheet(
-          <div style={{ padding: "2px 20px 20px", color: "var(--text)" }}>
-            <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px" }}>Обучение</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3 }}>Короткие статьи — как это работает</div>
-            </div>
-            {[
-              { topic: "habits-basics", icon: "Leaf",   emoji: "🌱", t: "Основы привычек", b: "Почему маленькое сильнее большого — и как не пропускать дважды." },
-              { topic: "goals-101",     icon: "Target", emoji: "🎯", t: "Хорошие цели", b: "Результат или процесс: что отслеживать и когда." },
-              { topic: "teams-101",     icon: "Group",  emoji: "🤝", t: "Совместные привычки", b: "Один общий якорь, общая серия и поддержка вместо контроля." },
-            ].map((c, i) => (
-              <button key={i} onClick={() => { closeSheet(); navigate("info", { topic: c.topic, from: "profile" }); }} className="tap"
-                style={{ width: "100%", background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : "0", padding: "12px 2px", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)", cursor: "pointer" }}>
-                <span style={{ width: 36, height: 36, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl(c.icon, { size: 19, color: "var(--text-2)" })) || c.emoji}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{c.t}</span>
-                  <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 1, lineHeight: 1.35 }}>{c.b}</span>
-                </span>
-                <I.ChevronRight size={15} className="bos-sys-text-2" />
-              </button>
-            ))}
-          </div>
-        )} className="tap" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "transparent", border: 0, borderBottom: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
-          {chip(I.Book)}
-          <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Обучение</span>
-          <I.ChevronRight size={18} className="bos-sys-text-2" />
-        </button>
+        {/* «Как устроен Balance» и «Обучение» УБРАНЫ отсюда (David 2026-07-14): гид живёт на
+            «Сообществе» карточкой «Как устроен Balance» (СУТЬ) — там его настоящее место, новичок
+            приходит к людям. Компоненты гида/статей живы, просто не дублируются в настройках. */}
         {navRow(I.Settings, "Настройки", "settings")}
         {navRow(I.Bell, "Уведомления", "notifications")}
         {navRow(I.Help, "Поддержка и помощь", "support", true)}
