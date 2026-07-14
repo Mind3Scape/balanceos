@@ -2965,8 +2965,9 @@ function BosBalanceWheelLive(props) {
     var cont = rootRef.current.getBoundingClientRect();
     var d = dialRef.current.getBoundingClientRect();
     var dcx = d.left + d.width / 2, dcy = d.top + d.height / 2;
-    var tx = cont.left + 46, ty = cont.top + 30;                              // угол-«бейдж» рядом с шапкой
-    return "translate(-50%,-50%) translate(" + (tx - dcx).toFixed(1) + "px," + (ty - dcy).toFixed(1) + "px) scale(.4)";
+    // «бейдж» справа от кнопки «назад» (не поверх неё) и левее шапки детали
+    var tx = cont.left + 86, ty = cont.top + 32;
+    return "translate(-50%,-50%) translate(" + (tx - dcx).toFixed(1) + "px," + (ty - dcy).toFixed(1) + "px) scale(.34)";
   }
 
   function flip(toDetail) {
@@ -3048,7 +3049,9 @@ function BosBalanceWheelLive(props) {
               <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="1.8" strokeLinejoin="round" />
               {SPH.map(function (s, i) { var p = pt(i, OUT * Math.max(s.v, 0.05)).split(","); return <circle key={"dt" + i} cx={p[0]} cy={p[1]} r={s.id === (weak && weak.id) ? 3.2 : 2.6} fill="#EF9F14" />; })}
             </svg>
-            <div className="lr-center"><div className="pc">{total}<small>%</small></div><div className="cap">БАЛАНС</div></div>
+            {/* «медальон» под числом: гасит крошечный полигон данных у новичка (значения ~6-13%),
+                чтобы он не наползал на «N%». Цвет карточки → в светлой невидим, в тёмной мягко тает. */}
+            <div className="lr-center" style={{ background: "radial-gradient(closest-side, " + (dark ? "#242426" : "#ffffff") + " 60%, transparent)" }}><div className="pc">{total}<small>%</small></div><div className="cap">БАЛАНС</div></div>
           </div>
 
           {SPH.map(function (s) {
