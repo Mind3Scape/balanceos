@@ -3745,7 +3745,9 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
     s.open(<ChallengeStartSheetLive seed={seed} openCircle={true} onStart={function () { bosStartSeedCircleLive(app, navigate, seed, "public"); }} />);
   };
   var CARD = { position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 158, borderRadius: 20, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", color: "var(--text)", fontFamily: "inherit" };
-  var TILE = { width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 };
+  // Круглый диск — ровно как на единой карточке круга (David: «квадратная подложка плохо
+  // смотрится, круглая просится»; и тут был квадрат — тот же разнобой).
+  var TILE = { width: 44, height: 44, borderRadius: "50%", background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + "linear-gradient(160deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(false) : "inset 0 0 0 0.5px rgba(0,0,0,0.06)"), display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 };
   var chip = function (txt, live) { return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: live ? "#B4820A" : "var(--text-4)", background: live ? "rgba(240,195,10,0.14)" : "var(--surface-3)", borderRadius: 999, padding: "3px 8px", marginTop: 9 }}>{txt}</span>; };
   // Возраст круга «🔥 живёт N дней» (David 2026-07-15). Это ЖИВОЙ факт, а не украшение: он растёт
   // сам от даты рождения круга и отвечает на вопрос «а это вообще всерьёз или заброшено вчера».
@@ -3772,7 +3774,7 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
         {/* Чипы переносятся: на карточке 158px «участники» и «живёт N дней» в одну строку не
             всегда влезают, а обрезать живой факт многоточием — хуже, чем перенести. */}
         <span style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 9 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#B4820A", background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 8px" }}>🌐 {(t.members || 0)} участ.</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-2)", background: "var(--surface-3)", borderRadius: 999, padding: "3px 8px" }}><I.Users size={11} strokeWidth={2} />{(t.members || 0)} участ.</span>
           {ageChip(t.createdAt)}
         </span>
         <button onClick={function () { join(t); }} disabled={busy[t.id] || pending} className="tap" data-haptic="selection"

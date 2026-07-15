@@ -2094,7 +2094,12 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = !!(app && app.themeOverride === "dark");
   const ck = t.cloudId || t.id || null;
-  const memberN = Array.isArray(t.members) ? t.members.length : (t.members || 0);
+  // Число участников СЧИТАЕТСЯ ОДИНАКОВО у своих и чужих (David: «на одной карточке три
+  // участника, на другой три сегодня в деле»): у своего t.members — массив и часто ПУСТ,
+  // пока не доехал ростер → чип пропадал. Ростер из кэша — самый надёжный источник.
+  const _rosterEarly = ((t.cloudId || t.id) && typeof _bosTeamGet === "function") ? _bosTeamGet("roster:" + (t.cloudId || t.id)) : null;
+  const memberN = (Array.isArray(_rosterEarly) && _rosterEarly.length) ? _rosterEarly.length
+    : (Array.isArray(t.members) ? t.members.length : (t.members || 0));
   const roster = (ck && typeof _bosTeamGet === "function") ? _bosTeamGet("roster:" + ck) : null;
   const people = (Array.isArray(roster) && roster.length) ? roster : (Array.isArray(t.members) ? t.members : []);
 
@@ -2110,7 +2115,9 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   // будет выглядеть мёртвым). Патч не прогнан → null → чипы «час пик»/«сегодня» просто нет.
   const [pulse, setPulse] = React.useState(null);
   React.useEffect(() => {
-    if (!ck || joined || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
+    // Пульс тянем И для своих (не только чужих): иначе у своего круга не было «обычно в
+    // HH:MM» — тот самый разнобой чипов. Для приватных сервер вернёт null — чип просто не будет.
+    if (!ck || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
     let on = true;
     window.bosCloud.circlePulse(ck).then((p) => { if (on) setPulse(p); }).catch(() => {});
     return () => { on = false; };
@@ -2135,7 +2142,7 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   const hours = React.useMemo(() => ((pulse && pulse.mins) || []).map((m) => bosUtcMinToHour(m)), [pulse]);
   const days = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt || (times && times.createdAt)) : null;
   const peak = (pulse && typeof bosPeakLabel === "function") ? bosPeakLabel(pulse.peak) : null;
-  const todayN = pulse ? pulse.todayN : (faces.length || null);
+  const todayN = Math.max(pulse ? (pulse.todayN || 0) : 0, faces.length) || null;
   const disc = {
     background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg, var(--disc-a,#eef1f6), var(--disc-b,#dadfe7))"),
     boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none"),
@@ -2162,7 +2169,7 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
           <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
           <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
             {days ? <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} /> : null}
-            {days ? ("живёт " + days + " " + (typeof bosRuDays === "function" ? bosRuDays(days) : "дн.")) : (joined ? "Вместе" : "Открытый круг")}
+            {days ? ("живёт " + days + " " + (typeof bosRuDays === "function" ? bosRuDays(days) : "дн.")) : "Вместе"}
           </div>
         </div>
       </div>
@@ -2173,7 +2180,7 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
       )}
       <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 5 }}>
         {peak ? chip(<><I.Clock size={11} color="#EF9F14" strokeWidth={2} />обычно в {peak}</>, true, "p") : null}
-        {memberN ? chip(<>🌐 {memberN} участ.</>, false, "m") : null}
+        {memberN ? chip(<><I.Users size={11} strokeWidth={2} />{memberN} участ.</>, false, "m") : null}
         {todayN ? chip(<>{todayN} сегодня в деле</>, false, "n") : null}
       </div>
       {!joined && (
@@ -5829,7 +5836,7 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   if (query && !shownList.length) return null;
   if (!shownList.length) return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px", display: "flex", alignItems: "center", gap: 6 }}>{typeof BosCircleIcon === "function" ? <BosCircleIcon size={13} strokeWidth={2} color="var(--text-4)" /> : null}Открытые круги</div>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
         <div style={{ fontSize: 30, lineHeight: 1 }}>🌱</div>
         <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", marginTop: 9, letterSpacing: "-0.2px" }}>Здесь оживут круги людей</div>
