@@ -263,8 +263,8 @@ function TasksWidgetLive({ isDark, openSheet }) {
               <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 2px", borderTop: i === 0 ? "none" : hair }}>
                 <button className="tap" aria-label={t.done ? "Снять отметку" : "Отметить"} onClick={() => app.toggleTask(L.id, t.id)}
                   style={{ ...ck, ...(t.done
-                    ? { background: BOS_TILE_SHEEN + ", " + bosCanonColor(L.color), boxShadow: bosTileGlass(isDark) }
-                    : { background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }) }}>
+                    ? { background: bosCanonColor(L.color), boxShadow: "none" }
+                    : { background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", boxShadow: isDark ? "inset 0 0 0 0.7px rgba(255,255,255,0.07)" : "inset 0 0 0 0.7px rgba(0,0,0,0.06)" }) }}>
                   {t.done ? <I.Check size={13} color={(typeof bosLum === "function" && bosLum(bosCanonColor(L.color)) > 0.62) ? "#141416" : "#fff"} /> : null}
                 </button>
                 <div style={{ flex: 1, fontSize: 14.5, letterSpacing: "-0.1px", color: t.done ? doneInk : "var(--text)", textDecoration: t.done ? "line-through" : "none" }}>{t.text}</div>

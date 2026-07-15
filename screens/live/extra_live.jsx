@@ -464,7 +464,7 @@ function GoalDetailPersonalLive() {
             <button onClick={() => { if (app?.toggleHabit) app.toggleHabit(h.id); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Отметить сегодня"
               style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
                 background: h.done ? (h.color || goalColor) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
-                boxShadow: h.done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }}>
+                boxShadow: h.done ? "none" : "inset 0 0 0 0.7px " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)") }}>
               {h.done && <I.Check size={16} strokeWidth={3} color="#fff" />}
             </button>
             )}

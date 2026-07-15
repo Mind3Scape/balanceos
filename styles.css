@@ -186,7 +186,7 @@ button { font: inherit; cursor: pointer; }
      (как у карандаша): border съедал бы 1px высоты у фиксированных 66px. */
   background:
     linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.55)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%),
-    rgba(238,238,238,0.85);
+    rgba(237,237,237,0.62);
   backdrop-filter: blur(22px) saturate(1.8);
   -webkit-backdrop-filter: blur(22px) saturate(1.8);
   border: 0;
@@ -206,7 +206,7 @@ button { font: inherit; cursor: pointer; }
      теме сами гаснут до 5%, David: «стекло не пересвечивать»). */
   background:
     linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.055)), var(--sheen-b, rgba(255,255,255,0.014)) 46%, rgba(255,255,255,0) 72%),
-    rgba(38,38,40,0.86);
+    rgba(46,46,48,0.66);
   border: 0;
   backdrop-filter: blur(22px) saturate(1.6);
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
@@ -307,13 +307,15 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
   color: #fff;
   transition: all 0.18s;
 }
-/* Unchecked = a minimalist GLASS disc (David: убрать толстое серое кольцо, под стекло): soft grey
-   fill, a bright top highlight + a 0.7px hairline edge instead of the old 2px ring. */
+/* Не снят = ПЛОСКИЙ матовый диск (David 2026-07-15: «убрать стекло со всех чекбоксов, чтобы они
+   были одинаковы сквозь всё приложение»). Стекло живёт только на плавающем хроме; чекбокс —
+   контент внутри карточки, поэтому ни блика, ни подсветки, ни тени: ровная заливка + волосяной
+   кант. Один класс .check-btn держит привычки, цели и дела внутри целей — правка одна на всё. */
 .check-btn.unchecked {
-  background: linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.55)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%), var(--surface-3, #eef0f4);
+  background: var(--surface-3, #eef0f4);
   color: transparent;
   border: 0;
-  box-shadow: inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: inset 0 0 0 0.7px rgba(0,0,0,0.06);
 }
 
 /* labels */
@@ -486,10 +488,11 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
   color: #fff;
 }
 .theme-dark .bos-progress { background: rgba(255,255,255,0.08); }
+/* Тёмная — тот же ПЛОСКИЙ рецепт (David 2026-07-15): ровная заливка + волосяной кант, без блика. */
 .theme-dark .check-btn.unchecked {
-  background: linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.055)), var(--sheen-b, rgba(255,255,255,0.014)) 46%, rgba(255,255,255,0) 72%), rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.08);
   border: 0;
-  box-shadow: inset 0 1px 0.5px rgba(255,255,255,0.12), inset 0 0 0 0.7px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.18);
+  box-shadow: inset 0 0 0 0.7px rgba(255,255,255,0.07);
 }
 
 /* Page-level scrollable region inside the phone frame.
@@ -655,11 +658,11 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
 .bos-accent { color: var(--accent); }
 .bos-accent-bg { background: var(--accent); }
 button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
-/* Checked = a GLASS disc of the accent/habit colour: a bright top sheen + soft inner depth + a
-   faint lift, so the «done» tap reads glassy too (David). */
+/* Отмечен = ПЛОСКИЙ диск цвета привычки/акцента (David 2026-07-15). Ни блика, ни внутренней
+   глубины, ни подъёма — «снят» и «отмечен» отличаются ТОЛЬКО цветом и галочкой. */
 .check-btn {
-  background: linear-gradient(180deg, rgba(255,255,255,0.40), rgba(255,255,255,0) 55%), var(--check-color, var(--accent));
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.55), inset 0 -2px 3px rgba(0,0,0,0.14), 0 1px 2px rgba(0,0,0,0.10);
+  background: var(--check-color, var(--accent));
+  box-shadow: none;
 }
 
 /* ── ЖИВОЕ КОЛЕСО БАЛАНСА (Living Radar) ─────────────────────────────────
