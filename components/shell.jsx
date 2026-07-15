@@ -1217,7 +1217,8 @@ function AppProvider({ children }) {
       try { localStorage.setItem("bos:claimedXP", JSON.stringify(merged)); } catch (e) {}
       return merged;
     });
-    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    // Через общий притормаживающий буз: подарок и салют прилетают в один миг.
+    if (window.bosCelebrateBuzz) { window.bosCelebrateBuzz(); } else if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
     return true;
   };
 

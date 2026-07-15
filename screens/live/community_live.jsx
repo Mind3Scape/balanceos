@@ -4864,7 +4864,17 @@ function TeamDetailLive() {
   const saveTeamHabit = (data, editId) => {
     if (editId != null) {
       setLiveTeamHabits((list) => (list || []).map((x) => x.id === editId ? Object.assign({}, x, { name: data.name, emoji: data.emoji, color: data.color, goalPerDay: data.goalPerDay, isMain: data.isMain }) : x));
-      if (_rosterLive && window.bosCloud && window.bosCloud.updateTeamHabit) window.bosCloud.updateTeamHabit(editId, data).then(() => setHabitsTick((n) => n + 1));
+      if (_rosterLive && window.bosCloud && window.bosCloud.updateTeamHabit) {
+        window.bosCloud.updateTeamHabit(editId, data).then((ok) => {
+          setHabitsTick((n) => n + 1);   // всегда перечитываем: на экране должна быть правда сервера
+          // Молчаливый откат — худшее из поведений (David: «поменял иконку, а она через секунду
+          // сама вернулась — как странно»). Если сервер правку не принял, так и говорим.
+          if (!ok && typeof InfoSheet === "function") {
+            openSheet(<InfoSheet title="Правка не сохранилась" dark={isDark} cta="Понятно"
+              body="База не приняла изменение общей привычки, поэтому она осталась прежней. Обычно это нехватка прав на правку в круге — сообщи, и мы поправим." />);
+          }
+        });
+      }
       return;
     }
     if (_rosterLive) addTeamHabitCloud(data); else app?.addTeamHabit(t._id, data);
@@ -4964,9 +4974,11 @@ function TeamDetailLive() {
     if (prev == null) return;
     if (_myDoneCount <= prev) return;
     if (!teamHabits.length || _myDoneCount !== teamHabits.length) return;
-    if (typeof window.bosCelebrateScope === "function") {
-      window.bosCelebrateScope("circle:" + (app?.persistId || "") + ":" + (t.cloudId || t._id || t.id));
-    }
+    if (typeof window.bosCelebrateScope !== "function") return;
+    if (!window.bosCelebrateScope("circle:" + (app?.persistId || "") + ":" + (t.cloudId || t._id || t.id))) return;
+    // «+30 идеальный день» — ТЕМ ЖЕ ключом дня, что и у главной доски: подарок один на день,
+    // какую бы доску ты ни закрыл первой (grantBonusXP идемпотентен по ключу).
+    if (app?.grantBonusXP && typeof bosTodayKey === "function") app.grantBonusXP("perfectday:" + bosTodayKey(), 30);
   }, [_myDoneCount, teamHabits.length]);
   // ── ЦЕЛЬ С ТАБАМИ (макет «Цель с табами», David) ──────────────────────────────
   // Одна страница, три состояния: Обзор · Привычки · Чат. Шапка (кольцо-заряд + имя +

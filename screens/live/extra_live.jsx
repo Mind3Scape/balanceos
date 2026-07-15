@@ -339,9 +339,13 @@ function GoalDetailPersonalLive() {
     if (prev == null) return;                                   // первый проход — только запоминаем
     if (_goalDoneN <= prev) return;                             // сняли галочку / ничего не изменилось
     if (!linked.length || _goalDoneN !== linked.length) return; // закрылось не всё
-    if (typeof window.bosCelebrateScope === "function") {
-      window.bosCelebrateScope("goal:" + (app?.persistId || "") + ":" + (g.cloudId || g.id));
-    }
+    if (typeof window.bosCelebrateScope !== "function") return;
+    if (!window.bosCelebrateScope("goal:" + (app?.persistId || "") + ":" + (g.cloudId || g.id))) return;
+    // «+30 идеальный день» — ТЕМ ЖЕ ключом дня, что и у главной доски (David: закрыл привычки в
+    // цели — тоже получай +30). grantBonusXP идемпотентен по ключу, поэтому сколько бы досок ты
+    // сегодня ни закрыл — цель, круг, главную — подарок ровно один. Фермить, заведя пять целей,
+    // не выйдет: ключ один на день.
+    if (app?.grantBonusXP && typeof bosTodayKey === "function") app.grantBonusXP("perfectday:" + bosTodayKey(), 30);
   }, [_goalDoneN, linked.length]);
 
   // ПУЛЬС: active = отметился сегодня → колечко «в деле» на лице.

@@ -439,6 +439,14 @@ function SettingsLive() {
         row(null, "Политика конфиденциальности", () => openSheet(<InfoSheet title="Политика конфиденциальности" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>)),
         row(null, "Условия использования", () => openSheet(<InfoSheet title="Условия использования" body={TERMS_BODY} cta="Готово" dark={routeDark}/>), true),
       ])}
+      {/* «Выйти» приехало сюда со страницы «Я» (David 2026-07-15). Размеры подогнаны под здешние
+          строки — 15px и кружок 30 (на «Я» было 16 и 32), иначе копия выбивается из ритма списка. */}
+      <SysBtn onClick={() => navigate("onboarding", { from: "settings" })} style={{ marginTop: 22, color: "var(--accent-red)" }}>
+        <span style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(239,68,68,0.12)" }}>
+          <I.Logout size={16} />
+        </span>
+        <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Выйти</span>
+      </SysBtn>
       <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "16px 14px 2px", fontSize: 13 }}>Версия {APP_VERSION}</div>
       {/* «Сделано с 💛» ПЕРЕЕХАЛО на страницу «Я» (David: тёплой подписи место у орбит). */}
     </div>

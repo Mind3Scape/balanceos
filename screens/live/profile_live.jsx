@@ -202,12 +202,8 @@ function ProfileLive() {
         {navRow(I.Bell, "Уведомления", "notifications")}
         {navRow(I.Help, "Поддержка и помощь", "support", true)}
       </div>
-      <SysBtn onClick={() => navigate("onboarding", { from: "profile" })} style={{ marginTop: 12, color: "var(--accent-red)" }}>
-        <span style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(239,68,68,0.12)" }}>
-          <I.Logout size={16} />
-        </span>
-        <span style={{ flex: 1, fontSize: 16, fontWeight: 600 }}>Выйти</span>
-      </SysBtn>
+      {/* «Выйти» ПЕРЕЕХАЛО в Настройки (David 2026-07-15) — красной кнопке не место на витрине
+          «Я», рядом с орбитами и тёплой подписью. Живёт в SettingsLive (profile_extra_live). */}
       {/* Тёплая подпись — переехала из настроек СЮДА, к орбитам (David: «сделано с любовью на „Я"»). */}
       <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "18px 14px 4px", fontSize: 12.5, opacity: 0.85 }}>Сделано с 💛</div>
     </div>

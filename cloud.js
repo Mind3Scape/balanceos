@@ -833,7 +833,15 @@
     var base = {}; ["name", "emoji", "is_main"].forEach(function (k) { if (full[k] != null) base[k] = full[k]; });
     var attempts = [full]; if (Object.keys(base).length && Object.keys(base).length < Object.keys(full).length) attempts.push(base);
     for (var i = 0; i < attempts.length; i++) {
-      try { var r = await c.from("team_habits").update(attempts[i]).eq("id", habitId); if (!r.error) return true; } catch (e) {}
+      // Аудит #8 (тот же урок, что у toggleTeamHabitToday ниже — сюда его не донесли): при отказе
+      // RLS Supabase НЕ бросает исключение и НЕ кладёт error — он просто НЕ ТРОГАЕТ ни одной
+      // строки. Прежнее `if (!r.error) return true` рапортовало успех о записи, которой не было:
+      // правка иконки жила ровно до следующей загрузки списка и «сама возвращалась» через секунду
+      // (David). Спрашиваем .select("id") и верим только РЕАЛЬНО обновлённым строкам.
+      try {
+        var r = await c.from("team_habits").update(attempts[i]).eq("id", habitId).select("id");
+        if (!r.error && r.data && r.data.length) return true;
+      } catch (e) {}
     }
     return false;
   }
