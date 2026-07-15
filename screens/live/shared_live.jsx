@@ -2090,6 +2090,9 @@ function bosParseTs(s) {
      «Вступить» — только если я не внутри
    Данные разные, вид один: свой круг → teamTodayTimes (я участник, вижу ЛИЦА и часы);
    чужой открытый → bos_circle_pulse (только часы и числа, без имён — RLS). */
+// Кэш живых данных карточки НА МОДУЛЬ: клон карточки (превью в меню зажатия) и повторные
+// заходы на экран рисуются сразу тем же, что оригинал, — без «двоения» и перещёлкивания.
+var _bosCircleCardCache = { times: {}, pulse: {} };
 function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, busy, requested }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = !!(app && app.themeOverride === "dark");
@@ -2104,24 +2107,24 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   const people = (Array.isArray(roster) && roster.length) ? roster : (Array.isArray(t.members) ? t.members : []);
 
   // Свой круг → отметки читаются напрямую (я участник): знаю лица и часы.
-  const [times, setTimes] = React.useState(null);
+  const [times, setTimes] = React.useState(() => (ck && _bosCircleCardCache.times[ck]) || null);
   React.useEffect(() => {
-    if (!ck || !joined || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTodayTimes)) return;
+    if (!ck || !joined || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTodayTimes)) return;
     let on = true;
-    window.bosCloud.teamTodayTimes(ck).then((r) => { if (on && r) setTimes(r); }).catch(() => {});
+    window.bosCloud.teamTodayTimes(ck).then((r) => { if (on && r) { _bosCircleCardCache.times[ck] = r; setTimes(r); } }).catch(() => {});
     return () => { on = false; };
-  }, [ck, joined, ctx.mode]);
+  }, [ck, joined]);
   // Чужой открытый → анонимный серверный агрегат (иначе RLS молча вернёт 0 и живой круг
   // будет выглядеть мёртвым). Патч не прогнан → null → чипы «час пик»/«сегодня» просто нет.
-  const [pulse, setPulse] = React.useState(null);
+  const [pulse, setPulse] = React.useState(() => (ck && _bosCircleCardCache.pulse[ck]) || null);
   React.useEffect(() => {
     // Пульс тянем И для своих (не только чужих): иначе у своего круга не было «обычно в
     // HH:MM» — тот самый разнобой чипов. Для приватных сервер вернёт null — чип просто не будет.
-    if (!ck || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
+    if (!ck || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
     let on = true;
-    window.bosCloud.circlePulse(ck).then((p) => { if (on) setPulse(p); }).catch(() => {});
+    window.bosCloud.circlePulse(ck).then((p) => { if (on && p) { _bosCircleCardCache.pulse[ck] = p; setPulse(p); } }).catch(() => {});
     return () => { on = false; };
-  }, [ck, joined, ctx.mode]);
+  }, [ck, joined]);
   // Непрочитанные — только у своих (в чужой чат я не вижу).
   const [unread, setUnread] = React.useState(() => { const c = (ck && typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(ck) : null; return c ? c.count : 0; });
   React.useEffect(() => {
@@ -2153,12 +2156,15 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   );
   return (
     <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : onOpen}
-      style={{ position: "relative", background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow, 0 1px 2px rgba(0,0,0,0.05))",
+      style={{ position: "relative", background: "var(--card)", borderRadius: 22, padding: "13px 14px", boxShadow: "var(--card-shadow, 0 1px 2px rgba(0,0,0,0.05))",
         pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden", cursor: ctx.mode ? "default" : "pointer", textAlign: "left" }}>
-      {unread > 0 && (
-        <span aria-label={"новых сообщений: " + unread} style={Object.assign({ position: "absolute", top: 12, right: 12, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: "0 8px", borderRadius: 999, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDark ? "#fff" : "#0a0a0a", pointerEvents: "none" }, (typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}))}>
+      {joined && (
+        // Значок чата ВСЕГДА на месте (David: «иконка чата должна быть видна всегда — просто
+        // видим, появились непрочитанные или нет»). Пустой — тихая стеклянная иконка «чат
+        // тут есть»; с непрочитанными — в ней число и полная плотность.
+        <span aria-label={unread > 0 ? "новых сообщений: " + unread : "чат круга"} style={Object.assign({ position: "absolute", top: 12, right: 12, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: unread > 0 ? "0 8px" : "0 6px", borderRadius: 999, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDark ? "#fff" : "#0a0a0a", opacity: unread > 0 ? 1 : 0.6, pointerEvents: "none" }, (typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}))}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3.2c5.3 0 9.6 3.4 9.6 7.6s-4.3 7.6-9.6 7.6c-.9 0-1.8-.1-2.6-.3l-4.6 2.3a.55.55 0 0 1-.79-.64l1-3.4C3.1 14.9 2.4 13.1 2.4 10.8 2.4 6.6 6.7 3.2 12 3.2z" /></svg>
-          {unread > 99 ? "99+" : unread}
+          {unread > 0 ? (unread > 99 ? "99+" : unread) : null}
         </span>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2176,16 +2182,20 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
       {/* Нить рисуется ВСЕГДА для облачного круга — слот занят с первого кадра, поэтому карточка
           не подпрыгивает, когда прилетят данные (David). Локальный круг без облака — без нити. */}
       {ck && typeof BosDayThreadLive === "function" && (
-        <div style={{ marginTop: 14 }}><BosDayThreadLive faces={faces} hours={hours} isDark={isDark} /></div>
+        // У СВОЕГО круга нить рисуется ТОЛЬКО из лиц: анонимные часы пульса сюда не идут —
+        // иначе пульс (кэш, приходит первым) рисовал ВОЛНУ, а через миг times привозил ЛИЦА,
+        // и карточка перещёлкивалась на глазах (David: «очень странно»). Чужой круг лиц не
+        // знает (RLS) — ему волна из пульса и положена.
+        <div style={{ marginTop: 11 }}><BosDayThreadLive faces={faces} hours={joined ? [] : hours} isDark={isDark} /></div>
       )}
-      <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 5 }}>
+      <div style={{ marginTop: 9, display: "flex", flexWrap: "wrap", gap: 5 }}>
         {peak ? chip(<><I.Clock size={11} color="#EF9F14" strokeWidth={2} />обычно в {peak}</>, true, "p") : null}
         {memberN ? chip(<><I.Users size={11} strokeWidth={2} />{memberN} участ.</>, false, "m") : null}
         {todayN ? chip(<>{todayN} сегодня в деле</>, false, "n") : null}
       </div>
       {!joined && (
         <button onClick={(e) => { e.stopPropagation(); onJoin && onJoin(t); }} disabled={busy || requested} className="tap" data-haptic="selection"
-          style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "11px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+          style={{ marginTop: 10, width: "100%", border: 0, borderRadius: 999, padding: "10px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
             background: (busy || requested) ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: (busy || requested) ? "var(--text-3)" : "var(--cta-ink, #fff)" }}>
           {requested ? "Заявка отправлена" : busy ? "…" : "Вступить"}
         </button>

@@ -3749,36 +3749,16 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
   // смотрится, круглая просится»; и тут был квадрат — тот же разнобой).
   var TILE = { width: 44, height: 44, borderRadius: "50%", background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + "linear-gradient(160deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(false) : "inset 0 0 0 0.5px rgba(0,0,0,0.06)"), display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 };
   var chip = function (txt, live) { return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: live ? "#B4820A" : "var(--text-4)", background: live ? "rgba(240,195,10,0.14)" : "var(--surface-3)", borderRadius: 999, padding: "3px 8px", marginTop: 9 }}>{txt}</span>; };
-  // Возраст круга «🔥 живёт N дней» (David 2026-07-15). Это ЖИВОЙ факт, а не украшение: он растёт
-  // сам от даты рождения круга и отвечает на вопрос «а это вообще всерьёз или заброшено вчера».
-  // Огонёк — ЗАЛИВНОЙ SVG (I.Flame), не эмодзи: эмодзи рисует система, и в чужой теме он чужой.
-  // Дата приезжает из cloud.discoverTeams (created_at добавлен в селект специально ради этого);
-  // у заготовок-семян её нет → bosCircleDays вернёт null и чип просто не появится.
-  var ageChip = function (since) {
-    var d = (typeof bosCircleDays === "function") ? bosCircleDays(since) : null;
-    if (!d) return null;
-    return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: "#B4820A", background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 8px" }}>
-        <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} />живёт {d} {typeof bosRuDays === "function" ? bosRuDays(d) : "дн."}
-      </span>
-    );
-  };
   var cards = [];
-  // 1) реальные открытые круги — «живые»
+  // 1) реальные открытые круги — ЕДИНАЯ карточка (та же, что в каталоге и на главной; David:
+  //    «в открытых кругах всё ещё урезанные»). Ширина 300 — стандартная карточка в горизонтальной
+  //    ленте, целиком с нитью, чипами и «Вступить».
   real.slice(0, 6).forEach(function (t) {
-    var pending = !!reqd[t.id];
     cards.push(
-      <div key={"real:" + t.id} style={CARD}>
-        <span style={TILE}>{typeof bosIcon === "function" ? bosIcon(t.emblem || "✨", 23, null) : (t.emblem || "✨")}</span>
-        <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, marginTop: 11 }}>{t.name}</span>
-        {/* Чипы переносятся: на карточке 158px «участники» и «живёт N дней» в одну строку не
-            всегда влезают, а обрезать живой факт многоточием — хуже, чем перенести. */}
-        <span style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 9 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-2)", background: "var(--surface-3)", borderRadius: 999, padding: "3px 8px" }}><I.Users size={11} strokeWidth={2} />{(t.members || 0)} участ.</span>
-          {ageChip(t.createdAt)}
-        </span>
-        <button onClick={function () { join(t); }} disabled={busy[t.id] || pending} className="tap" data-haptic="selection"
-          style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "9px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: pending ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: pending ? "var(--text-3)" : "var(--cta-ink, #fff)" }}>{pending ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
+      <div key={"real:" + t.id} style={{ width: 300, flexShrink: 0, scrollSnapAlign: "start" }}>
+        {typeof BosCircleCardLive === "function"
+          ? <BosCircleCardLive t={t} joined={false} busy={!!busy[t.id]} requested={!!reqd[t.id]} onJoin={join} />
+          : null}
       </div>
     );
   });
