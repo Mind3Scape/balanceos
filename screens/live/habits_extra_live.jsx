@@ -36,6 +36,11 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // Every habit carries an Apple colour now (coherent with the week-strip). Old null-colour
   // habits resolve to their stable bosHabitColor when edited.
   const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? "#0a0a0a")); // новый = «Стандарт» (графит-нейтраль): графит на днях/чекбоксе, светло-серая плитка
+  // СФЕРА БАЛАНСА. Раньше её всегда УГАДЫВАЛИ по названию, и намерение юзера терялось: кнопка
+  // «+ в эту сферу» передавала preset.sphere, а форма это поле молча выбрасывала. Теперь явный
+  // выбор пишется в привычку и побеждает угадывание (bosSphereFor). null = «Авто»: поля нет,
+  // угадывание работает как прежде и следует за переименованием.
+  const [sphere, setSphere] = useHS(editing ? (params.habit.sphere || null) : (preset?.sphere || null));
   const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
   const [duration, setDuration] = useHS(editing ? (params.habit.duration || 0) : 0); // минуты; 0 = без таймера
   // Отмечать = просто ГАЛОЧКА по умолчанию. Тумблер «Считать количество» (countOn) раскрывает число +
@@ -150,6 +155,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       duration: countMin ? Math.max(5, duration) : 0,      // таймер: минуты
       reminder: { on: reminderOn, time: reminderTime },
       threadOff: !threadOn,                                // «Нить дня»: по умолчанию ВКЛ (false), тогл гасит
+      sphere: sphere || null,                              // явная сфера баланса; null = угадывать по названию
     };
     if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
@@ -323,6 +329,38 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
           </div>
           <Switch small on={isMain} onChange={setIsMain} />
         </div>
+      )}
+
+      {/* ── СФЕРА БАЛАНСА — куда привычка идёт в колесе. «Авто» показывает, что угадало
+            приложение, поэтому человек видит ошибку ДО сохранения и может поправить. ── */}
+      {!teamFor && (
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Сфера баланса</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>
+              {sphere ? "Выбрано вручную" : ("Авто: " + (function () {
+                try { var g = bosSphereFor({ name: name, emoji: iconPick }); var s = (BOS_SPHERES || []).find(function (x) { return x.id === g; }); return s ? s.l : "Разум"; } catch (e) { return "Разум"; }
+              })())}
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {[{ id: null, l: "Авто" }].concat(BOS_SPHERES || []).map(function (s) {
+            var on = sphere === s.id;
+            return (
+              <button key={s.id || "auto"} type="button" className="tap tap-pill"
+                onClick={() => { setSphere(s.id); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }}
+                style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 700, fontFamily: "inherit",
+                  background: on ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+                  color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>
+                {s.id ? (s.e + " " + s.l) : s.l}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       )}
 
       {/* ── ДНИ НЕДЕЛИ — базовый тогл расписания (David, небо-нить-финал): по умолчанию каждый

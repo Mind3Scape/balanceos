@@ -2763,14 +2763,17 @@ var BOS_SPHERE_NUDGE = {
   soul: "5 минут тишины уже поднимут сферу",
   rest: "15 минут отдыха уже поднимут сферу",
 };
-// Корни слов (в нижнем регистре, поиск подстрокой) — покрывают кастомные названия.
+// Корни слов (нижний регистр). Совпадение — С НАЧАЛА СЛОВА названия (см. bosSphereFor), поэтому
+// короткие корни здесь БЕЗОПАСНЫ: «бег» больше не ловит «избегать», «зал» — «залипать».
+// Из-за этого же правила пропал смысл у хака «"муж " с пробелом» (он не мог совпасть с началом
+// слова никогда) — развёрнут в честные формы.
 var BOS_SPHERE_KW = {
-  body: ["отжим", "присед", "планк", "турник", "бег", "бега", "пробеж", "зал", "спорт", "трениров", "тренаж", "фитнес", "качал", "штанг", "гантел", "упражн", "йог", "растяж", "гибк", "вода", "воды", "воду", "стакан", "шаг", "ходь", "прогул", "сон", "спать", "выспат", "высып", "душ", "закал", "зарядк", "разминк", "велосип", "плаван", "бассейн", "пресс", "мышц", "похуд", "питани", "завтрак", "сахар", "диет", "витамин", "здоров", "body", "gym", "run", "walk", "water", "sleep", "step", "workout", "fitness", "yoga"],
-  mind: ["медит", "тишин", "дыхан", "чтен", "чита", "книг", "страниц", "учеб", "учи", "язык", "курс", "обучен", "знан", "рефлекс", "мысл", "фокус", "вниман", "концентр", "мозг", "памят", "подкаст", "лекц", "саморазв", "read", "learn", "study", "meditat", "focus", "mind", "book"],
-  work: ["работ", "проект", "дедлайн", "задач", "карьер", "бизнес", "клиент", "созвон", "планир", "финанс", "деньг", "бюджет", "накопл", "инвест", "доход", "продаж", "резюме", "навык", "портфолио", "код", "программ", "дизайн", "стартап", "work", "task", "project", "money", "budget", "career", "code"],
-  bond: ["друж", "друзь", "подруг", "друга", "другу", "другом", "семь", "родител", "мам", "папа", "папе", "папу", "отц", "жена", "жене", "жену", "супруг", "муж ", "мужа", "мужу", "парн", "девушк", "отношен", "звонок", "позвон", "общен", "свидан", "дети", "детей", "детьм", "ребён", "ребен", "близк", "обним", "вместе", "команд", "партнёр", "партнер", "together", "friend", "family", "call", "partner", "relationship", "love"],
+  body: ["отжим", "присед", "планк", "турник", "бег", "бега", "пробеж", "зал", "спорт", "трениров", "тренаж", "фитнес", "качал", "штанг", "гантел", "упражн", "йог", "растяж", "гибк", "вода", "воды", "воду", "стакан", "шаг", "ходь", "прогул", "сон", "спать", "выспат", "высып", "душ", "закал", "зарядк", "разминк", "велосип", "плаван", "бассейн", "пресс", "мышц", "похуд", "питани", "завтрак", "сахар", "диет", "витамин", "здоров", "калори", "таблетк", "врач", "зуб", "body", "gym", "run", "walk", "water", "sleep", "step", "workout", "fitness", "yoga"],
+  mind: ["медит", "тишин", "дыхан", "чтен", "чита", "книг", "страниц", "учеб", "учи", "язык", "курс", "обучен", "знан", "рефлекс", "мысл", "фокус", "вниман", "концентр", "мозг", "памят", "подкаст", "лекц", "саморазв", "дневник", "англ", "залип", "отвлек", "отвлеч", "испанск", "немецк", "француз", "терап", "психолог", "read", "learn", "study", "meditat", "focus", "mind", "book", "journal", "diary", "english"],
+  work: ["работ", "проект", "дедлайн", "задач", "карьер", "бизнес", "клиент", "созвон", "планир", "финанс", "деньг", "бюджет", "накопл", "инвест", "доход", "продаж", "резюме", "навык", "портфолио", "код", "программ", "дизайн", "стартап", "папк", "почт", "отчёт", "отчет", "work", "task", "project", "money", "budget", "career", "code"],
+  bond: ["друж", "друз", "друг", "подруг", "семь", "родител", "мам", "пап", "отц", "жена", "жене", "жену", "женой", "супруг", "мужа", "мужу", "муже", "парн", "девушк", "отношен", "звонок", "позвон", "общен", "свидан", "дети", "детей", "детьм", "ребён", "ребен", "близк", "обним", "вместе", "команд", "партнёр", "партнер", "сын", "доч", "брат", "сестр", "бабушк", "дедушк", "внук", "together", "friend", "family", "call", "partner", "relationship", "love"],
   soul: ["благодар", "молитв", "молит", "дух", "смысл", "ценност", "намерен", "аффирмац", "визуализ", "добро", "помога", "волонт", "вера", "осознан", "умиротвор", "spirit", "gratitude", "pray", "purpose", "faith", "kind"],
-  rest: ["отдых", "пауз", "хобби", "рису", "живопис", "музык", "гитар", "игр", "гейм", "путешеств", "отпуск", "релакс", "баня", "сауна", "фильм", "сериал", "творч", "танц", "сад", "цвет", "приро", "лес", "море", "пляж", "rest", "hobby", "relax", "fun", "travel", "nature", "paint", "music", "game"],
+  rest: ["отдых", "пауз", "хобби", "рису", "живопис", "музык", "гитар", "игр", "гейм", "путешеств", "отпуск", "релакс", "баня", "сауна", "фильм", "сериал", "творч", "танц", "сад", "цвет", "приро", "лес", "море", "пляж", "собак", "выгул", "питомц", "убор", "убра", "rest", "hobby", "relax", "fun", "travel", "nature", "paint", "music", "game"],
 };
 // Эмодзи-подсказки (fallback, если название ничего не дало).
 var BOS_SPHERE_EMO = {
@@ -2781,17 +2784,58 @@ var BOS_SPHERE_EMO = {
   soul: "✨🙏🕊️☮️🌟💫🕯️😇🧎",
   rest: "🌿🎨🎵🎮🎸🌳🏖️✈️🛀🍿🌸🎭🌊😌🧺🎬🃏",
 };
+// БАЗОВЫЙ эмодзи — без тона кожи, пола и вариационного селектора. Прежний матчинг сравнивал
+// эмодзи ЦЕЛИКОМ со строкой-таблицей, поэтому 🏃 находился, а 🏃🏼‍♀️ — нет: любой, кто выбрал
+// эмодзи с оттенком кожи, терял запасной путь и уезжал в «Разум». Именно такие эмодзи стоят в
+// стартовых привычках приложения (🧘🏼‍♀️, 🏃🏼‍♀️, ✍🏼).
+function bosBaseEmoji(e) {
+  if (!e) return "";
+  var s = ("" + e).split("‍")[0];              // ZWJ-связка (…‍♀️) → берём базовую фигуру
+  s = s.replace(/[︎️]/g, "");             // вариационный селектор
+  try { s = s.replace(/[\u{1F3FB}-\u{1F3FF}]/gu, ""); } catch (e2) {}   // тон кожи
+  return s;
+}
+// Плоская карта «базовый эмодзи → сфера», собирается один раз из таблиц выше.
+var BOS_EMO_MAP = (function () {
+  var m = {};
+  try {
+    BOS_SPHERES.forEach(function (s) {
+      Array.from(BOS_SPHERE_EMO[s.id] || "").forEach(function (ch) {
+        var b = bosBaseEmoji(ch);
+        if (b && !m[b]) m[b] = s.id;
+      });
+    });
+  } catch (e) {}
+  return m;
+})();
+// Слова названия: режем по всему, что не буква/цифра.
+function bosNameWords(name) {
+  return ("" + (name || "")).toLowerCase().split(/[^0-9a-zа-яё]+/).filter(Boolean);
+}
 function bosSphereFor(item) {
   if (!item) return "mind";
-  if (item.sphere && BOS_SPHERE_KW[item.sphere]) return item.sphere; // ИИ/юзер проставил — приоритет
-  var name = ("" + (item.name || "")).toLowerCase();
-  for (var i = 0; i < BOS_SPHERES.length; i++) {                     // 1) по названию (корни слов)
+  if (item.sphere && BOS_SPHERE_KW[item.sphere]) return item.sphere; // юзер/ИИ проставил — приоритет
+  // 1) По названию. Корень должен совпасть С НАЧАЛА СЛОВА, а не куском внутри него: прежний
+  // `name.indexOf(корень)` отправлял «работу с ДЕПРЕССИЕЙ» в Тело (там «пресс»), «изБЕГать» —
+  // в Тело («бег»), «заЛИПать» — в Тело («зал»), «сЧИТАть» — в Разум («чита»), а «сМЫСЛ» никогда
+  // не доходил до Духа, потому что Разум перехватывал его своим «мысл».
+  // Побеждает САМЫЙ ДЛИННЫЙ совпавший корень, а не первая сфера по списку: иначе порядок сфер
+  // решал за нас все столкновения и Дух structurally голодал.
+  var words = bosNameWords(item.name), best = null, bestLen = 0;
+  for (var i = 0; i < BOS_SPHERES.length; i++) {
     var id = BOS_SPHERES[i].id, kws = BOS_SPHERE_KW[id] || [];
-    for (var j = 0; j < kws.length; j++) { if (name.indexOf(kws[j]) >= 0) return id; }
+    for (var j = 0; j < kws.length; j++) {
+      var kw = kws[j];
+      if (kw.length <= bestLen) continue;
+      for (var w = 0; w < words.length; w++) {
+        if (words[w].indexOf(kw) === 0) { best = id; bestLen = kw.length; break; }
+      }
+    }
   }
-  var emo = "" + (item.emoji || "");                                 // 2) по эмодзи
-  if (emo) { for (var k = 0; k < BOS_SPHERES.length; k++) { var id2 = BOS_SPHERES[k].id; if ((BOS_SPHERE_EMO[id2] || "").indexOf(emo) >= 0) return id2; } }
-  return "mind";                                                     // не распознали → «Разум» (саморазвитие)
+  if (best) return best;
+  var emo = bosBaseEmoji(item.emoji);                                // 2) по эмодзи (нормализованному)
+  if (emo && BOS_EMO_MAP[emo]) return BOS_EMO_MAP[emo];
+  return "mind";                                                     // не распознали → «Разум»
 }
 // ── ЗАТУХАНИЕ «за всё время» (David V2-финал) ────────────────────────────────
 // Баланс жизни копится из ВСЕЙ истории ходов, но свежие ходы весят больше: вес
@@ -2849,12 +2893,14 @@ function bosWheelData(app) {
   var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved && !bosIsArch(_archM, "h", h); });
   var goals = ((app && app.goals) || []).filter(function (g) { return g && !bosIsArch(_archM, "g", g); });
   var strengths = {}, items = {}, hbySph = {}; BOS_SPHERES.forEach(function (s) { strengths[s.id] = []; items[s.id] = []; hbySph[s.id] = []; });
-  habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h, now)); hbySph[id].push(h); items[id].push({ emoji: h.emoji || "•", name: h.name || "Привычка", kind: "habit" }); });
+  // hid/gid + manual едут в item, чтобы прямо из аккордеона сферы можно было сказать «нет, это
+  // другая категория» — человек видит ошибку именно здесь, здесь же её и чинит (David).
+  habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h, now)); hbySph[id].push(h); items[id].push({ emoji: h.emoji || "•", name: h.name || "Привычка", kind: "habit", hid: h.id, manual: !!h.sphere }); });
   goals.forEach(function (g) {
     var prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, (app && app.habits) || []) : { pct: 0, done: false };
     var id = bosSphereFor(g);
     strengths[id].push(Math.max(0.30, Math.min(1, 0.30 + (prog.pct || 0) * 0.62 + (prog.done ? 0.08 : 0))));
-    items[id].push({ emoji: g.emoji || "🎯", name: g.name || "Цель", kind: "goal" });
+    items[id].push({ emoji: g.emoji || "🎯", name: g.name || "Цель", kind: "goal", gid: g.id, manual: !!g.sphere });
   });
   var total = 0, filled = 0;
   var spheres = BOS_SPHERES.map(function (s) {
@@ -2871,6 +2917,51 @@ function bosWheelData(app) {
   return { spheres: spheres, overall: Math.round(total / spheres.length * 100), filled: filled };
 }
 function bosZoneColor(v) { return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" : "#FF8A3D"; }
+
+/* «Нет, это другая категория» — перенос привычки/цели в другую сферу прямо из аккордеона колеса.
+   Место выбрано намеренно: именно здесь человек ВИДИТ ошибку («почему моя депрессия в Теле?»),
+   здесь же её и чинит. Пишет поле sphere → bosSphereFor отдаёт ему приоритет над угадыванием.
+   «Авто» снимает ручную метку и возвращает угадывание (оно поедет за переименованием). LIVE. */
+function BosSphereMoveSheetLive({ item, cur, app }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : null;
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  if (!item) return null;
+  const pick = (id) => {
+    try {
+      if (item.kind === "goal" && app && app.updateGoal) app.updateGoal(item.gid, { sphere: id });
+      else if (app && app.updateHabit) app.updateHabit(item.hid, { sphere: id });
+    } catch (e) {}
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    try { if (sheet && sheet.close) sheet.close(); } catch (e) {}
+  };
+  return (
+    <div style={{ padding: "2px 22px 16px", color: "var(--text)" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 34, lineHeight: 1 }}>{item.emoji}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 8 }}>{item.name}</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, lineHeight: 1.45, textWrap: "balance" }}>
+          {item.manual ? "Сфера выбрана вручную." : "Сферу подобрало приложение по названию."} Переложи, если не туда.
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "center", marginTop: 18 }}>
+        {(BOS_SPHERES || []).map((s) => {
+          const on = cur === s.id && item.manual;
+          return (
+            <button key={s.id} className="tap tap-pill" onClick={() => pick(s.id)}
+              style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 14px", fontSize: 14, fontWeight: 700, fontFamily: "inherit",
+                background: on ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+                color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{s.e} {s.l}</button>
+          );
+        })}
+      </div>
+      {item.manual && (
+        <button className="tap" onClick={() => pick(null)} style={{ width: "100%", marginTop: 12, background: "transparent", border: 0, color: "var(--text-3)", padding: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          Вернуть автоматический выбор
+        </button>
+      )}
+    </div>
+  );
+}
 
 // Чипы «ИИ заметил» под колесом. David: одна статичная фраза внизу — тупая; лучше живые чипы того,
 // что ИИ реально подметил. Если сервер прислал brief.wheelChips (массив коротких строк) — берём их;
@@ -3170,7 +3261,12 @@ function BosBalanceWheelLive(props) {
               {s.items && s.items.length ? (
                 <div className="lr-items">
                   {s.items.map(function (it, j) { return (
-                    <div className="lr-item" key={j}><span className="ico">{it.emoji}</span><span className="nm">{it.name}</span><span className="tag">{it.kind === "goal" ? "цель" : "привычка"}</span></div>
+                    <button className="lr-item tap" key={j} type="button"
+                      onClick={function () { if (openSheet) openSheet(<BosSphereMoveSheetLive item={it} cur={s.id} app={app} />); }}
+                      style={{ width: "100%", border: 0, background: "transparent", font: "inherit", color: "inherit", textAlign: "left", cursor: "pointer" }}>
+                      <span className="ico">{it.emoji}</span><span className="nm">{it.name}</span>
+                      <span className="tag">{it.manual ? "вручную" : (it.kind === "goal" ? "цель" : "привычка")}</span>
+                    </button>
                   ); })}
                 </div>
               ) : (
