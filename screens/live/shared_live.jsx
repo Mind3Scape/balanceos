@@ -5235,11 +5235,33 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
   });
   const _pt = tHabits.length || 0;
   const _anyTU = tHabits.some((h) => h && Array.isArray(h.todayUsers));
+  // ВРЕМЕНА сегодняшних отметок круга — для нити дня (David 2026-07-15, выбран «Волна дня»).
+  // Я участник → отметки читаю напрямую (teamTodayTimes), поэтому знаю ЛИЦА и часы. Для ЧУЖОГО
+  // открытого круга лиц нет (RLS) — там карточка каталога берёт анонимный агрегат circlePulse.
+  const [dayTimes, setDayTimes] = React.useState(null);
+  React.useEffect(() => {
+    if (!_ck || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTodayTimes)) return;
+    let on = true;
+    window.bosCloud.teamTodayTimes(_ck).then((r) => { if (on && r) setDayTimes(r); }).catch(() => {});
+    return () => { on = false; };
+  }, [_ck, ctx.mode]);
   const orbitPeople = members.filter(Boolean).map((m) => {
     let progress = null;
     if (_pt && _anyTU && m.id != null) progress = tHabits.filter((h) => h && Array.isArray(h.todayUsers) && h.todayUsers.indexOf(m.id) !== -1).length / _pt;
     return { avatar: m.avatar, name: m.name, active: !!(_tk && m.days && m.days[_tk]), progress };
   });
+  // Лицо на нити = участник, который СЕГОДНЯ отметился, в свой час. Нет отметок → нити нет
+  // (пустая нить — шум, а не факт). Компонент сам решит: мало лиц → лица, много → волна.
+  const _threadFaces = React.useMemo(() => {
+    const times = (dayTimes && dayTimes.times) || null;
+    if (!times) return [];
+    return members.filter((m) => m && m.id != null && times[m.id]).map((m) => {
+      const d = new Date(times[m.id]);
+      return { avatar: m.avatar, name: m.name, hr: d.getHours() + d.getMinutes() / 60 };
+    }).filter((f) => !isNaN(f.hr));
+  }, [dayTimes, members]);
+  const _threadEl = (!ctx.mode && _threadFaces.length > 0 && typeof BosDayThreadLive === "function")
+    ? <BosDayThreadLive faces={_threadFaces} isDark={isDark} /> : null;
   const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
     ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={orbitHabits} people={orbitPeople} size={banner ? 132 : 152} dark={isDark} fade progress={pct} />
     : null;
@@ -5247,7 +5269,7 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
   // о непрочитанных и на внешней карточке»). Один пульс-чип слева (сегодня в деле / достигнуто /
   // люди) + красный значок непрочитанного справа. Плавают в углах над орбитой, тап не перехватывают.
   const _inFlow = orbitPeople.filter((p) => p.active).length;
-  const _ageDays = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt) : null;
+  const _ageDays = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt || (dayTimes && dayTimes.createdAt)) : null;
   const _pulseTxt = pct >= 1 ? "🎉 Готово" : (_inFlow > 0 ? "🔥 " + _inFlow + " сегодня" : (members.length ? "👥 " + members.length : null));
   const _tileFloat = (!ctx.mode && orbit && _pulseTxt) ? (
     <span style={{ position: "absolute", top: 10, left: 11, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 3, maxWidth: "60%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: isDark ? "rgba(0,0,0,0.24)" : "rgba(255,255,255,0.66)", color: sk.hasColor ? sk.txt : sk.accent, fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", pointerEvents: "none" }}>{_pulseTxt}</span>
@@ -5283,8 +5305,11 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
 
   if (banner) {
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ position: "relative", background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ position: "relative", background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", flexDirection: "column", gap: 12, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {_unreadBadge}
+        {/* Нить идёт ПОД строкой во всю ширину, а не внутри неё: рядом с орбитой справа её
+            зажимало бы в щель, и волна дня переставала читаться (David: нить — основа карточки). */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {!orbit && icon}
@@ -5308,6 +5333,8 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
           {progBar}
         </div>
         {orbit}
+        </div>
+        {_threadEl}
       </div>
     );
   }
