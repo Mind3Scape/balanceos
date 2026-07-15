@@ -120,24 +120,36 @@ function HabitDetailLive() {
 
   // «Ритм»: неделя (мои кольца) · месяц (мой / доля друзей) · год (мои 12 колец-месяцев).
   const _dayPct = (k) => (h.done && k === _todayK) ? 1 : (_log[k] ? 1 : (_isQuant && h.counts && h.counts[k] ? Math.min(1, h.counts[k] / _qGoal) : 0));
-  const weekCells = bosStdWeek().map((c) => ({ pct: _dayPct(c.k), l: c.l }));
+  // Неделя — Пн→Вс ТЕКУЩЕЙ недели (конвенция всего приложения, bosWeekKeys), а не скользящие
+  // 7 дней: иначе с остальными календарями разнобой. Дни отдыха по расписанию и будущее — пригашены.
+  const _wkKeys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : bosStdWeek().map((c) => c.k);
+  const weekCells = _wkKeys.map((k, i) => ({ pct: _dayPct(k), l: ["П", "В", "С", "Ч", "П", "С", "В"][i], dim: (_mask && !_mask[i]) || k > _todayK, today: k === _todayK }));
   const now = new Date();
   const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const _mk = (d) => now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  const _maskOk = (mi, d) => !_mask || _mask[(new Date(now.getFullYear(), mi, d).getDay() + 6) % 7];
   const monthCells = Array.from({ length: dim }).map((_, i) => {
     const k = _mk(i + 1);
-    if (!_shared) return { pct: _dayPct(k) };
+    const dimC = k > _todayK || !_maskOk(now.getMonth(), i + 1);
+    const tdy = k === _todayK;
+    if (!_shared) return { pct: _dayPct(k), dim: dimC, today: tdy };
     const didN = buddies.filter((m) => (m.me ? (_log[k] || (m.days && m.days[k])) : (m.days && m.days[k]))).length;
-    return { pct: didN / buddies.length };
+    return { pct: didN / buddies.length, dim: dimC, today: tdy };
   });
+  // Год: кольцо месяца = доля от ЗАПЛАНИРОВАННЫХ дней — привычка «3 раза в неделю» у идеального
+  // человека заполняет кольцо целиком, а не на 43%.
   const yearMonths = Array.from({ length: 12 }).map((_, mi) => {
     const future = mi > now.getMonth();
     if (future) return { frac: 0, future: true };
     const dimM = new Date(now.getFullYear(), mi + 1, 0).getDate();
-    const den = mi === now.getMonth() ? now.getDate() : dimM;
-    let cnt = 0;
-    for (let d = 1; d <= dimM; d++) { const k = now.getFullYear() + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); if (_log[k]) cnt++; }
-    return { frac: den ? Math.min(1, cnt / den) : 0, future: false };
+    const upto = mi === now.getMonth() ? now.getDate() : dimM;
+    let cnt = 0, planned = 0;
+    for (let d = 1; d <= dimM; d++) {
+      const k = now.getFullYear() + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      if (d <= upto && _maskOk(mi, d)) planned++;
+      if (_log[k]) cnt++;
+    }
+    return { frac: planned ? Math.min(1, cnt / planned) : 0, future: false };
   });
 
   // Чипы: сделано · серия · лучшая · всего (данные старого трио — теперь языком чипов).

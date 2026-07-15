@@ -1166,9 +1166,18 @@
       var ids = ((th && th.data) || []).map(function (r) { return r.id; });
       if (!ids.length) return { rows: [] };
       var since = new Date(); since.setDate(since.getDate() - Math.max(0, (days || 31) - 1));
-      var lg = await c.from("team_habit_logs").select("user_id,team_habit_id,day").in("team_habit_id", ids).gte("day", _localDay(since));
-      if (lg.error || !Array.isArray(lg.data)) return null;
-      return { rows: lg.data.map(function (r) { return { u: r.user_id, h: r.team_habit_id, day: r.day }; }) };
+      // ПАГИНАЦИЯ: Supabase молча режет ответ на 1000 строк — на круге 150×3×31 это треть
+      // данных, и серия круга/журнал ведущего посчитались бы «честно неверно». Листаем до конца
+      // (потолок 15к строк — страховка от бесконечного цикла, реальный месяц круга меньше).
+      var out = [], from = 0, PAGE = 1000;
+      while (from < 15000) {
+        var lg = await c.from("team_habit_logs").select("user_id,team_habit_id,day").in("team_habit_id", ids).gte("day", _localDay(since)).order("day", { ascending: false }).range(from, from + PAGE - 1);
+        if (lg.error || !Array.isArray(lg.data)) return from === 0 ? null : { rows: out };
+        lg.data.forEach(function (r) { out.push({ u: r.user_id, h: r.team_habit_id, day: r.day }); });
+        if (lg.data.length < PAGE) break;
+        from += PAGE;
+      }
+      return { rows: out };
     } catch (e) { return null; }
   }
   // МОЙ год в привычке круга: дни моих отметок этой привычки с 1 января. Крошечный запрос
@@ -1191,9 +1200,16 @@
       var th = await c.from("team_habits").select("id").eq("team_id", teamId);
       var ids = ((th && th.data) || []).map(function (r) { return r.id; });
       if (!ids.length) return { rows: [] };
-      var lg = await c.from("team_habit_logs").select("user_id,team_habit_id,created_at").in("team_habit_id", ids).eq("day", _localDay());
-      if (lg.error || !Array.isArray(lg.data)) return null;
-      return { rows: lg.data.map(function (r) { return { u: r.user_id, h: r.team_habit_id, at: r.created_at }; }) };
+      // Та же пагинация, что в teamLogsRange: день большого круга может перерасти лимит 1000.
+      var out = [], from = 0, PAGE = 1000;
+      while (from < 5000) {
+        var lg = await c.from("team_habit_logs").select("user_id,team_habit_id,created_at").in("team_habit_id", ids).eq("day", _localDay()).order("created_at", { ascending: true }).range(from, from + PAGE - 1);
+        if (lg.error || !Array.isArray(lg.data)) return from === 0 ? null : { rows: out };
+        lg.data.forEach(function (r) { out.push({ u: r.user_id, h: r.team_habit_id, at: r.created_at }); });
+        if (lg.data.length < PAGE) break;
+        from += PAGE;
+      }
+      return { rows: out };
     } catch (e) { return null; }
   }
   // «Подбодрить» 🔥 — таблица team_cheers (patch_circle_room.sql). До патча таблицы нет →

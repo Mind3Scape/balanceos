@@ -30,11 +30,11 @@ var BOS_STD_MONTHS_SHORT = ["Я", "Ф", "М", "А", "М", "И", "И", "А", "С"
 var BOS_STD_MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 
 /* Кольцо-клетка (язык bosDayRing v660) с подписью внутри/снизу. */
-function BosStdRingCell({ pct, size, label, below, accent, isDark, dim }) {
+function BosStdRingCell({ pct, size, label, below, accent, isDark, dim, today }) {
   return (
     <span style={{ display: "inline-grid", justifyItems: "center", opacity: dim ? 0.35 : 1 }}>
       <span style={{ position: "relative", width: size, height: size, display: "grid", placeItems: "center" }}>
-        <span style={{ position: "absolute", inset: 0 }}>{bosDayRing(pct, accent || BOS_ROOM_GOLD, isDark, { sw: size >= 30 ? 4 : 3.4 })}</span>
+        <span style={{ position: "absolute", inset: 0 }}>{bosDayRing(pct, accent || BOS_ROOM_GOLD, isDark, { sw: size >= 30 ? 4 : 3.4, today: !!today })}</span>
         {label != null && <span style={{ fontSize: 8, fontWeight: 700, color: "var(--text-4)", position: "relative" }}>{label}</span>}
       </span>
       {below != null && <span style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-4)", marginTop: 2 }}>{below}</span>}
@@ -84,14 +84,14 @@ function BosRhythmBlockLive({ mode, weekCells, hist, monthCells, monthHint, year
       ? <BosStdHist dist={hist.dist} me={hist.me} isDark={isDark} />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, justifyItems: "center" }}>
-          {(weekCells || []).map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={26} below={c.l} accent={accent} isDark={isDark} />)}
+          {(weekCells || []).map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={26} below={c.l} accent={accent} isDark={isDark} dim={c.dim} today={c.today} />)}
         </div>
       );
   } else if (tab === "month") {
     body = (
       <div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, justifyItems: "center" }}>
-          {(monthCells || []).map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={24} label={i + 1} accent={accent} isDark={isDark} />)}
+          {(monthCells || []).map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={24} label={i + 1} accent={accent} isDark={isDark} dim={c.dim} today={c.today} />)}
         </div>
         {monthHint && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "right", marginTop: 5 }}>{monthHint}</div>}
       </div>
@@ -223,7 +223,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
   const byDayUsers = {}; (rangeRows || []).forEach((r) => { if (r.h === h.id) (byDayUsers[r.day] = byDayUsers[r.day] || {})[r.u] = true; });
   const monthCells = Array.from({ length: dim }).map((_, i) => {
     const k = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(i + 1).padStart(2, "0");
-    return { pct: Object.keys(byDayUsers[k] || {}).length / membersN };
+    return { pct: Object.keys(byDayUsers[k] || {}).length / membersN, dim: k > bosRoomDayKey(0), today: k === bosRoomDayKey(0) };
   });
 
   // Год — ТВОЙ (ленивая догрузка своих строк с 1 января при открытии вкладки).

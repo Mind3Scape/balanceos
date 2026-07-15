@@ -400,13 +400,18 @@ function TeamDetailLive() {
       if (typeof bosTeamUnreadClear === "function") bosTeamUnreadClear(t.cloudId);
     } catch (e) {}
   }, [_live, t.cloudId, msgs.length]);
-  const [text, setText] = React.useState("");
+  // prefill — «Написать» из кабинета/карточки человека приводит сюда с готовым «@Имя ».
+  const [text, setText] = React.useState(() => (params && params.prefill) || "");
   const fileRef = React.useRef(null);
   const composerRef = React.useRef(null);
+  React.useEffect(() => {
+    if (params && params.prefill) setTimeout(() => { try { composerRef.current && composerRef.current.focus(); composerRef.current.scrollIntoView({ block: "center" }); } catch (e) {} }, 450);
+  }, []);
   const absorb = (row) => { if (row) setMsgs((prev) => prev.some((m) => m.id === row.id) ? prev : prev.concat([mapRow(row)])); };
   const send = () => {
     const v = text.trim(); if (!v) return;
     setText("");
+    setTimeout(() => { try { composerRef.current && composerRef.current.scrollIntoView({ block: "nearest" }); } catch (e) {} }, 120);
     if (_live) {
       window.bosCloud.sendMessage(t.cloudId, { text: v }).then((row) => {
         if (row) { absorb(row); return; }
@@ -511,6 +516,9 @@ function TeamDetailLive() {
     });
   }
   feedRows.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  // Лента не резиновая: показываем последние 60 событий, о срезе говорим честно.
+  const feedCut = feedRows.length > 60;
+  const feedShown = feedCut ? feedRows.slice(-60) : feedRows;
   const MILES = [7, 14, 30, 50, 100, 200, 365, 500, 730, 1000];
 
   const openPerson = (p) => {
@@ -558,9 +566,10 @@ function TeamDetailLive() {
     const done = myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const myT = done ? myTimeFor(h.id) : null;
+    const mySuffix = done ? (myT ? " · ты в " + myT : " · ты только что") : "";
     const sub = membersN <= 12
-      ? ((h.doneToday || 0) + " из " + (h.total != null ? h.total : membersN) + " сегодня" + (done ? (" · ты в " + (myT || "деле")) : ""))
-      : ((h.doneToday || 0) + " уже" + (done ? (" · ты в " + (myT || "деле")) : ""));
+      ? ((h.doneToday || 0) + " из " + (h.total != null ? h.total : membersN) + " сегодня" + mySuffix)
+      : ((h.doneToday || 0) + " уже" + mySuffix);
     dayList.push(
       <CircleDayRowLive key={"h" + (h.id || i)} first={dayList.length === 0} isDark={isDark}
         icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
@@ -707,12 +716,13 @@ function TeamDetailLive() {
         </div>
       )}
 
+      {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px" }}>показаны последние события</div>}
       {feedRows.length === 0 && !_iDidCircle && !cheeredMe.length ? (
         <div style={{ textAlign: "center", padding: "18px 30px 6px" }}>
           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 3 }}>Пока тихо</div>
           <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-4)" }}>Отметь дело дня или напиши кругу — с этого и начинается пульс</div>
         </div>
-      ) : feedRows.map((f) => {
+      ) : feedShown.map((f) => {
         if (f.k === "msg") {
           const m = f.m;
           return m.me ? (
@@ -1002,8 +1012,10 @@ function CircleCabinetLive() {
 
   const card = { background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)" };
   const weekKeys = []; for (let i = 6; i >= 0; i--) weekKeys.push(bosRoomDayKey(i));
+  // «Написать» из кабинета = комната с готовым «@Имя » в композере (лички в приложении нет).
+  const writeTo = (m) => navigate("team-detail", { team: t, from: from, prefill: "@" + ((m.name || "").split(" ")[0] || "друг") + " " });
   const openPerson = (m) => openSheet(<CirclePersonSheetLive team={t} person={m} meId={meId} habits={habits} rangeRows={rows} dayRows={dayRows}
-    cheersOn={cheersOn} cheered={!!myCheered[m.id]} onCheer={() => sendCheer(m.id)} isDark={isDark} />);
+    cheersOn={cheersOn} cheered={!!myCheered[m.id]} onCheer={() => sendCheer(m.id)} onWrite={() => writeTo(m)} isDark={isDark} />);
 
   const wardRow = (w) => {
     const open = openId === w.m.id;
@@ -1043,7 +1055,10 @@ function CircleCabinetLive() {
                 </span>
               </div>
             ))}
-            <button onClick={() => openPerson(w.m)} className="tap" style={{ marginTop: 6, width: "100%", border: 0, borderRadius: 999, padding: "8px 0", fontSize: 11.5, fontWeight: 700, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text)" }}>Открыть карточку</button>
+            <div style={{ display: "flex", gap: 7, marginTop: 6 }}>
+              <button onClick={() => writeTo(w.m)} className="tap" style={{ flex: 1, border: 0, borderRadius: 999, padding: "8px 0", fontSize: 11.5, fontWeight: 700, cursor: "pointer", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff" }}>Написать</button>
+              <button onClick={() => openPerson(w.m)} className="tap" style={{ flex: 1, border: 0, borderRadius: 999, padding: "8px 0", fontSize: 11.5, fontWeight: 700, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text)" }}>Карточка</button>
+            </div>
           </div>
         )}
       </div>
@@ -1118,7 +1133,7 @@ function CircleCabinetLive() {
                 <span style={{ display: "block", height: "100%", width: r.pct + "%", borderRadius: 999, background: r.delta >= 0 ? ("linear-gradient(90deg," + BOS_ROOM_GOLD_L + "," + BOS_ROOM_GOLD + ")") : "linear-gradient(90deg,#f0a08e,#E0362B)" }} />
               </span>
               <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", width: 30, textAlign: "right", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{r.pct}%</span>
-              <span style={{ fontSize: 9.5, fontWeight: 800, color: r.delta >= 0 ? BOS_ROOM_GOLD_INK : "#E0362B", width: 30, textAlign: "right", flexShrink: 0 }}>{(r.delta >= 0 ? "+" : "−") + Math.abs(r.delta) + "%"}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 800, color: r.delta >= 0 ? BOS_ROOM_GOLD_INK : "#E0362B", width: 30, textAlign: "right", flexShrink: 0 }}>{r.delta === 0 ? "" : (r.delta > 0 ? "+" : "−") + Math.abs(r.delta) + "%"}</span>
             </div>
           ))}
           <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)") }}>
