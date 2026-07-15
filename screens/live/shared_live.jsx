@@ -5064,12 +5064,23 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
   // о непрочитанных и на внешней карточке»). Один пульс-чип слева (сегодня в деле / достигнуто /
   // люди) + красный значок непрочитанного справа. Плавают в углах над орбитой, тап не перехватывают.
   const _inFlow = orbitPeople.filter((p) => p.active).length;
+  const _ageDays = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt) : null;
   const _pulseTxt = pct >= 1 ? "🎉 Готово" : (_inFlow > 0 ? "🔥 " + _inFlow + " сегодня" : (members.length ? "👥 " + members.length : null));
-  const _tileFloat = (!ctx.mode && orbit && (_pulseTxt || tileUnread > 0)) ? (
-    <>
-      {_pulseTxt && <span style={{ position: "absolute", top: 10, left: 11, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 3, maxWidth: "60%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: isDark ? "rgba(0,0,0,0.24)" : "rgba(255,255,255,0.66)", color: sk.hasColor ? sk.txt : sk.accent, fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", pointerEvents: "none" }}>{_pulseTxt}</span>}
-      {tileUnread > 0 && <span style={{ position: "absolute", top: 9, right: 10, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 2, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 6px", height: 18, borderRadius: 999, boxShadow: "0 1px 3px rgba(0,0,0,0.28)", pointerEvents: "none" }}>💬 {tileUnread > 99 ? "99+" : tileUnread}</span>}
-    </>
+  const _tileFloat = (!ctx.mode && orbit && _pulseTxt) ? (
+    <span style={{ position: "absolute", top: 10, left: 11, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 3, maxWidth: "60%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: isDark ? "rgba(0,0,0,0.24)" : "rgba(255,255,255,0.66)", color: sk.hasColor ? sk.txt : sk.accent, fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", pointerEvents: "none" }}>{_pulseTxt}</span>
+  ) : null;
+  // Значок НЕПРОЧИТАННЫХ в чате круга. Три правки David 2026-07-15:
+  //  1) СТЕКЛО вместо красной плашки — «стеклянную СВГ-иконку чата и сообщение»: круг не авария,
+  //     а «о, кто-то написал». Тот же материал, что у чрома (bosGlassChrome).
+  //  2) ЗАЛИВНОЙ SVG вместо эмодзи 💬 — эмодзи рисует система, в чужой теме он чужой.
+  //  3) Вынесен ИЗ _tileFloat: тот показывался только при orbit И не рисовался в ветке banner —
+  //     а Сообщество показывает круги ИМЕННО баннером (big → banner), поэтому значка там не было
+  //     видно НИКОГДА. Теперь это отдельный элемент, который ставят обе ветки.
+  const _unreadBadge = (!ctx.mode && tileUnread > 0) ? (
+    <span aria-label={"новых сообщений: " + tileUnread} style={{ position: "absolute", top: 10, right: 10, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: "0 8px", borderRadius: 999, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDark ? "#fff" : "#0a0a0a", ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}), pointerEvents: "none" }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3.2c5.3 0 9.6 3.4 9.6 7.6s-4.3 7.6-9.6 7.6c-.9 0-1.8-.1-2.6-.3l-4.6 2.3a.55.55 0 0 1-.79-.64l1-3.4C3.1 14.9 2.4 13.1 2.4 10.8 2.4 6.6 6.7 3.2 12 3.2z"/></svg>
+      {tileUnread > 99 ? "99+" : tileUnread}
+    </span>
   ) : null;
   const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={20} max={3} /></span> : null;
   const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
@@ -5089,13 +5100,25 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
 
   if (banner) {
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ position: "relative", background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        {_unreadBadge}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {!orbit && icon}
             <div style={{ flex: 1, minWidth: 0 }}>
               {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
-              <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>Вместе{members.length ? " · " + members.length : ""}</div>
+              {/* «живёт N дней» рядом с составом (David 2026-07-15): возраст — живой факт, растёт
+                  сам от даты рождения круга. Нет даты (локальный круг без облака) → нет и куска. */}
+              <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1, display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                <span style={{ flexShrink: 0 }}>Вместе{members.length ? " · " + members.length : ""}</span>
+                {_ageDays ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                    <span style={{ opacity: 0.5 }}>·</span>
+                    <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} style={{ flexShrink: 0 }} />
+                    живёт {_ageDays} {typeof bosRuDays === "function" ? bosRuDays(_ageDays) : "дн."}
+                  </span>
+                ) : null}
+              </div>
             </div>
             {!orbit && (faces || pctEl)}
           </div>
@@ -5108,6 +5131,7 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
   return (
     <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
       {_tileFloat}
+      {_unreadBadge}
       {orbit ? (
         <>
           <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
@@ -5711,26 +5735,43 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
       });
     } catch (e) { setBusy((b) => Object.assign({}, b, { [t.id]: false })); }
   };
-  const _dHdr = { fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" };
+  const _dHdr = { fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px", display: "flex", alignItems: "center", gap: 6 };
+  // Заголовки носили эмодзи-глобус 🌐 — про «открытость», но не про КРУГ (David 2026-07-15:
+  // «там тоже должна быть иконка кругов»). Теперь тот же BosCircleIcon, что на пилюле и в «+».
+  const _dHdrIcon = (typeof BosCircleIcon === "function") ? <BosCircleIcon size={13} strokeWidth={2} color="var(--text-4)" /> : null;
   return (
     <div style={{ marginTop: 10 }}>
       {/* Мои открытые круги — карточкой Главной (David: «одна карточка везде», создатель видит, что круг открыт). */}
       {myOpen.length > 0 && (
         <div style={{ marginBottom: shownList.length ? 20 : 0 }}>
-          <div style={_dHdr}>🌐 Твои открытые круги</div>
+          <div style={_dHdr}>{_dHdrIcon}Твои открытые круги</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {myOpen.map((t) => (typeof TeamTileLive === "function" ? <TeamTileLive key={"mine:" + (t.cloudId || t._id)} team={t} from="community" big /> : null))}
           </div>
         </div>
       )}
-      {shownList.length > 0 && <div style={_dHdr}>🌐 Открытые круги</div>}
+      {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {shownList.map((t) => (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
             <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
-              <div style={{ marginTop: 5 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span></div>
+              {/* «живёт N дней» рядом с составом (David 2026-07-15): по числу участников не понять,
+                  всерьёз это или заведено вчера и брошено, — а по возрасту понять. Растёт сам от
+                  created_at (добавлен в селект cloud.discoverTeams/searchTeams ради этого чипа);
+                  нет даты → чипа просто нет. Огонёк — заливной SVG, не эмодзи. */}
+              <div style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 5 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span>
+                {(() => {
+                  const _d = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt) : null;
+                  return _d ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 700, color: "#B4820A", background: "rgba(240,195,10,0.14)", padding: "3px 9px", borderRadius: 999 }}>
+                      <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} />живёт {_d} {typeof bosRuDays === "function" ? bosRuDays(_d) : "дн."}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
             </div>
             <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
           </div>

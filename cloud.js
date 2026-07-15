@@ -537,15 +537,15 @@
     try {
       // circle_balance_on — тумблер «Баланс круга»; селектим слоями (до patch_circle_balance_toggle.sql
       // колонки нет → падаем на прежний селект, чтобы гидрация команд НЕ ломалась, урок v583/v594).
-      var m = await c.from("team_members").select("role,teams(id,name,emblem,vis,owner_id,goal_kind,goal_target,goal,circle_balance_on)").eq("user_id", id).neq("role", "pending");
-      if (m.error) m = await c.from("team_members").select("role,teams(id,name,emblem,vis,owner_id,goal_kind,goal_target,goal)").eq("user_id", id).neq("role", "pending");
+      var m = await c.from("team_members").select("role,teams(id,name,emblem,vis,owner_id,goal_kind,goal_target,goal,circle_balance_on,created_at)").eq("user_id", id).neq("role", "pending");
+      if (m.error) m = await c.from("team_members").select("role,teams(id,name,emblem,vis,owner_id,goal_kind,goal_target,goal,created_at)").eq("user_id", id).neq("role", "pending");
       if (m.error) return null;
-      var own = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,goal,circle_balance_on").eq("owner_id", id);
-      if (own.error) own = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,goal").eq("owner_id", id);
+      var own = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,goal,circle_balance_on,created_at").eq("owner_id", id);
+      if (own.error) own = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,goal,created_at").eq("owner_id", id);
       if (own.error) return null;
       var out = [], seen = {};
-      (m.data || []).forEach(function (r) { var t = r && r.teams; if (t && t.id && !seen[t.id]) { seen[t.id] = 1; t.circleBalanceOn = t.circle_balance_on; out.push({ role: r.role || "member", team: t }); } });
-      (own.data || []).forEach(function (t) { if (t && t.id && !seen[t.id]) { seen[t.id] = 1; t.circleBalanceOn = t.circle_balance_on; out.push({ role: "owner", team: t }); } });
+      (m.data || []).forEach(function (r) { var t = r && r.teams; if (t && t.id && !seen[t.id]) { seen[t.id] = 1; t.circleBalanceOn = t.circle_balance_on; t.createdAt = t.created_at; out.push({ role: r.role || "member", team: t }); } });
+      (own.data || []).forEach(function (t) { if (t && t.id && !seen[t.id]) { seen[t.id] = 1; t.circleBalanceOn = t.circle_balance_on; t.createdAt = t.created_at; out.push({ role: "owner", team: t }); } });
       return out;
     } catch (e) { return null; }
   }
@@ -579,12 +579,12 @@
   async function discoverTeams() {
     var c = client(); var id = await uid(); if (!c) return [];
     try {
-      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,circle_balance_on,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60);
-      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // до ALTER circle_balance_on
-      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // если embed team_members падает под RLS
+      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,circle_balance_on,created_at,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60);
+      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // до ALTER circle_balance_on
+      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // если embed team_members падает под RLS
       var rows = (r && r.data) || [];
       return rows.filter(function (t) { return !(id && t.owner_id === id); }).map(function (t) {
-        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
+        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, createdAt: t.created_at, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
       });
     } catch (e) { return []; }
   }
@@ -593,11 +593,11 @@
   async function searchTeams(q) {
     var c = client(); if (!c || !q) return [];
     try {
-      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,team_members(count)").eq("vis", "public").ilike("name", "%" + q + "%").limit(20);
-      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("vis", "public").ilike("name", "%" + q + "%").limit(20);
+      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at,team_members(count)").eq("vis", "public").ilike("name", "%" + q + "%").limit(20);
+      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at").eq("vis", "public").ilike("name", "%" + q + "%").limit(20);
       var rows = (r && r.data) || [];
       return rows.map(function (t) {
-        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
+        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, createdAt: t.created_at, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
       });
     } catch (e) { return []; }
   }

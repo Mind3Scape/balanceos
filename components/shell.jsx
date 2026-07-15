@@ -1641,7 +1641,11 @@ function AppProvider({ children }) {
                       if (!t || !t.cloudId) return t;
                       var found = null, role = null;
                       for (var i = 0; i < list.length; i++) { if (list[i] && list[i].team && list[i].team.id === t.cloudId) { found = list[i].team; role = list[i].role; break; } }
-                      if (!found || role === "owner") return t; // владельца НЕ трогаем
+                      if (!found) return t;
+                      // Владельца НЕ трогаем — его имя/эмблема/цель локально главные. НО createdAt
+                      // (дата рождения круга) — чисто СЕРВЕРНЫЙ факт, локально его никто не правит:
+                      // без него на карточке нечем показать «живёт N дней» (David 2026-07-15).
+                      if (role === "owner") return (found.createdAt && !t.createdAt) ? Object.assign({}, t, { createdAt: found.createdAt }) : t;
                       var g = (found.goal && typeof found.goal === "object") ? found.goal : {};
                       var patch = {};
                       if (found.name != null) patch.name = found.name;
@@ -1654,6 +1658,7 @@ function AppProvider({ children }) {
                       if (typeof g.title === "string" && g.title) patch.goal = g.title; else if (typeof found.goal_kind === "string" && found.goal_kind && found.goal_kind.indexOf("[object") < 0) patch.goal = found.goal_kind;
                       if (g.stake != null) patch.stake = g.stake;
                       if (found.circleBalanceOn != null) patch.circleBalanceOn = found.circleBalanceOn;
+                      if (found.createdAt != null) patch.createdAt = found.createdAt;
                       return Object.assign({}, t, patch);
                     });
                   });
@@ -1762,7 +1767,7 @@ function AppProvider({ children }) {
                   var add = [];
                   mem.forEach(function (m) {
                     var row = m && m.team; if (!row || have[row.id]) return;
-                    add.push({ _id: "cloud-" + row.id, cloudId: row.id, joined: m.role !== "owner", name: row.name || "Совместная цель", emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: row.goal || "", goalKind: row.goal_kind || null, target: row.goal_target || 0, current: 0, progress: 0, members: [], habits: [] });
+                    add.push({ _id: "cloud-" + row.id, cloudId: row.id, joined: m.role !== "owner", name: row.name || "Совместная цель", emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: row.goal || "", goalKind: row.goal_kind || null, createdAt: row.createdAt || null, target: row.goal_target || 0, current: 0, progress: 0, members: [], habits: [] });
                   });
                   var keep = p.filter(function (x) { return !x.cloudId || truth[x.cloudId] || (_joinTeamId && x.cloudId === _joinTeamId); });
                   if (!add.length && keep.length === p.length) return prev;

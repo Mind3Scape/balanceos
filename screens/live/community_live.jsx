@@ -3747,6 +3747,20 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
   var CARD = { position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 158, borderRadius: 20, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", color: "var(--text)", fontFamily: "inherit" };
   var TILE = { width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 };
   var chip = function (txt, live) { return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: live ? "#B4820A" : "var(--text-4)", background: live ? "rgba(240,195,10,0.14)" : "var(--surface-3)", borderRadius: 999, padding: "3px 8px", marginTop: 9 }}>{txt}</span>; };
+  // Возраст круга «🔥 живёт N дней» (David 2026-07-15). Это ЖИВОЙ факт, а не украшение: он растёт
+  // сам от даты рождения круга и отвечает на вопрос «а это вообще всерьёз или заброшено вчера».
+  // Огонёк — ЗАЛИВНОЙ SVG (I.Flame), не эмодзи: эмодзи рисует система, и в чужой теме он чужой.
+  // Дата приезжает из cloud.discoverTeams (created_at добавлен в селект специально ради этого);
+  // у заготовок-семян её нет → bosCircleDays вернёт null и чип просто не появится.
+  var ageChip = function (since) {
+    var d = (typeof bosCircleDays === "function") ? bosCircleDays(since) : null;
+    if (!d) return null;
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: "#B4820A", background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 8px" }}>
+        <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} />живёт {d} {typeof bosRuDays === "function" ? bosRuDays(d) : "дн."}
+      </span>
+    );
+  };
   var cards = [];
   // 1) реальные открытые круги — «живые»
   real.slice(0, 6).forEach(function (t) {
@@ -3755,7 +3769,12 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
       <div key={"real:" + t.id} style={CARD}>
         <span style={TILE}>{typeof bosIcon === "function" ? bosIcon(t.emblem || "✨", 23, null) : (t.emblem || "✨")}</span>
         <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, marginTop: 11 }}>{t.name}</span>
-        {chip("🌐 " + (t.members || 0) + " участ.", true)}
+        {/* Чипы переносятся: на карточке 158px «участники» и «живёт N дней» в одну строку не
+            всегда влезают, а обрезать живой факт многоточием — хуже, чем перенести. */}
+        <span style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 9 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#B4820A", background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 8px" }}>🌐 {(t.members || 0)} участ.</span>
+          {ageChip(t.createdAt)}
+        </span>
         <button onClick={function () { join(t); }} disabled={busy[t.id] || pending} className="tap" data-haptic="selection"
           style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "9px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: pending ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: pending ? "var(--text-3)" : "var(--cta-ink, #fff)" }}>{pending ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
       </div>
@@ -3776,7 +3795,11 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 4px 2px" }}>
-        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px" }}>🌐 Открытые круги</span>
+        {/* Заголовок носил эмодзи 🌐 — глобус, а не круг (David 2026-07-15: «там тоже должна быть
+            иконка кругов»). Теперь тот же BosCircleIcon, что на пилюле и в меню «+». */}
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", display: "inline-flex", alignItems: "center", gap: 7 }}>
+          <BosCircleIcon size={17} strokeWidth={1.9} color="var(--text)" />Открытые круги
+        </span>
         {onAll && (
           <button onClick={onAll} className="tap" data-haptic="selection" style={{ border: 0, background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 1, fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", padding: 0 }}>
             Все <I.ChevronRight size={13} color="var(--text-4)" />
@@ -3992,8 +4015,12 @@ function CommunityLive() {
       <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "2px 14px 0", margin: "0 -12px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
         {/* Чип «Рядом» (David) — режим КАРТЫ партнёров города, сразу после «Все». Пока город один
             (Москва) — карта живёт и на обзоре «Все» героем, и крупно тут. */}
-        {/* Иконки у категорий (David: «svg-иконок не хватает, чтобы чётче отличать»). */}
-        {[["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
+        {/* Иконки у категорий (David: «svg-иконок не хватает, чтобы чётче отличать»).
+            «Круги» носили I.Group — двух человечков, почти неотличимых от I.Users у «Людей»
+            (David 2026-07-15: «там одинаковые иконки»). Теперь это BosCircleIcon — НАШ символ
+            круга, тот же, что в меню «+» на главной: у знака появился один смысл во всём
+            приложении, а «Круги» и «Люди» перестали быть двумя картинками про людей. */}
+        {[["all", "Все", I.Globe], ["circles", "Круги", BosCircleIcon], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (
