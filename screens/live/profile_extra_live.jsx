@@ -579,7 +579,8 @@ function NotificationsLive() {
     if (ok) { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } setB(k, "rejected"); }
     else setB(k, null);
   };
-  const openChat = (t) => { try { localStorage.setItem("bos:chatread:" + t.cloudId, String(Date.now())); } catch (e) {} navigate("team-chat", { team: t, from: "notifications" }); };
+  // Чат живёт в «Пульсе дня» комнаты круга (v765) — уведомление ведёт прямо в комнату.
+  const openChat = (t) => { try { localStorage.setItem("bos:chatread:" + t.cloudId, String(Date.now())); } catch (e) {} navigate("team-detail", { team: t, from: "notifications" }); };
   const openTeam = (t) => navigate("team-detail", { team: t, from: "notifications" });
   const openFriends = () => navigate("friends", { from: "notifications" });
   const openBuddy = (h) => navigate("habit-detail", { habit: h, from: "notifications" });
