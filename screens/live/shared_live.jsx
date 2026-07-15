@@ -2918,6 +2918,87 @@ function bosWheelData(app) {
 }
 function bosZoneColor(v) { return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" : "#FF8A3D"; }
 
+// ── БАЗОВЫЙ ОПРОС КОЛЕСА ─────────────────────────────────────────────────────
+// Человеческий вопрос к каждой сфере + пять пилюль СЛОВАМИ (не цифрами: «7 из 10» ничего не
+// значит, «так себе» — значит).
+var BOS_BASE_Q = {
+  body: "Сколько сейчас сил и здоровья?",
+  mind: "Растёшь ли, учишься, думаешь?",
+  work: "Как с делом и деньгами?",
+  bond: "Насколько ты близок с важными людьми?",
+  soul: "Есть ли смысл и опора?",
+  rest: "Хватает ли отдыха и радости?",
+};
+var BOS_BASE_PILLS = ["Совсем плохо", "Слабо", "Нормально", "Хорошо", "Отлично"];
+
+/* Шесть карточек, по сфере на экран. Сверху мини-колесо, и его контур-тень дорисовывается на
+   глазах — человек ВИДИТ, как рождается его база, а не заполняет анкету. LIVE. */
+function BosBaselineSurveyLive({ app }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : null;
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const SPH = BOS_SPHERES || [];
+  const [step, setStep] = React.useState(0);
+  const [vals, setVals] = React.useState({});
+  const s = SPH[step];
+  if (!s) return null;
+  const ink = isDark ? "#fff" : "#0a0a0a";
+  const pt = (i, v) => {
+    const a = (-90 + i * 60) * Math.PI / 180, r = 40 * Math.max(0.05, v);
+    return [50 + r * Math.cos(a), 50 + r * Math.sin(a)];
+  };
+  const ghost = SPH.map((x, i) => pt(i, (vals[x.id] || 0) / 5)).map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const web = SPH.map((x, i) => pt(i, 1)).map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const pick = (n) => {
+    const next = Object.assign({}, vals); next[s.id] = n;
+    setVals(next);
+    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+    if (step + 1 < SPH.length) { window.setTimeout(() => setStep(step + 1), 160); return; }
+    // Последняя карточка → сохраняем базу. Дальше колесо открыто навсегда: тень поверх золота.
+    try { if (app && app.setBaseline) app.setBaseline(next); } catch (e) {}
+    if (typeof window.bosCelebrateLevel === "function") window.bosCelebrateLevel();
+    else if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    window.setTimeout(() => { try { if (sheet && sheet.close) sheet.close(); } catch (e) {} }, 320);
+  };
+  return (
+    <div style={{ padding: "2px 22px 18px", color: "var(--text)" }}>
+      <div style={{ textAlign: "center", fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "var(--text-4)" }}>
+        Твоя база · {step + 1} из {SPH.length}
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+        <svg width="104" height="104" viewBox="0 0 100 100" aria-hidden>
+          <polygon points={web} fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.08)"} strokeWidth="1" />
+          {SPH.map((x, i) => { const p = pt(i, 1); return <line key={x.id} x1="50" y1="50" x2={p[0]} y2={p[1]} stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.06)"} strokeWidth="0.8" />; })}
+          {/* тень-контур: дорисовывается точка за точкой по мере ответов */}
+          <polygon points={ghost} fill="rgba(254,222,52,0.16)" stroke="#EF9F14" strokeWidth="1.6" strokeLinejoin="round"
+            style={{ transition: "all 0.45s cubic-bezier(0.22,1,0.36,1)" }} />
+          {SPH.map((x, i) => {
+            const p = pt(i, (vals[x.id] || 0) / 5);
+            return <circle key={x.id} cx={p[0]} cy={p[1]} r={vals[x.id] ? 2.4 : 0} fill="#FEDE34" stroke="#EF9F14" strokeWidth="0.8"
+              style={{ transition: "all 0.45s cubic-bezier(0.22,1,0.36,1)" }} />;
+          })}
+        </svg>
+      </div>
+      <div style={{ textAlign: "center", marginTop: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: "50%", margin: "0 auto", display: "grid", placeItems: "center", background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)" }}>
+          {((typeof bosIconEl === "function") && bosIconEl(BOS_SPHERE_ICON[s.id], { size: 21, color: ink })) || s.e}
+        </div>
+        <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", marginTop: 10 }}>{s.l}</div>
+        <div style={{ fontSize: 14.5, color: "var(--text-3)", marginTop: 5, lineHeight: 1.45, textWrap: "balance" }}>{BOS_BASE_Q[s.id]}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 16 }}>
+        {BOS_BASE_PILLS.map((w, i) => (
+          <button key={w} className="tap" onClick={() => pick(i + 1)}
+            style={{ width: "100%", border: 0, cursor: "pointer", borderRadius: 16, padding: "14px 16px", fontSize: 15.5, fontWeight: 700, fontFamily: "inherit", textAlign: "left",
+              background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)", color: "var(--text)" }}>{w}</button>
+        ))}
+      </div>
+      {step > 0 && (
+        <button className="tap" onClick={() => setStep(step - 1)} style={{ width: "100%", marginTop: 10, background: "transparent", border: 0, color: "var(--text-4)", padding: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Назад</button>
+      )}
+    </div>
+  );
+}
+
 /* «Нет, это другая категория» — перенос привычки/цели в другую сферу прямо из аккордеона колеса.
    Место выбрано намеренно: именно здесь человек ВИДИТ ошибку («почему моя депрессия в Теле?»),
    здесь же её и чинит. Пишет поле sphere → bosSphereFor отдаёт ему приоритет над угадыванием.
@@ -3080,9 +3161,37 @@ function BosSphereLupaSheetLive(props) {
 //    подсказка Balance AI под твой контекст, а 6 сфер разлетаются в ранжир-список «% ».
 // FLIP заякорен на КРУЖКЕ-сфере (.lr-orb), поэтому иконка не прыгает при перестроении.
 // Линии радара — non-scaling-stroke: не утоньшаются, когда радар становится маленьким.
+/* ЗАМОК на колесе (David): пока не отметил, где ты сейчас, колесо закрыто. Раньше у новичка
+   колесо просто НЕ ПОКАЗЫВАЛОСЬ (условие isBlank) — замок не отнимает, а наоборот делает его
+   видимым с первого дня и объясняет, зачем оно. Грамматика чёрная плашка + золотой замок — та же,
+   что у закрытых карточек «Открытий» (_DiscCard). LIVE. */
+function BosWheelLockedLive({ app, dark, openSheet }) {
+  var GOLD = "#FEDE34";
+  return (
+    <div style={{ background: "var(--card)", boxShadow: "var(--card-shadow)", borderRadius: 24, padding: "22px 18px", textAlign: "center" }}>
+      <div style={{ width: 56, height: 56, borderRadius: "50%", margin: "0 auto", background: "#0a0a0a", display: "grid", placeItems: "center" }}>
+        <I.Lock size={23} color={GOLD} />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "var(--text-4)", marginTop: 14 }}>Баланс жизни</div>
+      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 5 }}>Сначала отметь, где ты сейчас</div>
+      <div style={{ fontSize: 14, color: "var(--text-3)", marginTop: 7, lineHeight: 1.5, maxWidth: 280, margin: "7px auto 0", textWrap: "balance" }}>
+        Шесть коротких вопросов, меньше минуты. Это не заполнит колесо — привычки наполняют его сами. Зато сразу будет видно, куда смотреть.
+      </div>
+      <button className="tap" onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } openSheet(<BosBaselineSurveyLive app={app} />); }}
+        style={{ marginTop: 18, border: 0, cursor: "pointer", borderRadius: 999, padding: "13px 22px", fontSize: 15, fontWeight: 800, fontFamily: "inherit",
+          background: "linear-gradient(180deg,#FFE96A," + GOLD + ")", color: "#4a3800", boxShadow: "0 4px 14px rgba(254,222,52,0.35)" }}>
+        Пройти · 6 вопросов
+      </button>
+    </div>
+  );
+}
+
 function BosBalanceWheelLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate, hideTitle = !!props.hideTitle, bare = !!props.bare;
   var openSheet = props.openSheet || function () {};
+  // Замок решает РОДИТЕЛЬ (profile_live), а не этот компонент: ранний возврат отсюда пропустил бы
+  // хуки ниже, и в момент прохождения опроса (нет базы → есть база) React упал бы с «хуков стало
+  // больше, чем в прошлый раз».
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
   var data = bosWheelData(app);
   var SPH = data.spheres, N = SPH.length;
@@ -3093,6 +3202,11 @@ function BosBalanceWheelLive(props) {
   var pt = function (i, r) { var t = i * Math.PI / 3; return (r * Math.sin(t)).toFixed(1) + "," + (-r * Math.cos(t)).toFixed(1); };
   var hex = function (L) { var a = []; for (var i = 0; i < N; i++) a.push(pt(i, OUT * L)); return a.join(" "); };
   var dataPts = SPH.map(function (s, i) { return pt(i, OUT * Math.max(s.v, 0.05)); }).join(" ");
+  // ТЕНЬ — как человек САМ себя оценил в базовом опросе (1..5 → 0..1). Рисуется тонким контуром
+  // ПОВЕРХ золотой заливки, но заливка остаётся тем, что он реально ДЕЛАЕТ. Весь смысл — в разрыве
+  // между «ценю» и «делаю»: колесо никогда не показывает дела, которых не было.
+  var base = (app && app.baseline) || null;
+  var basePts = base ? SPH.map(function (s, i) { return pt(i, OUT * Math.max((base[s.id] || 0) / 5, 0.05)); }).join(" ") : null;
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
   var gridCol = dark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.10)";
   var spokeCol = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
@@ -3203,6 +3317,9 @@ function BosBalanceWheelLive(props) {
             {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1.1" style={strokeFx} />; })}
             <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.3" strokeDasharray="3 5" strokeLinecap="round" style={strokeFx} />
             <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="2" strokeLinejoin="round" style={strokeFx} />
+            {/* Тень самооценки — ПОВЕРХ заливки, тонким пунктиром, без заливки: она не «результат»,
+                а ориентир. Там, где контур выше золота, — разрыв между «важно» и «делаю». */}
+            {basePts && <polygon points={basePts} fill="none" stroke={dark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.42)"} strokeWidth="1.4" strokeDasharray="4 4" strokeLinejoin="round" strokeLinecap="round" style={strokeFx} />}
             {/* Точки-якоря на вершинах осей (David 2026-07-14): «непонятно, к кому какой угол привязан».
                 По одной аккуратной точке на конце каждой оси — прямо под своей сферой. Заполненная —
                 золотая с ободком, пустая — тихая серая. Небольшие, но заметные; тянутся к иконке сферы. */}

@@ -306,9 +306,14 @@ function AILive() {
 
       {/* БАЛАНС ЖИЗНИ — личный ритм по сферам (колесо). «Баланс окружения» отложён
           (2026-07-13, см. _parked/env-balance/): переключатель балансов убран, осталось колесо жизни. */}
-      {!isBlank && typeof BosBalanceWheelLive === "function" && (
+      {/* Нет базы → ЗАМОК (David): колесо закрыто, пока не отметишь, где ты сейчас. Замок
+          показываем и новичку — прежнее условие isBlank просто ПРЯТАЛО колесо от того самого
+          человека, которому база нужнее всего. Есть база → обычное колесо. */}
+      {typeof BosBalanceWheelLive === "function" && (
         <div style={{ marginTop: 14 }}>
-          <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />
+          {!app?.baseline && typeof BosWheelLockedLive === "function"
+            ? <BosWheelLockedLive app={app} dark={isDarkAI} openSheet={openSheet} />
+            : (!isBlank && <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />)}
         </div>
       )}
 

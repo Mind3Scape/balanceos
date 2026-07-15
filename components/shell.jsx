@@ -931,6 +931,11 @@ function AppProvider({ children }) {
   // null = ещё не мигрирована из widgets (home_live построит дефолт при первом входе в новую главную).
   const [homeLayout, setHomeLayout] = useState(null);
   const [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
+  // БАЗОВЫЙ ОПРОС колеса: {body:1..5, mind:.., work:.., bond:.., soul:.., rest:..} — как человек
+  // САМ себя оценил. Не путать со значениями колеса: те считаются из отметок. Эти шесть чисел
+  // рисуются контуром-тенью поверх, и смысл в разрыве между «ценю» и «делаю».
+  // null = опрос не пройден → колесо под замком.
+  const [baseline, setBaseline] = useState(null);
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere. Stays "auto"
   // (= light, DARK_ROUTES is empty) by default — we polish the LIGHT theme end-to-end first,
   // THEN revisit dark (David's call). Dark is still reachable via the Settings toggle.
@@ -1282,7 +1287,7 @@ function AppProvider({ children }) {
   // Always holds the latest state so an unload/background flush writes what's on screen
   // right now (a stale effect-closure would miss the very last tap).
   const latestRef = useRef(null);
-  latestRef.current = { persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, taskLists };
+  latestRef.current = { persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, baseline, claimedChallenges, spentXP, taskLists };
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
     if (hydratingRef.current) return; // don't persist until the cloud load has reconciled
@@ -1291,7 +1296,7 @@ function AppProvider({ children }) {
     // серия тапов = серия мелких записей, это ок. РАНЬШЕ эта запись сидела в 400мс-дебаунсе → последние
     // тапы могли не успеть на диск при жёстком закрытии → «прокликал 24, вернулся — 5». Облако осталось
     // с дебаунсом ниже (сеть дорогая; строки привычек и так уходят из мутаторов upsertHabit/toggleHabitLog).
-    window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, taskLists });
+    window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, baseline, taskLists });
     if (saveTimer.current) clearTimeout(saveTimer.current);
     // Debounce ТОЛЬКО облачного зеркала: серия тапов коалесится в одну сетевую запись.
     saveTimer.current = setTimeout(() => {
@@ -1304,13 +1309,13 @@ function AppProvider({ children }) {
           // (habits/habit_logs/goals) so the blob can't balloon with date-keyed logs. Write only when
           // the blob's content actually changed → a habit check-in no longer re-upserts user_state.
           var _extras = _walletExtras();
-          var _blobStr = JSON.stringify({ teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, extras: _extras });
-          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
+          var _blobStr = JSON.stringify({ teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, baseline, claimedChallenges, spentXP, extras: _extras });
+          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, baseline, claimedChallenges, spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
         }
       } catch (e) {}
     }, 400);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, taskLists, extrasTick]);
+  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, baseline, claimedChallenges, spentXP, taskLists, extrasTick]);
 
   // Flush synchronously when the app is backgrounded/closed: the 400 ms debounce above
   // would otherwise lose the very last check-in if the user swipes the app away. localStorage
@@ -1321,11 +1326,11 @@ function AppProvider({ children }) {
       if (!s || !s.persistId || !window.bosStore || hydratingRef.current) return;
       try {
         if (saveTimer.current) clearTimeout(saveTimer.current);
-        window.bosStore.save(s.persistId, { savedAt: Date.now(), userName: s.userName, avatar: s.avatar, habits: s.habits, goals: s.goals, teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, taskLists: s.taskLists });
+        window.bosStore.save(s.persistId, { savedAt: Date.now(), userName: s.userName, avatar: s.avatar, habits: s.habits, goals: s.goals, teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, baseline: s.baseline, taskLists: s.taskLists });
         if (window.bosCloud && window.bosCloud.enabled()) {
           var _extras = _walletExtras();
-          var _blobStr = JSON.stringify({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras });
-          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
+          var _blobStr = JSON.stringify({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, baseline: s.baseline, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras });
+          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, baseline: s.baseline, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
         }
       } catch (e) {}
     };
@@ -1398,7 +1403,7 @@ function AppProvider({ children }) {
   const enterDemo = () => {
     setMode("demo"); setUserName("Павел"); setAvatar(null);
     setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
-    setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(DEMO_WIDGETS);
+    setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES); setBaseline(null); setWidgets(DEMO_WIDGETS);
     setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover", commTab: "network" });
     // Demo greets each screen with its own intro sheet → clear "seen" so home
     // (and every tab) shows one. No forced linear tour anymore.
@@ -1408,7 +1413,7 @@ function AppProvider({ children }) {
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim()); setAvatar(null);
     setHabits([]); setGoals([]); setTeams([]);
-    setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
+    setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setBaseline(null); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
@@ -1439,7 +1444,7 @@ function AppProvider({ children }) {
       setUserName(saved.userName || name); setAvatar(_av0);
       setHabits(_uniqLocal((saved.habits || []).map(bosRollHabit))); setGoals(_uniqLocal(saved.goals || [])); setTeams(saved.teams || []); setTaskLists(_bosNormLists(saved.taskLists));
       setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
-      setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS); setHomeLayout(saved.homeLayout || null);
+      setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setBaseline(saved.baseline || null); setWidgets(saved.widgets || FRESH_WIDGETS); setHomeLayout(saved.homeLayout || null);
       // Restore today's state (the orb) from the saved per-day record, so reopening lands
       // in the mood the user last set today instead of snapping back to neutral.
       var _tkS = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
@@ -1453,7 +1458,7 @@ function AppProvider({ children }) {
     } else {
       setUserName(name); setAvatar(_av0);
       setHabits([]); setGoals([]); setTeams([]);
-      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
+      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setBaseline(null); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
     }
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // First-time real users get the welcome sheets; returning ones skip straight in.
@@ -1579,6 +1584,7 @@ function AppProvider({ children }) {
               // keep the orb in sync with today's restored state
               try { var _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null; var _mi = _tk ? _mMoods[_tk] : undefined; if (_mi != null && MOOD_OPTIONS[_mi]) setMood(MOOD_OPTIONS[_mi]); } catch (e) {}
               if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
+              if (d.baseline) setBaseline(d.baseline);
               // F-layout (David: «переставил блоки главной, потом через время всё вернулось»):
               // loadSnapshot резолвится ПО СЕТИ, спустя секунды после входа, и применяет облачный снимок
               // В КОНЦЕ. Если за эти секунды пользователь ПОМЕНЯЛ раскладку/виджеты — автосейв на время
@@ -1595,7 +1601,7 @@ function AppProvider({ children }) {
               // If local held days the cloud lacked, push the union up so the cloud is whole too.
               // (v594: и если мы удержали локальные круги от пустого облака — лечим облачный снимок сразу.)
               if (_teamsHeld || Object.keys(_mMoods).length > Object.keys(_cloudMoods).length || Object.keys(_mNotes).length > Object.keys(_cloudNotes).length) {
-                window.bosCloud.saveSnapshot({ teams: (Array.isArray(d.teams) && !_teamsHeld) ? d.teams : _locTeams, dayMoods: _mMoods, dayNotes: _mNotes, wheelSpheres: d.wheelSpheres, widgets: d.widgets, homeLayout: d.homeLayout || (saved && saved.homeLayout) || null, claimedChallenges: _mClaimed, spentXP: _mSpent });
+                window.bosCloud.saveSnapshot({ teams: (Array.isArray(d.teams) && !_teamsHeld) ? d.teams : _locTeams, dayMoods: _mMoods, dayNotes: _mNotes, wheelSpheres: d.wheelSpheres, baseline: d.baseline || baseline, widgets: d.widgets, homeLayout: d.homeLayout || (saved && saved.homeLayout) || null, claimedChallenges: _mClaimed, spentXP: _mSpent });
               }
             } else {
               var src = saved || {};
@@ -1615,7 +1621,7 @@ function AppProvider({ children }) {
               if (!(src.teams && src.teams.length) && Array.isArray(_cd.teams) && _cd.teams.length) setTeams(_cd.teams);
               if (!src.widgets && _cd.widgets) setWidgets(_cd.widgets);
               if (!src.homeLayout && _cd.homeLayout) setHomeLayout(_cd.homeLayout);
-              window.bosCloud.saveSnapshot({ teams: _keepTeams, dayMoods: _mMoods2, dayNotes: _mNotes2, wheelSpheres: src.wheelSpheres || _cd.wheelSpheres, widgets: _keepWidgets, homeLayout: _keepLayout, claimedChallenges: _mClaimed, spentXP: _mSpent });
+              window.bosCloud.saveSnapshot({ teams: _keepTeams, dayMoods: _mMoods2, dayNotes: _mNotes2, wheelSpheres: src.wheelSpheres || _cd.wheelSpheres, baseline: src.baseline || _cd.baseline || baseline, widgets: _keepWidgets, homeLayout: _keepLayout, claimedChallenges: _mClaimed, spentXP: _mSpent });
             }
             // Reconciliation done → allow autosave again (the join below should persist).
             _doneHydrate();
@@ -1996,6 +2002,7 @@ function AppProvider({ children }) {
     dayNotes, setDayNotes,
     widgets, setWidgets, homeLayout, setHomeLayout,
     wheelSpheres, setWheelSpheres,
+    baseline, setBaseline,
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
     aiBrief, invitedCount, teamGoalXP, refreshTeamGoalXP,
