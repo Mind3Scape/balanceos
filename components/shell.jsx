@@ -958,6 +958,7 @@ function AppProvider({ children }) {
   const [mode, setMode] = useState("demo");      // "demo" | "fresh"
   const [pendingAch, setPendingAch] = useState(null); // a freshly-unlocked achievement to celebrate
   const [pendingDayClose, setPendingDayClose] = useState(null); // today's Daily Balance just closed → one calm completion reveal
+  const [pendingLevelUp, setPendingLevelUp] = useState(null); // {level, prev, unlock} — вырос уровень → празднуем один раз
   const [pendingJoinWelcome, setPendingJoinWelcome] = useState(null); // freshly-joined shared habit / team via invite link → greet «X позвал тебя»
   const [userName, setUserName] = useState("Павел");
   const [avatar, setAvatar] = useState(null); // null = default Memoji (assets/sphere.png)
@@ -1776,6 +1777,7 @@ function AppProvider({ children }) {
   // if it's absent the effect simply no-ops (no celebration). Demo never reaches here (gate).
   const clearPendingAch = () => setPendingAch(null);
   const clearPendingDayClose = () => setPendingDayClose(null);
+  const clearPendingLevelUp = () => setPendingLevelUp(null);
   const clearPendingJoinWelcome = () => setPendingJoinWelcome(null);
   // Инвайт в круг (kind="team-invite"): вступление ТОЛЬКО по явному «Вступить» с превью
   // (brief 2026-07-11). Отказ ничего не публикует и не оставляет заявки.
@@ -1863,6 +1865,62 @@ function AppProvider({ children }) {
     }
   }, [mode, persistId, habits, goals, dayMoods, dayNotes, teams, invitedCount]);
 
+  // ── ДЕНЬ ПРИВЫЧЕК ЗАКРЫТ → конфетти ────────────────────────────────────────
+  // Живёт здесь, а не на Главной, потому что последнюю привычку можно отметить на ЛЮБОМ экране
+  // (Привычки, цель, круг) — раньше салют случался, только если ты в этот миг смотрел на Главную.
+  // Условие ровно то же, что у бонуса «идеальный день» (+30): все АКТИВНЫЕ привычки отмечены.
+  // Один раз в день на профиль: ключ в localStorage переживает перезагрузку, поэтому вернулся на
+  // закрытом дне — тишина. hydratingRef — чтобы облако, доехавшее с уже закрытым днём, не бахнуло.
+  const dayFullSeenRef = useRef({});
+  useEffect(() => {
+    if (mode !== "live" || !persistId || hydratingRef.current) return;
+    var act = (habits || []).filter(function (h) { return h && !h.shelved && !h.goalOnly; });
+    if (!act.length || !act.every(function (h) { return h.done; })) return;
+    var key = "bos:dayfull:" + persistId + ":" + bosTodayKey();
+    if (dayFullSeenRef.current[key]) return;
+    var seen = false; try { seen = localStorage.getItem(key) === "1"; } catch (e) {}
+    dayFullSeenRef.current[key] = true;
+    if (seen) return;
+    try { localStorage.setItem(key, "1"); } catch (e2) {}
+    if (typeof window.bosCelebrateDay === "function") window.bosCelebrateDay();
+  }, [mode, persistId, habits]);
+
+  // ── НОВЫЙ УРОВЕНЬ → празднование ───────────────────────────────────────────
+  // Раньше уровень не праздновался нигде: золотая карточка в ленте «Сообщества» ждала, пока ты
+  // туда зайдёшь. Теперь ловим рост здесь — как ачивки. Базовая отметка ставится при первом
+  // взгляде (и только не на гидратации), иначе каждому существующему юзеру при входе на новом
+  // устройстве бахнуло бы «поздравляем с уровнем 6» задним числом.
+  const lvlSeenRef = useRef({ pid: null, lvl: null });
+  useEffect(() => {
+    if (mode !== "live" || !persistId || typeof bosLevelInfoLive !== "function" || typeof bosLiveXPLive !== "function") return;
+    var KEY = "bos:lvlSeen:" + persistId;
+    // Слепок ПОЛНЫЙ (goals/teams тоже): XP ачивок считается по ним, и на неполном слепке уровень
+    // здесь разошёлся бы с кольцом на Главной — «поздравили пятым, а в кольце шестой».
+    var lvl = bosLevelInfoLive(bosLiveXPLive({
+      habits: habits, goals: goals, teams: teams, dayMoods: dayMoods, dayNotes: dayNotes,
+      claimedChallenges: claimedChallenges, invitedCount: invitedCount, teamGoalXP: teamGoalXP,
+    })).level | 0;
+    if (!lvl) return;
+    var store = lvlSeenRef.current;
+    if (store.pid !== persistId) {
+      var saved = null;
+      try { var raw = localStorage.getItem(KEY); if (raw != null) saved = parseInt(raw, 10) || null; } catch (e) {}
+      store = lvlSeenRef.current = { pid: persistId, lvl: saved };
+    }
+    if (store.lvl == null || hydratingRef.current) {   // нет базы / данные ещё едут → впитываем молча
+      lvlSeenRef.current = { pid: persistId, lvl: lvl };
+      try { localStorage.setItem(KEY, String(lvl)); } catch (e2) {}
+      return;
+    }
+    if (lvl <= store.lvl) return;
+    var prev = store.lvl;
+    lvlSeenRef.current = { pid: persistId, lvl: lvl };
+    try { localStorage.setItem(KEY, String(lvl)); } catch (e3) {}
+    // Карточка «Открылось» в ленте «Сообщества» — та же новость. Гасим её, чтобы не поздравлять дважды.
+    try { localStorage.setItem("bos:discoveryLevelSeen", String(lvl)); window.dispatchEvent(new Event("bos:discoveryChanged")); } catch (e4) {}
+    setPendingLevelUp({ level: lvl, prev: prev, ts: Date.now() });
+  }, [mode, persistId, habits, goals, teams, dayMoods, dayNotes, claimedChallenges, invitedCount, teamGoalXP]);
+
   // Load the referral count (registered invitees) for LIVE users → feeds real referral XP in
   // the live economy. Refreshes on login and whenever teams change (a proxy for "the circle
   // may have grown"). Demo/fresh stay at 0.
@@ -1933,6 +1991,7 @@ function AppProvider({ children }) {
     claimedChallenges, spentXP, spendXP, grantBonusXP, noteSpentXP,
     pendingAch, clearPendingAch,
     pendingDayClose, clearPendingDayClose,
+    pendingLevelUp, clearPendingLevelUp,
     pendingJoinWelcome, clearPendingJoinWelcome, acceptTeamInvite, declineTeamInvite,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,

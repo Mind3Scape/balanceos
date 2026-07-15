@@ -2564,6 +2564,81 @@ function AchievementSheetLive({ ach, onClose }) {
   );
 }
 
+/* НОВЫЙ УРОВЕНЬ — празднование. Ловится в AppProvider (shell.jsx), приезжает из app.pendingLevelUp.
+   Почему круглый ТЁМНЫЙ медальон, а не золотой квадрат ачивки: уровень редок и весит больше, он
+   обязан читаться как другой, более редкий предмет — иначе «поздравляем» превращается в шум.
+   Ритм текста при этом тот же, что у ачивки (кикер → титул → описание → пилюля → кнопка), поэтому
+   штука новая, а язык знакомый. Конфетти стреляет на монтировании — один общий движок (core/confetti). LIVE. */
+function LevelUpSheetLive({ info, onClose }) {
+  const [open, setOpen] = React.useState(false);
+  const closingRef = React.useRef(false);
+  React.useEffect(() => { const t = window.setTimeout(() => setOpen(true), 10); return () => window.clearTimeout(t); }, []);
+  // Салют — вдогонку за выехавшей шторкой (340мс), иначе конфетти сыплется на пустой экран.
+  React.useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (typeof window.bosCelebrateLevel === "function") window.bosCelebrateLevel();
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    }, 420);
+    return () => window.clearTimeout(t);
+  }, []);
+  if (!info) return null;
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const lvl = info.level | 0;
+  const unlock = (typeof BOS_LEVEL_UNLOCKS === "object" && BOS_LEVEL_UNLOCKS) ? BOS_LEVEL_UNLOCKS[lvl] : null;
+  const close = () => {
+    if (closingRef.current) return; closingRef.current = true;
+    setOpen(false);
+    window.setTimeout(() => { try { onClose && onClose(); } catch (e) {} }, 340);
+  };
+  return (
+    <BottomSheet open={open} onClose={close} dark={isDark}>
+      <div style={{ padding: "8px 24px 26px", textAlign: "center", color: "var(--text)" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "relative", width: 108, height: 108, display: "grid", placeItems: "center" }}>
+            {/* золотое дыхание позади медальона */}
+            <span aria-hidden style={{ position: "absolute", inset: -6, borderRadius: "50%", background: "radial-gradient(circle, rgba(254,222,52,0.30) 0%, rgba(254,222,52,0) 68%)", animation: "bosLvlGlow 0.9s ease-out 0.1s both" }} />
+            {/* кольцо обрисовывается по кругу */}
+            <svg aria-hidden width="108" height="108" viewBox="0 0 100 100" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+              <circle cx="50" cy="50" r="45" fill="none" stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.07)"} strokeWidth="3" />
+              <circle cx="50" cy="50" r="45" fill="none" stroke="url(#bosLvlGrad)" strokeWidth="3" strokeLinecap="round"
+                strokeDasharray="282.7" style={{ animation: "bosLvlRing 0.9s cubic-bezier(0.22,1,0.36,1) 0.14s both" }} />
+              <defs>
+                <linearGradient id="bosLvlGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#FFE96A" /><stop offset="100%" stopColor="#EF9F14" />
+                </linearGradient>
+              </defs>
+            </svg>
+            {/* тёмный медальон с золотой цифрой */}
+            <div style={{ position: "relative", width: 78, height: 78, borderRadius: "50%", background: "linear-gradient(168deg,#1c1c20 0%,#08080a 100%)", display: "grid", placeItems: "center", boxShadow: "inset 0 0 0 0.7px rgba(254,222,52,0.28), 0 8px 20px rgba(0,0,0,0.22)", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both" }}>
+              <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, background: "linear-gradient(180deg,#FFE96A,#EF9F14)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{lvl}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize: 11.5, color: "#C98A00", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 20 }}>Новый уровень</div>
+        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.6px", color: "var(--text)", marginTop: 6, lineHeight: 1.1 }}>Уровень {lvl}</div>
+        <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, maxWidth: 270, margin: "10px auto 0", textWrap: "balance" }}>
+          {unlock ? "Твои дни сложились в новую ступень." : "Твои дни сложились в новую ступень. Так держать."}
+        </div>
+        {/* «Открылось» — МАТОВАЯ карточка с золотым значком, а не вторая золотая пилюля во всю ширину:
+            иначе под титулом встают две плашки подряд и глаз не понимает, что тут кнопка. Золото
+            остаётся ровно там, где награда — в значке. */}
+        {unlock ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 11, textAlign: "left", background: "var(--card-2)", borderRadius: 16, padding: "10px 12px", maxWidth: 292, margin: "18px auto 0" }}>
+            <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(158deg,#FFDC4A 0%,#F4A81E 100%)", display: "grid", placeItems: "center", boxShadow: "inset 0 1px 1px rgba(255,255,255,0.55)" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg>
+            </span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 9.5, fontWeight: 800, letterSpacing: 1.2, color: "var(--text-4)" }}>ОТКРЫЛОСЬ</span>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text)", lineHeight: 1.3, marginTop: 1 }}>{unlock}</span>
+            </span>
+          </div>
+        ) : null}
+        <button onClick={close} className="bos-btn" style={{ marginTop: 22 }}>Класс!</button>
+      </div>
+    </BottomSheet>
+  );
+}
+
 /* Деталь достижения из СПИСКА (тап по медали) — тот же стиль, что у шторки-открытия: ЗОЛОТОЙ
    квадрат-тайл (или серый-замок, если ещё закрыто), БЕЗ свечения, аккуратный текст. Рендерится
    через openSheet (шторка-чрома снаружи). Заменяет прежний текстовый InfoSheet. LIVE. */

@@ -379,6 +379,15 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
   78%  { opacity: 1; transform: translateY(0)    scale(1.02); }
   100% { opacity: 0; transform: translateY(0)    scale(1);    }
 }
+/* Новый уровень — золотое кольцо ОБРИСОВЫВАЕТСЯ вокруг медальона: за 0.9с проходит полный круг,
+   «уровень набран до конца». Длина окружности (r=45) ≈ 282.7 зашита в dasharray. */
+@keyframes bosLvlRing { from { stroke-dashoffset: 282.7; } to { stroke-dashoffset: 0; } }
+/* Мягкое золотое дыхание под медальоном — один вдох, чтобы цифра «зажглась», а не просто выехала. */
+@keyframes bosLvlGlow { 0% { opacity: 0; transform: scale(0.6); } 45% { opacity: 1; transform: scale(1.06); } 100% { opacity: 0.5; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  @keyframes bosLvlRing { from, to { stroke-dashoffset: 0; } }
+  @keyframes bosLvlGlow { from, to { opacity: 0.5; transform: scale(1); } }
+}
 /* Periodic gleam that sweeps across a button to draw the eye (Telegram CTA).
    Sweeps once in the first ~1.2s, then rests — the «шууу … пауза … шууу» feel. */
 @keyframes bosShine {

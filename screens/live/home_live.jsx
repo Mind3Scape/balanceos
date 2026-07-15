@@ -509,8 +509,10 @@ function HomeLive() {
   const _dueRem = (typeof bosDueRemindersLive === "function") ? bosDueRemindersLive(app?.habits || []).length : 0;
   const showBellDot = hasUnread || _dueRem > 0;
 
-  // Celebration when a habit gets completed: float +XP near the avatar ring,
-  // sparkle burst when the whole day closes (doneCount reaches total).
+  // Celebration when a habit gets completed: float +XP near the avatar ring.
+  // Сам САЛЮТ живёт не здесь: 8 точек из аватарки заменены общим конфетти (core/confetti), которое
+  // пускает AppProvider — иначе закрытие дня на экране «Привычки» проходило вообще без праздника.
+  // Здесь остаётся только цифра «+N XP · идеальный день»: она про Главную и про кольцо рядом.
   const [celebrate, setCelebrate] = React.useState(null);
   const prevDoneRef = React.useRef(doneCount);
   React.useEffect(() => {
@@ -520,7 +522,6 @@ function HomeLive() {
       // celebration is reserved for the DAY-CLOSE moment so it never double-pops.
       if (full) {
         setCelebrate({ xp: xpEarnedToday, full: true, key: Date.now() + ":" + doneCount });
-        if (window.tgHaptic) { try { window.tgHaptic("heavy"); } catch (e) {} }
         const t = window.setTimeout(() => setCelebrate(null), 2000);
         prevDoneRef.current = doneCount;
         return () => window.clearTimeout(t);
@@ -626,12 +627,6 @@ function HomeLive() {
                 animation: "bosXpPop 1.15s cubic-bezier(0.22,1,0.36,1) forwards" }}>
                 ✦ +{celebrate.xp} XP{celebrate.full ? " · идеальный день" : ""}
               </div>
-              {celebrate.full && [0,1,2,3,4,5,6,7].map(i => {
-                const a = (i / 8) * Math.PI * 2;
-                return <span key={i} style={{ position: "absolute", top: 52, right: 52, width: 5, height: 5, borderRadius: "50%",
-                  background: "#FEDE34", boxShadow: "0 0 6px #FEDE34", animation: "bosSpark 0.9s ease-out forwards",
-                  ["--sx"]: Math.cos(a) * 44 + "px", ["--sy"]: Math.sin(a) * 44 + "px" }}/>;
-              })}
             </div>
           )}
         </div>
