@@ -1576,7 +1576,24 @@ function AppProvider({ children }) {
               // устройствам. Правду о членстве восстановит сверка ниже (myTeamsLive).
               var _locTeams = (saved && saved.teams) || [];
               var _teamsHeld = Array.isArray(d.teams) && !d.teams.length && _locTeams.length > 0;
-              if (Array.isArray(d.teams) && !_teamsHeld) setTeams(d.teams);
+              // ГЛЮК «создал круг → позвал → круг исчез» (жалоба 2026-07-16), слой 2: снапшот
+              // резолвится ПО СЕТИ спустя секунды после входа. Если за это время пользователь
+              // УЖЕ создал/удалил круг (автосейв в гидрацию выключен → localAt старый →
+              // cloudAt >= localAt), облачный список затирал живой — ровно F-layout-класс,
+              // который для widgets/homeLayout закрыт latestRef-сверкой. Теперь и круги:
+              // трогал после входа → НЕ затираем, а СЛИВАЕМ (дедуп по cloudId/_id).
+              var _liveT = (latestRef.current && latestRef.current.teams) || [];
+              var _tSig = function (l) { return (l || []).map(function (x) { return (x && (x.cloudId || x._id)) || ""; }).sort().join("|"); };
+              var _tEditedLive = _tSig(_liveT) !== _tSig(_locTeams);
+              if (Array.isArray(d.teams) && !_teamsHeld) {
+                if (!_tEditedLive) setTeams(d.teams);
+                else setTeams(function (ts) {
+                  var out = (d.teams || []).slice(); var seen = {};
+                  out.forEach(function (x) { if (x) seen[x.cloudId || x._id] = 1; });
+                  (ts || []).forEach(function (x) { if (x && !seen[x.cloudId || x._id]) out.unshift(x); });
+                  return out;
+                });
+              }
               var _mMoods = bosMergeDayMap(_cloudMoods, _localMoods); // cloud wins, local fills gaps
               var _mNotes = bosMergeDayMap(_cloudNotes, _localNotes);
               setDayMoods(_mMoods);
@@ -1758,22 +1775,41 @@ function AppProvider({ children }) {
             // чей cloudId облако точно не знает — убираем (кроме вступаемого по ссылке —
             // гонка с joinViaLink). null = не дозвонились → НЕ трогаем ничего (урок v583).
             try {
-              if (window.bosCloud.myTeamsLive) window.bosCloud.myTeamsLive().then(function (mem) {
-                if (!mem) return;
-                setTeams(function (prev) {
-                  var p = prev || [];
-                  var have = {}; p.forEach(function (x) { if (x && x.cloudId) have[x.cloudId] = 1; });
-                  var truth = {}; mem.forEach(function (m) { if (m && m.team) truth[m.team.id] = 1; });
-                  var add = [];
-                  mem.forEach(function (m) {
-                    var row = m && m.team; if (!row || have[row.id]) return;
-                    add.push({ _id: "cloud-" + row.id, cloudId: row.id, joined: m.role !== "owner", name: row.name || "Совместная цель", emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: row.goal || "", goalKind: row.goal_kind || null, createdAt: row.createdAt || null, target: row.goal_target || 0, current: 0, progress: 0, members: [], habits: [] });
+              if (window.bosCloud.myTeamsLive) (function () {
+                var applyTruth = function (mem) {
+                  setTeams(function (prev) {
+                    var p = prev || [];
+                    var have = {}; p.forEach(function (x) { if (x && x.cloudId) have[x.cloudId] = 1; });
+                    var truth = {}; mem.forEach(function (m) { if (m && m.team) truth[m.team.id] = 1; });
+                    var add = [];
+                    mem.forEach(function (m) {
+                      var row = m && m.team; if (!row || have[row.id]) return;
+                      add.push({ _id: "cloud-" + row.id, cloudId: row.id, joined: m.role !== "owner", name: row.name || "Совместная цель", emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: row.goal || "", goalKind: row.goal_kind || null, createdAt: row.createdAt || null, target: row.goal_target || 0, current: 0, progress: 0, members: [], habits: [] });
+                    });
+                    var keep = p.filter(function (x) { return !x.cloudId || truth[x.cloudId] || (_joinTeamId && x.cloudId === _joinTeamId); });
+                    if (!add.length && keep.length === p.length) return prev;
+                    return add.concat(keep);
                   });
-                  var keep = p.filter(function (x) { return !x.cloudId || truth[x.cloudId] || (_joinTeamId && x.cloudId === _joinTeamId); });
-                  if (!add.length && keep.length === p.length) return prev;
-                  return add.concat(keep);
+                };
+                window.bosCloud.myTeamsLive().then(function (mem) {
+                  if (!mem) return;
+                  // ГЛЮК «создал круг → позвал → круг исчез» (жалоба 2026-07-16). ПУСТАЯ «правда»
+                  // при непустом локальном списке — почти всегда auth/RLS-гонка сразу после входа
+                  // (тот же класс, что transient false-empty у привычек, отсюда их dup-guard):
+                  // отказ RLS = 0 строк БЕЗ ошибки, и keep-фильтр сносил ВСЕ облачные круги
+                  // с экрана разом. Теперь: перечитываем через паузу; вторая пустая — НЕ сносим
+                  // (принцип v594: пустое облако не затирает непустое локальное). Круг, честно
+                  // покинутый с другого устройства, уйдёт при первой же НЕпустой сверке.
+                  var _hasCloudLocal = (((latestRef.current && latestRef.current.teams) || []).some(function (x) { return x && x.cloudId; }));
+                  if (!mem.length && _hasCloudLocal) {
+                    setTimeout(function () {
+                      window.bosCloud.myTeamsLive().then(function (mem2) { if (mem2 && mem2.length) applyTruth(mem2); }).catch(function () {});
+                    }, 900);
+                    return;
+                  }
+                  applyTruth(mem);
                 });
-              });
+              })();
             } catch (e) {}
           }).catch(_doneHydrate);
         }).catch(_doneHydrate);

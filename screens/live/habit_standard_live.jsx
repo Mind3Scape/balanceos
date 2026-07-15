@@ -265,7 +265,6 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
       onToggle && onToggle();
     }} />,
     thread,
-    threadHint: facesToday.length <= 6 ? "лица — на нити, в свой час" : "толпа = волна",
     rhythm: { mode: "circle", hist, monthCells, monthHint: "кольцо = доля круга", yearMonths, yearHint: "твой год · кольцо месяца = доля дней", onYearOpen: loadYear, accent: h.color },
     peopleTitle: "Кто уже сегодня",
     peopleExtra: doneUsers.length + " " + bosRoomPeopleWord(doneUsers.length),

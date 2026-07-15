@@ -685,7 +685,7 @@ function TeamDetailLive() {
       )}
 
       {/* МОЙ ДЕНЬ В КРУГЕ — один список: привычки + дела, чекбоксы справа. */}
-      <BosRoomH2 extra={(teamHabits.length + _teamTasks.length) > 0 ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{(_myDoneCount + _teamTasks.filter((x) => x.doneByMe).length) + " из " + (teamHabits.length + _teamTasks.length)}</span> : null}>Мой день в круге</BosRoomH2>
+      <BosRoomH2 extra={(teamHabits.length + _teamTasks.length) > 0 ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{(_myDoneCount + _teamTasks.filter((x) => x.doneByMe).length) + " из " + (teamHabits.length + _teamTasks.length)}</span> : null}>Привычки</BosRoomH2>
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (
           <div style={{ padding: "18px 6px", textAlign: "center" }}>
@@ -722,8 +722,8 @@ function TeamDetailLive() {
         </React.Fragment>
       )}
 
-      {/* ПУЛЬС ДНЯ — начинается с тебя; дела и слова — одна лента; вехи золотом. */}
-      <BosRoomH2 extra={<span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{packMode ? "толпа — пачками, слова — по именам" : "дела и слова — одна лента"}</span>}>Пульс дня</BosRoomH2>
+      {/* ПУЛЬС ДНЯ — начинается с тебя; отметки, слова и вехи — одна лента (подписи-аннотации убраны: David «тупая хуйня»). */}
+      <BosRoomH2>Пульс дня</BosRoomH2>
 
       {/* Золотая строка: твоя отметка стала первой строкой ленты. */}
       {_iDidCircle && (

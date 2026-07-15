@@ -194,7 +194,6 @@ function HabitDetailLive() {
     ctx: (_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
       + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : ""),
     chips, check, thread,
-    threadHint: thread ? "лица — на нити, в свой час" : null,
     rhythm: { mode: _shared ? "friends" : "solo", weekCells, monthCells, monthHint: _shared ? "кольцо = доля друзей" : "кольцо = день сделан", yearMonths, yearHint: "кольцо месяца = доля дней", accent },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
