@@ -677,8 +677,10 @@
       // Аудит #7: НЕ считать ещё-не-принятых (role=pending) участниками — иначе они светятся
       // в ростере и завышают счётчики «N из M сделали» и кольца. Заявки живут отдельно
       // (pendingRequests). Принятые (owner/admin/member) — остаются.
-      var r = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId).neq("role", "pending");
-      return (r.data || []).map(function (m) { return { id: m.user_id, role: m.role, name: (m.profiles && m.profiles.username) || "", avatar: (m.profiles && m.profiles.avatar) || "default" }; });
+      // joined_at — «в круге с …» в карточке человека + «хрупкое окно» новичка в кабинете
+      // ведущего (комната круга v2). Столбец в схеме с рождения, фолбэк не нужен.
+      var r = await c.from("team_members").select("user_id,role,joined_at,profiles(username,avatar)").eq("team_id", teamId).neq("role", "pending");
+      return (r.data || []).map(function (m) { return { id: m.user_id, role: m.role, joinedAt: m.joined_at || null, name: (m.profiles && m.profiles.username) || "", avatar: (m.profiles && m.profiles.avatar) || "default" }; });
     } catch (e) { return []; }
   }
   // Лёгкий и строгий roster для «Баланса окружения»: только id ПРИНЯТЫХ участников.
@@ -1151,6 +1153,66 @@
       }
       return out;
     } catch (e) { return { times: {}, createdAt: null }; }
+  }
+
+  // ── КОМНАТА КРУГА (макет И/К, 2026-07-16) — три источника живого ────────────────
+  // Логи круга за N дней ОДНИМ запросом: [{u,h,day}] — кормят серию круга, «Ритм» привычки,
+  // журнал ведущего и карточку человека. Читают только участники (RLS team_habit_logs_read);
+  // про ЧУЖОЙ круг наружу говорит только агрегат bos_circle_pulse — здесь честный null.
+  async function teamLogsRange(teamId, days) {
+    var c = client(); if (!c || !teamId) return null;
+    try {
+      var th = await c.from("team_habits").select("id").eq("team_id", teamId);
+      var ids = ((th && th.data) || []).map(function (r) { return r.id; });
+      if (!ids.length) return { rows: [] };
+      var since = new Date(); since.setDate(since.getDate() - Math.max(0, (days || 31) - 1));
+      var lg = await c.from("team_habit_logs").select("user_id,team_habit_id,day").in("team_habit_id", ids).gte("day", _localDay(since));
+      if (lg.error || !Array.isArray(lg.data)) return null;
+      return { rows: lg.data.map(function (r) { return { u: r.user_id, h: r.team_habit_id, day: r.day }; }) };
+    } catch (e) { return null; }
+  }
+  // МОЙ год в привычке круга: дни моих отметок этой привычки с 1 января. Крошечный запрос
+  // (только свои строки) — годовой вид «Ритма» не тянет чужие тысячи строк.
+  async function teamMyHabitYear(habitId) {
+    var c = client(); var me = await uid(); if (!c || !me || !habitId) return null;
+    try {
+      var y = new Date().getFullYear() + "-01-01";
+      var r = await c.from("team_habit_logs").select("day").eq("team_habit_id", habitId).eq("user_id", me).gte("day", y);
+      if (r.error || !Array.isArray(r.data)) return null;
+      var out = {}; r.data.forEach(function (x) { if (x && x.day) out[x.day] = true; });
+      return out;
+    } catch (e) { return null; }
+  }
+  // Сегодняшние отметки СО ВРЕМЕНЕМ: [{u,h,at}] — пульс дня (строки «закрыл(а)», пачки,
+  // «ты в 06:58», волна нити). team_habit_logs.created_at писался всегда.
+  async function teamDayFeed(teamId) {
+    var c = client(); if (!c || !teamId) return null;
+    try {
+      var th = await c.from("team_habits").select("id").eq("team_id", teamId);
+      var ids = ((th && th.data) || []).map(function (r) { return r.id; });
+      if (!ids.length) return { rows: [] };
+      var lg = await c.from("team_habit_logs").select("user_id,team_habit_id,created_at").in("team_habit_id", ids).eq("day", _localDay());
+      if (lg.error || !Array.isArray(lg.data)) return null;
+      return { rows: lg.data.map(function (r) { return { u: r.user_id, h: r.team_habit_id, at: r.created_at }; }) };
+    } catch (e) { return null; }
+  }
+  // «Подбодрить» 🔥 — таблица team_cheers (patch_circle_room.sql). До патча таблицы нет →
+  // null → клиент честно прячет огоньки (паттерн teamTasks). Один огонёк человеку в день —
+  // держит УНИКАЛЬНЫЙ ключ в самой таблице, не клиент.
+  async function teamCheersToday(teamId) {
+    var c = client(); var me = await uid(); if (!c || !me || !teamId) return null;
+    try {
+      var r = await c.from("team_cheers").select("from_user,to_user,created_at").eq("team_id", teamId).eq("day", _localDay());
+      if (r.error || !Array.isArray(r.data)) return null;
+      return { me: me, rows: r.data.map(function (x) { return { from: x.from_user, to: x.to_user, at: x.created_at }; }) };
+    } catch (e) { return null; }
+  }
+  async function sendTeamCheer(teamId, toUser) {
+    var c = client(); var me = await uid(); if (!c || !me || !teamId || !toUser || toUser === me) return false;
+    try {
+      var r = await c.from("team_cheers").upsert({ team_id: teamId, from_user: me, to_user: toUser, day: _localDay() }, { onConflict: "team_id,from_user,to_user,day", ignoreDuplicates: true });
+      return !(r && r.error);
+    } catch (e) { return false; }
   }
 
   // Current consecutive-day streak ending today (or yesterday, if today isn't marked yet)
@@ -1798,6 +1860,7 @@
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, sharedHabitMemberIdsStrict: sharedHabitMemberIdsStrict, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes, circlePulse: circlePulse,
+    teamLogsRange: teamLogsRange, teamMyHabitYear: teamMyHabitYear, teamDayFeed: teamDayFeed, teamCheersToday: teamCheersToday, sendTeamCheer: sendTeamCheer,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
