@@ -854,11 +854,17 @@ function HomeLive() {
           («Добрый вечер, Александра») уместилось рядом с аватаром и не переносилось. */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
         {typeof HeroAccountAvatarLive === "function" && (
-          <HeroAccountAvatarLive navigate={navigate} avatar={app?.avatar} pct={_lvl.pct} level={_lvl.level} size={44} isDark={isDark} />
+          <HeroAccountAvatarLive navigate={navigate} avatar={app?.avatar} pct={_lvl.pct} level={_lvl.level} size={56} isDark={isDark} />
         )}
+        {/* ИМЯ — крупной строкой, приветствие с датой — мелкой. Это не украшательство: «Добрый
+            день, Давид» в одну строку НЕ ВЛЕЗАЕТ рядом с аватаром и двумя кнопками. Померено:
+            под текст остаётся 184px, а строка занимает 219px на 21px и 220px даже на 16px для
+            имени подлиннее — уменьшать шрифт бесполезно, обрезать многоточием стыдно. Имя же
+            (24px, самое длинное «Александра» = 147px) влезает с запасом, а приветствие с датой
+            на 12px = 135px. Заодно честнее: рядом с твоим лицом крупным должно быть твоё имя. */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{_todayLabel}</div>
-          <div style={{ fontSize: 21, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 1, fontFamily: "var(--bos-title-font)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{greeting}{_calLabel ? " · " + _calLabel : ""}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 1, fontFamily: "var(--bos-title-font)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName || "Привет 👋"}</div>
         </div>
         {/* «+» — явная кнопка СОЗДАТЬ (привычку/цель/круг), всегда под рукой на главной (David). Тот
             же CreateMenuLive, что на странице Привычки; стеклянный круг, «+» крутится при открытии. */}
