@@ -224,47 +224,45 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
    Genuine frosted-glass: low opacity so content behind shows through, heavy
    blur + vibrancy, a bright specular top edge, an inner sheen, and a glossy
    highlight overlay. The selected tab is a brighter glass "lens". */
+/* ЗДЕСЬ настоящий вид меню: этот файл грузится ПОСЛЕ styles.css и перебивает тамошнее правило
+   целиком. Правку материала делать в обоих местах — иначе чинишь мёртвый код (David 2026-07-15).
+   Рецепт — ОДИН с «Вселенной»/карандашиком и пилюлей шапки: косой блик 165°, кант bosTileGlass,
+   тень шёпотом. Было: ровные градиенты сверху вниз (и в background, и в ::before) — заливка,
+   которую глаз читает пластиком; плюс тяжёлая тень 0 18px 50px, из-за неё меню лежало НА экране,
+   а не парило в нём. */
 .bos-tabbar {
   bottom: max(16px, var(--bos-safe-bottom));
-  /* More translucent base (content shows through) + brighter vibrancy = closer to iOS-26
-     Liquid Glass than flat frosted. brightness lifts the refracted content like real glass. */
-  background: linear-gradient(to bottom, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.04) 100%);
-  -webkit-backdrop-filter: blur(34px) saturate(195%) brightness(1.07);
-  backdrop-filter: blur(34px) saturate(195%) brightness(1.07);
-  border: 0.5px solid rgba(255,255,255,0.45);
+  background:
+    linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.55)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%),
+    rgba(255,255,255,0.72);
+  -webkit-backdrop-filter: blur(34px) saturate(195%);
+  backdrop-filter: blur(34px) saturate(195%);
+  border: 0;
   box-shadow:
-    0 18px 50px rgba(0,0,0,0.16),
-    0 4px 12px rgba(0,0,0,0.07),
-    inset 0 1.5px 0.5px rgba(255,255,255,0.92),   /* crisp specular top rim — light on the edge */
-    inset 0 -10px 18px rgba(255,255,255,0.06),
-    inset 0 -0.5px 0.5px rgba(0,0,0,0.05);         /* faint bottom edge = sense of glass thickness */
+    inset 0 1.5px 0.5px rgba(255,255,255,0.92),
+    inset 0 0 0 0.7px rgba(0,0,0,0.05),
+    0 10px 34px rgba(0,0,0,0.045);
   isolation: isolate;
   animation: tabRaise 0.5s var(--ios-ease) both;
 }
-/* Glossy sheen sweeping from the top edge — the "liquid" highlight. */
-.bos-tabbar::before {
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    radial-gradient(120% 70% at 50% -22%, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 55%),
-    linear-gradient(to bottom, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.05) 36%, rgba(255,255,255,0) 70%);
-}
+/* ::before обнулён, а не удалён: он рисовал вторую заливку сверху вниз ПОВЕРХ косого блика и
+   гасил его — именно из-за этого меню не читалось стеклом. Правило оставлено пустым, чтобы
+   старые кэши/темы не наткнулись на пропавший слой. */
+.bos-tabbar::before { content: none; }
 .bos-tabbar.dark {
-  background: linear-gradient(to bottom, rgba(84,84,94,0.30), rgba(26,26,32,0.19));
-  -webkit-backdrop-filter: blur(32px) saturate(188%) brightness(1.10);
-  backdrop-filter: blur(32px) saturate(188%) brightness(1.10);
-  border: 0.5px solid rgba(255,255,255,0.13);
+  /* Тёмная база оставлена своей (не белые 10%, как у карандаша): карандаш лежит на статичной
+     странице, а меню плавает над едущими карточками — сквозь белую полупрозрачную базу они бы
+     просвечивали. Блик и кант те же (--sheen-* в тёмной теме сами гаснут до ~5%). */
+  background:
+    linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.055)), var(--sheen-b, rgba(255,255,255,0.014)) 46%, rgba(255,255,255,0) 72%),
+    rgba(26,26,32,0.62);
+  -webkit-backdrop-filter: blur(32px) saturate(188%);
+  backdrop-filter: blur(32px) saturate(188%);
+  border: 0;
   box-shadow:
-    0 18px 50px rgba(0,0,0,0.5),
-    0 4px 12px rgba(0,0,0,0.28),
-    inset 0 1px 0.5px rgba(255,255,255,0.22),
-    inset 0 -8px 16px rgba(255,255,255,0.04);
-}
-.bos-tabbar.dark::before {
-  background: linear-gradient(to bottom, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.03) 40%, rgba(255,255,255,0) 72%);
+    inset 0 1px 0.5px rgba(255,255,255,0.12),
+    inset 0 0 0 0.7px rgba(255,255,255,0.06),
+    0 10px 34px rgba(0,0,0,0.20);
 }
 /* Glass "lens" selection indicator, in two layers:
    • TRACK owns the position and springs between tabs (transform: translateX).
