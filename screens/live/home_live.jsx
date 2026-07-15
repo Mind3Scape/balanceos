@@ -866,23 +866,27 @@ function HomeLive() {
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{greeting}{_calLabel ? " · " + _calLabel : ""}</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 1, fontFamily: "var(--bos-title-font)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName || "Привет 👋"}</div>
         </div>
-        {/* «+» — явная кнопка СОЗДАТЬ (привычку/цель/круг), всегда под рукой на главной (David). Тот
-            же CreateMenuLive, что на странице Привычки; стеклянный круг, «+» крутится при открытии. */}
-        <button ref={addBtnRef} onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap hit44" aria-label="Создать" aria-haspopup="menu" aria-expanded={createOpen} title="Создать"
-          style={{ width: 44, height: 44, borderRadius: 999, ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
-          <I.Plus size={21} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
-        </button>
-        {/* Notifications — СТЕКЛЯННЫЙ КРУГ, симметрично «+» слева (David: «колокольчик тоже
-            в кружочек»). Красная точка едет на верхнем правом крае колокольчика. */}
-        <button onClick={() => navigate("notifications", { from: "home" })} className="tap hit44" aria-label="Уведомления"
-          style={{ width: 44, height: 44, borderRadius: 999, ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })), border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
-          <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
-            <I.Bell size={21} strokeWidth={2} color={bellIcon}/>
-            {showBellDot && (
-            <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
-            )}
-          </span>
-        </button>
+        {/* ОДНА стеклянная пилюлька на «+» и колокольчик (David 2026-07-15: «две жирные гигантские
+            кнопки» → сдвоенная пилюля, как на странице Привычки). Стекло варится ОДИН раз на
+            контейнере — два соседних blur-круга давали двойной кант и читались тяжело. Кнопки внутри
+            прозрачные, но каждая держит 44×44 — это минимальная зона касания по iOS, её не жмём.
+            Иконки ужаты 21→19: внутри пилюли рамка ближе, крупная иконка распирала её. */}
+        <div style={{ display: "flex", alignItems: "center", height: 44, borderRadius: 999, flexShrink: 0, overflow: "hidden",
+          ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })) }}>
+          <button ref={addBtnRef} onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Создать" aria-haspopup="menu" aria-expanded={createOpen} title="Создать"
+            style={{ width: 44, height: 44, borderRadius: 999, background: "transparent", color: isDark ? "#fff" : "var(--text)", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+            <I.Plus size={19} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
+          </button>
+          <button onClick={() => navigate("notifications", { from: "home" })} className="tap" aria-label="Уведомления"
+            style={{ width: 44, height: 44, borderRadius: 999, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+            <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
+              <I.Bell size={19} strokeWidth={2} color={bellIcon}/>
+              {showBellDot && (
+              <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
+              )}
+            </span>
+          </button>
+        </div>
       </div>
 
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
