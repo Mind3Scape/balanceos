@@ -5068,8 +5068,19 @@ function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.
    progress/name  — всегда, это факты, а не украшение. */
 var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: false, progress: true };
 function bosLoadGoalStyle() { return Object.assign({}, BOS_GOAL_STYLE_DEFAULT); }
-function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s || {})); } catch (e) {} }
+function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s || {})); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
 function useBosGoalStyle() { return BOS_GOAL_STYLE_DEFAULT; }
+// ─── ОБЩИЕ ПЛИТКИ привычки/цели (David: «унифицировать») ──────────────────────────────────────────
+// Плитки вынесены СЮДА из HabitsLive и стали самодостаточными (тема/стиль/хендлеры через хуки), чтобы
+// и страница «Привычки», и виджеты ГЛАВНОЙ рисовали ОДНО И ТО ЖЕ и слушали ОДИН стиль. `from` = откуда
+// открыт detail (habits/home). ctx.mode — режим перестановки сетки (на «Привычках»); на главной false.
+// ВНИМАНИЕ: это хук стиля ПРИВЫЧЕК — он живой и настраиваемый. Заморозили только вид ЦЕЛЕЙ (выше).
+// Его снос v760 уронил Главную (home_live:418 зовёт его первым хуком) — не повторять.
+function useBosCardStyle() {
+  var st = React.useState(bosLoadCardStyle), s = st[0], setS = st[1];
+  React.useEffect(function () { var h = function () { setS(bosLoadCardStyle()); }; window.addEventListener("bos:cardStyleChanged", h); return function () { window.removeEventListener("bos:cardStyleChanged", h); }; }, []);
+  return s;
+}
 // Тема-производные плиток — ТЕ ЖЕ значения, что были в HabitsLive (rowBg/cardShadow/iconBg).
 function bosTileTheme(isDark) {
   return {
