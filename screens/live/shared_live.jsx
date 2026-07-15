@@ -2075,6 +2075,185 @@ function bosParseTs(s) {
   var d = new Date(t);
   return isNaN(d.getTime()) ? new Date(s) : d;
 }
+/* ═══ КАРТОЧКА ОТКРЫТОГО КРУГА — David выбрал «Волну дня» + час пик + кнопку «Вступить».
+   Что тут ЖИВОГО и откуда оно берётся:
+     • нить дня (BosDayThreadLive) — лица при малом круге, волна при большом;
+     • «обычно в 07:00» — час пик за 30 дней: для чужого это самое полезное, понятно, во сколько
+       тут жизнь и влезет ли она в твой день (David: «3 из 5» чужому ничего не даёт);
+     • «живёт N дней» — круг всерьёз или заведён вчера и брошен;
+     • сколько людей.
+   Данные — серверный агрегат bos_circle_pulse: отметки чужого круга закрыты RLS, и клиент
+   получил бы 0 строк МОЛЧА (живой круг выглядел бы мёртвым). Пульса нет (патч не прогнан,
+   сеть, приватный круг) → нить и час пик просто не рисуются. Карточка НЕ врёт, а молчит. */
+function BosOpenCircleCardLive({ t, isDark, onJoin, busy, requested }) {
+  var [pulse, setPulse] = React.useState(null);
+  React.useEffect(function () {
+    if (!(t && t.id && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
+    var on = true;
+    window.bosCloud.circlePulse(t.id).then(function (p) { if (on) setPulse(p); }).catch(function () {});
+    return function () { on = false; };
+  }, [t && t.id]);
+  var days = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt) : null;
+  var peak = (pulse && typeof bosPeakLabel === "function") ? bosPeakLabel(pulse.peak) : null;
+  var hours = (pulse && pulse.mins || []).map(function (m) { return bosUtcMinToHour(m); });
+  var disc = {
+    background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg, var(--disc-a,#eef1f6), var(--disc-b,#dadfe7))"),
+    boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none")),
+  };
+  var chip = function (node, gold, key) {
+    return (
+      <span key={key} style={Object.assign({ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: gold ? 700 : 600, borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" },
+        gold ? { color: "#B4820A", background: "rgba(240,195,10,0.14)" } : Object.assign({ color: "var(--text-2)" }, (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {})))}>{node}</span>
+    );
+  };
+  return (
+    <div style={{ position: "relative", background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow, 0 1px 2px rgba(0,0,0,0.05))" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Подложка эмблемы — КРУГЛЫЙ диск, ровно центр орбит (David: «квадратная плохо смотрится,
+            туда круглая просится»). Тот же BOS_ORB_SHEEN — не «похожий», а тот же. */}
+        <span style={Object.assign({ width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }, disc)}>
+          {typeof bosIcon === "function" ? bosIcon(t.emblem || "✨", 22, null) : (t.emblem || "✨")}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
+            {days ? <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} /> : null}
+            {days ? ("живёт " + days + " " + (typeof bosRuDays === "function" ? bosRuDays(days) : "дн.")) : "Открытый круг"}
+          </div>
+        </div>
+      </div>
+      {hours.length > 0 && typeof BosDayThreadLive === "function" && (
+        <div style={{ marginTop: 14 }}><BosDayThreadLive hours={hours} isDark={isDark} /></div>
+      )}
+      <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 5 }}>
+        {peak ? chip(<><I.Clock size={11} color="#EF9F14" strokeWidth={2} />обычно в {peak}</>, true, "p") : null}
+        {chip(<>🌐 {t.members || 0} участ.</>, false, "m")}
+        {pulse && pulse.todayN > 0 ? chip(<>{pulse.todayN} сегодня в деле</>, false, "n") : null}
+      </div>
+      <button onClick={function () { onJoin && onJoin(t); }} disabled={busy || requested} className="tap" data-haptic="selection"
+        style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "11px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+          background: (busy || requested) ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: (busy || requested) ? "var(--text-3)" : "var(--cta-ink, #fff)" }}>
+        {requested ? "Заявка отправлена" : busy ? "…" : "Вступить"}
+      </button>
+    </div>
+  );
+}
+/* ═══ НИТЬ ДНЯ — ОДИН компонент на всё (David 2026-07-15, выбран вариант «Волна дня»).
+   Его смысл — убрать РАЗНОБОЙ: внутри круга орбиты, снаружи циферблат, в привычках третья нить.
+   Тут одна нить, и она МЕНЯЕТ ФОРМУ ОТ ДАННЫХ, а не от места:
+     • мало отметок  → лица сидят ПРЯМО НА линии в свой час (видно КТО);
+     • много         → золотая волна плотности (видно РИТМ толпы: «в 7 утра прошла волна»).
+   Это ответ на вопрос David «а если в круге 100-200 человек?»: портреты не масштабируются —
+   при 120 участниках лица превращаются в кашу, сколько их ни склеивай в стопки. Волна честнее.
+   Палитра строго наша (золото + серое + белое): у старой SkyThreadLive полоса залита радугой
+   рассвет→закат→ночь — оранжевые и коричневые тона, из-за них она и читалась «не нашей».
+   Шкала 4:00→28:00 — та же, что у SkyThreadLive (ночь уезжает в правый хвост), чтобы у двух
+   ниток не разъехалось время, пока они живут рядом. */
+var BOS_THREAD_GOLD = "#EF9F14", BOS_THREAD_GOLD_L = "#FEDE34";
+function bosThreadPct(hr) { if (hr < 4) hr += 24; return Math.max(1.5, Math.min(98.5, ((hr - 4) / 24) * 100)); }
+/* Минуты приходят с сервера в UTC (bos_circle_pulse) — сдвигаем в часовой пояс смотрящего.
+   getTimezoneOffset() = UTC минус локаль, поэтому локальное время = min - offset. */
+function bosUtcMinToHour(min) {
+  var off = new Date().getTimezoneOffset();
+  var m = ((min - off) % 1440 + 1440) % 1440;
+  return m / 60;
+}
+/* Волна: считаем отметки по получасам, сглаживаем окном ±2 и рисуем область.
+   Сглаживание обязательно — сырые столбики на 48 корзинах читаются забором, а не волной. */
+function bosThreadWave(hours, W, H) {
+  var B = 48, bins = [], i;
+  for (i = 0; i < B; i++) bins.push(0);
+  (hours || []).forEach(function (h) {
+    var x = h < 4 ? h + 24 : h;
+    var k = Math.floor(((x - 4) / 24) * B);
+    if (k >= 0 && k < B) bins[k]++;
+  });
+  var sm = bins.map(function (_, idx) {
+    var sum = 0, w = 0;
+    for (var d = -2; d <= 2; d++) {
+      var j = idx + d; if (j < 0 || j >= B) continue;
+      var k = 3 - Math.abs(d); sum += bins[j] * k; w += k;
+    }
+    return w ? sum / w : 0;
+  });
+  var mx = Math.max.apply(null, sm) || 1;
+  var pts = sm.map(function (v, idx) { return [(idx / (B - 1)) * W, H - (v / mx) * H]; });
+  var d = "M0 " + H;
+  pts.forEach(function (pt, idx) {
+    if (idx === 0) { d += " L" + pt[0].toFixed(1) + " " + pt[1].toFixed(1); return; }
+    var q = pts[idx - 1], cx = (q[0] + pt[0]) / 2;
+    d += " C" + cx.toFixed(1) + " " + q[1].toFixed(1) + " " + cx.toFixed(1) + " " + pt[1].toFixed(1) + " " + pt[0].toFixed(1) + " " + pt[1].toFixed(1);
+  });
+  return d + " L" + W + " " + H + " Z";
+}
+/* Глифы суток — те же рассвет/солнце/луна, что в SkyThreadLive (David: «иконки красивее подписей»). */
+function BosThreadGlyph({ kind, left, dark }) {
+  var col = dark ? "rgba(255,255,255,0.38)" : "#a8adb8";
+  var d = kind === "dawn"
+    ? [<path key="a" d="M8 5.5a3.2 3.2 0 0 1 3.2 3.2H4.8A3.2 3.2 0 0 1 8 5.5z" />, <rect key="b" x="1.5" y="9.6" width="13" height="1.4" rx="0.7" />, <path key="c" d="M7.3 1.2h1.4v2.2H7.3zM2.9 3.3l1-1 1.4 1.4-1 1zM12.1 2.3l1 1-1.4 1.4-1-1z" />]
+    : kind === "sun"
+      ? [<circle key="a" cx="8" cy="8" r="3.1" />, <path key="b" d="M7.3 0.8h1.4v2.4H7.3zM7.3 12.8h1.4v2.4H7.3zM0.8 7.3h2.4v1.4H0.8zM12.8 7.3h2.4v1.4h-2.4zM2.5 3.5l1-1 1.7 1.7-1 1zM10.8 11.8l1-1 1.7 1.7-1 1zM13.5 2.5l1 1-1.7 1.7-1-1zM3.2 10.8l1 1-1.7 1.7-1-1z" />]
+      : [<path key="a" d="M13.6 9.8A6 6 0 1 1 6.2 2.4a4.8 4.8 0 0 0 7.4 7.4z" />];
+  return (
+    <span aria-hidden style={{ position: "absolute", top: 0, left: left + "%", transform: "translateX(-50%)", lineHeight: 0 }}>
+      <svg width="13" height="13" viewBox="0 0 16 16" style={{ fill: col }}>{d}</svg>
+    </span>
+  );
+}
+/* faces — [{avatar,name,hr}] ИМЕНА (только свой круг: чужие отметки закрыты RLS).
+   hours — [часы] БЕЗ имён (чужой открытый круг, из bos_circle_pulse). Одно из двух. */
+function BosDayThreadLive({ faces = [], hours = [], isDark = false }) {
+  var fs = (faces || []).filter(Boolean).slice().sort(function (a, b) { return a.hr - b.hr; });
+  var hrs = fs.length ? fs.map(function (f) { return f.hr; }) : (hours || []);
+  var many = hrs.length > 6 || !fs.length;
+  var nowHr = (function () { var d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
+  var nowPct = bosThreadPct(nowHr);
+  var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.10)";
+  var ringCol = isDark ? "#1c1c20" : "#fff";
+  var LINE = 34;   // y центра линии внутри бокса — лица садятся РОВНО на неё
+  return (
+    <div>
+      <div style={{ position: "relative", height: 44 }}>
+        {many && hrs.length > 0 && (
+          <svg viewBox={"0 0 330 30"} preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, top: 4, width: "100%", height: 30 }}>
+            <defs>
+              <linearGradient id="bosThreadWaveG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={BOS_THREAD_GOLD_L} stopOpacity="0.85" />
+                <stop offset="100%" stopColor={BOS_THREAD_GOLD} stopOpacity="0.10" />
+              </linearGradient>
+            </defs>
+            <path d={bosThreadWave(hrs, 330, 30)} fill="url(#bosThreadWaveG)" />
+          </svg>
+        )}
+        <div style={{ position: "absolute", left: 0, right: 0, top: LINE, height: 2, borderRadius: 2, background: track }} />
+        <div style={{ position: "absolute", left: 0, top: LINE, height: 2, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + BOS_THREAD_GOLD_L + "," + BOS_THREAD_GOLD + ")" }} />
+        {/* Лица сидят ПО ЦЕНТРУ линии (David: «иконки должны стоять на линии самой, а не над ней» —
+            в макете они висели чуть выше, ровно то, за что он ругал прошлый вариант). */}
+        {!many && fs.map(function (f, i) {
+          return (
+            <span key={i} style={{ position: "absolute", left: bosThreadPct(f.hr) + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 2, borderRadius: "50%", lineHeight: 0, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 1px 4px rgba(0,0,0,0.18)" }}>
+              {typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={f.avatar} name={f.name} size={26} /> : null}
+            </span>
+          );
+        })}
+        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 3, width: 11, height: 11, borderRadius: "50%", background: BOS_THREAD_GOLD, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 0 7px rgba(239,159,20,0.5)" }} />
+      </div>
+      <div style={{ position: "relative", height: 13, marginTop: 4 }}>
+        <BosThreadGlyph kind="dawn" left={12} dark={isDark} />
+        <BosThreadGlyph kind="sun" left={50} dark={isDark} />
+        <BosThreadGlyph kind="moon" left={88} dark={isDark} />
+      </div>
+    </div>
+  );
+}
+/* «обычно в 07:00» — час пик круга. Минута приходит с сервера в UTC за 30 дней. */
+function bosPeakLabel(peakMin) {
+  if (peakMin == null) return null;
+  var h = bosUtcMinToHour(peakMin);
+  var hh = Math.floor(h), mm = Math.round((h - hh) * 60 / 15) * 15;
+  if (mm === 60) { hh = (hh + 1) % 24; mm = 0; }
+  return (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm;
+}
 function SkyThreadLive({ marks = [], total = 0, doneCount = null, chip = null, isDark = false, rest = null, title = "Сегодня" }) {
   var pctOf = function (d) {
     var hr = d.getHours() + d.getMinutes() / 60;
@@ -5757,28 +5936,7 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
       {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {shownList.map((t) => (
-          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
-              {/* «живёт N дней» рядом с составом (David 2026-07-15): по числу участников не понять,
-                  всерьёз это или заведено вчера и брошено, — а по возрасту понять. Растёт сам от
-                  created_at (добавлен в селект cloud.discoverTeams/searchTeams ради этого чипа);
-                  нет даты → чипа просто нет. Огонёк — заливной SVG, не эмодзи. */}
-              <div style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 5 }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span>
-                {(() => {
-                  const _d = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt) : null;
-                  return _d ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 700, color: "#B4820A", background: "rgba(240,195,10,0.14)", padding: "3px 9px", borderRadius: 999 }}>
-                      <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} />живёт {_d} {typeof bosRuDays === "function" ? bosRuDays(_d) : "дн."}
-                    </span>
-                  ) : null;
-                })()}
-              </div>
-            </div>
-            <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
-          </div>
+          <BosOpenCircleCardLive key={t.id} t={t} isDark={isDark} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join} />
         ))}
       </div>
     </div>

@@ -1110,6 +1110,27 @@
   // «НЕБО-НИТЬ» (лента дня в комнате круга): времена СЕГОДНЯШНИХ отметок каждого участника +
   // возраст круга. created_at в team_habit_logs писался всегда — его просто никто не читал.
   // По человеку берём его ПЕРВУЮ отметку за сегодня («когда пришёл»), не последнюю.
+  // «Пульс круга» для ВНЕШНЕЙ карточки (David 2026-07-15). Отметки чужого круга закрыты RLS —
+  // клиент получил бы 0 строк МОЛЧА, и живой круг выглядел бы мёртвым. Поэтому агрегат считает
+  // сервер: bos_circle_pulse (supabase/patch_circle_pulse.sql) отдаёт только «сколько людей
+  // сегодня», поминутную раскладку дня (без имён) и час пик за 30 дней. Работает лишь для
+  // ОТКРЫТЫХ кругов — для своих участник и так читает отметки напрямую (teamTodayTimes).
+  // День шлём СВОЙ, локальный: по UTC сервер ошибся бы на сутки (тот же приём, что в day_pulse).
+  // Патч не прогнан → rpc вернёт ошибку → null → карточка просто не покажет живое (не соврёт).
+  var _pulseCache = {};
+  async function circlePulse(teamId) {
+    var c = client();
+    if (!c || !teamId) return null;
+    var hit = _pulseCache[teamId];
+    if (hit && Date.now() - hit.at < 120000) return hit.v;   // 2 мин: лента круче не обновляется
+    try {
+      var r = await c.rpc("bos_circle_pulse", { p_team: teamId, p_day: _localDay() });
+      if (r.error || !r.data) return null;
+      var v = { todayN: r.data.todayN || 0, mins: Array.isArray(r.data.mins) ? r.data.mins : [], peak: (r.data.peak == null ? null : r.data.peak) };
+      _pulseCache[teamId] = { at: Date.now(), v: v };
+      return v;
+    } catch (e) { return null; }
+  }
   async function teamTodayTimes(teamId) {
     var c = client(); var me = await uid();
     if (!c || !me || !teamId) return { times: {}, createdAt: null };
@@ -1776,7 +1797,7 @@
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, sharedHabitMemberIdsStrict: sharedHabitMemberIdsStrict, removeSharedHabitMember: removeSharedHabitMember,
-    teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes,
+    teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes, circlePulse: circlePulse,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
