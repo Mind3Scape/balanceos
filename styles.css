@@ -186,7 +186,7 @@ button { font: inherit; cursor: pointer; }
      (как у карандаша): border съедал бы 1px высоты у фиксированных 66px. */
   background:
     linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.55)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%),
-    rgba(255,255,255,0.72);
+    rgba(238,238,238,0.85);
   backdrop-filter: blur(22px) saturate(1.8);
   -webkit-backdrop-filter: blur(22px) saturate(1.8);
   border: 0;
@@ -206,7 +206,7 @@ button { font: inherit; cursor: pointer; }
      теме сами гаснут до 5%, David: «стекло не пересвечивать»). */
   background:
     linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.055)), var(--sheen-b, rgba(255,255,255,0.014)) 46%, rgba(255,255,255,0) 72%),
-    rgba(26,26,30,0.62);
+    rgba(38,38,40,0.86);
   border: 0;
   backdrop-filter: blur(22px) saturate(1.6);
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
