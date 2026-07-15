@@ -26,15 +26,19 @@ function bosRoomHHMM(ts) {
 }
 function bosRoomPeopleWord(n) { return (n % 10 === 1 && n % 100 !== 11) ? "человек" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "человека" : "человек"); }
 
-/* Плоский чекбокс — ЕДИНСТВЕННЫЙ жест отметки в круге (язык v757: заливка чёрным/белым, галка). */
+/* Плоский чекбокс — ЕДИНСТВЕННЫЙ жест отметки в круге (язык v757: заливка чёрным/белым, галка).
+   Зона нажатия 42px при видимых 28 — палец, целящийся в кружок, не промахивается в строку
+   (промах открывал шторку статистики — David: «с чего у нас шторка открывается?»). */
 function BosFlatCheckLive({ on, isDark, onToggle, label }) {
   return (
     <button onClick={onToggle} className="tap" aria-label={label || "Отметить"}
-      style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer", padding: 0,
+      style={{ width: 42, height: 42, margin: "-7px -7px -7px 0", borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer", padding: 0, background: "transparent" }}>
+      <span style={{ width: 28, height: 28, borderRadius: "50%", display: "grid", placeItems: "center",
         background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent",
         boxShadow: on ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.25)" : "rgba(10,10,10,0.18)"),
         transition: "background .15s" }}>
-      {on ? <I.Check size={14} strokeWidth={3} color={isDark ? "#0a0a0a" : "#fff"} /> : null}
+        {on ? <I.Check size={14} strokeWidth={3} color={isDark ? "#0a0a0a" : "#fff"} /> : null}
+      </span>
     </button>
   );
 }
@@ -404,8 +408,24 @@ function TeamDetailLive() {
   const [text, setText] = React.useState(() => (params && params.prefill) || "");
   const fileRef = React.useRef(null);
   const composerRef = React.useRef(null);
+  const feedBoxRef = React.useRef(null);
   React.useEffect(() => {
     if (params && params.prefill) setTimeout(() => { try { composerRef.current && composerRef.current.focus(); composerRef.current.scrollIntoView({ block: "center" }); } catch (e) {} }, 450);
+  }, []);
+  // КЛАВИАТУРА: Telegram/iOS ресайзят вьюпорт — при фокусе держим композер видимым
+  // (David: «клавиатура не подстраивается — не вижу, что пишу»).
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const onVV = () => {
+      if (document.activeElement !== composerRef.current) return;
+      requestAnimationFrame(() => {
+        try { composerRef.current.scrollIntoView({ block: "center" }); } catch (e) {}
+        const el = feedBoxRef.current; if (el) el.scrollTop = el.scrollHeight;
+      });
+    };
+    vv.addEventListener("resize", onVV);
+    return () => vv.removeEventListener("resize", onVV);
   }, []);
   const absorb = (row) => { if (row) setMsgs((prev) => prev.some((m) => m.id === row.id) ? prev : prev.concat([mapRow(row)])); };
   const send = () => {
@@ -520,6 +540,15 @@ function TeamDetailLive() {
   const feedCut = feedRows.length > 60;
   const feedShown = feedCut ? feedRows.slice(-60) : feedRows;
   const MILES = [7, 14, 30, 50, 100, 200, 365, 500, 730, 1000];
+  const hasMiles = (ageDays && MILES.indexOf(ageDays) >= 0) || (gTgt > 0 && gCur > 0);
+  // Лента открыта на СВЕЖЕМ (низ) и докручивается сама, когда прилетает новое, — как мессенджер.
+  const _feedNRef = React.useRef(-1);
+  React.useLayoutEffect(() => {
+    const el = feedBoxRef.current; if (!el) return;
+    if (_feedNRef.current === feedShown.length) return;
+    _feedNRef.current = feedShown.length;
+    el.scrollTop = el.scrollHeight;
+  }, [feedShown.length]);
 
   const openPerson = (p) => {
     if (!p) return;
@@ -677,8 +706,10 @@ function TeamDetailLive() {
       {membersN > 0 && (
         <React.Fragment>
           <BosRoomH2 extra={<span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{todayN + " из " + membersN + " сегодня"}</span>}>Люди</BosRoomH2>
-          <div style={{ ...card, padding: "13px 14px" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
+          <div style={{ ...card, padding: "13px 12px" }}>
+            {/* Сетка как у календаря — 7 колонок на всю ширину, ряды ровные (David: «чтобы
+                центрированно смотрелись и занимали всю область карточки»). */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center" }}>
               {members.map((m) => (
                 <BosRoomFaceLive key={m.id} p={m} size={36} active={!!activeSet[m.id]} gold={m.id === meId && !!activeSet[m.id]} isDark={isDark} onClick={() => openPerson(m)} />
               ))}
@@ -716,9 +747,13 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px" }}>показаны последние события</div>}
-      {feedRows.length === 0 && !_iDidCircle && !cheeredMe.length ? (
-        <div style={{ textAlign: "center", padding: "18px 30px 6px" }}>
+      {/* ЧАТ-БОКС (David: «пульс не должен тянуться бесконечно вниз»): ограниченная область,
+          лента скроллится ВНУТРИ и открыта на свежем, композер приклеен к её дну. */}
+      <div style={{ ...card, overflow: "hidden" }}>
+      <div ref={feedBoxRef} className="screen-scroll" style={{ height: "min(430px, 56vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
+      {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px", flexShrink: 0 }}>показаны последние события</div>}
+      {feedShown.length === 0 && !hasMiles ? (
+        <div style={{ textAlign: "center", padding: "0 24px", margin: "auto" }}>
           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 3 }}>Пока тихо</div>
           <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-4)" }}>Отметь дело дня или напиши кругу — с этого и начинается пульс</div>
         </div>
@@ -777,9 +812,10 @@ function TeamDetailLive() {
       {gTgt > 0 && gCur > 0 && (
         <CircleMileLine>{gDone ? ("🎉 Цель достигнута — " + gCur + (gUnit ? " " + gUnit : "")) : ("Круг набрал " + gCur + " из " + gTgt + (gUnit ? " " + gUnit : "") + " 💛")}</CircleMileLine>
       )}
+      </div>
 
-      {/* КОМПОЗЕР — написать кругу (чат живёт в пульсе). */}
-      <div style={{ display: "flex", gap: 7, marginTop: 4, alignItems: "center" }}>
+      {/* КОМПОЗЕР — на дне чат-бокса, как в мессенджере. */}
+      <div style={{ display: "flex", gap: 7, alignItems: "center", padding: "9px 10px", borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)") }}>
         <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
         <button onClick={() => { if (fileRef.current) fileRef.current.click(); }} className="tap" aria-label="Прикрепить фото"
           style={{ width: 36, height: 36, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)" }}>
@@ -792,6 +828,7 @@ function TeamDetailLive() {
           style={{ width: 36, height: 36, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, background: text.trim() ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), transition: "background .2s" }}>
           <I.Send size={15} color={text.trim() ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)"} strokeWidth={2.2} />
         </button>
+      </div>
       </div>
     </div>
   );

@@ -159,25 +159,21 @@ function HabitDetailLive() {
   if (best > 0) chips.push({ node: "лучшая " + best });
   if (total > 0) chips.push({ node: "всего " + total });
 
-  // «Кто со мной» (ступень 2): друзья строками — сегодня во сколько, серия огоньком.
+  // «Кто со мной» (ступень 2) — кружочки ровной сеткой, как люди в целях (David 2026-07-16:
+  // «пусть выглядят как в целях люди — просто кружочки, ряды»): сделал сегодня — цветной,
+  // ещё нет — серый; я — с золотым ободком. Тап не нужен: вся жизнь друга видна по цвету.
   let people = null, peopleExtra = null;
   if (_shared) {
-    const rows = buddies.filter((m) => !m.me);
-    peopleExtra = rows.filter((m) => m.todayAt).length + " из " + rows.length + " сегодня";
-    people = rows.map((m, i) => {
-      const dd = m.days || {};
-      let s = 0; { let st = dd[_todayK] ? 0 : 1; for (let j = st; j < 60; j++) { const dt = new Date(); dt.setDate(dt.getDate() - j); const k = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); if (dd[k]) s++; else break; } }
-      return (
-        <div key={m.id || i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(10,10,10,0.04)") : 0 }}>
-          <BuddyFaceLive avatar={m.avatar} name={m.name} size={28} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</div>
-            <div style={{ fontSize: 10, color: "var(--text-4)" }}>{m.todayAt ? ("сегодня в " + (typeof bosMsgTime === "function" ? bosMsgTime(m.todayAt) : "")) : "сегодня ещё нет"}</div>
-          </div>
-          {s > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10.5, fontWeight: 800, color: "#B4820A" }}><I.Flame size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />{s}</span>}
-        </div>
-      );
-    });
+    const _iDidT = h.done || (_isQuant && _qCount > 0);
+    const active = (m) => (m.me ? _iDidT : !!m.todayAt);
+    peopleExtra = buddies.filter(active).length + " из " + buddies.length + " сегодня";
+    people = (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center", padding: "4px 0" }}>
+        {buddies.map((m, i) => (
+          <BosRoomFaceLive key={m.id || i} p={{ avatar: m.avatar, name: m.me ? "Ты" : m.name }} size={34} active={active(m)} gold={!!m.me} isDark={isDark} />
+        ))}
+      </div>
+    );
   }
 
   // Отметка в шапке — ЖИВОЙ компонент отметки приложения (галочка / счётчик / таймер).

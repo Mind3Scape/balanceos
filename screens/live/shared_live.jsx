@@ -2298,14 +2298,16 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false }) {
         <div style={{ position: "absolute", left: 0, top: LINE, height: 2, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + BOS_THREAD_GOLD_L + "," + BOS_THREAD_GOLD + ")" }} />
         {/* Лица сидят ПО ЦЕНТРУ линии (David: «иконки должны стоять на линии самой, а не над ней» —
             в макете они висели чуть выше, ровно то, за что он ругал прошлый вариант). */}
+        {/* Точка «сейчас» — ПОД лицами (zIndex 2 < 3): только что отметился — твоя ава сверху,
+            а не жёлтый кружок поверх лица (David 2026-07-16: «ава всегда должна ставиться поверх»). */}
+        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 2, width: 11, height: 11, borderRadius: "50%", background: BOS_THREAD_GOLD, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 0 7px rgba(239,159,20,0.5)" }} />
         {!many && fs.map(function (f, i) {
           return (
-            <span key={i} style={{ position: "absolute", left: bosThreadPct(f.hr) + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 2, borderRadius: "50%", lineHeight: 0, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 1px 4px rgba(0,0,0,0.18)" }}>
+            <span key={i} style={{ position: "absolute", left: bosThreadPct(f.hr) + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 3, borderRadius: "50%", lineHeight: 0, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 1px 4px rgba(0,0,0,0.18)" }}>
               {typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={f.avatar} name={f.name} size={26} /> : null}
             </span>
           );
         })}
-        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 3, width: 11, height: 11, borderRadius: "50%", background: BOS_THREAD_GOLD, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 0 7px rgba(239,159,20,0.5)" }} />
       </div>
       <div style={{ position: "relative", height: 13, marginTop: 4 }}>
         <BosThreadGlyph kind="dawn" left={12} dark={isDark} />

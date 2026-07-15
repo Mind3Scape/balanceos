@@ -270,10 +270,10 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
     peopleTitle: "Кто уже сегодня",
     peopleExtra: doneUsers.length + " " + bosRoomPeopleWord(doneUsers.length),
     people: (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "4px 0" }}>
-        {doneUsers.slice(0, 21).map((u) => { const p = rosterById[u]; return p ? <BosRoomFaceLive key={u} p={p} size={28} isDark={isDark} onClick={onPerson ? () => onPerson(p) : null} /> : null; })}
-        {doneUsers.length > 21 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)", alignSelf: "center", marginLeft: 4 }}>{"+" + (doneUsers.length - 21)}</span>}
-        {!doneUsers.length && <span style={{ fontSize: 12, color: "var(--text-4)", padding: "4px 2px" }}>Сегодня ещё никого — будь первым(ой)</span>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center", padding: "4px 0" }}>
+        {doneUsers.slice(0, 20).map((u) => { const p = rosterById[u]; return p ? <BosRoomFaceLive key={u} p={p} size={34} isDark={isDark} onClick={onPerson ? () => onPerson(p) : null} /> : null; })}
+        {doneUsers.length > 20 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{"+" + (doneUsers.length - 20)}</span>}
+        {!doneUsers.length && <span style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-4)", padding: "4px 2px", justifySelf: "start" }}>Сегодня ещё никого — будь первым(ой)</span>}
       </div>
     ),
   };
