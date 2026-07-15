@@ -4950,6 +4950,24 @@ function TeamDetailLive() {
   // Сводки для свёрнутых секций единого блока (David: «краткая сводка на каждом»).
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
   const _habitWordT = (n) => (n % 10 === 1 && n % 100 !== 11) ? "привычка" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "привычки" : "привычек");
+
+  // ── ДЕНЬ КРУГА ЗАКРЫТ → конфетти ────────────────────────────────────────────
+  // Считаем ПО СЕБЕ (_myDoneCount), а не по всем участникам: это праздник моего вклада, а не
+  // отчёт за круг. Ловит обе ветки отметки — и «прижитую» привычку (через app.toggleHabit), и
+  // прямую запись в облако: обе приземляются в _myDoneCount.
+  // Празднуем только РОСТ до полного при открытом экране: облачный опрос на каждом входе заново
+  // приносит уже закрытый день, и без этого салют бахал бы при каждом заходе в круг.
+  const _teamDoneRef = React.useRef(null);
+  React.useEffect(() => {
+    const prev = _teamDoneRef.current;
+    _teamDoneRef.current = _myDoneCount;
+    if (prev == null) return;
+    if (_myDoneCount <= prev) return;
+    if (!teamHabits.length || _myDoneCount !== teamHabits.length) return;
+    if (typeof window.bosCelebrateScope === "function") {
+      window.bosCelebrateScope("circle:" + (app?.persistId || "") + ":" + (t.cloudId || t._id || t.id));
+    }
+  }, [_myDoneCount, teamHabits.length]);
   // ── ЦЕЛЬ С ТАБАМИ (макет «Цель с табами», David) ──────────────────────────────
   // Одна страница, три состояния: Обзор · Привычки · Чат. Шапка (кольцо-заряд + имя +
   // строка «прогресс · огонь · люди») постоянна; тумблер живёт в блоке содержимого.

@@ -1179,7 +1179,9 @@ function AppProvider({ children }) {
     // с условием поп-апа «день закрыт» на главной. Суммируется в bosChallengeBonusXPLive.
     var _act = (habits || []).filter(function (h) { return h && !h.shelved && !h.goalOnly; });
     if (_act.length && _act.every(function (h) { return h.done; })) { var _pk = "perfectday:" + bosTodayKey(); if (!claimedChallenges[_pk]) { add = add || {}; add[_pk] = 30; } }
-    if (add) { var merged = Object.assign({}, claimedChallenges, add); setClaimedChallenges(merged); try { localStorage.setItem("bos:claimedXP", JSON.stringify(merged)); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
+        // Толчок в палец — через общий притормаживающий буз праздников: начисление «идеального дня» и
+    // салют случаются в один миг, и два «успеха» подряд ощущались бы заиканием.
+    if (add) { var merged = Object.assign({}, claimedChallenges, add); setClaimedChallenges(merged); try { localStorage.setItem("bos:claimedXP", JSON.stringify(merged)); } catch (e) {} if (window.bosCelebrateBuzz) { window.bosCelebrateBuzz(); } else if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
   }, [habits, goals, teams]);
 
   // ── XP-КОШЕЛЁК (копилка) ────────────────────────────────────────────
@@ -1874,7 +1876,15 @@ function AppProvider({ children }) {
   const dayFullSeenRef = useRef({});
   useEffect(() => {
     if (mode !== "live" || !persistId || hydratingRef.current) return;
-    var act = (habits || []).filter(function (h) { return h && !h.shelved && !h.goalOnly; });
+    // Набор ОБЯЗАН совпадать с доской Главной (home_live: !shelved && !goalOnly && !архив), иначе
+    // одна спрятанная в архив неотмеченная привычка молча держит салют закрытым навсегда, пока
+    // Главная показывает закрытый день.
+    var _arch = (typeof bosLoadArchived === "function") ? bosLoadArchived() : null;
+    var act = (habits || []).filter(function (h) {
+      if (!h || h.shelved || h.goalOnly) return false;
+      if (_arch && typeof bosIsArch === "function" && bosIsArch(_arch, "h", h)) return false;
+      return true;
+    });
     if (!act.length || !act.every(function (h) { return h.done; })) return;
     var key = "bos:dayfull:" + persistId + ":" + bosTodayKey();
     if (dayFullSeenRef.current[key]) return;

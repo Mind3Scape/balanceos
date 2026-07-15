@@ -170,6 +170,35 @@
     if (anchor) bosConfettiFrom(anchor, base); else bosConfetti(base);
   }
 
+  /* Один общий, ПРИТОРМОЖЕННЫЙ толчок в палец. Праздники умеют совпадать: последняя галочка может
+     закрыть разом и круг, и весь день — а два «успеха» подряд читаются пальцем как заикание, а не
+     как двойная радость. Все празднования зовут только его. */
+  var lastBuzz = 0;
+  function bosCelebrateBuzz() {
+    var now = Date.now();
+    if (now - lastBuzz < 900) return;
+    lastBuzz = now;
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+  }
+
+  /* Праздник, привязанный к ОТДЕЛЬНОЙ доске — цели или кругу.
+     Зачем отдельно от «дня целиком»: привычка «вести только внутри цели» намеренно не попадает ни
+     на главную доску, ни в счёт дня. Значит, у человека, который ведёт привычки только в целях,
+     общий салют не случится НИКОГДА — закрытие цели обязано быть своим событием.
+     Свой ключ на день → салют один раз; снял и вернул галочку — он не повторится. */
+  function bosCelebrateScope(scopeKey, anchor) {
+    if (!scopeKey) return false;
+    var day = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+    var k = "bos:dayfull:" + scopeKey + ":" + day;
+    var seen = false;
+    try { seen = localStorage.getItem(k) === "1"; } catch (e) {}
+    if (seen) return false;
+    try { localStorage.setItem(k, "1"); } catch (e2) {}
+    bosCelebrateBuzz();
+    bosCelebrateDay(anchor);
+    return true;
+  }
+
   /* НОВЫЙ УРОВЕНЬ — редкое событие, ему можно громче: две боковые «пушки» снизу вверх плюс
      догоняющая волна из центра. Задержки делают из трёх залпов одну нарастающую сцену. */
   function bosCelebrateLevel() {
@@ -187,5 +216,7 @@
   window.bosConfetti = bosConfetti;
   window.bosConfettiFrom = bosConfettiFrom;
   window.bosCelebrateDay = bosCelebrateDay;
+  window.bosCelebrateScope = bosCelebrateScope;
+  window.bosCelebrateBuzz = bosCelebrateBuzz;
   window.bosCelebrateLevel = bosCelebrateLevel;
 })();

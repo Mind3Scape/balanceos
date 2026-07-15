@@ -325,6 +325,25 @@ function GoalDetailPersonalLive() {
   const remaining = Math.max(0, (g.target || 0) - cur);
   const done = prog.done;
   const linked = (function () { var seen = {}, out = []; (_liveHabits || []).forEach(function (h) { if ((g.habitIds || []).indexOf(h.id) >= 0 && !seen[h.id]) { seen[h.id] = 1; out.push(h); } }); return out; })();
+  // ── ДЕНЬ ЦЕЛИ ЗАКРЫТ → конфетти ─────────────────────────────────────────────
+  // Своё событие, а не часть общего «дня»: привычка «только внутри цели» намеренно не попадает на
+  // главную доску и в счёт дня, поэтому у того, кто ведёт привычки только в целях, общий салют не
+  // случился бы никогда.
+  // Празднуем только РОСТ до полного при открытом экране: иначе цель, закрытая утром с Главной,
+  // салютовала бы при первом заходе сюда вечером — «конфетти из ниоткуда».
+  const _goalDoneRef = React.useRef(null);
+  const _goalDoneN = linked.filter((h) => h.done).length;
+  React.useEffect(() => {
+    const prev = _goalDoneRef.current;
+    _goalDoneRef.current = _goalDoneN;
+    if (prev == null) return;                                   // первый проход — только запоминаем
+    if (_goalDoneN <= prev) return;                             // сняли галочку / ничего не изменилось
+    if (!linked.length || _goalDoneN !== linked.length) return; // закрылось не всё
+    if (typeof window.bosCelebrateScope === "function") {
+      window.bosCelebrateScope("goal:" + (app?.persistId || "") + ":" + (g.cloudId || g.id));
+    }
+  }, [_goalDoneN, linked.length]);
+
   // ПУЛЬС: active = отметился сегодня → колечко «в деле» на лице.
   const _otk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   const orbitPeople = (buddies || []).filter((m) => m && !m.me).map((m) => ({ avatar: m.avatar, name: m.name, active: !!(_otk && m.days && m.days[_otk]) }));
