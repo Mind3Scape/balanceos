@@ -5054,25 +5054,22 @@ function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.
 // цель выглядела изначально). form: banner (полноширинный высокий) | square (2-в-ряд минимал).
 // orbits = мини-орбита (привычки+люди вокруг цели-превью). name/progress — тоглы. Тот же event.
 // orbits ПО УМОЛЧАНИЮ ВЫКЛ (David: «кому нужно — включит тумблером; по дефолту сразу иконки людей»).
+/* ВИД КАРТОЧКИ ЦЕЛИ/КРУГА — ЗАМОРОЖЕН НА ОДНОМ СТАНДАРТЕ (David 2026-07-15).
+   Было: настройка (баннер/квадрат + тумблеры орбит/прогресса/названия) в CardStyleMenuLive.
+   Стало: одна карточка везде — главная, Привычки, Сообщество, свой круг и чужой.
+   ПОЧЕМУ. Карточка круга получила нить дня. Пока вид оставался НАСТРОЙКОЙ, на экране
+   одновременно жили старое и новое: где-то орбиты, где-то квадрат без нити, где-то баннер
+   с нитью. David назвал это кашей — и был прав: стандарт не может быть настройкой.
+   НИЧЕГО НЕ УДАЛЕНО: ветки banner/квадрат/orbits в карточках на месте, bosSaveGoalStyle жив,
+   выбор человека в localStorage не стёрт. Воскрешение — _parked/goal-card-styles/README.md.
+   form:"banner"  — единственная форма, где помещается нить дня (в 146px квадрат не влезает);
+   orbits:false   — орбиты остаются ВНУТРИ круга и во «Вселенной», но не на карточке: две
+                    картинки про одно и то же («кто») на одной карточке и давали разнобой;
+   progress/name  — всегда, это факты, а не украшение. */
 var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: false, progress: true };
-function bosLoadGoalStyle() { try { var s = JSON.parse(localStorage.getItem("bos:goalStyle") || "null"); if (s && typeof s === "object") return Object.assign({}, BOS_GOAL_STYLE_DEFAULT, s); } catch (e) {} return Object.assign({}, BOS_GOAL_STYLE_DEFAULT); }
-function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s)); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
-
-// ─── ОБЩИЕ ПЛИТКИ привычки/цели (David: «унифицировать») ──────────────────────────────────────────
-// Плитки вынесены СЮДА из HabitsLive и стали самодостаточными (тема/стиль/хендлеры через хуки), чтобы
-// и страница «Привычки», и виджеты ГЛАВНОЙ рисовали ОДНО И ТО ЖЕ и слушали ОДИН стиль. Настройки в
-// шестерёнке теперь влияют на оба экрана. `from` = откуда открыт detail (habits/home). ctx.mode —
-// режим перестановки сетки (на «Привычках»); на главной всегда false.
-function useBosCardStyle() {
-  var st = React.useState(bosLoadCardStyle), s = st[0], setS = st[1];
-  React.useEffect(function () { var h = function () { setS(bosLoadCardStyle()); }; window.addEventListener("bos:cardStyleChanged", h); return function () { window.removeEventListener("bos:cardStyleChanged", h); }; }, []);
-  return s;
-}
-function useBosGoalStyle() {
-  var st = React.useState(bosLoadGoalStyle), s = st[0], setS = st[1];
-  React.useEffect(function () { var h = function () { setS(bosLoadGoalStyle()); }; window.addEventListener("bos:cardStyleChanged", h); return function () { window.removeEventListener("bos:cardStyleChanged", h); }; }, []);
-  return s;
-}
+function bosLoadGoalStyle() { return Object.assign({}, BOS_GOAL_STYLE_DEFAULT); }
+function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s || {})); } catch (e) {} }
+function useBosGoalStyle() { return BOS_GOAL_STYLE_DEFAULT; }
 // Тема-производные плиток — ТЕ ЖЕ значения, что были в HabitsLive (rowBg/cardShadow/iconBg).
 function bosTileTheme(isDark) {
   return {
@@ -5466,15 +5463,13 @@ function HabitMonthMini({ habit, square = false }) {
 // (мини-орбита привычек+людей) + прогресс + название. Всплывашка у шестерёнки (как CreateMenuLive).
 function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement }) {
   const [pos, setPos] = React.useState(null);
-  const [tab, setTab] = React.useState("habits");
   const [hs, setHs] = React.useState(bosLoadCardStyle);
-  const [gs, setGs] = React.useState(bosLoadGoalStyle);
   // Тёмная тема и Эффект стекла УЕХАЛИ отсюда в «Я → Настройки» (конституция §14: одна настройка —
   // один дом; глобальное не живёт на доске). Здесь остаётся только ВИД доски (стиль привычек/целей)
   // и доступ к Архиву. Тумблеры темы/стекла — единственный дом: Я → Настройки → Предпочтения.
   React.useEffect(() => {
     if (!open) return;
-    setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
+    setHs(bosLoadCardStyle());
     // Из шестерёнки в ТРЯСКЕ (placement="bottom") — по ЦЕНТРУ над панелью «Готово», всплывает снизу
     // (David: «должна открываться по центру над Готово, из шестерёнки»). Иначе — под якорем/справа.
     if (placement === "bottom") { setPos({ mode: "bottom" }); }
@@ -5486,7 +5481,6 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
   }, [open, placement]);
   if (!open || !pos) return null;
   const setH = (patch) => { const n = Object.assign({}, hs, patch); setHs(n); bosSaveCardStyle(n); };
-  const setG = (patch) => { const n = Object.assign({}, gs, patch); setGs(n); bosSaveGoalStyle(n); };
   // Иконки форм = ОЧЕРТАНИЯ наших реальных блоков (David: «просто формы наших блоков, без подписей»).
   // Квадрат — два блока чуть шире, наше скругление; Строка — два ряда с бóльшим зазором и скруглением
   // (как наша плитка-строка); Баннер — David: «хорошая иконка», оставляем.
@@ -5525,34 +5519,20 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
         // Плотный фон (David: «меню не должно быть прозрачным — сбивает, не видно что выбираешь»):
         // почти непрозрачное, чтобы надписи и тумблеры читались на любой доске.
         background: "rgba(255,255,255,0.98)", WebkitBackdropFilter: "blur(20px) saturate(150%)", backdropFilter: "blur(20px) saturate(150%)", border: "0.5px solid rgba(0,0,0,0.07)", boxShadow: "0 16px 44px rgba(20,30,60,0.22)", color: "#0a0a0a" }}>
-        {/* Вкладки: Привычки / Цели */}
-        {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }], setTab)}
-        <div style={{ height: 9 }} />
-        {tab === "habits" ? (
-          <>
-            {/* David: дефолт (строка) СЛЕВА, квадрат справа — «всё дефолтное по сути слева». */}
-            <div style={{ display: "flex", gap: 7 }}>{formBtn("rect", RC, hs.form, (k) => setH({ form: k }))}{formBtn("square", SQ, hs.form, (k) => setH({ form: k }))}</div>
-            {divider}
-            <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 6, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
-            {seg(hs.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => setH({ marks: v }))}
-            {hs.marks !== "none" && <div style={{ marginTop: 8 }}>{seg(hs.cells || "round", [{ v: "round", l: "Кружки" }, { v: "square", l: "Квадраты" }], (v) => setH({ cells: v }))}</div>}
-            <div style={{ marginTop: 6 }}>
-              {toggleRow("Люди", hs.faces, (v) => setH({ faces: v }))}
-              {hs.form === "square" && toggleRow("Название", hs.name, (v) => setH({ name: v }))}
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ display: "flex", gap: 7 }}>{formBtn("banner", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", SQ, gs.form, (k) => setG({ form: k }))}</div>
-            {divider}
-            <div style={{ marginTop: 0 }}>
-              {toggleRow("Орбиты вокруг цели", gs.orbits, (v) => setG({ orbits: v }))}
-              {toggleRow("Прогресс", gs.progress, (v) => setG({ progress: v }))}
-              {toggleRow("Название", gs.name, (v) => setG({ name: v }))}
-            </div>
-            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 0" }}>Орбиты показывают привычки и людей вокруг цели — превью, вокруг чего она.</div>
-          </>
-        )}
+        {/* Вкладка «Цели» ОТЛОЖЕНА (David 2026-07-15): вид карточки цели/круга больше не
+            настройка, а один стандарт — см. _parked/goal-card-styles/. Сегмент вкладок убран
+            за ненадобностью: тело осталось одно. Привычки и Архив — как были. */}
+        <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 7, color: "rgba(10,10,10,0.5)" }}>Вид привычек</div>
+        {/* David: дефолт (строка) СЛЕВА, квадрат справа — «всё дефолтное по сути слева». */}
+        <div style={{ display: "flex", gap: 7 }}>{formBtn("rect", RC, hs.form, (k) => setH({ form: k }))}{formBtn("square", SQ, hs.form, (k) => setH({ form: k }))}</div>
+        {divider}
+        <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 6, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
+        {seg(hs.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => setH({ marks: v }))}
+        {hs.marks !== "none" && <div style={{ marginTop: 8 }}>{seg(hs.cells || "round", [{ v: "round", l: "Кружки" }, { v: "square", l: "Квадраты" }], (v) => setH({ cells: v }))}</div>}
+        <div style={{ marginTop: 6 }}>
+          {toggleRow("Люди", hs.faces, (v) => setH({ faces: v }))}
+          {hs.form === "square" && toggleRow("Название", hs.name, (v) => setH({ name: v }))}
+        </div>
         {/* Архив — всегда доступен (тема/стекло уехали в Я → Настройки по §14; здесь остаётся только
             вид доски + доступ к архиву скрытых привычек/целей). */}
         {typeof onArchiveList === "function" && (
