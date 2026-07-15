@@ -873,10 +873,9 @@ function HomeLive() {
             Иконки ужаты 21→19: внутри пилюли рамка ближе, крупная иконка распирала её. */}
         <div style={{ display: "flex", alignItems: "center", height: 44, borderRadius: 999, flexShrink: 0, overflow: "hidden",
           ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })) }}>
-          <button ref={addBtnRef} onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Создать" aria-haspopup="menu" aria-expanded={createOpen} title="Создать"
-            style={{ width: 44, height: 44, borderRadius: 999, background: "transparent", color: isDark ? "#fff" : "var(--text)", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
-            <I.Plus size={19} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
-          </button>
+          {/* Колокольчик СЛЕВА, «+» — крайний справа (David 2026-07-15, как в примере): «+» открывает
+              меню, которое из-под него и выпадает, поэтому ему место у самого края — меню
+              выравнивается по правому краю экрана. */}
           <button onClick={() => navigate("notifications", { from: "home" })} className="tap" aria-label="Уведомления"
             style={{ width: 44, height: 44, borderRadius: 999, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
             <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
@@ -885,6 +884,10 @@ function HomeLive() {
               <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
               )}
             </span>
+          </button>
+          <button ref={addBtnRef} onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Создать" aria-haspopup="menu" aria-expanded={createOpen} title="Создать"
+            style={{ width: 44, height: 44, borderRadius: 999, background: "transparent", color: isDark ? "#fff" : "var(--text)", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+            <I.Plus size={19} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
           </button>
         </div>
       </div>

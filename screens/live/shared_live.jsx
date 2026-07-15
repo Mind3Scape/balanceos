@@ -468,9 +468,12 @@ function bosGlassChrome(isDark) {
       : "linear-gradient(to bottom, rgba(255,255,255,0.66), rgba(255,255,255,0.42))",
     backdropFilter: isDark ? "blur(20px) saturate(180%) brightness(1.14)" : "blur(20px) saturate(180%) brightness(1.04)",
     WebkitBackdropFilter: isDark ? "blur(20px) saturate(180%) brightness(1.14)" : "blur(20px) saturate(180%) brightness(1.04)",
+    // БЕЗ падающей тени (David 2026-07-15: «у стеклянных кнопок нет таких жёстких теней»). У Apple
+    // стекло держится не тенью, а тем, что преломляет фон: размытие + светлый кант по верхнему
+    // краю. Тень под ним делала из стекла наклейку — вырезана; остаются только внутренние канты.
     boxShadow: isDark
-      ? "inset 0 1px 0.5px rgba(255,255,255,0.22), inset 0 0 0 0.5px rgba(255,255,255,0.10), 0 4px 14px rgba(0,0,0,0.34)"
-      : "inset 0 1px 0.5px rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(0,0,0,0.05), 0 4px 14px rgba(0,0,0,0.10)",
+      ? "inset 0 1px 0.5px rgba(255,255,255,0.22), inset 0 0 0 0.5px rgba(255,255,255,0.10)"
+      : "inset 0 1px 0.5px rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(0,0,0,0.05)",
   };
 }
 // Метрика цели/круга — СТАНДАРТНЫЙ iOS-выбор (нативный <select> = колесо на iPhone), чтобы единицу
@@ -4741,23 +4744,34 @@ function BosHabitIcon({ size = 20, color = "currentColor", strokeWidth = 1.8 }) 
     </svg>
   );
 }
+/* Цель = ТА ЖЕ точка (r 2.4, как в привычке), к которой тянется стрелка. David 2026-07-15:
+   «точка такого же размера, а стрелочка к ней поменьше, чтобы логика реально считывалась».
+   Точка во всём трио — одно и то же: то, ради чего действие. Привычка ходит вокруг неё
+   по кругу, цель тянется к ней снизу, в круге вокруг неё стоят люди. Поэтому точка НЕ
+   меняет размер от иконки к иконке, а стрелка ужата (плечи 4.4→3.0) — она младше точки. */
 function BosGoalIcon({ size = 20, color = "currentColor", strokeWidth = 1.8 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 21V9.2" />
-      <path d="M7.6 12.8 12 8.4l4.4 4.4" />
-      <circle cx="12" cy="4.7" r="1.9" fill={color} stroke="none" />
+      <path d="M5.4 18.6 14.4 9.6" />
+      <path d="M10.6 9.6h3.8v3.8" />
+      <circle cx="18.2" cy="5.8" r="2.4" fill={color} stroke="none" />
     </svg>
   );
 }
+/* Круг = точка, вокруг которой на линии стоят люди. Две правки David 2026-07-15:
+   1. Окружность была полупрозрачной (opacity 0.34) → выглядела тоньше остального трио.
+      Убрано: линия той же плотности, что дуга привычки и стрелка цели.
+   2. Точки сидели ВНУТРИ линии — не на глаз, а по счёту: они стояли на расстоянии 7.3
+      от центра при радиусе окружности 8. Пересчитаны ровно на 8 (верх / 120° / 240°),
+      теперь линия проходит через их середину. */
 function BosCircleIcon({ size = 20, color = "currentColor", strokeWidth = 1.8 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="8" opacity="0.34" />
-      <circle cx="12" cy="12" r="2.3" fill={color} stroke="none" />
-      <circle cx="12" cy="4.7" r="1.8" fill={color} stroke="none" />
-      <circle cx="18.3" cy="15.65" r="1.8" fill={color} stroke="none" />
-      <circle cx="5.7" cy="15.65" r="1.8" fill={color} stroke="none" />
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="2.4" fill={color} stroke="none" />
+      <circle cx="12" cy="4" r="2.4" fill={color} stroke="none" />
+      <circle cx="18.93" cy="16" r="2.4" fill={color} stroke="none" />
+      <circle cx="5.07" cy="16" r="2.4" fill={color} stroke="none" />
     </svg>
   );
 }
