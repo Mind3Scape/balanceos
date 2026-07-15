@@ -5557,7 +5557,8 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         <div style={{ flex: 1, minWidth: 0 }}>
           <div key={_homeSummary} style={{ ...BOS_AI_TEXT, animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
-        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={56} isDark={isDark} />
+        {/* Аватар с кольцом уровня УЕХАЛ в шапку главной (David 2026-07-15) — здесь блок про
+            советы ИИ, а не про аккаунт. См. home_live, top bar. */}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
@@ -5582,7 +5583,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
             <span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_homeSummary}
           </div>
         </div>
-        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={64} isDark={isDark} />
+        {/* Аватар с кольцом уровня УЕХАЛ в шапку главной (David 2026-07-15). */}
       </div>
       <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
         {(_livePills || ((typeof bosMixPillsLive === "function") ? bosMixPillsLive : (x) => x)([

@@ -847,11 +847,18 @@ function HomeLive() {
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
-      {/* Top bar — greeting + bell (PINNED, never a widget) */}
+      {/* Top bar — аватар + приветствие + колокольчик (ПРИБИТ, никогда не виджет).
+          Аватар с кольцом уровня переехал СЮДА из баннера ИИ (David 2026-07-15): его место —
+          в шапке, у имени, а не внутри блока с советами. Размер 44 — вровень с «+» и колокольчиком
+          справа, шапка читается одной линией. Приветствие ужато 24→21, чтобы длинное имя
+          («Добрый вечер, Александра») уместилось рядом с аватаром и не переносилось. */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
-        <div style={{ flex: 1 }}>
+        {typeof HeroAccountAvatarLive === "function" && (
+          <HeroAccountAvatarLive navigate={navigate} avatar={app?.avatar} pct={_lvl.pct} level={_lvl.level} size={44} isDark={isDark} />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{_todayLabel}</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 1, fontFamily: "var(--bos-title-font)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
         </div>
         {/* «+» — явная кнопка СОЗДАТЬ (привычку/цель/круг), всегда под рукой на главной (David). Тот
             же CreateMenuLive, что на странице Привычки; стеклянный круг, «+» крутится при открытии. */}
