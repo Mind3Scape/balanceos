@@ -2075,66 +2075,114 @@ function bosParseTs(s) {
   var d = new Date(t);
   return isNaN(d.getTime()) ? new Date(s) : d;
 }
-/* ═══ КАРТОЧКА ОТКРЫТОГО КРУГА — David выбрал «Волну дня» + час пик + кнопку «Вступить».
-   Что тут ЖИВОГО и откуда оно берётся:
-     • нить дня (BosDayThreadLive) — лица при малом круге, волна при большом;
-     • «обычно в 07:00» — час пик за 30 дней: для чужого это самое полезное, понятно, во сколько
-       тут жизнь и влезет ли она в твой день (David: «3 из 5» чужому ничего не даёт);
-     • «живёт N дней» — круг всерьёз или заведён вчера и брошен;
-     • сколько людей.
-   Данные — серверный агрегат bos_circle_pulse: отметки чужого круга закрыты RLS, и клиент
-   получил бы 0 строк МОЛЧА (живой круг выглядел бы мёртвым). Пульса нет (патч не прогнан,
-   сеть, приватный круг) → нить и час пик просто не рисуются. Карточка НЕ врёт, а молчит. */
-function BosOpenCircleCardLive({ t, isDark, onJoin, busy, requested }) {
-  var [pulse, setPulse] = React.useState(null);
-  React.useEffect(function () {
-    if (!(t && t.id && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
-    var on = true;
-    window.bosCloud.circlePulse(t.id).then(function (p) { if (on) setPulse(p); }).catch(function () {});
-    return function () { on = false; };
-  }, [t && t.id]);
-  var days = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt) : null;
-  var peak = (pulse && typeof bosPeakLabel === "function") ? bosPeakLabel(pulse.peak) : null;
-  var hours = (pulse && pulse.mins || []).map(function (m) { return bosUtcMinToHour(m); });
-  var disc = {
+/* ═══════════ ЕДИНАЯ КАРТОЧКА КРУГА — ОДНА НА ВСЁ ПРИЛОЖЕНИЕ ═══════════
+   David 2026-07-15: «карточки не выглядят так, как мы договаривались на макете — а зачем мы
+   тогда делали макет? И они должны выглядеть стандартизированно».
+   Он прав дважды. Я приделал нить к СТАРОЙ карточке-баннеру вместо того, чтобы собрать
+   карточку с макета, — отсюда и «не как договаривались», и разнобой (в кругах одно, на
+   главной другое). Теперь это ОДИН компонент, и его рисуют ВСЕ места: главная, Привычки,
+   Сообщество, свой круг и чужой. Отличается ровно одним: у чужого есть «Вступить».
+   Анатомия — с утверждённого макета «Волна дня»:
+     круглый диск эмблемы (центр орбит, BOS_ORB_SHEEN — не «похожий», а тот же)
+     имя · «живёт N дней» с огоньком
+     НИТЬ ДНЯ (лица при малом круге, волна при большом)
+     чипы: обычно в HH:MM · N участ. · N сегодня в деле
+     «Вступить» — только если я не внутри
+   Данные разные, вид один: свой круг → teamTodayTimes (я участник, вижу ЛИЦА и часы);
+   чужой открытый → bos_circle_pulse (только часы и числа, без имён — RLS). */
+function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, busy, requested }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = !!(app && app.themeOverride === "dark");
+  const ck = t.cloudId || t.id || null;
+  const memberN = Array.isArray(t.members) ? t.members.length : (t.members || 0);
+  const roster = (ck && typeof _bosTeamGet === "function") ? _bosTeamGet("roster:" + ck) : null;
+  const people = (Array.isArray(roster) && roster.length) ? roster : (Array.isArray(t.members) ? t.members : []);
+
+  // Свой круг → отметки читаются напрямую (я участник): знаю лица и часы.
+  const [times, setTimes] = React.useState(null);
+  React.useEffect(() => {
+    if (!ck || !joined || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTodayTimes)) return;
+    let on = true;
+    window.bosCloud.teamTodayTimes(ck).then((r) => { if (on && r) setTimes(r); }).catch(() => {});
+    return () => { on = false; };
+  }, [ck, joined, ctx.mode]);
+  // Чужой открытый → анонимный серверный агрегат (иначе RLS молча вернёт 0 и живой круг
+  // будет выглядеть мёртвым). Патч не прогнан → null → чипы «час пик»/«сегодня» просто нет.
+  const [pulse, setPulse] = React.useState(null);
+  React.useEffect(() => {
+    if (!ck || joined || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
+    let on = true;
+    window.bosCloud.circlePulse(ck).then((p) => { if (on) setPulse(p); }).catch(() => {});
+    return () => { on = false; };
+  }, [ck, joined, ctx.mode]);
+  // Непрочитанные — только у своих (в чужой чат я не вижу).
+  const [unread, setUnread] = React.useState(() => { const c = (ck && typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(ck) : null; return c ? c.count : 0; });
+  React.useEffect(() => {
+    if (!ck || !joined || ctx.mode || typeof bosTeamUnreadPeek !== "function") return;
+    let on = true;
+    bosTeamUnreadPeek(ck).then((r) => { if (on && r) setUnread(r.count || 0); }).catch(() => {});
+    return () => { on = false; };
+  }, [ck, joined, ctx.mode]);
+
+  const faces = React.useMemo(() => {
+    const map = (times && times.times) || null;
+    if (!map) return [];
+    return people.filter((m) => m && m.id != null && map[m.id]).map((m) => {
+      const d = new Date(map[m.id]);
+      return { avatar: m.avatar, name: m.name, hr: d.getHours() + d.getMinutes() / 60 };
+    }).filter((f) => !isNaN(f.hr));
+  }, [times, people]);
+  const hours = React.useMemo(() => ((pulse && pulse.mins) || []).map((m) => bosUtcMinToHour(m)), [pulse]);
+  const days = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt || (times && times.createdAt)) : null;
+  const peak = (pulse && typeof bosPeakLabel === "function") ? bosPeakLabel(pulse.peak) : null;
+  const todayN = pulse ? pulse.todayN : (faces.length || null);
+  const disc = {
     background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg, var(--disc-a,#eef1f6), var(--disc-b,#dadfe7))"),
-    boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none")),
+    boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none"),
   };
-  var chip = function (node, gold, key) {
-    return (
-      <span key={key} style={Object.assign({ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: gold ? 700 : 600, borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" },
-        gold ? { color: "#B4820A", background: "rgba(240,195,10,0.14)" } : Object.assign({ color: "var(--text-2)" }, (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {})))}>{node}</span>
-    );
-  };
+  const chip = (node, gold, key) => (
+    <span key={key} style={Object.assign({ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: gold ? 700 : 600, borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" },
+      gold ? { color: "#B4820A", background: "rgba(240,195,10,0.14)" } : Object.assign({ color: "var(--text-2)" }, (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {})))}>{node}</span>
+  );
   return (
-    <div style={{ position: "relative", background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow, 0 1px 2px rgba(0,0,0,0.05))" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {/* Подложка эмблемы — КРУГЛЫЙ диск, ровно центр орбит (David: «квадратная плохо смотрится,
-            туда круглая просится»). Тот же BOS_ORB_SHEEN — не «похожий», а тот же. */}
-        <span style={Object.assign({ width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }, disc)}>
-          {typeof bosIcon === "function" ? bosIcon(t.emblem || "✨", 22, null) : (t.emblem || "✨")}
+    <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : onOpen}
+      style={{ position: "relative", background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow, 0 1px 2px rgba(0,0,0,0.05))",
+        pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden", cursor: ctx.mode ? "default" : "pointer", textAlign: "left" }}>
+      {unread > 0 && (
+        <span aria-label={"новых сообщений: " + unread} style={Object.assign({ position: "absolute", top: 12, right: 12, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: "0 8px", borderRadius: 999, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDark ? "#fff" : "#0a0a0a", pointerEvents: "none" }, (typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}))}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3.2c5.3 0 9.6 3.4 9.6 7.6s-4.3 7.6-9.6 7.6c-.9 0-1.8-.1-2.6-.3l-4.6 2.3a.55.55 0 0 1-.79-.64l1-3.4C3.1 14.9 2.4 13.1 2.4 10.8 2.4 6.6 6.7 3.2 12 3.2z" /></svg>
+          {unread > 99 ? "99+" : unread}
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={Object.assign({ width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }, disc)}>
+          {typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 22, null) : (t.emblem || "👥")}
+        </span>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: unread > 0 ? 40 : 0 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
           <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
             {days ? <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} /> : null}
-            {days ? ("живёт " + days + " " + (typeof bosRuDays === "function" ? bosRuDays(days) : "дн.")) : "Открытый круг"}
+            {days ? ("живёт " + days + " " + (typeof bosRuDays === "function" ? bosRuDays(days) : "дн.")) : (joined ? "Вместе" : "Открытый круг")}
           </div>
         </div>
       </div>
-      {hours.length > 0 && typeof BosDayThreadLive === "function" && (
-        <div style={{ marginTop: 14 }}><BosDayThreadLive hours={hours} isDark={isDark} /></div>
+      {/* Нить рисуется ВСЕГДА для облачного круга — слот занят с первого кадра, поэтому карточка
+          не подпрыгивает, когда прилетят данные (David). Локальный круг без облака — без нити. */}
+      {ck && typeof BosDayThreadLive === "function" && (
+        <div style={{ marginTop: 14 }}><BosDayThreadLive faces={faces} hours={hours} isDark={isDark} /></div>
       )}
       <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 5 }}>
         {peak ? chip(<><I.Clock size={11} color="#EF9F14" strokeWidth={2} />обычно в {peak}</>, true, "p") : null}
-        {chip(<>🌐 {t.members || 0} участ.</>, false, "m")}
-        {pulse && pulse.todayN > 0 ? chip(<>{pulse.todayN} сегодня в деле</>, false, "n") : null}
+        {memberN ? chip(<>🌐 {memberN} участ.</>, false, "m") : null}
+        {todayN ? chip(<>{todayN} сегодня в деле</>, false, "n") : null}
       </div>
-      <button onClick={function () { onJoin && onJoin(t); }} disabled={busy || requested} className="tap" data-haptic="selection"
-        style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "11px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
-          background: (busy || requested) ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: (busy || requested) ? "var(--text-3)" : "var(--cta-ink, #fff)" }}>
-        {requested ? "Заявка отправлена" : busy ? "…" : "Вступить"}
-      </button>
+      {!joined && (
+        <button onClick={(e) => { e.stopPropagation(); onJoin && onJoin(t); }} disabled={busy || requested} className="tap" data-haptic="selection"
+          style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "11px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+            background: (busy || requested) ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: (busy || requested) ? "var(--text-3)" : "var(--cta-ink, #fff)" }}>
+          {requested ? "Заявка отправлена" : busy ? "…" : "Вступить"}
+        </button>
+      )}
     </div>
   );
 }
@@ -2206,6 +2254,10 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false }) {
   var fs = (faces || []).filter(Boolean).slice().sort(function (a, b) { return a.hr - b.hr; });
   var hrs = fs.length ? fs.map(function (f) { return f.hr; }) : (hours || []);
   var many = hrs.length > 6 || !fs.length;
+  // ВЫСОТА НЕ ЗАВИСИТ ОТ ДАННЫХ (David 2026-07-15: «нить подгружается со временем, потом
+  // появляется и карточка увеличивается — это бредово»). Дорожка, глифы и точка «сейчас»
+  // рисуются СРАЗУ, ещё до ответа сети; лица и волна втекают в готовый слот. Пустая нить —
+  // не шум: она честно говорит «день идёт, сегодня пока никто».
   var nowHr = (function () { var d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   var nowPct = bosThreadPct(nowHr);
   var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.10)";
@@ -5204,169 +5256,14 @@ function bosTeamKeyLive(t) {
    Та же форма, что плитка цели (goalStyle: баннер/квадрат + орбиты + прогресс), но эмблема,
    ЛИЦА участников и командный счёт; ест stale-while-revalidate кэш детали (_bosTeamGet). */
 function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = false }) {
-  const app = (typeof useApp === "function") ? useApp() : null;
+  // David 2026-07-15: «карточки должны выглядеть как на макете и стандартизированно, не важно,
+  // на какой странице я это вижу». Раньше тут жили ТРИ вида (баннер/квадрат/орбиты) + нить,
+  // приделанная к одному из них, — это и была каша. Теперь плитка круга ВЕЗДЕ одна и та же:
+  // BosCircleCardLive (утверждённый макет «Волна дня»). Прежние ветки — в git до v762,
+  // настройка вида — в _parked/goal-card-styles/README.md.
   const navigate = ((typeof useNav === "function") ? useNav() : {}).navigate || function () {};
-  const isDark = !!(app && app.themeOverride === "dark");
-  const goalStyle = useBosGoalStyle();
-  const habits = (app && app.habits) || [];
-  // big — Сообщество показывает круги ТОЛЬКО крупной карточкой (David 2026-07-11), независимо от
-  // выбранного на Главной вида; иначе как на Главной (баннер/квадрат по стилю целей).
-  const banner = big || goalStyle.form === "banner";
-  const _ck = t.cloudId || null;
-  const _cHabits = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("habits:" + _ck) : null;
-  const _cRoster = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("roster:" + _ck) : null;
-  const _cGoal = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("goal:" + _ck) : null;
-  const tHabits = (Array.isArray(_cHabits) && _cHabits.length) ? _cHabits : (Array.isArray(t.habits) ? t.habits : []);
-  const tgt = (_cGoal && _cGoal.target) || t.target || 0;
-  const cur = (_cGoal && _cGoal.current != null) ? _cGoal.current : (t.current != null ? t.current : Math.round((t.progress || 0) * tgt));
-  const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
-  const sk = bosGoalSkin(t.accent || t.color, isDark);
-  const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: from });
-  // Непрочитанные в чате круга — значок и на ВНЕШНЕЙ плитке (David), лёгким count-запросом с кэшем.
-  const [tileUnread, setTileUnread] = React.useState(() => { const c = (typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(_ck) : null; return c ? c.count : 0; });
-  React.useEffect(() => {
-    if (!_ck || ctx.mode || typeof bosTeamUnreadPeek !== "function") return;
-    let on = true;
-    bosTeamUnreadPeek(_ck).then((r) => { if (on && r) setTileUnread(r.count || 0); }).catch(() => {});
-    const f = () => { const c = (typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(_ck) : null; setTileUnread(c ? c.count : 0); };
-    window.addEventListener("bos:notifSeenChanged", f);
-    return () => { on = false; window.removeEventListener("bos:notifSeenChanged", f); };
-  }, [_ck]);
-  // t.members из облачного списка бывает ЧИСЛОМ (count), из снапшота — массивом лиц: guard.
-  const members = (Array.isArray(_cRoster) && _cRoster.length) ? _cRoster : (Array.isArray(t.members) ? t.members : []);
-  // Пульс: привычка done горит своим цветом (моя локальная копия по teamHabitId), кольцо
-  // человека = доля закрытых им сегодня привычек круга (todayUsers из кэша детали).
-  const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
-  const orbitHabits = tHabits.map((h) => {
-    const mine = (h && h.id != null) ? (habits || []).find((x) => x.teamHabitId === h.id) : null;
-    return { emoji: h && h.emoji, color: (mine && mine.color) || (h && h.color) || null, done: mine ? !!mine.done : !!(h && h.doneByMe) };
-  });
-  const _pt = tHabits.length || 0;
-  const _anyTU = tHabits.some((h) => h && Array.isArray(h.todayUsers));
-  // ВРЕМЕНА сегодняшних отметок круга — для нити дня (David 2026-07-15, выбран «Волна дня»).
-  // Я участник → отметки читаю напрямую (teamTodayTimes), поэтому знаю ЛИЦА и часы. Для ЧУЖОГО
-  // открытого круга лиц нет (RLS) — там карточка каталога берёт анонимный агрегат circlePulse.
-  const [dayTimes, setDayTimes] = React.useState(null);
-  React.useEffect(() => {
-    if (!_ck || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTodayTimes)) return;
-    let on = true;
-    window.bosCloud.teamTodayTimes(_ck).then((r) => { if (on && r) setDayTimes(r); }).catch(() => {});
-    return () => { on = false; };
-  }, [_ck, ctx.mode]);
-  const orbitPeople = members.filter(Boolean).map((m) => {
-    let progress = null;
-    if (_pt && _anyTU && m.id != null) progress = tHabits.filter((h) => h && Array.isArray(h.todayUsers) && h.todayUsers.indexOf(m.id) !== -1).length / _pt;
-    return { avatar: m.avatar, name: m.name, active: !!(_tk && m.days && m.days[_tk]), progress };
-  });
-  // Лицо на нити = участник, который СЕГОДНЯ отметился, в свой час. Нет отметок → нити нет
-  // (пустая нить — шум, а не факт). Компонент сам решит: мало лиц → лица, много → волна.
-  const _threadFaces = React.useMemo(() => {
-    const times = (dayTimes && dayTimes.times) || null;
-    if (!times) return [];
-    return members.filter((m) => m && m.id != null && times[m.id]).map((m) => {
-      const d = new Date(times[m.id]);
-      return { avatar: m.avatar, name: m.name, hr: d.getHours() + d.getMinutes() / 60 };
-    }).filter((f) => !isNaN(f.hr));
-  }, [dayTimes, members]);
-  const _threadEl = (!ctx.mode && _threadFaces.length > 0 && typeof BosDayThreadLive === "function")
-    ? <BosDayThreadLive faces={_threadFaces} isDark={isDark} /> : null;
-  const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
-    ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={orbitHabits} people={orbitPeople} size={banner ? 132 : 152} dark={isDark} fade progress={pct} />
-    : null;
-  // ГЛАВНЫЙ ЧИП + значок чата на ВНЕШНЕЙ плитке (David: «главные чипы тоже отражены» + «уведомление
-  // о непрочитанных и на внешней карточке»). Один пульс-чип слева (сегодня в деле / достигнуто /
-  // люди) + красный значок непрочитанного справа. Плавают в углах над орбитой, тап не перехватывают.
-  const _inFlow = orbitPeople.filter((p) => p.active).length;
-  const _ageDays = (typeof bosCircleDays === "function") ? bosCircleDays(t.createdAt || (dayTimes && dayTimes.createdAt)) : null;
-  const _pulseTxt = pct >= 1 ? "🎉 Готово" : (_inFlow > 0 ? "🔥 " + _inFlow + " сегодня" : (members.length ? "👥 " + members.length : null));
-  const _tileFloat = (!ctx.mode && orbit && _pulseTxt) ? (
-    <span style={{ position: "absolute", top: 10, left: 11, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 3, maxWidth: "60%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: isDark ? "rgba(0,0,0,0.24)" : "rgba(255,255,255,0.66)", color: sk.hasColor ? sk.txt : sk.accent, fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", pointerEvents: "none" }}>{_pulseTxt}</span>
-  ) : null;
-  // Значок НЕПРОЧИТАННЫХ в чате круга. Три правки David 2026-07-15:
-  //  1) СТЕКЛО вместо красной плашки — «стеклянную СВГ-иконку чата и сообщение»: круг не авария,
-  //     а «о, кто-то написал». Тот же материал, что у чрома (bosGlassChrome).
-  //  2) ЗАЛИВНОЙ SVG вместо эмодзи 💬 — эмодзи рисует система, в чужой теме он чужой.
-  //  3) Вынесен ИЗ _tileFloat: тот показывался только при orbit И не рисовался в ветке banner —
-  //     а Сообщество показывает круги ИМЕННО баннером (big → banner), поэтому значка там не было
-  //     видно НИКОГДА. Теперь это отдельный элемент, который ставят обе ветки.
-  const _unreadBadge = (!ctx.mode && tileUnread > 0) ? (
-    <span aria-label={"новых сообщений: " + tileUnread} style={{ position: "absolute", top: 10, right: 10, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: "0 8px", borderRadius: 999, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDark ? "#fff" : "#0a0a0a", ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}), pointerEvents: "none" }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3.2c5.3 0 9.6 3.4 9.6 7.6s-4.3 7.6-9.6 7.6c-.9 0-1.8-.1-2.6-.3l-4.6 2.3a.55.55 0 0 1-.79-.64l1-3.4C3.1 14.9 2.4 13.1 2.4 10.8 2.4 6.6 6.7 3.2 12 3.2z"/></svg>
-      {tileUnread > 99 ? "99+" : tileUnread}
-    </span>
-  ) : null;
-  const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={20} max={3} /></span> : null;
-  const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
-  const valTxt = t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : (Math.round(pct * 100) + "%");
-  const progBar = goalStyle.progress ? (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: sk.lbl, textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: sk.val, fontVariantNumeric: "tabular-nums" }}>{valTxt}</span>
-      </div>
-      <div style={{ height: 7, borderRadius: 999, background: sk.track, overflow: "hidden" }}>
-        <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: sk.hasColor ? sk.fill : ("linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent) }} />
-      </div>
-    </div>
-  ) : null;
-  const icon = <span className="bos-ticon" style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, sk.hasColor ? sk.iconInk : (t.accent || t.color))}</span>;
-
-  if (banner) {
-    return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ position: "relative", background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", flexDirection: "column", gap: 12, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-        {_unreadBadge}
-        {/* Нить идёт ПОД строкой во всю ширину, а не внутри неё: рядом с орбитой справа её
-            зажимало бы в щель, и волна дня переставала читаться (David: нить — основа карточки). */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {!orbit && icon}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
-              {/* «живёт N дней» рядом с составом (David 2026-07-15): возраст — живой факт, растёт
-                  сам от даты рождения круга. Нет даты (локальный круг без облака) → нет и куска. */}
-              <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1, display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
-                <span style={{ flexShrink: 0 }}>Вместе{members.length ? " · " + members.length : ""}</span>
-                {_ageDays ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                    <span style={{ opacity: 0.5 }}>·</span>
-                    <I.Flame size={11} color="#EF9F14" filled strokeWidth={1.6} style={{ flexShrink: 0 }} />
-                    живёт {_ageDays} {typeof bosRuDays === "function" ? bosRuDays(_ageDays) : "дн."}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            {!orbit && (faces || pctEl)}
-          </div>
-          {progBar}
-        </div>
-        {orbit}
-        </div>
-        {_threadEl}
-      </div>
-    );
-  }
-  return (
-    <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-      {_tileFloat}
-      {_unreadBadge}
-      {orbit ? (
-        <>
-          <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
-          <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-            {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div> : <span />}
-            {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
-          </div>
-        </>
-      ) : (
-        <>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>{icon}<div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{pctEl}</div></div>
-          {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</div>}
-          {progBar && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progBar}</div>}
-        </>
-      )}
-    </div>
-  );
+  const onOpen = ctx.mode ? undefined : function () { navigate("team-detail", { team: t, from: from }); };
+  return <BosCircleCardLive t={t} joined ctx={ctx} onOpen={onOpen} />;
 }
 
 function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
@@ -5893,18 +5790,44 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   // показываем (они на главной; витрина — чтобы находить ЧУЖОЕ). Владельца отсекает discoverTeams
   // на бэке (owner_id), здесь дочищаем ЧЛЕНСТВО по локальному app.teams (без race).
   const mineById = {}; ((app && app.teams) || []).forEach((t) => { if (t && t.cloudId) mineById[t.cloudId] = t; });
-  const shownList = (list || []).filter((t) => !mineById[t.id]);
+  // David 2026-07-15: «в открытых кругах должны показываться реальные живые круги, и НАШИ, в
+  // которые мы вступили, тоже — а сейчас их там нет. И ранжироваться от самого большого
+  // количества человек к самому маленькому».
+  // Было: свои круги вычищались из витрины и висели отдельной секцией сверху — два списка,
+  // два вида, и своих в общем ранге не видно. Стало: ОДИН список. Свои помечены joined —
+  // у них нет «Вступить» (я и так внутри), всё остальное одинаково.
+  // Слияние по cloudId: круг, где я состою, приходит и из discoverTeams (если владелец не я),
+  // и из app.teams — берём ОДНУ запись, иначе он задвоится.
+  const _seenIds = {};
+  const _merged = [];
+  (list || []).forEach((t) => {
+    if (!t || !t.id || _seenIds[t.id]) return;
+    _seenIds[t.id] = 1;
+    const mine = mineById[t.id];
+    _merged.push(Object.assign({}, t, mine ? { members: t.members, joined: true } : { joined: false }));
+  });
+  if (!isSearch) ((app && app.teams) || []).forEach((t) => {
+    if (!t || !t.cloudId || _seenIds[t.cloudId] || t.vis !== "public") return;   // приватные — не открытые
+    _seenIds[t.cloudId] = 1;
+    _merged.push(Object.assign({}, t, { id: t.cloudId, joined: true, members: Array.isArray(t.members) ? t.members.length : (t.members || 0) }));
+  });
+  // Ранг: больше людей — выше (David). При равенстве — старше круг: возраст честнее алфавита.
+  const shownList = _merged.sort((a, b) => {
+    const d = (b.members || 0) - (a.members || 0);
+    if (d) return d;
+    return (Date.parse(a.createdAt || 0) || 0) - (Date.parse(b.createdAt || 0) || 0);
+  });
   // МОИ ПУБЛИЧНЫЕ круги (David 2026-07-11): создатель должен ВИДЕТЬ, что его круг открыт для всех —
   // показываем их ВВЕРХУ «Открытых» карточкой Главной (TeamTileLive), без «Вступить» (он и так внутри).
   // Приватные круги сюда не попадают (они не открыты). В поиске — не мешаем (ищем чужое).
-  const myOpen = isSearch ? [] : (((app && app.teams) || []).filter((t) => t && t.vis === "public" && t.cloudId));
+
   // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
   // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
   // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
   // В режиме поиска пустышка не нужна — родитель показывает общую «ничего не нашлось».
   if (!list) return null;
   if (query && !shownList.length) return null;
-  if (!shownList.length && !myOpen.length) return (
+  if (!shownList.length) return (
     <div style={{ marginTop: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
@@ -5943,18 +5866,11 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   return (
     <div style={{ marginTop: 10 }}>
       {/* Мои открытые круги — карточкой Главной (David: «одна карточка везде», создатель видит, что круг открыт). */}
-      {myOpen.length > 0 && (
-        <div style={{ marginBottom: shownList.length ? 20 : 0 }}>
-          <div style={_dHdr}>{_dHdrIcon}Твои открытые круги</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {myOpen.map((t) => (typeof TeamTileLive === "function" ? <TeamTileLive key={"mine:" + (t.cloudId || t._id)} team={t} from="community" big /> : null))}
-          </div>
-        </div>
-      )}
       {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {shownList.map((t) => (
-          <BosOpenCircleCardLive key={t.id} t={t} isDark={isDark} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join} />
+          <BosCircleCardLive key={t.id} t={t} joined={!!t.joined} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join}
+            onOpen={t.joined ? function () { navigate && navigate("team-detail", { team: mineById[t.id] || t, from: "community" }); } : undefined} />
         ))}
       </div>
     </div>
