@@ -5839,6 +5839,9 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
   const nowPct = bosThreadPct(new Date().getHours() + new Date().getMinutes() / 60);
   const track = isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.10)";
   const cap = [];
+  // Возраст — первым (David 2026-07-16: человек со стороны хочет видеть, сколько цель живёт).
+  const _ageD = t.createdAt ? Math.max(1, Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 86400000) + 1) : 0;
+  if (_ageD > 1) cap.push("живёт " + _ageD + " дн");
   if (memberN) cap.push(memberN + " чел");
   if (todayN) cap.push(todayN + " сегодня");
   const body = (
