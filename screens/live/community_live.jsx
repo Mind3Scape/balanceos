@@ -3884,7 +3884,7 @@ function CommunityLive() {
   // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
   // «Тренинги» ОТДЕЛЬНЫЙ чип (David: «тренинги может отдельно от партнёров выделить»):
   // партнёры = живые впечатления за XP, тренинги = бывшие «программы партнёров» (courses).
-  const _pairFor = { all: "discover", nearby: "discover", circles: "discover", partners: "community", people: "community", training: "community" };
+  const _pairFor = { all: "discover", nearby: "discover", circles: "discover", challenges: "discover", partners: "community", people: "community", training: "community" };
   const _legacyFilter = section === "community" ? (commTabEff === "courses" ? "training" : "people") : "all";
   const _fOk = cv.filter && _pairFor[cv.filter] === section
     && (section !== "community" || (cv.filter === "training") === (commTabEff === "courses"));
@@ -4028,7 +4028,8 @@ function CommunityLive() {
             круга, тот же, что в меню «+» на главной: у знака появился один смысл во всём
             приложении, а «Круги» и «Люди» перестали быть двумя картинками про людей. */}
         {/* «Круги» → «Общие цели» (David 2026-07-17: одно имя наверху и на «Все»). */}
-        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["people", "Контакты", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
+        {/* «Челленджи» — своя вкладка сразу после «Общих целей» (David 2026-07-17). */}
+        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["challenges", "Челленджи", I.Flame], ["people", "Контакты", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (
@@ -4154,25 +4155,11 @@ function CommunityLive() {
             {typeof PartnersGridLive === "function" && <PartnersGridLive app={app} navigate={navigate} from="community" />}
           </React.Fragment>
         )}
-        {/* Чип «Круги» — ОДНА реальная категория «Открытые круги» (это и есть «живые»: одно и то
-            же, не две подписи). Никакой бутафории/примеров — только настоящие публичные круги из
-            облака. Ниже — челленджи-шаблоны и «Собери свой» (старт создаёт ТВОЙ настоящий круг). */}
+        {/* Чип «Общие цели» — только настоящие публичные круги из облака + «Собери свой».
+            Челленджи-шаблоны уехали на СВОЙ чип «Челленджи» (David 2026-07-17). */}
         {filter === "circles" && (
           <React.Fragment>
             <CloudTeamsDiscoverLive app={app} navigate={navigate} />
-            <CirclesMosaicLive kicker="🔥 Челленджи">
-              {SEED_CIRCLES.map((s) => {
-                const mine = (app?.teams || []).find((t) => t.seedId === s.id);
-                return (
-                  <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
-                    onTap={() => {
-                      if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
-                      if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
-                      _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
-                    }} />
-                );
-              })}
-            </CirclesMosaicLive>
             <CirclesMosaicLive kicker="🤝 Собери свой">
               {CIRCLE_STARTERS.map((s) => (
                 <CircleTileLive key={s.t} emoji={s.i} title={s.t} meta={s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий")}
@@ -4182,6 +4169,24 @@ function CommunityLive() {
             {/* Позови своих — родной выбор контактов Telegram (реферал), только на «Круги». */}
             {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
           </React.Fragment>
+        )}
+
+        {/* ЧЕЛЛЕНДЖИ — своя вкладка (David 2026-07-17: «не в общих целях, а отдельно после них»):
+            все готовые челленджи-шаблоны; старт создаёт ТВОЙ настоящий круг. */}
+        {filter === "challenges" && (
+          <CirclesMosaicLive kicker="🔥 Готовая привычка с призом">
+            {SEED_CIRCLES.map((s) => {
+              const mine = (app?.teams || []).find((t) => t.seedId === s.id);
+              return (
+                <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
+                  onTap={() => {
+                    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+                    if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
+                    _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
+                  }} />
+              );
+            })}
+          </CirclesMosaicLive>
         )}
 
         {filter === "people" && (
