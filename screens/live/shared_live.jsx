@@ -96,7 +96,35 @@ function buildAiContextLive(app) {
     var parts = [];
     var name = (app.userName || "").trim();
     if (name) parts.push("Имя: " + name + ".");
-    if (app.mood && app.mood.t) parts.push("Сейчас по ощущениям: " + app.mood.t + ".");
+    // СОСТОЯНИЕ — честно и целиком (канон 2026-07-16): не одно слово из атома-по-умолчанию,
+    // а сегодняшняя ОТМЕТКА (ступень + грани + заметка) и след недели. Не отмечено → так и говорим.
+    try {
+      var _stk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+      var _sdm = app.dayMoods || {};
+      var _sb = _stk != null ? _sdm[_stk] : null;
+      if (_sb != null && typeof bosStateResolve === "function") {
+        var _sm = bosStateResolve(_sb);
+        var _se = (app.dayNotes || {})[_stk] || {};
+        var _line = "Состояние сегодня: " + _sm.t + " (" + (_sb + 1) + " из 7)";
+        if (_se.tags && _se.tags.length) _line += ", оттенки: " + _se.tags.join(", ");
+        _line += ".";
+        if (_se.note && ("" + _se.note).trim()) _line += " Записал о дне: «" + ("" + _se.note).trim().slice(0, 140) + "».";
+        parts.push(_line);
+      } else {
+        parts.push("Состояние сегодня ещё не отмечено — не выдумывай, каково человеку; можно мягко спросить.");
+      }
+      // тренд 7 дней: сколько отмечено и куда идёт
+      if (typeof bosDayKeyOffset === "function") {
+        var _n7 = 0, _sum7 = 0, _n7p = 0, _sum7p = 0;
+        for (var _o = 0; _o < 7; _o++) { var _v7 = _sdm[bosDayKeyOffset(_o)]; if (_v7 != null) { _n7++; _sum7 += +_v7; } }
+        for (var _o2 = 7; _o2 < 14; _o2++) { var _v7p = _sdm[bosDayKeyOffset(_o2)]; if (_v7p != null) { _n7p++; _sum7p += +_v7p; } }
+        if (_n7 >= 2) {
+          var _avg7 = _sum7 / _n7, _tr = "";
+          if (_n7p >= 2) { var _d7 = _avg7 - _sum7p / _n7p; _tr = _d7 >= 0.7 ? " — заметно светлее прошлой" : (_d7 <= -0.7 ? " — тяжелее прошлой" : " — ровно"); }
+          parts.push("Неделя состояния: отмечено " + _n7 + " из 7, в среднем «" + (bosStateResolve(Math.round(_avg7)).t) + "»" + _tr + ".");
+        }
+      }
+    } catch (e) {}
     var habits = app.habits || [];
     if (habits.length) {
       var done = habits.filter(function (h) { return h.done; }).length;
@@ -4357,16 +4385,32 @@ function StateSheetLive(props) {
     if (b !== lastB.current) { lastB.current = b; if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }
     setVal(v);
   };
+  // Отклик после «Отметить» (канон: петля замыкается в ту же секунду) — одна честная
+  // строка по реальным данным, без выдумок: серия в плюсе → серия отметок → первая точка.
+  const [echo, setEcho] = React.useState(null);
+  const _makeEcho = (dm) => {
+    try {
+      const off = (typeof bosDayKeyOffset === "function") ? bosDayKeyOffset : null;
+      if (!off) return { i: "✦", t: "Отмечено. +5 XP — день окрашен." };
+      let plus = 0; for (let i = 0; i < 366; i++) { const v = dm[off(i)]; if (v != null && v >= 4) plus++; else break; }
+      if (plus >= 2) return { i: "✦", t: plus + "-й день в плюсе подряд" + (plus >= 5 ? " — держишь свет" : "") + "." };
+      const streak = (typeof bosMoodStreak === "function") ? bosMoodStreak(dm) : 0;
+      if (streak >= 2) return { i: "✦", t: streak + "-й день с отметкой подряд — " + (7 - (streak % 7) === 7 ? "неделя собрана, +50 XP" : "серия растёт") + "." };
+      return { i: "✦", t: "Первая точка — след начался. +5 XP." };
+    } catch (e) { return { i: "✦", t: "Отмечено. +5 XP." }; }
+  };
   const onMark = () => {
+    const dmNext = { ...((app && app.dayMoods) || {}), [tk]: bucket };
     if (app) {
       app.setMood && app.setMood(BOS_STATE[bucket]);
-      app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [tk]: bucket });
+      app.setDayMoods && app.setDayMoods(dmNext);
       if (app.setDayNotes) { const prev = (app.dayNotes || {})[tk] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [tk]: { tags: tags, note: note.trim() || prev.note || "" } }); }
     }
     if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    setEcho(_makeEcho(dmNext));
     setSaved(true);
-    setTimeout(() => { try { sheet.close(); } catch (e) {} }, 240);
   };
+  const _nav = props && props.navigate;
 
   const cardText = isDark ? "#fff" : "var(--text)";
   const subMuted = isDark ? "rgba(255,255,255,0.55)" : "var(--text-4)";
@@ -4393,8 +4437,10 @@ function StateSheetLive(props) {
         onPointerUp={() => { dragRef.current = false; }}
         onPointerCancel={() => { dragRef.current = false; }}
         style={{ position: "relative", height: 28, margin: "18px 4px 0", touchAction: "none", cursor: "pointer" }}>
+        {/* Слайдер ОДНОТОННЫЙ (David 2026-07-16): серый трек, к «отлично» наливается НАШИМ золотом.
+            Никакой радуги — день красит только орб (он и так перекрашивается под пальцем). */}
         <div style={{ position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)", height: 8, borderRadius: 999, background: trackBg }} />
-        <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", height: 8, borderRadius: 999, background: "linear-gradient(90deg, " + tint[0] + ", " + tint[1] + ")" }} />
+        <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", height: 8, borderRadius: 999, background: "linear-gradient(90deg, rgba(254,222,52,0.45), #FEDE34, #EF9F14)", opacity: 0.55 + val * 0.45 }} />
         <div style={{ position: "absolute", top: "50%", left: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", width: 24, height: 24, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)", boxShadow: "0 2px 7px rgba(0,0,0,0.28)", transform: "translate(-50%,-50%)", transition: dragRef.current ? "none" : "left 0.1s ease" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, padding: "0 2px", fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: subMuted, fontWeight: 600 }}>
@@ -4403,7 +4449,7 @@ function StateSheetLive(props) {
 
       {/* ОТТЕНКИ — мультивыбор граней состояния (David: «чипы, чтобы быстро прокликать несколько»).
           Выбранные красятся цветом текущей валентности → орб+слайдер+чипы = один цвет состояния. */}
-      <div style={{ marginTop: 18 }}>
+      {!saved && <div style={{ marginTop: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.2, color: subMuted, marginBottom: 9, textAlign: "left" }}>Что ближе — можно несколько</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "flex-start" }}>
           {bosFacetsForBucket(bucket, tags).map((f) => {
@@ -4424,14 +4470,32 @@ function StateSheetLive(props) {
             );
           })}
         </div>
-      </div>
+      </div>}
 
-      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Пара слов, если хочешь…"
-        style={{ width: "100%", marginTop: 16, background: fieldBg, border: "1px solid var(--line)", borderRadius: 14, padding: "12px 14px", color: cardText, fontSize: 16, fontFamily: "inherit", outline: 0, boxSizing: "border-box", textAlign: "left" }} />
+      {!saved && <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Пара слов, если хочешь…"
+        style={{ width: "100%", marginTop: 16, background: fieldBg, border: "1px solid var(--line)", borderRadius: 14, padding: "12px 14px", color: cardText, fontSize: 16, fontFamily: "inherit", outline: 0, boxSizing: "border-box", textAlign: "left" }} />}
 
-      <button onClick={onMark} className="tap" style={{ width: "100%", marginTop: 12, background: saved ? "#3f7a46" : "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600, transition: "background 0.2s" }}>
-        {saved ? "Отмечено ✓" : "Отметить"}
-      </button>
+      {!saved ? (
+        <button onClick={onMark} className="tap" style={{ width: "100%", marginTop: 12, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>
+          Отметить
+        </button>
+      ) : (
+        <div style={{ marginTop: 16, animation: "bosFacePop 0.35s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+          {/* Отклик: отметил → сразу получил что-то взамен (не чёрная дыра). */}
+          {echo && (
+            <div style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: "rgba(240,195,10,0.13)", border: "1px solid rgba(240,195,10,0.35)", borderRadius: 13, padding: "10px 12px" }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(240,195,10,0.25)", display: "grid", placeItems: "center", fontSize: 13, flexShrink: 0 }}>{echo.i}</span>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: cardText }}>{echo.t}</span>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button onClick={() => { try { sheet.close(); } catch (e) {} if (_nav) setTimeout(() => { try { _nav("state"); } catch (e) {} }, 60); }} className="tap"
+              style={{ flex: 1, background: fieldBg, color: cardText, border: 0, borderRadius: 999, padding: 14, fontSize: 14.5, fontWeight: 600 }}>Неделя →</button>
+            <button onClick={() => { try { sheet.close(); } catch (e) {} }} className="tap"
+              style={{ flex: 1.2, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 14, fontSize: 14.5, fontWeight: 600 }}>Готово ✓</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4441,7 +4505,7 @@ function StateSheetLive(props) {
 function StateInviteLive({ app, isDark, navigate }) {
   var sheet = (typeof useSheet === "function") ? useSheet() : null;
   var bg = isDark ? "linear-gradient(160deg,#1a1a1d,#0d0d10)" : "#ffffff";
-  var openState = function () { if (sheet && sheet.open) sheet.open(<StateSheetLive />); else if (navigate) navigate("mood"); };
+  var openState = function () { if (sheet && sheet.open) sheet.open(<StateSheetLive navigate={navigate} />); else if (navigate) navigate("mood"); };
   return (
     <button onClick={openState} className="tap" data-tour="state"
       style={{ width: "100%", border: 0, textAlign: "left", background: bg, padding: 18, display: "flex", alignItems: "center", gap: 15, cursor: "pointer" }}>
@@ -5719,7 +5783,13 @@ function ShareGoalSheetLive({ goal, dark = false }) {
 
 function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
   const _sheet = (typeof useSheet === "function") ? useSheet() : null;
-  const _openState = () => { if (_sheet && _sheet.open) _sheet.open(<StateSheetLive />); else if (navigate) navigate("mood"); };
+  // Тап по виджету → ДОМ состояния (экран «Состояние»: неделя, линия месяца, связи, записи).
+  // Отметка живёт в шторке — с экрана она в одном тапе («изменить»). Фолбэк — шторка.
+  const _openState = () => { if (navigate) navigate("state"); else if (_sheet && _sheet.open) _sheet.open(<StateSheetLive navigate={navigate} />); };
+  // Честный источник «сегодня»: сама отметка дня, не атом (после перезапуска атом мог отстать).
+  const _tkNow = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+  const _bNow = (app && app.dayMoods) ? app.dayMoods[_tkNow] : null;
+  if (_bNow != null && typeof bosStateResolve === "function") mood = bosStateResolve(_bNow);
   const _WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const _monOff = (new Date().getDay() + 6) % 7; // 0=Пн … 6=Вс — TODAY's slot in the week
   // Rebuilt only when the day-mood map (or today's slot) changes — not on every parent
@@ -5893,6 +5963,14 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     "Тревога":     "Начни с двух минут дыхания — и день станет легче.",
     "Упадок":      "Сделай одно маленькое дело — этого сегодня достаточно.",
     "Усталость":   "Сбавь темп: закрой одну привычку — и довольно.",
+    // Канон-шкала BOS_STATE (mood-атом теперь держит её слова, не MOOD_OPTIONS):
+    "Тяжело":      "Тяжёлый день — одна самая лёгкая привычка, и хватит.",
+    "Плохо":       "Не дави на себя: один маленький шаг — уже победа.",
+    "Так себе":    "Серединный день — короткое дело поможет качнуть его вверх.",
+    "Нормально":   "Ровный день — самое время тихо закрыть серию.",
+    "Неплохо":     "Хороший ход — добавь одно дело, пока волна твоя.",
+    "Хорошо":      "Ты в ресурсе — отличный день, чтобы закрыть серию.",
+    "Отлично":     "На пике — бери самое важное, сегодня оно даётся легче.",
   };
   const aiBrief = (totalCount && doneCount >= totalCount)
     ? "Идеальный день — ты в потоке. Так держи ритм."

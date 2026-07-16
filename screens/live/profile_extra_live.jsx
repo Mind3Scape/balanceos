@@ -23,6 +23,180 @@
    StateHistorySheetLive. (GuideScreen is NOT defined in profile.jsx — it lives in
    app.jsx — so no GuideLive fork is made here.) */
 
+/* ═══ ЭКРАН «СОСТОЯНИЕ» — дом всех данных состояния (дизайн Б «Погода дня», David 2026-07-16).
+   Одна дверь: сюда ведут виджет с главной и «Неделя →» из шторки отметки. Внутри:
+   сегодня (орб+слово+грани+«изменить») → ОДНА неделя точек (не месяц! правка David) →
+   линия 30 дней → «Что качает · что тянет» (порог честности: по 6+ дней с каждой стороны,
+   эффект ≥0,5 ступени, всегда цифра+источник; не хватает — «копим») → записи дневника. */
+function StateScreenLive() {
+  const { navigate } = useNav();
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const dm = (app && app.dayMoods) || {};
+  const dn = (app && app.dayNotes) || {};
+  const habits = (app && app.habits) || [];
+  const tk = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+  const off = (typeof bosDayKeyOffset === "function") ? bosDayKeyOffset : (i) => "";
+  const bToday = dm[tk];
+  const mToday = (bToday != null && typeof bosStateResolve === "function") ? bosStateResolve(bToday) : null;
+  const eToday = dn[tk] || {};
+  const openMark = () => { if (typeof StateSheetLive === "function") openSheet(<StateSheetLive navigate={navigate} />); };
+
+  // Неделя (Пн..Вс) — та же нить, что в виджете, только крупнее.
+  const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const monOff = (new Date().getDay() + 6) % 7;
+  const week = [0, 1, 2, 3, 4, 5, 6].map((i) => {
+    const o = monOff - i, key = off(o);
+    const di = (o >= 0 && dm[key] != null) ? dm[key] : null;
+    return { wd: WD[i], today: i === monOff, future: o < 0, m: (di != null && typeof bosStateResolve === "function") ? bosStateResolve(di) : null };
+  });
+  const weekN = week.filter((d) => d.m).length;
+  const streak = (typeof bosMoodStreak === "function") ? bosMoodStreak(dm) : 0;
+
+  // Линия 30 дней (только отмеченные точки, слева старое → справа сегодня).
+  const D30 = 30, pts = [];
+  for (let i = D30 - 1; i >= 0; i--) { const v = dm[off(i)]; if (v != null) pts.push({ x: (D30 - 1 - i) / (D30 - 1), b: +v }); }
+  const moodDays30 = pts.length;
+  const linePts = pts.map((p) => (6 + p.x * 288).toFixed(1) + "," + (46 - (p.b / 6) * 40).toFixed(1)).join(" ");
+
+  // «Что качает · что тянет» — средняя ступень в дни С привычкой vs её же дни БЕЗ
+  // (той же математикой, что плитка «Состояние ↔ привычки» на вкладке ИИ).
+  const D = 60;
+  const schedOn = (h, dow) => { try { const mask = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null; return !mask || !!mask[dow]; } catch (e) { return true; } };
+  const dowOf = (k) => { try { const a = k.split("-"); return (new Date(+a[0], +a[1] - 1, +a[2]).getDay() + 6) % 7; } catch (e) { return 0; } };
+  let insUp = null, insDown = null, moodDaysAll = 0;
+  Object.keys(dm).forEach((k) => { if (dm[k] != null && /^\d{4}-\d{2}-\d{2}$/.test(k)) moodDaysAll++; });
+  habits.forEach((h) => {
+    const log = h.log || {}; const wi = [], wo = [];
+    for (let o = 0; o <= D; o++) {
+      const k = off(o), mv = dm[k];
+      if (mv == null) continue;
+      if (log[k]) wi.push(+mv); else if (schedOn(h, dowOf(k))) wo.push(+mv);
+    }
+    if (wi.length >= 6 && wo.length >= 6) {
+      const aw = wi.reduce((a, b) => a + b, 0) / wi.length, ao = wo.reduce((a, b) => a + b, 0) / wo.length;
+      const d = aw - ao;
+      if (d >= 0.5 && (!insUp || d > insUp.d)) insUp = { h, d, n: wi.length + wo.length };
+      if (d <= -0.5 && (!insDown || d < insDown.d)) insDown = { h, d, n: wi.length + wo.length };
+    }
+  });
+  const fmt1 = (x) => (Math.round(Math.abs(x) * 10) / 10).toLocaleString("ru-RU");
+
+  // Записи (дни с заметкой или гранями), свежие сверху.
+  const keys = {};
+  Object.keys(dn).forEach((k) => { const e = dn[k]; if (/^\d{4}-\d{2}-\d{2}$/.test(k) && e && (((e.note != null) && ("" + e.note).trim()) || (e.tags && e.tags.length))) keys[k] = 1; });
+  const entries = Object.keys(keys).sort().reverse().slice(0, 30).map((k) => ({
+    key: k, m: (dm[k] != null && typeof bosStateResolve === "function") ? bosStateResolve(dm[k]) : null,
+    note: ("" + ((dn[k] || {}).note || "")).trim(), tags: ((dn[k] || {}).tags || []),
+  }));
+  const fmtD = (k) => { try { const a = k.split("-"); return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date(+a[0], +a[1] - 1, +a[2])); } catch (e) { return k; } };
+  const facetsLine = (tags) => tags.map((t) => { const f = (typeof bosFacetByLabel === "function") ? bosFacetByLabel(t) : null; return (f && f.i ? f.i + " " : "") + t; }).join("  ·  ");
+  const secLbl = { fontSize: 11, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)", margin: "20px 4px 8px", display: "flex", justifyContent: "space-between", alignItems: "baseline" };
+  const card = { background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: 16 };
+  const insRow = (emoji, text, src, gold) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", borderRadius: 14, marginTop: 8,
+      background: gold ? "rgba(240,195,10,0.12)" : "var(--surface-3, rgba(127,127,127,0.08))",
+      border: gold ? "1px solid rgba(240,195,10,0.32)" : "1px solid transparent" }}>
+      <span style={{ width: 28, height: 28, borderRadius: "50%", background: gold ? "rgba(240,195,10,0.22)" : "rgba(127,127,127,0.10)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{emoji}</span>
+      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, lineHeight: 1.4, color: "var(--text)" }}>{text}</span>
+      <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap", flexShrink: 0 }}>{src}</span>
+    </div>
+  );
+  return (
+    <div className="page-in" style={{ padding: "0 16px 28px" }}>
+      <PageHeader title="Состояние" onBack={() => navigate("home")} />
+
+      {/* Сегодня */}
+      <div style={{ ...card, display: "flex", alignItems: "center", gap: 14 }}>
+        <span style={{ width: 62, height: 62, flexShrink: 0, display: "grid", placeItems: "center" }}>
+          <StateOrb size={60} tint={mToday ? tintFromMood(mToday.c) : ["#c3cbd9", "#8f9bb0", "#586278"]} intensity={mToday ? 1.1 : 0.75} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)" }}>Сегодня</div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.5px", marginTop: 2, color: "var(--text)" }}>
+            {mToday ? (mToday.i + " " + mToday.t) : "Не отмечено"}
+          </div>
+          {mToday && eToday.tags && eToday.tags.length > 0 && (
+            <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>{facetsLine(eToday.tags)}</div>
+          )}
+        </div>
+        <button onClick={openMark} className="tap" style={{ flexShrink: 0, border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, background: mToday ? "var(--surface-3, rgba(127,127,127,0.10))" : "#0a0a0a", color: mToday ? "var(--text)" : "#fff" }}>
+          {mToday ? "Изменить" : "Отметить"}
+        </button>
+      </div>
+
+      {/* Неделя — ОДНА (правка David: не две) */}
+      <div style={secLbl}><span>Неделя</span><span style={{ textTransform: "none", letterSpacing: 0, fontSize: 11, fontWeight: 600 }}>{weekN}/7 отмечено{streak >= 2 ? " · 🔥 " + streak + " подряд" : ""}</span></div>
+      <div style={{ ...card, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        {week.map((d, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, opacity: d.future ? 0.35 : 1 }}>
+            {d.m
+              ? <span style={{ width: 30, height: 30, borderRadius: "50%", boxShadow: d.today ? "0 0 0 2px var(--text)" : "none" }}><StaticOrb size={30} tint={tintFromMood(d.m.c)} seed={1.2} intensity={0.5} /></span>
+              : <span style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface-3, rgba(127,127,127,0.10))", boxShadow: d.today ? "0 0 0 2px var(--text)" : "none" }} />}
+            <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)" }}>{d.wd}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Линия 30 дней */}
+      {moodDays30 >= 2 && (
+        <React.Fragment>
+          <div style={secLbl}><span>Месяц</span><span style={{ textTransform: "none", letterSpacing: 0, fontSize: 11, fontWeight: 600 }}>{moodDays30} из 30 дней</span></div>
+          <div style={{ ...card, padding: "14px 12px 10px" }}>
+            <svg viewBox="0 0 300 52" style={{ width: "100%", height: "auto", display: "block" }}>
+              <line x1="6" y1="46" x2="294" y2="46" stroke="var(--line)" strokeWidth="1" />
+              <polyline points={linePts} fill="none" stroke="url(#bosStGrad)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              {pts.length <= 40 && pts.map((p, i) => (
+                <circle key={i} cx={6 + p.x * 288} cy={46 - (p.b / 6) * 40} r="2.6" fill={(typeof bosStateResolve === "function") ? bosStateResolve(Math.round(p.b)).c : "#EF9F14"} />
+              ))}
+              <defs><linearGradient id="bosStGrad" x1="0" x2="1"><stop offset="0" stopColor="rgba(240,195,10,0.55)" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
+            </svg>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: "var(--text-5)", marginTop: 4, padding: "0 2px" }}>
+              <span>месяц назад</span><span>сегодня</span>
+            </div>
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* Что качает · что тянет */}
+      <div style={secLbl}><span>Что качает · что тянет</span></div>
+      {(insUp || insDown) ? (
+        <div>
+          {insUp && insRow(insUp.h.emoji || "✦", "В дни с «" + (insUp.h.name || "привычкой") + "» ты выше на " + fmt1(insUp.d) + " ступени", "из отметок · " + insUp.n + " дн", true)}
+          {insDown && insRow(insDown.h.emoji || "•", "В дни с «" + (insDown.h.name || "привычкой") + "» — ниже на " + fmt1(insDown.d) + " ступени", "из отметок · " + insDown.n + " дн", false)}
+        </div>
+      ) : (
+        insRow("⏳", moodDaysAll < 12
+          ? "Копим данные: " + moodDaysAll + " из 12 дней с отметкой — и я покажу, что связано с твоим состоянием"
+          : "Пока нет связи сильнее порога честности — продолжай отмечать, я слежу", "порог честности", false)
+      )}
+
+      {/* Записи */}
+      <div style={secLbl}><span>Записи</span>{entries.length > 0 && <span style={{ textTransform: "none", letterSpacing: 0, fontSize: 11, fontWeight: 600 }}>{entries.length}</span>}</div>
+      {entries.length === 0 ? (
+        <div style={{ ...card, textAlign: "center", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
+          Пока пусто. Пара слов в шторке отметки — и день останется здесь.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {entries.map((e, i) => (
+            <div key={i} style={{ ...card, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+              {e.m
+                ? <span style={{ width: 34, height: 34, flexShrink: 0, marginTop: 1 }}><StaticOrb size={34} tint={tintFromMood(e.m.c)} seed={0.8} intensity={0.5} /></span>
+                : <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--surface-3, rgba(127,127,127,0.10))", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0, marginTop: 1 }}>📝</span>}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)" }}>{e.m ? e.m.t : "Запись дня"}<span style={{ fontWeight: 500, color: "var(--text-4)", fontSize: 12, marginLeft: 8 }}>{fmtD(e.key)}</span></div>
+                {e.note && <div style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 4, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{e.note}</div>}
+                {e.tags.length > 0 && <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4 }}>{facetsLine(e.tags)}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // LIVE state-history sheet (Settings → «История состояния»): the user's REAL day-keyed
 // mood marks, newest first. Honest empty state — never a fake calendar.
 // Unified STATE + JOURNAL history (David: «состояние и дневник — одно и то же»): every day
@@ -379,6 +553,14 @@ function SettingsLive() {
   // Вкладка «Я» внизу (слияние Главной и «Привычек»): дефолт ВКЛ; выключил — заходи через
   // аватар в сводке дня. Если сводку убрали с доски, вкладка показывается принудительно
   // (app.jsx), чтобы дверь в настройки не захлопнулась.
+  // Вечерний вопрос «Как ты?» — дефолт ВКЛ, "0" = выключен (читает home_live evening-prompt).
+  const [eveAsk, setEveAsk] = React.useState(() => {
+    try { return localStorage.getItem("bos:eveningAsk") !== "0"; } catch (e) { return true; }
+  });
+  const setEveAskPersist = (on) => {
+    setEveAsk(on);
+    try { localStorage.setItem("bos:eveningAsk", on ? "1" : "0"); } catch (e) {}
+  };
   const [profTab, setProfTab] = React.useState(() => {
     try { return localStorage.getItem("bos:profileTab") !== "0"; } catch (e) { return true; }
   });
@@ -424,7 +606,10 @@ function SettingsLive() {
       {group("Предпочтения", [
         toggleRow(I.Eye, "Тёмная тема", isDark, setDark),
         toggleRow(I.Bell, "Push-уведомления", push, setPushPersist),
-        toggleRow(I.Sparkles, "Эффект стекла", glassOn, setGlassPersist, true),
+        toggleRow(I.Sparkles, "Эффект стекла", glassOn, setGlassPersist),
+        // «Вечерний вопрос» — шторка «Как ты?» после 18:00 (канон Э1: у автопоявления
+        // должен быть настоящий выключатель; раньше его не было вовсе).
+        toggleRow(I.Moon, "Вечерний вопрос «Как ты?»", eveAsk, setEveAskPersist, true),
       ])}
 
       {group("Главный экран", [

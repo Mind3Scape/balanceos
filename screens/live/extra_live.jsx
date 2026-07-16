@@ -497,7 +497,7 @@ function MoodLive() {
   const sheet = (typeof useSheet === "function") ? useSheet() : null;
   React.useEffect(() => {
     navigate("home");
-    setTimeout(() => { if (sheet && sheet.open && typeof StateSheetLive === "function") sheet.open(<StateSheetLive />); }, 40);
+    setTimeout(() => { if (sheet && sheet.open && typeof StateSheetLive === "function") sheet.open(<StateSheetLive navigate={navigate} />); }, 40);
   }, []);
   return null;
 }
@@ -601,7 +601,11 @@ function AIChatLive() {
   const app = (typeof useApp === "function") ? useApp() : null;
   // The mentor's avatar = the orb of your CURRENT state (mood-tinted). Your own
   // avatar sits up top (it's your conversation). Your messages carry no avatar.
-  const stateTint = (typeof tintFromMood === "function") ? tintFromMood(app && app.mood && app.mood.c) : null;
+  // Честный ноль: орб ментора красится СЕГОДНЯШНЕЙ отметкой; без отметки — нейтральный.
+  const _tkCh = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+  const _bCh = app && app.dayMoods ? app.dayMoods[_tkCh] : null;
+  const _mCh = (_bCh != null && typeof bosStateResolve === "function") ? bosStateResolve(_bCh) : null;
+  const stateTint = (typeof tintFromMood === "function") ? tintFromMood(_mCh ? _mCh.c : null) : null;
   // A real, personal opener: time-of-day greeting + the user's name.
   const _name = (app?.userName || "").trim();
   const _hr = (function () { try { return new Date().getHours(); } catch (e) { return 12; } })();

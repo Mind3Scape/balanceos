@@ -437,10 +437,15 @@ function AILive() {
   const st = React.useMemo(() => bosAiStatsLive(app), [app.habits, app.dayMoods]);
   const reading = bosAiReadingLive(st);
 
-  // Орб — в цвет текущего состояния, как раньше.
-  const moodC = app.mood && app.mood.c;
-  const liveTint = (moodC && typeof tintFromMood === "function") ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#1a2c48"];
-  const moodName = (app.mood && app.mood.t) || "";
+  // ЧЕСТНЫЙ НОЛЬ (канон Э1): «сейчас» берём из сегодняшней ОТМЕТКИ, а не из атома-по-умолчанию
+  // (тот показывал «Хорошо», даже если человек ничего не отмечал). Не отмечено → серый орб
+  // и честное «не отмечено» в кикере.
+  const _tkAI = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+  const _bAI = app.dayMoods ? app.dayMoods[_tkAI] : null;
+  const _mToday = (_bAI != null && typeof bosStateResolve === "function") ? bosStateResolve(_bAI) : null;
+  const moodC = _mToday && _mToday.c;
+  const liveTint = (moodC && typeof tintFromMood === "function") ? tintFromMood(moodC) : ["#d9dde4", "#9aa3b2", "#3d4553"];
+  const moodName = _mToday ? _mToday.t : "не отмечено";
 
   // «Что помешало?» — максимум один вопрос, и только если на него ещё не отвечали.
   const why = React.useMemo(() => bosAiWhyPickLive(app), [app.habits]);

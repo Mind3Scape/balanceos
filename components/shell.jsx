@@ -1471,7 +1471,21 @@ function AppProvider({ children }) {
     } else {
       setUserName(name); setAvatar(_av0);
       setHabits([]); setGoals([]); setTeams([]);
-      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setBaseline(null); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
+      // Циферблат «Как ты сейчас?» из онбординга раньше ВЫБРАСЫВАЛСЯ (__bosOnbMood никто не
+      // читал в dayMoods) — теперь это честная ПЕРВАЯ отметка дня: человек приходит в
+      // приложение уже с одной точкой на нити. 0..1 → шаг BOS_STATE (0..6).
+      var _dm0 = {}, _m0 = null;
+      try {
+        var _v0 = window.__bosOnbMood;
+        if (typeof _v0 === "number" && isFinite(_v0)) {
+          var _b0 = (typeof bosStateStepFromV === "function") ? bosStateStepFromV(_v0) : Math.max(0, Math.min(6, Math.round(_v0 * 6)));
+          var _tk0 = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+          if (_tk0) _dm0[_tk0] = _b0;
+          if (typeof bosStateResolve === "function") _m0 = bosStateResolve(_b0);
+          delete window.__bosOnbMood; // разово: не переносить на будущие входы
+        }
+      } catch (e) {}
+      setDayMoods(_dm0); setDayNotes({}); setMood(_m0 || _onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setBaseline(null); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
     }
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // First-time real users get the welcome sheets; returning ones skip straight in.
@@ -1611,8 +1625,10 @@ function AppProvider({ children }) {
               var _mNotes = bosMergeDayMap(_cloudNotes, _localNotes);
               setDayMoods(_mMoods);
               setDayNotes(_mNotes);
-              // keep the orb in sync with today's restored state
-              try { var _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null; var _mi = _tk ? _mMoods[_tk] : undefined; if (_mi != null && MOOD_OPTIONS[_mi]) setMood(MOOD_OPTIONS[_mi]); } catch (e) {}
+              // keep the orb in sync with today's restored state. dayMoods хранит индекс
+              // BOS_STATE (0..6), НЕ MOOD_OPTIONS — резолвим той же шкалой, что и enterLive
+              // (иначе «Хорошо» (5) декодилось как MOOD_OPTIONS[5] «Усталость» — та же ловушка v635).
+              try { var _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null; var _mi = _tk ? _mMoods[_tk] : undefined; if (_mi != null) { var _stH = (typeof bosStateResolve === "function") ? bosStateResolve(_mi) : null; if (_stH) setMood(_stH); } } catch (e) {}
               if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
               if (d.baseline) setBaseline(d.baseline);
               // F-layout (David: «переставил блоки главной, потом через время всё вернулось»):

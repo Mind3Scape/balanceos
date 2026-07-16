@@ -388,10 +388,13 @@ function HomeLive() {
       const logged = !!(app && app.dayMoods && app.dayMoods[tk] != null);
       const askKey = "bos:stateAsk:" + tk;
       const asked = (typeof localStorage !== "undefined") && localStorage.getItem(askKey);
-      if (!logged && !asked && new Date().getHours() >= 18 && typeof StateSheetLive === "function") {
+      // Настоящий выключатель (канон Э1): Настройки → «Вечерний вопрос». Раньше тумблера
+      // не было вовсе — шторка всплывала всем без права отказаться.
+      const wantAsk = (typeof localStorage === "undefined") || localStorage.getItem("bos:eveningAsk") !== "0";
+      if (!logged && !asked && wantAsk && new Date().getHours() >= 18 && typeof StateSheetLive === "function") {
         const id = setTimeout(() => {
           try { localStorage.setItem(askKey, "1"); } catch (e) {}
-          openSheet(<StateSheetLive evening={true} />);
+          openSheet(<StateSheetLive evening={true} navigate={navigate} />);
         }, 1400);
         return () => clearTimeout(id);
       }
@@ -586,9 +589,14 @@ function HomeLive() {
     // убрано из дефолта главной — челленджи теперь живут в форме создания привычки и в Сообществе.
     // Остаётся обычным opt-in виджетом: включается из галереи «+» (кто хочет — вернёт), тогда «w:quick»
     // попадает в order и рисуется как виджет (см. nodeOf ниже + HomeGalleryContentLive).
-    // «Состояние» (w:mood) снова СКРЫТО до согласованного макета (David: сначала продумать,
-    // где живёт и как ведёт себя — в масштабе человека и мультиплеера). Добор убран; кейс
-    // nodeOf("mood") жив — вернуть = строка в BOS_HOME_WIDGETS + добор здесь.
+    // «Состояние» (w:mood) ВОЗВРАЩАЕТСЯ на доску (дизайн Б «Погода дня», согласован David
+    // 2026-07-16): добор сразу под ИИ-сводкой (или первым, если сводку убрали). Минус в режиме
+    // тряски кладёт его в hidden — и тогда не добираем: выбор человека уважается.
+    if (!seen["w:mood"] && hidden.indexOf("w:mood") < 0) {
+      const _hi = order.indexOf("w:hero");
+      order.splice(_hi >= 0 ? _hi + 1 : 0, 0, "w:mood");
+      seen["w:mood"] = 1;
+    }
     return { order, hidden };
   }, [layoutObj, habits, goals, teams, widgets]);
   const saveLayout = (patch) => { if (app?.setHomeLayout) app.setHomeLayout({ ...effLayout, ...patch }); };
