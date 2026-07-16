@@ -1011,6 +1011,16 @@ function AppProvider({ children }) {
     var tk = bosTodayKey();
     var log = h.log ? Object.assign({}, h.log) : {};
     var on; if (log[tk]) { delete log[tk]; on = false; } else { log[tk] = true; on = true; }
+    // Э2 «время отметки» (вкладка ИИ): копим ЛОКАЛЬНО минуту дня каждой отметки — топливо для
+    // будущих «сова/жаворонок» и матчинга ритмов. Только телефон, в облачный снапшот не уходит.
+    try {
+      var _mtK = "bos:marktimes:" + (persistId || "live");
+      var _mt = JSON.parse(localStorage.getItem(_mtK) || "{}");
+      var _hk = "" + (h.cloudId || h.id);
+      if (on) { (_mt[tk] = _mt[tk] || {})[_hk] = new Date().getHours() * 60 + new Date().getMinutes(); }
+      else if (_mt[tk]) { delete _mt[tk][_hk]; }
+      localStorage.setItem(_mtK, JSON.stringify(_mt));
+    } catch (e) {}
     try { if (h.cloudId && _liveCloud()) window.bosCloud.toggleHabitLog(h.cloudId, tk, on); } catch (e) {}
     // УМНЫЙ ПУШ: отметил привычку с напоминанием → гасим сегодняшний пуш (бот не дёрнет зря).
     try { if (on && h.reminder && h.reminder.on && _liveCloud() && window.bosCloud.markReminderDone) window.bosCloud.markReminderDone(h.cloudId || h.id); } catch (e) {}

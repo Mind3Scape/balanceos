@@ -3593,13 +3593,14 @@ function BosWheelLockedLive({ app, dark, openSheet }) {
       </div>
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "var(--text-4)", marginTop: 14 }}>Баланс жизни</div>
       <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 5 }}>Сначала отметь, где ты сейчас</div>
+      {/* David 2026-07-16: «описание по центру короче и человечнее, без „6 вопросов"» */}
       <div style={{ fontSize: 14, color: "var(--text-3)", marginTop: 7, lineHeight: 1.5, maxWidth: 280, margin: "7px auto 0", textWrap: "balance" }}>
-        Шесть коротких вопросов, меньше минуты. Это не заполнит колесо — привычки наполняют его сами. Зато сразу будет видно, куда смотреть.
+        Короткий опрос — меньше минуты, и колесо оживёт.
       </div>
       <button className="tap" onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } openSheet(<BosBaselineSurveyLive app={app} />); }}
         style={{ marginTop: 18, border: 0, cursor: "pointer", borderRadius: 999, padding: "13px 22px", fontSize: 15, fontWeight: 800, fontFamily: "inherit",
           background: "linear-gradient(180deg,#FFE96A," + GOLD + ")", color: "#4a3800", boxShadow: "0 4px 14px rgba(254,222,52,0.35)" }}>
-        Пройти · 6 вопросов
+        Пройти опрос
       </button>
     </div>
   );
@@ -3735,6 +3736,10 @@ function BosBalanceWheelLive(props) {
             <polygon points={hex(0.333)} fill="none" stroke={gridCol} strokeWidth="1.1" opacity="0.5" style={strokeFx} />
             {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1.1" style={strokeFx} />; })}
             <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.3" strokeDasharray="3 5" strokeLinecap="round" style={strokeFx} />
+            {/* Тень самооценки — ПОД золотом, лёгкая полупрозрачная серая заливка БЕЗ пунктира
+                (David 2026-07-16: «два пунктира — жутко; база = еле заметный прозрачный серый»).
+                Видна только там, где выступает за золото, — это и есть разрыв «ценю ↔ делаю». */}
+            {basePts && <polygon points={basePts} fill={dark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.06)"} stroke={dark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.09)"} strokeWidth="1" strokeLinejoin="round" style={strokeFx} />}
             <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="2" strokeLinejoin="round" style={strokeFx} />
             {/* Точки на вершинах САМОЙ оранжевой фигуры (David 2026-07-16: «не хватает точечек
                 на оранжевом, аккуратных»): видно, где именно фигура ломается по каждой сфере. */}
@@ -3747,9 +3752,6 @@ function BosBalanceWheelLive(props) {
                 </g>
               );
             })}
-            {/* Тень самооценки — ПОВЕРХ заливки, тонким пунктиром, без заливки: она не «результат»,
-                а ориентир. Там, где контур выше золота, — разрыв между «важно» и «делаю». */}
-            {basePts && <polygon points={basePts} fill="none" stroke={dark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.42)"} strokeWidth="1.4" strokeDasharray="4 4" strokeLinejoin="round" strokeLinecap="round" style={strokeFx} />}
             {/* Точки-якоря на вершинах осей (David 2026-07-14): «непонятно, к кому какой угол привязан».
                 По одной аккуратной точке на конце каждой оси — прямо под своей сферой. Заполненная —
                 золотая с ободком, пустая — тихая серая. Небольшие, но заметные; тянутся к иконке сферы. */}
