@@ -506,6 +506,16 @@ function TeamDetailLive() {
   // Возраст круга — из created_at (v762 несёт createdAt в каждый ряд команд).
   const ageDays = t.createdAt ? Math.max(1, Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 86400000) + 1) : null;
 
+  // ЛИДЕРБОРД-ПОРЯДОК «Людей» (David 2026-07-16: «слева активные, серые в конец, и чтобы
+  // ранжировалось по активности»): сегодня отметился → раньше; внутри — по дням активности
+  // за неделю; молчащие серые — в хвост. Серый, который отметился, сам всплывает влево.
+  const wk7 = {};
+  { const wkKeys7 = {}; for (let i = 0; i < 7; i++) wkKeys7[bosRoomDayKey(i)] = true; rangeRows.forEach((r) => { if (wkKeys7[r.day]) wk7[r.u] = (wk7[r.u] || 0) + 1; }); }
+  const membersRanked = members.slice().sort((a, b) => {
+    const t0 = (activeSet[b.id] ? 1 : 0) - (activeSet[a.id] ? 1 : 0); if (t0) return t0;
+    return (wk7[b.id] || 0) - (wk7[a.id] || 0);
+  });
+
   // Красный счёт для бейджа кабинета: заявки + «теряем» (молчат 3+ дня, не новички).
   const lastByUser = {}; rangeRows.forEach((r) => { if (!lastByUser[r.u] || r.day > lastByUser[r.u]) lastByUser[r.u] = r.day; });
   const silentDays = (m) => {
@@ -769,7 +779,7 @@ function TeamDetailLive() {
             {/* Сетка как у календаря — 7 колонок на всю ширину, ряды ровные (David: «чтобы
                 центрированно смотрелись и занимали всю область карточки»). */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center" }}>
-              {members.map((m) => (
+              {membersRanked.map((m) => (
                 <BosRoomFaceLive key={m.id} p={m} size={36} active={!!activeSet[m.id]} gold={m.id === meId && !!activeSet[m.id]} level={levelOf(m.id)} isDark={isDark} onClick={() => openPerson(m)} />
               ))}
               <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" aria-label="Позвать в круг"

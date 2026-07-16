@@ -1794,14 +1794,13 @@ function AppProvider({ children }) {
                 window.bosCloud.myTeamsLive().then(function (mem) {
                   if (!mem) return;
                   // ГЛЮК «создал круг → позвал → круг исчез» (жалоба 2026-07-16). ПУСТАЯ «правда»
-                  // при непустом локальном списке — почти всегда auth/RLS-гонка сразу после входа
-                  // (тот же класс, что transient false-empty у привычек, отсюда их dup-guard):
-                  // отказ RLS = 0 строк БЕЗ ошибки, и keep-фильтр сносил ВСЕ облачные круги
-                  // с экрана разом. Теперь: перечитываем через паузу; вторая пустая — НЕ сносим
-                  // (принцип v594: пустое облако не затирает непустое локальное). Круг, честно
-                  // покинутый с другого устройства, уйдёт при первой же НЕпустой сверке.
-                  var _hasCloudLocal = (((latestRef.current && latestRef.current.teams) || []).some(function (x) { return x && x.cloudId; }));
-                  if (!mem.length && _hasCloudLocal) {
+                  // сразу после входа — почти всегда auth/RLS-гонка (0 строк БЕЗ ошибки):
+                  // keep-фильтр сносил ВСЕ облачные круги с экрана разом. Теперь пустую правду
+                  // НЕ применяем никогда, а перечитываем через паузу — В ТОМ ЧИСЛЕ на свежем
+                  // устройстве без локальных кругов (жалоба №2, 2026-07-16: «вступил со второго
+                  // аккаунта — круг виден в каталоге, но не в моих и не на главной»: раньше
+                  // перечитки там не было вовсе, и вступленные круги не доезжали до app.teams).
+                  if (!mem.length) {
                     setTimeout(function () {
                       window.bosCloud.myTeamsLive().then(function (mem2) { if (mem2 && mem2.length) applyTruth(mem2); }).catch(function () {});
                     }, 900);
@@ -1809,6 +1808,12 @@ function AppProvider({ children }) {
                   }
                   applyTruth(mem);
                 });
+                // Второй шанс: через 10с auth точно устаканился — добираем пропущенное гонкой.
+                // applyTruth идемпотентен, пустой ответ не применяем, лишних перерисовок нет
+                // (setTeams возвращает prev, когда добавлять/убирать нечего).
+                setTimeout(function () {
+                  window.bosCloud.myTeamsLive().then(function (mem3) { if (mem3 && mem3.length) applyTruth(mem3); }).catch(function () {});
+                }, 10000);
               })();
             } catch (e) {}
           }).catch(_doneHydrate);

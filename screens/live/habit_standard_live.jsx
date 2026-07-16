@@ -70,7 +70,7 @@ function BosStdHist({ dist, me, isDark }) {
 
 /* «РИТМ» — один блок времени. Пилюля-переключатель в заголовке СПРАВА (компактная, v3):
    свёрнута — один таймфрейм «Неделя ⌄»; тап — три пилюли на месте; выбор схлопывает. */
-function BosRhythmBlockLive({ mode, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark }) {
+function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark }) {
   const [tab, setTab] = React.useState("week");
   const [open, setOpen] = React.useState(false);
   const LBL = { week: "Неделя", month: "Месяц", year: "Год" };
@@ -114,7 +114,7 @@ function BosRhythmBlockLive({ mode, weekCells, hist, monthCells, monthHint, year
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 4px 8px", minHeight: 27 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>Ритм</span>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{title || "Ритм"}</span>
         {control}
       </div>
       <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "13px 14px" }}>{body}</div>
@@ -232,8 +232,9 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
   }, [h.id]);
   const usualLbl = usualMin == null ? null : (() => { let hh = Math.floor(usualMin / 60), mm = Math.round((usualMin % 60) / 15) * 15; if (mm === 60) { hh = (hh + 1) % 24; mm = 0; } return (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm; })();
 
-  // «НЕДЕЛЯ» выбранного человека + люди (David: «не столбцы, а недельный график, а внизу
-  // люди — тыкнул на человека и видишь его неделю; тап ещё раз — карточка»). Стартуешь с себя.
+  // «РИТМ» выбранного человека + люди (David: «недельный график, а внизу люди — тыкнул
+  // на человека и видишь его неделю; тап ещё раз — карточка»; v775 вернул пилюлю
+  // Неделя·Месяц·Год — «кто-то очень долго живёт в группе»). Стартуешь с себя.
   const [selU, setSelU] = React.useState(meId);
   // meId может доехать ПОЗЖЕ первого рендера (страница открылась, «кто я» ещё грузится) —
   // useState его не догонит сам; догоняем, пока человек не выбран руками.
@@ -244,17 +245,40 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
   const selDays = {}; (rangeRows || []).forEach((r) => { if (r.h === h.id && r.u === selU) selDays[r.day] = true; });
   if (selU === meId) { if (isDone) selDays[todayK] = true; else delete selDays[todayK]; } // сегодня — за оптимистичным тапом
   const weekCells = wkKeys.map((k, i) => ({ pct: selDays[k] ? 1 : 0, l: ["П", "В", "С", "Ч", "П", "С", "В"][i], dim: k > todayK, today: k === todayK }));
+  // Месяц выбранного человека (rangeRows несёт 31 день — текущий месяц покрыт целиком).
+  const nowD = new Date();
+  const dimM = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
+  const monthCells = Array.from({ length: dimM }).map((_, i) => {
+    const k = nowD.getFullYear() + "-" + String(nowD.getMonth() + 1).padStart(2, "0") + "-" + String(i + 1).padStart(2, "0");
+    return { pct: selDays[k] ? 1 : 0, dim: k > todayK, today: k === todayK };
+  });
+  // Год выбранного человека — лениво при открытии вкладки «Год», кэш по человеку.
+  const [yearOpened, setYearOpened] = React.useState(false);
+  const [yearMap, setYearMap] = React.useState({});
+  React.useEffect(() => {
+    if (!yearOpened || !selU || !h.id || yearMap[selU]) return;
+    if (!(window.bosCloud && window.bosCloud.teamHabitYearOf)) return;
+    let on = true;
+    window.bosCloud.teamHabitYearOf(h.id, selU).then((d) => { if (on) setYearMap((m) => ({ ...m, [selU]: d || {} })); }).catch(() => {});
+    return () => { on = false; };
+  }, [yearOpened, selU, h.id]);
+  const selYear = yearMap[selU] || null;
+  const yearMonths = Array.from({ length: 12 }).map((_, mi) => {
+    const future = mi > nowD.getMonth();
+    if (future) return { frac: 0, future: true };
+    const dimY = new Date(nowD.getFullYear(), mi + 1, 0).getDate();
+    const den = mi === nowD.getMonth() ? nowD.getDate() : dimY;
+    let cnt = 0;
+    if (selYear) for (let d = 1; d <= dimY; d++) { const k = nowD.getFullYear() + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); if (selYear[k]) cnt++; }
+    return { frac: den ? Math.min(1, cnt / den) : 0, future: false };
+  });
   const gridPeople = (members || []).slice().sort((a, b) => {
     const w = (p) => (p.id === meId ? 0 : (byUserAt[p.id] ? 1 : 2)); // я → уже сегодня → остальные
     return w(a) - w(b);
   });
-  const weekPeople = (
+  const peopleGrid = (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, justifyItems: "center", padding: "4px 0 0" }}>
-        {weekCells.map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={26} below={c.l} accent={h.color && h.color !== "#0a0a0a" ? h.color : null} isDark={isDark} dim={c.dim} today={c.today} />)}
-      </div>
-      <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)", margin: "11px 0 10px" }} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center", padding: "4px 0 0" }}>
         {gridPeople.slice(0, 21).map((p) => (
           <BosRoomFaceLive key={p.id} p={p} size={34} isDark={isDark}
             active={p.id === meId ? (isDone || !!byUserAt[p.id]) : !!byUserAt[p.id]}
@@ -263,7 +287,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
         ))}
         {gridPeople.length > 21 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{"+" + (gridPeople.length - 21)}</span>}
       </div>
-      <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "center", marginTop: 9 }}>тап по лицу — его неделя · ещё раз — карточка</div>
+      <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "center", marginTop: 9 }}>тап по лицу — его ритм · ещё раз — карточка</div>
     </div>
   );
 
@@ -290,10 +314,13 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
       setMarkAt(next ? bosRoomHHMM(Date.now()) : null);
       onToggle && onToggle();
     }} />,
-    thread: bare ? null : thread,
-    peopleTitle: "Неделя",
-    peopleExtra: selName,
-    people: weekPeople,
+    // Нить «Сегодня» — И в аккордеоне (David 2026-07-16: «не хватает таймлайна активности,
+    // как выше, но локально под эту привычку»): лица в свой час / волна на толпе.
+    thread: thread,
+    rhythm: { title: "Ритм · " + (selName || "ты"), weekCells, monthCells, monthHint: "дни: " + (selName || "ты"), yearMonths, yearHint: (selName || "ты") + " · кольцо месяца = доля дней", onYearOpen: () => setYearOpened(true), accent: h.color && h.color !== "#0a0a0a" ? h.color : null },
+    peopleTitle: "Люди",
+    peopleExtra: doneUsers.length + " из " + membersN + " сегодня",
+    people: peopleGrid,
   };
 
   return (
