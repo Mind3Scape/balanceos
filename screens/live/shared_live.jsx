@@ -2095,13 +2095,42 @@ function bosParseTs(s) {
 // подгружается; можно, чтобы сразу?»): последний известный день лежит в localStorage и
 // встаёт первым кадром, сеть освежает фоном. Кэш ЧУЖОГО дня не показываем — при первом
 // входе в новые сутки нить честно пуста (день и правда ещё пуст), без «схлопывания» вчера.
+/* УРОВЕНЬ КРУГА из XP (Э1, выбор David): пороги 75·L·(L−1) — L2=150, L3=450, L4=900,
+   L5=1500, L10=6750… Кривая КРУЧЕ личной («круги должно быть качать сложнее, чем себя»). */
+function bosCircleLevel(xp) {
+  var x = Math.max(0, xp | 0);
+  var L = Math.floor((1 + Math.sqrt(1 + 4 * x / 75)) / 2);
+  if (L < 1) L = 1;
+  var base = 75 * L * (L - 1);
+  var next = 75 * (L + 1) * L;
+  return { level: L, xp: x, cur: x - base, span: next - base, toNext: next - x, frac: Math.max(0, Math.min(1, (x - base) / (next - base))) };
+}
+/* Батч XP кругов: карточки витрины рождаются пачкой — собираем id на один тик и едем
+   ОДНИМ rpc bos_team_xp вместо N запросов. */
+var _bosXPPending = null;
+function bosTeamXPBatch(id) {
+  return new Promise(function (resolve) {
+    if (!(window.bosCloud && window.bosCloud.teamXP)) { resolve(null); return; }
+    if (!_bosXPPending) {
+      _bosXPPending = { ids: [], subs: [] };
+      setTimeout(function () {
+        var p = _bosXPPending; _bosXPPending = null;
+        window.bosCloud.teamXP(p.ids).then(function (map) {
+          p.subs.forEach(function (s) { s.resolve(map ? map[s.id] : null); });
+        }).catch(function () { p.subs.forEach(function (s) { s.resolve(null); }); });
+      }, 60);
+    }
+    if (_bosXPPending.ids.indexOf(id) < 0) _bosXPPending.ids.push(id);
+    _bosXPPending.subs.push({ id: id, resolve: resolve });
+  });
+}
 function _bosCardDay() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 var _bosCircleCardCache = (function () {
   try {
     var v = JSON.parse(localStorage.getItem("bos:cache:cardpulse") || "null");
-    if (v && v.day === _bosCardDay() && v.times && v.pulse) return v;
+    if (v && v.day === _bosCardDay() && v.times && v.pulse) { if (!v.xp) v.xp = {}; return v; }
   } catch (e) {}
-  return { day: _bosCardDay(), times: {}, pulse: {} };
+  return { day: _bosCardDay(), times: {}, pulse: {}, xp: {} };
 })();
 var _bosCircleCardSaveT = null;
 function _bosCircleCardPersist() {
@@ -5831,6 +5860,16 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
     window.bosCloud.circlePulse(ck).then((p) => { if (on && p) { _bosCircleCardCache.pulse[ck] = p; _bosCircleCardPersist(); setPulse(p); } }).catch(() => {});
     return () => { on = false; };
   }, [ck, joined]);
+  // Уровень круга (Э1): кольцо прогресса + золотая циферка на диске — грамматика бейджей
+  // людей. До SQL-патча bos_team_xp сервер молчит → диск остаётся обычным (честно).
+  const [cXP, setCXP] = React.useState(() => (ck && _bosCircleCardCache.xp && _bosCircleCardCache.xp[ck] != null) ? _bosCircleCardCache.xp[ck] : null);
+  React.useEffect(() => {
+    if (!ck || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamXP)) return;
+    let on = true;
+    bosTeamXPBatch(ck).then((v) => { if (on && v != null) { _bosCircleCardCache.xp[ck] = v; _bosCircleCardPersist(); setCXP(v); } });
+    return () => { on = false; };
+  }, [ck]);
+  const lvl = (cXP != null && typeof bosCircleLevel === "function") ? bosCircleLevel(cXP) : null;
   const _pt = (x) => (typeof bosParseTs === "function" ? bosParseTs(x) : new Date(x));
   let hours = [];
   if (joined && times && times.times) hours = Object.keys(times.times).map((u) => { const d = _pt(times.times[u]); return d.getHours() + d.getMinutes() / 60; });
@@ -5847,9 +5886,22 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
   const body = (
     <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-        <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
-          background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,var(--disc-a,#eef1f6),var(--disc-b,#dadfe7))"),
-          boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIcon(t.emblem || "👥", 15, null)}</span>
+        {lvl ? (
+          <span style={{ position: "relative", width: 34, height: 34, flexShrink: 0 }}>
+            <svg viewBox="0 0 36 36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+              <circle cx="18" cy="18" r="16" fill="none" stroke={isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.08)"} strokeWidth="2.6" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_THREAD_GOLD} strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset={(100.5 * (1 - lvl.frac)).toFixed(1)} />
+            </svg>
+            <span style={{ position: "absolute", inset: 4, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 13,
+              background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,var(--disc-a,#eef1f6),var(--disc-b,#dadfe7))"),
+              boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIcon(t.emblem || "👥", 13, null)}</span>
+            <span style={{ position: "absolute", right: -5, bottom: -3, minWidth: 15, height: 15, padding: "0 3px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 800, color: "#B4820A", lineHeight: 1 }}>{lvl.level}</span>
+          </span>
+        ) : (
+          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
+            background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,var(--disc-a,#eef1f6),var(--disc-b,#dadfe7))"),
+            boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIcon(t.emblem || "👥", 15, null)}</span>
+        )}
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</span>
       </div>
       {/* Описание/цель круга (David 2026-07-16: «места хватает — пусть видно описание, если есть»). */}

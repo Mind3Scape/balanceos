@@ -104,6 +104,27 @@ function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on,
   );
 }
 
+/* Шторка «Круг вырос» — праздник апа уровня (Э1): кольцо, уровень, подарок каждому. */
+function CircleLevelUpSheetLive({ level, gift, isDark }) {
+  const { close } = useSheet();
+  return (
+    <div style={{ padding: "10px 6px 12px", textAlign: "center" }}>
+      <span style={{ position: "relative", width: 72, height: 72, display: "inline-block" }}>
+        <svg viewBox="0 0 36 36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+          <circle cx="18" cy="18" r="16" fill="none" stroke={isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.08)"} strokeWidth="2.8" />
+          <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_ROOM_GOLD} strokeWidth="2.8" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset="94" />
+        </svg>
+        <span style={{ position: "absolute", inset: 6, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 23, fontWeight: 800, color: "var(--text)", background: isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)" }}>{level}</span>
+      </span>
+      <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", marginTop: 12, letterSpacing: "-0.3px" }}>{"Круг вырос — " + level + " уровень"}</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 6, lineHeight: 1.5 }}>
+        {gift > 0 ? <React.Fragment>{"Ты был(а) в деле на этой неделе — тебе "}<b style={{ color: BOS_ROOM_GOLD_INK }}>{"+" + gift + " XP"}</b></React.Fragment> : "Уровень копят закрытые дни каждого"}
+      </div>
+      <button onClick={close} className="tap" style={{ width: "100%", border: 0, borderRadius: 999, padding: "13px 0", fontSize: 14, fontWeight: 800, cursor: "pointer", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", marginTop: 16 }}>{"Дальше — к " + (level + 1) + "-му"}</button>
+    </div>
+  );
+}
+
 /* Золотая строка-веха в пульсе. */
 function CircleMileLine({ children }) {
   return <div style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: BOS_ROOM_GOLD_INK, background: "rgba(240,195,10,0.12)", borderRadius: 999, padding: "6px 12px", margin: "2px 0 10px" }}>{children}</div>;
@@ -589,6 +610,43 @@ function TeamDetailLive() {
     return () => { on = false; };
   }, [_live, t.cloudId, members.length]);
   const levelOf = (id) => (levels && levels[id] && (levels[id].level | 0)) || 0;
+  // УРОВЕНЬ КРУГА (Э1, выбор David — вариант Б): XP с сервера (bos_team_xp, вся история),
+  // до SQL-патча честно спит (null → визитка без кольца и шкалы).
+  const [circleXP, setCircleXP] = React.useState(() => {
+    try { return (typeof _bosCircleCardCache !== "undefined" && _bosCircleCardCache.xp && _bosCircleCardCache.xp[t.cloudId] != null) ? _bosCircleCardCache.xp[t.cloudId] : null; } catch (e) { return null; }
+  });
+  React.useEffect(() => {
+    if (!_live || !window.bosCloud.teamXP) return;
+    let on = true;
+    const load = () => window.bosCloud.teamXP([t.cloudId]).then((m) => {
+      if (on && m && m[t.cloudId] != null) {
+        setCircleXP(m[t.cloudId]);
+        try { _bosCircleCardCache.xp[t.cloudId] = m[t.cloudId]; _bosCircleCardPersist(); } catch (e) {}
+      }
+    }).catch(() => {});
+    load();
+    const iv = setInterval(load, 90000);
+    return () => { on = false; clearInterval(iv); };
+  }, [_live, t.cloudId]);
+  const circleLvl = (circleXP != null && typeof bosCircleLevel === "function") ? bosCircleLevel(circleXP) : null;
+  // ПРАЗДНИК АПА: уровень вырос с прошлого визита → конфетти + шторка + подарок XP
+  // каждому активному за неделю (уровень×10; идемпотентно по ключу уровня).
+  React.useEffect(() => {
+    if (!circleLvl || !t.cloudId) return;
+    const lv = circleLvl.level;
+    let prev = 0;
+    try { prev = parseInt(localStorage.getItem("bos:circlelvl:" + t.cloudId) || "0", 10) || 0; } catch (e) {}
+    try { localStorage.setItem("bos:circlelvl:" + t.cloudId, String(lv)); } catch (e) {}
+    if (prev > 0 && lv > prev) {
+      let active = false;
+      for (let i = 0; i < 7 && !active; i++) { const k = bosRoomDayKey(i); active = (rangeRows || []).some((r) => r.u === meId && r.day === k); }
+      const gift = active ? lv * 10 : 0;
+      if (gift > 0 && app?.grantBonusXP) app.grantBonusXP("circlelvl:" + t.cloudId + ":" + lv, gift);
+      if (typeof bosCelebrateBuzz === "function") bosCelebrateBuzz();
+      if (typeof bosCelebrateLevel === "function") bosCelebrateLevel();
+      openSheet(<CircleLevelUpSheetLive level={lv} gift={gift} isDark={isDark} />);
+    }
+  }, [circleLvl && circleLvl.level]);
   // Аккордеон привычек (David: строка раскрывается вниз, статистика видна на месте).
   const [openHabit, setOpenHabit] = React.useState(null);
   // Непрочитанное для бейджа сегмента «Чат»: чужие сообщения новее последнего прочтения.
@@ -663,23 +721,25 @@ function TeamDetailLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* ШАПКА (FinHead): назад · эмблема · имя+факты · [компас владельца] · правка · позвать */}
+      {/* ШАПКА — ЛЁГКАЯ (вариант Б, выбор David): только кнопки; имя и факты живут в
+          ВИЗИТКЕ на стороне «День». На стороне «Чат» имя возвращается в шапку — иначе
+          экран разговора безымянный. */}
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "2px 0 2px", minHeight: 44 }}>
         {!_inTG && (
           <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={{ width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", background: "transparent", color: "var(--text)", flexShrink: 0, cursor: "pointer", marginLeft: -6 }}>
             <I.ChevronLeft size={20} strokeWidth={2.4} />
           </button>
         )}
-        <span style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
-          background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-          boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 20, null)}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 1, display: "flex", alignItems: "center", gap: 4, overflow: "hidden", whiteSpace: "nowrap" }}>
-            {ageDays ? <I.Flame size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} /> : null}
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{subParts.join(" · ")}</span>
-          </div>
-        </div>
+        {roomTab === "chat" ? (
+          <React.Fragment>
+            <span style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 17,
+              background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
+              boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 17, null)}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+            </div>
+          </React.Fragment>
+        ) : <div style={{ flex: 1 }} />}
         {_isOwner && _live && (
           <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap" aria-label="Кабинет ведущего" title="Кабинет ведущего"
             style={{ ...glass, height: 36, borderRadius: 999, border: 0, padding: "0 11px", display: "inline-flex", alignItems: "center", gap: 5, color: isDark ? "#fff" : "#0a0a0a", flexShrink: 0, cursor: "pointer" }}>
@@ -721,20 +781,62 @@ function TeamDetailLive() {
       </div>
 
       {roomTab === "day" && (<React.Fragment>
-      {/* НИТЬ ДНЯ — лица в свой час; на большом круге — волна. */}
-      {!threadOff && _live && (
-        <div style={{ marginTop: 6 }}>
-          <BosDayThreadLive faces={threadFaces.length <= 6 ? threadFaces : []} hours={threadFaces.length > 6 ? Object.keys(firstByUser).map((u) => _hr(firstByUser[u])) : []} isDark={isDark} />
+      {/* ВИЗИТКА КРУГА (вариант Б): диск с кольцом-уровнем · имя · факты · XP-шкала · серия —
+          одна карточка без заголовка, это сам круг. Нить живёт НИЖЕ, в блоке «Сегодня». */}
+      <div style={{ ...card, padding: "13px 13px 11px", marginTop: 2 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          {circleLvl ? (
+            <span style={{ position: "relative", width: 48, height: 48, flexShrink: 0 }}>
+              <svg viewBox="0 0 36 36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+                <circle cx="18" cy="18" r="16" fill="none" stroke={isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.08)"} strokeWidth="2.6" />
+                <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_ROOM_GOLD} strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset={(100.5 * (1 - circleLvl.frac)).toFixed(1)} />
+              </svg>
+              <span style={{ position: "absolute", inset: 5, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 19,
+                background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
+                boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 19, null)}</span>
+              <span style={{ position: "absolute", right: -4, bottom: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: BOS_ROOM_GOLD_INK, lineHeight: 1, zIndex: 2 }}>{circleLvl.level}</span>
+            </span>
+          ) : (
+            <span style={{ width: 46, height: 46, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
+              background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
+              boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 20, null)}</span>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+            <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subParts.join(" · ")}</div>
+          </div>
         </div>
-      )}
+        {circleLvl && (
+          <React.Fragment>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 11 }}>
+              <span style={{ fontSize: 10.5, color: "var(--text-2)", fontWeight: 600 }}>
+                {"Сегодня +" + (todayN * 10 * (membersN > 0 && todayN >= need ? 2 : 1)) + " XP"}
+                {membersN > 0 && todayN >= need && <span style={{ fontSize: 9, color: BOS_ROOM_GOLD_INK, fontWeight: 800, background: "rgba(240,195,10,0.13)", borderRadius: 999, padding: "2px 6px", marginLeft: 4 }}>в ритме ×2</span>}
+              </span>
+              <span style={{ fontSize: 10, color: "var(--text-4)" }}>{"до " + (circleLvl.level + 1) + " ур. — " + circleLvl.toNext}</span>
+            </div>
+            <div style={{ height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.07)", overflow: "hidden", marginTop: 6 }}>
+              <div style={{ height: "100%", width: (circleLvl.frac * 100).toFixed(1) + "%", borderRadius: 999, background: "linear-gradient(90deg,#FEDE34,#EF9F14)", transition: "width .6s ease" }} />
+            </div>
+          </React.Fragment>
+        )}
+        {_live && (circleStreak > 0 || todayN > 0) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 9, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") }}>
+            {circleStreak > 0 && <I.Flame size={12} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />}
+            {circleStreak > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)" }}>{streakCap} {circleStreak === 1 ? "день" : circleStreak < 5 ? "дня" : "дней"} круг в ритме</span>}
+            <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{(circleStreak > 0 ? "· " : "") + todayN + "/" + (membersN || "?") + " сегодня" + (topThird ? " · ты в верхней трети" : "")}</span>
+          </div>
+        )}
+      </div>
 
-      {/* СЕРИЯ КРУГА — строка под нитью (финал И, дефект 3). */}
-      {_live && (circleStreak > 0 || todayN > 0) && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 4px 0", flexWrap: "wrap" }}>
-          {circleStreak > 0 && <I.Flame size={12} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />}
-          {circleStreak > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)" }}>{streakCap} {circleStreak === 1 ? "день" : circleStreak < 5 ? "дня" : "дней"} круг в ритме</span>}
-          <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{(circleStreak > 0 ? "· " : "") + todayN + "/" + (membersN || "?") + " сегодня" + (topThird ? " · ты в верхней трети" : "")}</span>
-        </div>
+      {/* «СЕГОДНЯ» — нить дня в своём блоке (лица в свой час; на большом круге — волна). */}
+      {!threadOff && _live && (
+        <React.Fragment>
+          <BosRoomH2 extra={<span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{todayN + " из " + membersN + " в деле"}</span>}>Сегодня</BosRoomH2>
+          <div style={{ ...card, padding: "6px 8px" }}>
+            <BosDayThreadLive faces={threadFaces.length <= 6 ? threadFaces : []} hours={threadFaces.length > 6 ? Object.keys(firstByUser).map((u) => _hr(firstByUser[u])) : []} isDark={isDark} />
+          </div>
+        </React.Fragment>
       )}
 
       {/* ЗАЯВКИ — владельцу, прямо у двери. */}
