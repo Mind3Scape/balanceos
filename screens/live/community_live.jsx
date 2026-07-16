@@ -2958,7 +2958,7 @@ function _DiscCard({ num, iconKey, title, desc, onOpen, onDismiss, isDark, open,
   var iconInk = locked ? GOLD : (isDark ? "#f0f0f0" : "#0a0a0a");
   return (
     <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 180, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: "14px 13px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit", opacity: locked ? 0.92 : 1 }}>
-      {onDismiss && !locked && <_DiscX onClick={onDismiss} color={isDark ? "var(--text-4)" : "#b3b3b3"} />}
+      {onDismiss && <_DiscX onClick={onDismiss} color={isDark ? "var(--text-4)" : "#b3b3b3"} />}
       {open && !locked && (
         <span style={{ position: "absolute", left: 13, top: 13, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 9, fontWeight: 800, letterSpacing: 0.6, color: "#7a6205", background: "linear-gradient(180deg,#FFE96A," + GOLD + ")", borderRadius: 99, padding: "3px 7px", boxShadow: "0 1px 3px rgba(239,159,20,0.35)", zIndex: 2 }}>
           <svg width="8" height="8" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#7a6205" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>ОТКРЫТО
@@ -2977,12 +2977,17 @@ function _DiscCard({ num, iconKey, title, desc, onOpen, onDismiss, isDark, open,
 var BOS_LEVEL_UNLOCKS = { 3: "Первая публикация · Разбор привычек", 5: "Карточка «Люди» в ленте", 10: "Нетворк · рынок пользы" };
 
 // обложка «Суть» → шторка «Суть». Макет «Guide Cards V1 Refined» (David 2026-07-14): тёмная
-// карточка со сдержанной золотой дугой-«горизонтом» сверху (звёздное небо убрано) и живой
-// золотой кнопкой «начать →». Без крестика — вход в гид не прячем.
-function DiscoveryCoverCard({ onOpen }) {
+// карточка со сдержанной золотой дугой-«горизонтом» сверху и живой золотой кнопкой «начать →».
+// Крестик ЕСТЬ (David 2026-07-17: «на всех карточках-гайдах должен быть крестик»).
+function DiscoveryCoverCard({ onOpen, onDismiss }) {
   var GOLD = BOS_GOLD;
   return (
     <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 180, borderRadius: 22, border: 0, padding: "14px 13px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "#fff", fontFamily: "inherit", background: "linear-gradient(180deg,#161619 0%,#0a0a0c 100%)" }}>
+      {onDismiss && (
+        <span role="button" aria-label="Скрыть" onClick={onDismiss} className="tap" style={{ position: "absolute", top: 2, right: 2, width: 40, height: 40, display: "grid", placeItems: "center", cursor: "pointer", zIndex: 3 }}>
+          <span style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.14)", display: "grid", placeItems: "center" }}><svg width="10" height="10" viewBox="0 0 11 11"><path d="M2 2l7 7M9 2l-7 7" stroke="rgba(255,255,255,0.75)" strokeWidth="1.8" strokeLinecap="round" /></svg></span>
+        </span>
+      )}
       <span aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
         <span style={{ position: "absolute", left: "50%", top: "-46%", width: "150%", height: "100%", transform: "translateX(-50%)", borderRadius: "50%", boxShadow: "0 0 0 1px rgba(254,222,52,0.22),0 10px 30px rgba(254,222,52,0.10)" }} />
         <span style={{ position: "absolute", left: "50%", top: "-46%", width: "150%", height: "100%", transform: "translateX(-50%)", borderRadius: "50%", background: "radial-gradient(ellipse at 50% 100%,rgba(239,159,20,0.14),transparent 60%)" }} />
@@ -3063,29 +3068,36 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
     { key: "together", id: "together", iconKey: "together", title: "Вместе — больше", desc: "Совместные привычки и цели", show: !hasTogether },
     { key: "helpers", id: "helpers", iconKey: "help", title: "Помогай своим", desc: "Круг подтверждает твою роль", show: true },
     { key: "ch", id: "ch", iconKey: "ch", title: "Челленджи", desc: "Готовая привычка с призом", show: !hasChallenge },
-    // «Партнёры» — постоянная дверь в мир впечатлений (David 2026-07-12: не прятать). pin: не
-    // уходит после траты XP и несмахиваема (крестика нет), но остаётся на своём месте в ряду.
-    { key: "partners", id: "partners", iconKey: "partners", title: "Партнёры", desc: "Впечатления за твой опыт", show: true, pin: true },
+    // «Партнёры» — тоже закрываемая (David 2026-07-17: «на всех карточках должен быть крестик»);
+    // прежний pin снят.
+    { key: "partners", id: "partners", iconKey: "partners", title: "Партнёры", desc: "Впечатления за твой опыт", show: true },
     // «Люди» до 10 уровня — закрытый круг: чёрная плашка + золотой замок (макет).
     { key: "people", id: "people", iconKey: userLevel < 10 ? "lock" : "people", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5, locked: userLevel < 10 },
   ];
   // Механики, реально попадающие в ряд (кап ≤6) — нумеруем позиционно 01…06, прогресс «N из M».
-  const mech = deckDefs.filter((c) => c.show && (c.pin || !dismissed[c.key])).slice(0, 6);
+  const mech = deckDefs.filter((c) => c.show && !dismissed[c.key]).slice(0, 6);
   const total = mech.length;
   const openCount = mech.filter((c) => !!seen[c.id]).length;
 
   const mechCards = mech.map((c, i) => (
     <_DiscCard key={c.key} num={c.locked ? (("0" + (i + 1)).slice(-2) + " · С 10 УРОВНЯ") : ("0" + (i + 1)).slice(-2)}
       iconKey={c.iconKey} title={c.title} desc={c.desc} isDark={isDark} open={!!seen[c.id]} locked={c.locked}
-      onOpen={() => openDisc(c.id)} onDismiss={(c.pin || c.locked) ? undefined : (ev) => doDismiss(ev, c.key)} />
+      onOpen={() => openDisc(c.id)} onDismiss={(ev) => doDismiss(ev, c.key)} />
   ));
 
   // Ряд по макету: обложка «Суть» → (празднование уровня, если есть) → карточки механик.
   // Обложка «Как устроен Balance» открывает НАСТОЯЩИЙ гид (GuideLive), а не мини-шторку «core»
   // (David 2026-07-14: «пусть всплывает наш гайд, а не заглушка»). Гид ушёл из настроек — тут его дом.
-  const rail = [<DiscoveryCoverCard key="cover" onOpen={() => { bosDiscMark("bos:discoverySeen", "core"); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} />];
+  // Обложка тоже закрываемая (David 2026-07-17); сам гид всегда доступен из «Я».
+  const rail = [];
+  if (!dismissed["cover"]) rail.push(<DiscoveryCoverCard key="cover"
+    onOpen={() => { bosDiscMark("bos:discoverySeen", "core"); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }}
+    onDismiss={(ev) => doDismiss(ev, "cover")} />);
   if (showLevelUp) rail.push(<DiscoveryLevelUpCard key={"lvl" + userLevel} level={userLevel} unlock={BOS_LEVEL_UNLOCKS[userLevel]} onOpen={() => { ackLevel(); openDisc("xp"); }} onDismiss={(ev) => { ev.stopPropagation(); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } ackLevel(); }} />);
   mechCards.forEach((n) => rail.push(n));
+
+  // Всё закрыто крестиками → секция «Открой Balance» пропадает ЦЕЛИКОМ (David 2026-07-17).
+  if (!rail.length) return null;
 
   return (
     <div>
@@ -3772,7 +3784,9 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
   real.slice(0, 8).forEach(function (t) {
     var mine = mineById[t.id] || null;
     cards.push(
-      <div key={"real:" + t.id} style={{ width: 172, flexShrink: 0, scrollSnapAlign: "start" }}>
+      // Ширина = колонке каталога «Общих целей» (страница 12+12, зазор 10 → (100vw−34)/2):
+      // David 2026-07-17 «на „Все" миниатюры ужатые — стандартизировать с вкладкой целей».
+      <div key={"real:" + t.id} style={{ width: "min(calc(50vw - 17px), 200px)", flexShrink: 0, scrollSnapAlign: "start" }}>
         {typeof BosCircleCardCompactLive === "function"
           ? <BosCircleCardCompactLive t={t} joined={!!mine} busy={!!busy[t.id]} requested={!!reqd[t.id]} onJoin={join}
               onOpen={mine ? function () { navigate("team-detail", { team: mine, from: "community" }); } : null} />
