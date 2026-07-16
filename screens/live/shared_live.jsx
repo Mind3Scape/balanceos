@@ -6036,7 +6036,9 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
         const d = (typeof t.desc === "string" && t.desc) || (typeof t.goal === "string" && t.goal) || (typeof t.goalKind === "string" && t.goalKind) || "";
         return d ? <div style={{ fontSize: 10, color: "var(--text-4)", lineHeight: 1.35, marginTop: 5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{d}</div> : null;
       })()}
-      <div style={{ position: "relative", height: 30, marginTop: 8 }}>
+      {/* marginTop:auto — нить ПРИЖАТА к низу фикс-карточки: линия активности и «живёт N дн»
+          всегда на одной высоте, есть описание или нет (David 2026-07-17). */}
+      <div style={{ position: "relative", height: 30, marginTop: "auto" }}>
         {hours.length > 0 && (
           <svg viewBox="0 0 150 22" preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, bottom: 7, width: "100%", height: 22 }}>
             <defs><linearGradient id="bosCWaveG" x1="0" y1="0" x2="0" y2="1">
@@ -6061,7 +6063,10 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
       </div>
     </React.Fragment>
   );
-  const style = { background: "var(--card)", borderRadius: 18, padding: "11px 12px", boxShadow: "var(--card-shadow)", textAlign: "left", minWidth: 0 };
+  // ФИКСИРОВАННАЯ высота (David 2026-07-17: «карточки разного размера, линия на разной
+  // высоте — как такое может быть?»): одна высота везде (грид «Общих целей», рейл «Все»),
+  // низ (нить + подпись) прижат marginTop:auto у нити.
+  const style = { background: "var(--card)", borderRadius: 18, padding: "11px 12px", boxShadow: "var(--card-shadow)", textAlign: "left", minWidth: 0, height: 158, boxSizing: "border-box", display: "flex", flexDirection: "column" };
   return onOpen
     ? <div className="tap" onClick={onOpen} style={{ ...style, cursor: "pointer" }}>{body}</div>
     : <div style={style}>{body}</div>;
