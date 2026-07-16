@@ -557,12 +557,8 @@ function TeamDetailLive() {
       onWrite={(name) => { setText((cur) => cur || ("@" + name + " ")); setTimeout(() => { try { composerRef.current && composerRef.current.focus(); } catch (e) {} }, 380); }}
       isDark={isDark} />);
   };
-  const openHabitSheet = (h) => {
-    if (typeof HabitStandardSheetLive !== "function") return;
-    openSheet(<HabitStandardSheetLive mode="circle" habit={h} team={t} members={members} meId={meId} rangeRows={rangeRows} dayRows={dayRows}
-      done={myDone(h)} onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
-      onEdit={_isOwner ? () => openEditTeamHabit(h) : null} onPerson={openPerson} isDark={isDark} />);
-  };
+  // Строка привычки → ОТДЕЛЬНАЯ СТРАНИЦА (David: «как страница привычек», не шторка).
+  const openHabitSheet = (h) => navigate("team-habit", { team: t, habit: h, from: from });
 
   /* ── праздник закрытого дня круга (механика не менялась) ── */
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
@@ -1228,6 +1224,92 @@ function CircleCabinetLive() {
       <div style={{ fontSize: 9.5, color: "var(--text-4)", padding: "10px 4px 0", lineHeight: 1.4 }}>
         Прозрачность вместо слежки: каждый участник видит о себе то же самое. Здесь нет ничего скрытого от людей.
       </div>
+    </div>
+  );
+}
+
+/* ══════════════════ СТРАНИЦА ПРИВЫЧКИ КРУГА (ступень 3 стандарта) ══════════════════
+   ОТДЕЛЬНАЯ СТРАНИЦА, как у личной привычки (David 2026-07-16: «у нас же была отдельная
+   стандартизированная страница — почему шторка?»). Тело — тот же стандарт-лесенка
+   (HabitStandardSheetLive — это просто вёрстка, не шторка); данные встают МГНОВЕННО из
+   персистентных кэшей комнаты (_bosTeamGet) и освежаются фоном своим поллом. */
+function CircleHabitDetailLive() {
+  const { navigate, params } = useNav();
+  const app = useApp();
+  const { open: openSheet } = useSheet();
+  const t = params?.team || {};
+  const from = params?.from || "community";
+  const isDark = app?.themeOverride === "dark";
+  const _live = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  const hSeed = params?.habit || {};
+
+  const [meId, setMeId] = React.useState(null);
+  const [habits, setHabits] = React.useState(() => _bosTeamGet("habits:" + t.cloudId) || []);
+  const [roster, setRoster] = React.useState(() => _bosTeamGet("roster:" + t.cloudId) || []);
+  const [rangeS, setRangeS] = React.useState(() => _bosTeamGet("range31:" + t.cloudId));
+  const [dayFeedS, setDayFeedS] = React.useState(() => _bosTeamGet("dayfeed:" + t.cloudId));
+  const [cheers, setCheers] = React.useState(() => _bosTeamGet("cheers:" + t.cloudId));
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!_live) return;
+    let on = true;
+    window.bosCloud.uid().then((id) => { if (on) setMeId(id || null); });
+    window.bosCloud.teamHabitsFull(t.cloudId).then((hs) => { if (on && Array.isArray(hs)) setHabits(_bosTeamPut("habits:" + t.cloudId, hs)); });
+    window.bosCloud.teamMembers(t.cloudId).then((mem) => { if (on && Array.isArray(mem)) setRoster(_bosTeamPut("roster:" + t.cloudId, mem.map((m) => ({ id: m.id, name: m.name || "Участник", avatar: m.avatar, role: m.role, joinedAt: m.joinedAt || null })))); });
+    window.bosCloud.teamDayFeed(t.cloudId).then((d) => { if (on && d) setDayFeedS(_bosTeamPut("dayfeed:" + t.cloudId, d)); });
+    window.bosCloud.teamLogsRange(t.cloudId, 31).then((d) => { if (on && d) setRangeS(_bosTeamPut("range31:" + t.cloudId, d)); });
+    if (window.bosCloud.teamCheersToday) window.bosCloud.teamCheersToday(t.cloudId).then((d) => { if (on && d) setCheers(_bosTeamPut("cheers:" + t.cloudId, d)); });
+    return () => { on = false; };
+  }, [_live, t.cloudId, tick]);
+
+  const h = (habits || []).find((x) => x.id === hSeed.id) || hSeed;
+  const members = roster || [];
+  const _meMember = meId ? members.find((m) => m.id === meId) : null;
+  const _isOwner = !!(_meMember && _meMember.role === "owner");
+
+  // Отметка: «прижитая» личная копия главнее (единый источник правды), иначе прямой командный лог.
+  const myHabits = app?.habits || [];
+  const _todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+  const adopted = (h && h.id != null) ? myHabits.find((x) => x.teamHabitId === h.id) : null;
+  const done = adopted ? !!(adopted.log && adopted.log[_todayK]) : !!h.doneByMe;
+  const toggle = () => {
+    if (adopted) { app?.toggleHabit(adopted.id); setTick((n) => n + 1); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } return; }
+    if (!h || !h.id || !_live) return;
+    const want = !h.doneByMe;
+    setHabits((list) => _bosTeamPut("habits:" + t.cloudId, (list || []).map((x) => x.id === h.id ? { ...x, doneByMe: want, doneToday: Math.max(0, (x.doneToday || 0) + (want ? 1 : -1)) } : x)));
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    window.bosCloud.toggleTeamHabitToday(h.id, want).then(() => setTick((n) => n + 1));
+  };
+  const cheersOn = !!(cheers && Array.isArray(cheers.rows));
+  const myCheered = {}; if (cheersOn && meId) cheers.rows.forEach((r) => { if (r.from === meId) myCheered[r.to] = true; });
+  const sendCheer = (toId) => { if (!cheersOn || myCheered[toId] || toId === meId) return; setCheers((c) => c ? { ...c, rows: c.rows.concat([{ from: meId, to: toId, at: new Date().toISOString() }]) } : c); window.bosCloud.sendTeamCheer(t.cloudId, toId); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } };
+  const openPerson = (p) => openSheet(<CirclePersonSheetLive team={t} person={p} meId={meId} habits={habits}
+    rangeRows={(rangeS && rangeS.rows) || []} dayRows={(dayFeedS && dayFeedS.rows) || []}
+    cheersOn={cheersOn} cheered={!!myCheered[p.id]} onCheer={() => sendCheer(p.id)}
+    onWrite={(name) => navigate("team-detail", { team: t, from: from, prefill: "@" + (((name || "").split(" ")[0]) || "друг") + " " })} isDark={isDark} />);
+  const onEdit = _isOwner ? () => openSheet(<HabitFormSheetLive mode="edit" navigate={navigate}
+    habit={{ id: h.id, name: h.name, emoji: h.emoji, color: h.color || null, goalPerDay: h.goalPerDay || 1, duration: 0, isMain: !!h.isMain }}
+    teamFor={{ team: t,
+      onSave: (data, editId) => {
+        setHabits((list) => _bosTeamPut("habits:" + t.cloudId, (list || []).map((x) => x.id === editId ? { ...x, name: data.name, emoji: data.emoji, color: data.color, goalPerDay: data.goalPerDay, isMain: data.isMain } : x)));
+        if (window.bosCloud.updateTeamHabit) window.bosCloud.updateTeamHabit(editId, data).then((ok) => {
+          setTick((n) => n + 1);
+          if (!ok && typeof InfoSheet === "function") openSheet(<InfoSheet title="Правка не сохранилась" dark={isDark} cta="Понятно" body="База не приняла изменение общей привычки, поэтому она осталась прежней. Обычно это нехватка прав на правку в круге — сообщи, и мы поправим." />);
+        });
+      },
+      onDelete: (id) => {
+        if (window.bosCloud.removeTeamHabit) window.bosCloud.removeTeamHabit(id);
+        setHabits((list) => _bosTeamPut("habits:" + t.cloudId, (list || []).filter((x) => x.id !== id)));
+        navigate("team-detail", { team: t, from: from });
+      } }} />) : null;
+
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader dark={isDark} title="" onBack={() => navigate("team-detail", { team: t, from: from })}
+        right={onEdit ? <EditGlassButtonLive onClick={onEdit} /> : null} />
+      <HabitStandardSheetLive mode="circle" habit={h} team={t} members={members} meId={meId}
+        rangeRows={(rangeS && rangeS.rows) || []} dayRows={(dayFeedS && dayFeedS.rows) || []}
+        done={done} onToggle={toggle} onEdit={null} onPerson={openPerson} isDark={isDark} />
     </div>
   );
 }

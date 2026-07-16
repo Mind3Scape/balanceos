@@ -180,7 +180,9 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
   const h = habit || {};
   const membersN = (members || []).length || 1;
   const [isDone, setIsDone] = React.useState(!!done);
-  const [markAt, setMarkAt] = React.useState(null); // «✓ в 07:12» после тапа прямо в шторке
+  const [markAt, setMarkAt] = React.useState(null); // «✓ в 07:12» после тапа прямо здесь
+  // Правда снаружи (полл/прижитая копия) догоняет оптимистичный тап — синкаем чекбокс.
+  React.useEffect(() => { setIsDone(!!done); }, [done]);
   const rosterById = {}; (members || []).forEach((m) => { rosterById[m.id] = m; });
 
   // Мои отметки этой привычки: серия (окно 31), время сегодня.

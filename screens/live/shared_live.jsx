@@ -2090,9 +2090,28 @@ function bosParseTs(s) {
      «Вступить» — только если я не внутри
    Данные разные, вид один: свой круг → teamTodayTimes (я участник, вижу ЛИЦА и часы);
    чужой открытый → bos_circle_pulse (только часы и числа, без имён — RLS). */
-// Кэш живых данных карточки НА МОДУЛЬ: клон карточки (превью в меню зажатия) и повторные
-// заходы на экран рисуются сразу тем же, что оригинал, — без «двоения» и перещёлкивания.
-var _bosCircleCardCache = { times: {}, pulse: {} };
+// Кэш живых данных карточки: клон (превью зажатия) и повторные заходы рисуются сразу.
+// ПЕРЕЖИВАЕТ ПЕРЕЗАПУСК (David 2026-07-16: «захожу — ленты дня пустые, потом всё
+// подгружается; можно, чтобы сразу?»): последний известный день лежит в localStorage и
+// встаёт первым кадром, сеть освежает фоном. Кэш ЧУЖОГО дня не показываем — при первом
+// входе в новые сутки нить честно пуста (день и правда ещё пуст), без «схлопывания» вчера.
+function _bosCardDay() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+var _bosCircleCardCache = (function () {
+  try {
+    var v = JSON.parse(localStorage.getItem("bos:cache:cardpulse") || "null");
+    if (v && v.day === _bosCardDay() && v.times && v.pulse) return v;
+  } catch (e) {}
+  return { day: _bosCardDay(), times: {}, pulse: {} };
+})();
+var _bosCircleCardSaveT = null;
+function _bosCircleCardPersist() {
+  if (_bosCircleCardSaveT) return;
+  _bosCircleCardSaveT = setTimeout(function () {
+    _bosCircleCardSaveT = null;
+    _bosCircleCardCache.day = _bosCardDay();
+    try { localStorage.setItem("bos:cache:cardpulse", JSON.stringify(_bosCircleCardCache)); } catch (e) {}
+  }, 400);
+}
 function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, busy, requested }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = !!(app && app.themeOverride === "dark");
@@ -2111,7 +2130,7 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   React.useEffect(() => {
     if (!ck || !joined || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTodayTimes)) return;
     let on = true;
-    window.bosCloud.teamTodayTimes(ck).then((r) => { if (on && r) { _bosCircleCardCache.times[ck] = r; setTimes(r); } }).catch(() => {});
+    window.bosCloud.teamTodayTimes(ck).then((r) => { if (on && r) { _bosCircleCardCache.times[ck] = r; _bosCircleCardPersist(); setTimes(r); } }).catch(() => {});
     return () => { on = false; };
   }, [ck, joined]);
   // Чужой открытый → анонимный серверный агрегат (иначе RLS молча вернёт 0 и живой круг
@@ -2122,7 +2141,7 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
     // HH:MM» — тот самый разнобой чипов. Для приватных сервер вернёт null — чип просто не будет.
     if (!ck || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
     let on = true;
-    window.bosCloud.circlePulse(ck).then((p) => { if (on && p) { _bosCircleCardCache.pulse[ck] = p; setPulse(p); } }).catch(() => {});
+    window.bosCloud.circlePulse(ck).then((p) => { if (on && p) { _bosCircleCardCache.pulse[ck] = p; _bosCircleCardPersist(); setPulse(p); } }).catch(() => {});
     return () => { on = false; };
   }, [ck, joined]);
   // Непрочитанные — только у своих (в чужой чат я не вижу).
