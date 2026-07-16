@@ -385,6 +385,9 @@ function TeamDetailLive() {
   // иконки под шапкой (точка-в-кольце = круг, пузырь = чат; линейные SVG). Чат больше
   // не в «подвале»: «Написать» из кабинета/карточки человека открывает сразу чат.
   const [roomTab, setRoomTab] = React.useState(() => (params && params.prefill ? "chat" : "day"));
+  // Фото из чата НА ВЕСЬ ЭКРАН (David 2026-07-16: «нажимаю на фотку — не открывается,
+  // в уменьшенном виде что толку»): тап по снимку → тёмный просмотр, тап — закрыть.
+  const [photoView, setPhotoView] = React.useState(null);
   const mapRow = React.useCallback((r) => {
     const mine = r.user_id === meRef.current;
     const prof = memberMapRef.current[r.user_id];
@@ -821,7 +824,7 @@ function TeamDetailLive() {
           return m.me ? (
             <div key={f.key} style={{ display: "flex", justifyContent: "flex-end", marginBottom: 9 }}>
               <div style={{ maxWidth: "78%", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: "16px 16px 5px 16px", padding: m.img ? 7 : "8px 12px" }}>
-                {m.img ? <img src={m.img} alt="" loading="lazy" style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4 }}>{m.t}</div>}
+                {m.img ? <img src={m.img} alt="" loading="lazy" onClick={() => setPhotoView(m.img)} style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4 }}>{m.t}</div>}
                 <div style={{ fontSize: 9.5, opacity: 0.55, textAlign: "right", marginTop: 2 }}>{m.time}</div>
               </div>
             </div>
@@ -831,7 +834,7 @@ function TeamDetailLive() {
               <div style={{ maxWidth: "78%" }}>
                 <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)", margin: "0 0 2px 4px" }}>{m.who + " · " + (m.time || "")}</div>
                 <div style={{ background: bubbleOther, borderRadius: "16px 16px 16px 5px", padding: m.img ? 7 : "8px 12px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
-                  {m.img ? <img src={m.img} alt="" loading="lazy" style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
+                  {m.img ? <img src={m.img} alt="" loading="lazy" onClick={() => setPhotoView(m.img)} style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
                 </div>
               </div>
             </div>
@@ -889,6 +892,17 @@ function TeamDetailLive() {
       </div>
       </div>
       </React.Fragment>)}
+
+      {/* ПРОСМОТР ФОТО — на весь экран, поверх всего; тап в любом месте закрывает. */}
+      {photoView && (
+        <div onClick={() => setPhotoView(null)} style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(4,4,6,0.93)", WebkitBackdropFilter: "blur(6px)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", animation: "dimIn .16s ease both", cursor: "zoom-out" }}>
+          <img src={photoView} alt="" style={{ maxWidth: "96vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} />
+          <button onClick={() => setPhotoView(null)} className="tap" aria-label="Закрыть"
+            style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 14px)", right: 14, width: 38, height: 38, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: "rgba(255,255,255,0.16)", color: "#fff" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
