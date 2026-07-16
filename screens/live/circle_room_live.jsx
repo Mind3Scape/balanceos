@@ -174,6 +174,41 @@ function CircleLevelUpSheetLive({ level, gift, isDark }) {
   );
 }
 
+/* Меню «⋯» шапки комнаты — грамматика CreateMenuLive с Главной: отдельные пилюли
+   выпадают из-под кнопки, иконки в кружках, лёгкий стаггер. */
+function CircleRoomMenuLive({ open, onClose, anchorRef, items, isDark }) {
+  const [pos, setPos] = React.useState(null);
+  React.useEffect(() => {
+    if (open && anchorRef && anchorRef.current) {
+      const r = anchorRef.current.getBoundingClientRect();
+      setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) });
+    }
+  }, [open]);
+  if (!open || !pos) return null;
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, width: 236, display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+        {items.map((it, i) => (
+          <button key={i} role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
+            display: "flex", width: "100%", alignItems: "center", justifyContent: "flex-start", gap: 11, whiteSpace: "nowrap",
+            padding: "8px 17px 8px 8px", borderRadius: 999, cursor: "pointer",
+            background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
+            WebkitBackdropFilter: "blur(22px) saturate(150%)", backdropFilter: "blur(22px) saturate(150%)",
+            border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"),
+            boxShadow: "0 12px 32px rgba(0,0,0," + (isDark ? "0.5" : "0.16") + ")",
+            fontSize: 15, fontWeight: 600, color: isDark ? "#f2f2f5" : "#0a0a0a",
+            transformOrigin: "top right", animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both", animationDelay: (i * 0.05) + "s",
+          }}>
+            <span aria-hidden style={{ width: 34, height: 34, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{it.icon}</span>
+            {it.label}
+          </button>
+        ))}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* Золотая строка-веха в пульсе. */
 function CircleMileLine({ children }) {
   return <div style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: BOS_ROOM_GOLD_INK, background: "rgba(240,195,10,0.12)", borderRadius: 999, padding: "6px 12px", margin: "2px 0 10px" }}>{children}</div>;
@@ -314,6 +349,7 @@ function TeamDetailLive() {
         if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
       }
       setHabitsTick((n) => n + 1);
+      try { window.dispatchEvent(new Event("bos:teamxp")); } catch (e) {}
     });
   };
   // «Прижитая» копия (вести у себя — UI убран, но связки людей живы): отметка идёт через личную.
@@ -458,6 +494,9 @@ function TeamDetailLive() {
   // Фото из чата НА ВЕСЬ ЭКРАН (David 2026-07-16: «нажимаю на фотку — не открывается,
   // в уменьшенном виде что толку»): тап по снимку → тёмный просмотр, тап — закрыть.
   const [photoView, setPhotoView] = React.useState(null);
+  // Меню «⋯» пилюли шапки (David 2026-07-16: «объединить в одну стеклянную пилюлю»).
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const moreRef = React.useRef(null);
   const mapRow = React.useCallback((r) => {
     const mine = r.user_id === meRef.current;
     const prof = memberMapRef.current[r.user_id];
@@ -675,7 +714,9 @@ function TeamDetailLive() {
     }).catch(() => {});
     load();
     const iv = setInterval(load, 90000);
-    return () => { on = false; clearInterval(iv); };
+    // «bos:teamxp» — отметка доехала до облака (своя или с Главной): пересчёт сразу.
+    window.addEventListener("bos:teamxp", load);
+    return () => { on = false; clearInterval(iv); window.removeEventListener("bos:teamxp", load); };
   }, [_live, t.cloudId]);
   const circleLvl = (circleXP != null && typeof bosCircleLevel === "function") ? bosCircleLevel(circleXP) : null;
   const rhythmToday = membersN > 0 && todayN >= need;
@@ -724,7 +765,6 @@ function TeamDetailLive() {
 
   /* ── вёрстка ── */
   const glass = bosGlassChrome(isDark);
-  const navBtn = { ...glass, width: 38, height: 38, borderRadius: 999, border: 0, display: "grid", placeItems: "center", color: isDark ? "#fff" : "#0a0a0a", cursor: "pointer", flexShrink: 0 };
   const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: (goalProg && goalProg.desc) || t.desc || "", joined: t.joined, threadOff: threadOff, habitIds: [] };
   const subParts = [];
   if (ageDays) subParts.push("живёт " + ageDays + " " + ((ageDays % 10 === 1 && ageDays % 100 !== 11) ? "день" : (ageDays % 10 >= 2 && ageDays % 10 <= 4 && (ageDays % 100 < 12 || ageDays % 100 > 14)) ? "дня" : "дней"));
@@ -773,64 +813,64 @@ function TeamDetailLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* ШАПКА — ЛЁГКАЯ (вариант Б, выбор David): только кнопки; имя и факты живут в
-          ВИЗИТКЕ на стороне «День». На стороне «Чат» имя возвращается в шапку — иначе
-          экран разговора безымянный. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "2px 0 2px", minHeight: 44 }}>
+      {/* ШАПКА (David 2026-07-16: «как на главной — одна стеклянная пилюля: слева компас с
+          цифрой, справа три точки с подменю; переключатель поднять для симметрии»): назад ·
+          сегменты по центру (абсолютом — центр не гуляет от ширины краёв) · пилюля справа.
+          Всё, что не поместилось (позвать, уровень, настройки), живёт за «⋯». */}
+      <div style={{ position: "relative", display: "flex", alignItems: "center", padding: "2px 0 2px", minHeight: 46 }}>
         {!_inTG && (
           <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={{ width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", background: "transparent", color: "var(--text)", flexShrink: 0, cursor: "pointer", marginLeft: -6 }}>
             <I.ChevronLeft size={20} strokeWidth={2.4} />
           </button>
         )}
-        {roomTab === "chat" ? (
-          <React.Fragment>
-            <span style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 17,
-              background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-              boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 17, null)}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-            </div>
-          </React.Fragment>
-        ) : <div style={{ flex: 1 }} />}
-        {_isOwner && _live && (
-          <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap" aria-label="Кабинет ведущего" title="Кабинет ведущего"
-            style={{ ...glass, height: 36, borderRadius: 999, border: 0, padding: "0 11px", display: "inline-flex", alignItems: "center", gap: 5, color: isDark ? "#fff" : "#0a0a0a", flexShrink: 0, cursor: "pointer" }}>
-            <I.Compass size={16} strokeWidth={2} />
-            {redCount > 0 && <span style={{ minWidth: 16, height: 16, borderRadius: 999, background: "#E0362B", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px" }}>{redCount}</span>}
+        {/* СЕГМЕНТЫ (макет А): точка-в-кольце = «День круга», пузырь = «Чат»; золотой бейдж
+            непрочитанного. Теперь в шапке, по центру. */}
+        <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
+          <div style={{ display: "inline-flex", background: isDark ? "rgba(255,255,255,0.09)" : "rgba(120,120,128,0.14)", borderRadius: 999, padding: 2.5 }}>
+            {["day", "chat"].map((id) => {
+              const on = roomTab === id;
+              return (
+                <button key={id} onClick={() => { setRoomTab(id); if (id === "chat") { try { window.scrollTo(0, 0); } catch (e) {} } }} className="tap" data-haptic="selection"
+                  aria-label={id === "day" ? "День круга" : "Чат"}
+                  style={{ position: "relative", border: 0, borderRadius: 999, padding: "6px 22px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)", transition: "background .15s, color .15s" }}>
+                  {id === "day" ? (
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
+                  ) : (
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5z" /></svg>
+                  )}
+                  {id === "chat" && !on && unreadN > 0 && (
+                    <span style={{ position: "absolute", top: -3, right: 6, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#5a4104", fontSize: 8.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ flex: 1 }} />
+        {/* Пилюля: стекло варится один раз на контейнере (урок пилюли Главной), кнопки
+            внутри прозрачные, каждая держит свою зону касания. */}
+        <div style={{ display: "flex", alignItems: "center", height: 40, borderRadius: 999, flexShrink: 0, overflow: "hidden", ...glass }}>
+          {_isOwner && _live && (
+            <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap" aria-label="Кабинет ведущего" title="Кабинет ведущего"
+              style={{ height: 40, border: 0, padding: "0 5px 0 13px", display: "inline-flex", alignItems: "center", gap: 4, background: "transparent", color: isDark ? "#fff" : "#0a0a0a", cursor: "pointer", flexShrink: 0 }}>
+              <I.Compass size={17} strokeWidth={2} />
+              {redCount > 0 && <span style={{ minWidth: 16, height: 16, borderRadius: 999, background: "#E0362B", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px" }}>{redCount}</span>}
+            </button>
+          )}
+          <button ref={moreRef} onClick={() => setMenuOpen(true)} className="tap" aria-label="Ещё" aria-haspopup="menu" aria-expanded={menuOpen}
+            style={{ width: _isOwner && _live ? 42 : 46, height: 40, border: 0, background: "transparent", color: isDark ? "#fff" : "#0a0a0a", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
           </button>
-        )}
-        {/* Карандаш владельца живёт В КАБИНЕТЕ (шапка = как макет FinHead: компас + позвать).
-            Только у локального круга без облака кабинета нет — карандаш остаётся тут. */}
-        {_isOwner && !_live && (
-          <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" data-haptic="selection" aria-label="Настройки круга" style={{ ...navBtn, width: 36, height: 36 }}><I.Pencil size={15} strokeWidth={2} /></button>
-        )}
-        <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={{ ...navBtn, width: 36, height: 36 }}><I.Share size={15} strokeWidth={2} /></button>
-      </div>
-
-      {/* СЕГМЕНТЫ комнаты (макет А): точка-в-кольце = «День круга», пузырь = «Чат».
-          Иконки-линии по просьбе David; на «Чате» золотой бейдж непрочитанного. */}
-      <div style={{ display: "flex", justifyContent: "center", padding: "7px 0 3px" }}>
-        <div style={{ display: "inline-flex", background: isDark ? "rgba(255,255,255,0.09)" : "rgba(120,120,128,0.14)", borderRadius: 999, padding: 2.5 }}>
-          {["day", "chat"].map((id) => {
-            const on = roomTab === id;
-            return (
-              <button key={id} onClick={() => { setRoomTab(id); if (id === "chat") { try { window.scrollTo(0, 0); } catch (e) {} } }} className="tap" data-haptic="selection"
-                aria-label={id === "day" ? "День круга" : "Чат"}
-                style={{ position: "relative", border: 0, borderRadius: 999, padding: "6px 27px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)", transition: "background .15s, color .15s" }}>
-                {id === "day" ? (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
-                ) : (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5z" /></svg>
-                )}
-                {id === "chat" && !on && unreadN > 0 && (
-                  <span style={{ position: "absolute", top: -3, right: 9, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#5a4104", fontSize: 8.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
+      <CircleRoomMenuLive open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={moreRef} isDark={isDark} items={[
+        { icon: <I.Share size={18} strokeWidth={1.9} />, label: "Позвать в круг", go: () => openSheet(<TeamShareSheetLive team={t} />) },
+        circleLvl ? { icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="8.4" strokeDasharray="39 14" transform="rotate(-90 12 12)" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
+        ), label: "Уровень круга — " + circleLvl.level, go: openLevelSheet } : null,
+        (_isOwner && !_live) ? { icon: <I.Pencil size={17} strokeWidth={1.9} />, label: "Настройки круга", go: () => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />) } : null,
+      ].filter(Boolean)} />
 
       {roomTab === "day" && (<React.Fragment>
       {/* ВИЗИТКА КРУГА (вариант Б): диск с кольцом-уровнем · имя · факты · XP-шкала · серия —
@@ -949,6 +989,14 @@ function TeamDetailLive() {
       {/* ЧАТ — своя сторона комнаты (сегмент): отметки, слова и вехи, одна лента по
           времени; свои отметки ВНУТРИ ленты, не приколочены сверху (David 2026-07-16). */}
       {roomTab === "chat" && (<React.Fragment>
+      {/* Имя круга — теперь тут (шапка отдана пилюле и сегментам): экран разговора не безымянный. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 2px 0" }}>
+        <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
+          background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
+          boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 15, null)}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+        {membersN > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)", flexShrink: 0 }}>{membersN + " " + bosRoomPeopleWord(membersN)}</span>}
+      </div>
       {/* Тебя подбодрили — и кто. */}
       {cheeredMe.length > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "7px 0 9px", borderRadius: 14, padding: "8px 11px", background: "rgba(240,195,10,0.10)" }}>
@@ -962,7 +1010,7 @@ function TeamDetailLive() {
       {/* ЧАТ-БОКС: лента скроллится ВНУТРИ и открыта на свежем, композер приклеен к её
           дну. С v774 чат — своя вкладка, поэтому бокс занимает почти весь экран. */}
       <div style={{ ...card, overflow: "hidden", marginTop: cheeredMe.length > 0 ? 0 : 7 }}>
-      <div ref={feedBoxRef} className="screen-scroll" style={{ height: "calc(100vh - " + (cheeredMe.length > 0 ? 320 : 278) + "px)", minHeight: 340, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
+      <div ref={feedBoxRef} className="screen-scroll" style={{ height: "calc(100vh - " + (cheeredMe.length > 0 ? 357 : 315) + "px)", minHeight: 340, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
       {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px", flexShrink: 0 }}>показаны последние события</div>}
       {feedShown.length === 0 && !hasMiles ? (
         <div style={{ textAlign: "center", padding: "0 24px", margin: "auto" }}>

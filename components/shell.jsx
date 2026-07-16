@@ -1017,7 +1017,9 @@ function AppProvider({ children }) {
     try { if (h.shareCode && _liveCloud() && window.bosCloud.setSharedLog) window.bosCloud.setSharedLog(h.shareCode, tk, on); } catch (e) {}
     // TEAM habit adopted onto your personal list: mirror today's mark to the team log so the team
     // goal counts it — отмечаешь у себя, идёт в командный счёт (David: «приходит как личная»).
-    try { if (h.teamHabitId && _liveCloud() && window.bosCloud.toggleTeamHabitToday) window.bosCloud.toggleTeamHabitToday(h.teamHabitId, on); } catch (e) {}
+    // Сигнал «XP круга изменился» — карточки кругов и комната пересчитывают уровень сразу,
+    // а не ждут своего 90-сек опроса (David 2026-07-16: «не вижу, чтобы уровень рос»).
+    try { if (h.teamHabitId && _liveCloud() && window.bosCloud.toggleTeamHabitToday) window.bosCloud.toggleTeamHabitToday(h.teamHabitId, on).then(function () { try { window.dispatchEvent(new Event("bos:teamxp")); } catch (e2) {} }); } catch (e) {}
     return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log, h.days) });
   }));
   const addHabit = (h) => {

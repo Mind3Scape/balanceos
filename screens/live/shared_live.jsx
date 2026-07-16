@@ -2173,6 +2173,19 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
     window.bosCloud.circlePulse(ck).then((p) => { if (on && p) { _bosCircleCardCache.pulse[ck] = p; _bosCircleCardPersist(); setPulse(p); } }).catch(() => {});
     return () => { on = false; };
   }, [ck, joined]);
+  // Уровень круга (Э1) и на БОЛЬШОЙ карточке (Главная/Привычки) — David 2026-07-16: «не вижу
+  // уровень на своих наружных карточках». Та же грамматика, что у компакт-миниатюры: кольцо
+  // прогресса + золотая циферка на диске. «bos:teamxp» = отметка доехала → пересчёт сразу.
+  const [cXP, setCXP] = React.useState(() => (ck && _bosCircleCardCache.xp && _bosCircleCardCache.xp[ck] != null) ? _bosCircleCardCache.xp[ck] : null);
+  React.useEffect(() => {
+    if (!ck || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamXP)) return;
+    let on = true;
+    const load = () => bosTeamXPBatch(ck).then((v) => { if (on && v != null) { _bosCircleCardCache.xp[ck] = v; _bosCircleCardPersist(); setCXP(v); } });
+    load();
+    window.addEventListener("bos:teamxp", load);
+    return () => { on = false; window.removeEventListener("bos:teamxp", load); };
+  }, [ck]);
+  const lvl = (cXP != null && typeof bosCircleLevel === "function") ? bosCircleLevel(cXP) : null;
   // Непрочитанные — только у своих (в чужой чат я не вижу).
   const [unread, setUnread] = React.useState(() => { const c = (ck && typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(ck) : null; return c ? c.count : 0; });
   React.useEffect(() => {
@@ -2216,9 +2229,22 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
         </span>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {lvl ? (
+          <span style={{ position: "relative", width: 46, height: 46, flexShrink: 0 }}>
+            <svg viewBox="0 0 36 36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+              <circle cx="18" cy="18" r="16" fill="none" stroke={isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.08)"} strokeWidth="2.6" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_THREAD_GOLD} strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset={(100.5 * (1 - lvl.frac)).toFixed(1)} />
+            </svg>
+            <span style={Object.assign({ position: "absolute", inset: 4, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 18 }, disc)}>
+              {typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 19, null) : (t.emblem || "👥")}
+            </span>
+            <span style={{ position: "absolute", right: -4, bottom: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#B4820A", lineHeight: 1, zIndex: 2 }}>{lvl.level}</span>
+          </span>
+        ) : (
         <span style={Object.assign({ width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }, disc)}>
           {typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 22, null) : (t.emblem || "👥")}
         </span>
+        )}
         <div style={{ flex: 1, minWidth: 0, paddingRight: unread > 0 ? 40 : 0 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
           <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
@@ -5866,8 +5892,10 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
   React.useEffect(() => {
     if (!ck || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamXP)) return;
     let on = true;
-    bosTeamXPBatch(ck).then((v) => { if (on && v != null) { _bosCircleCardCache.xp[ck] = v; _bosCircleCardPersist(); setCXP(v); } });
-    return () => { on = false; };
+    const load = () => bosTeamXPBatch(ck).then((v) => { if (on && v != null) { _bosCircleCardCache.xp[ck] = v; _bosCircleCardPersist(); setCXP(v); } });
+    load();
+    window.addEventListener("bos:teamxp", load);
+    return () => { on = false; window.removeEventListener("bos:teamxp", load); };
   }, [ck]);
   const lvl = (cXP != null && typeof bosCircleLevel === "function") ? bosCircleLevel(cXP) : null;
   const _pt = (x) => (typeof bosParseTs === "function" ? bosParseTs(x) : new Date(x));
