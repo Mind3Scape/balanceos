@@ -70,7 +70,7 @@ function BosStdHist({ dist, me, isDark }) {
 
 /* «РИТМ» — один блок времени. Пилюля-переключатель в заголовке СПРАВА (компактная, v3):
    свёрнута — один таймфрейм «Неделя ⌄»; тап — три пилюли на месте; выбор схлопывает. */
-function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark }) {
+function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare }) {
   const [tab, setTab] = React.useState("week");
   const [open, setOpen] = React.useState(false);
   const LBL = { week: "Неделя", month: "Месяц", year: "Год" };
@@ -117,7 +117,9 @@ function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHin
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{title || "Ритм"}</span>
         {control}
       </div>
-      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "13px 14px" }}>{body}</div>
+      {/* bare (аккордеон в белой карточке): блок цвета ЗАДНЕГО ФОНА, не белый-на-белом,
+          от которого читалась одна окантовка (David 2026-07-17). */}
+      <div style={{ background: bare ? (isDark ? "#151517" : "var(--bg, #f2f2f4)") : "var(--card)", borderRadius: 18, boxShadow: bare ? "none" : "var(--card-shadow)", padding: "13px 14px" }}>{body}</div>
     </div>
   );
 }
@@ -127,6 +129,11 @@ function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHin
              threadHint, rhythm:{...props BosRhythmBlockLive}, peopleTitle, peopleExtra, people:<node>|null } */
 function BosHabitStandardBodyLive({ model, isDark }) {
   const m = model;
+  // В bare-аккордеоне внутренние блоки — цвета заднего фона страницы (серые), иначе они
+  // белые внутри белой карточки и видна только окантовка (David 2026-07-17).
+  const blockCard = m.bare
+    ? { background: isDark ? "#151517" : "var(--bg, #f2f2f4)", borderRadius: 18, boxShadow: "none" }
+    : { background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)" };
   const h2 = (txt, extra) => (
     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 4px 8px" }}>
       <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{txt}</span>
@@ -163,18 +170,18 @@ function BosHabitStandardBodyLive({ model, isDark }) {
       {m.thread && (
         <React.Fragment>
           {h2("Сегодня", m.threadHint ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span> : null)}
-          <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "6px 8px" }}>
+          <div style={{ ...blockCard, padding: "6px 8px" }}>
             <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} />
           </div>
         </React.Fragment>
       )}
       {/* «Ритм» — один блок времени с пилюлей. */}
-      {m.rhythm && <BosRhythmBlockLive {...m.rhythm} isDark={isDark} />}
+      {m.rhythm && <BosRhythmBlockLive {...m.rhythm} bare={m.bare} isDark={isDark} />}
       {/* Люди ступени: «Кто со мной» (друзья) / «Кто уже сегодня» (круг). */}
       {m.people && (
         <React.Fragment>
           {h2(m.peopleTitle || "Кто со мной", m.peopleExtra ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.peopleExtra}</span> : null)}
-          <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "9px 14px" }}>{m.people}</div>
+          <div style={{ ...blockCard, padding: "9px 14px" }}>{m.people}</div>
         </React.Fragment>
       )}
     </div>

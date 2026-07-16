@@ -943,7 +943,8 @@ function TeamDetailLive() {
       {!threadOff && _live && (
         <React.Fragment>
           <BosRoomH2 extra={<span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{todayN + " из " + membersN + " в деле"}</span>}>Сегодня</BosRoomH2>
-          <div style={{ ...card, padding: "6px 8px" }}>
+          {/* Нить БЕЗ белой подложки — прямо на фоне страницы (David 2026-07-17). */}
+          <div style={{ padding: "2px 6px" }}>
             <BosDayThreadLive faces={threadFaces.length <= 6 ? threadFaces : []} hours={threadFaces.length > 6 ? Object.keys(firstByUser).map((u) => _hr(firstByUser[u])) : []} isDark={isDark} />
           </div>
         </React.Fragment>

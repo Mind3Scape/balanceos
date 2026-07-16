@@ -3725,10 +3725,12 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
     } catch (e) { setList([]); }
     return function () { on = false; };
   }, []);
-  // круги, где я уже состою/владею — не показываем (это витрина чужого/нового);
-  // ранг = больше людей выше (David 2026-07-16: «самые большие — на первых местах»)
+  // ВСЕ публичные общие цели — И те, где я уже состою (David 2026-07-17: «видны всем,
+  // неважно, вступил или нет; новый человек заходит и сразу видит — люди ведут общие
+  // цели»); свои — без кнопки «Вступить», тап ведёт в комнату.
+  // Ранг = больше людей выше (David 2026-07-16: «самые большие — на первых местах»).
   var mineById = {}; ((app && app.teams) || []).forEach(function (t) { if (t && t.cloudId) mineById[t.cloudId] = t; });
-  var real = (list || []).filter(function (t) { return t && !mineById[t.id]; })
+  var real = (list || []).filter(Boolean)
     .sort(function (a, b) { var d = (b.members || 0) - (a.members || 0); if (d) return d; return (Date.parse(a.createdAt || 0) || 0) - (Date.parse(b.createdAt || 0) || 0); });
   // какие популярные шаблоны я уже завёл (по seedId) — помечаем «Ты в деле»
   var mineSeed = {}; ((app && app.teams) || []).forEach(function (t) { if (t && t.seedId) mineSeed[t.seedId] = t; });
@@ -3759,11 +3761,13 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
   // 1) реальные открытые круги — ЕДИНАЯ карточка (та же, что в каталоге и на главной; David:
   //    «в открытых кругах всё ещё урезанные»). Ширина 300 — стандартная карточка в горизонтальной
   //    ленте, целиком с нитью, чипами и «Вступить».
-  real.slice(0, 6).forEach(function (t) {
+  real.slice(0, 8).forEach(function (t) {
+    var mine = mineById[t.id] || null;
     cards.push(
       <div key={"real:" + t.id} style={{ width: 172, flexShrink: 0, scrollSnapAlign: "start" }}>
         {typeof BosCircleCardCompactLive === "function"
-          ? <BosCircleCardCompactLive t={t} joined={false} busy={!!busy[t.id]} requested={!!reqd[t.id]} onJoin={join} />
+          ? <BosCircleCardCompactLive t={t} joined={!!mine} busy={!!busy[t.id]} requested={!!reqd[t.id]} onJoin={join}
+              onOpen={mine ? function () { navigate("team-detail", { team: mine, from: "community" }); } : null} />
           : null}
       </div>
     );
@@ -4001,7 +4005,8 @@ function CommunityLive() {
             (David 2026-07-15: «там одинаковые иконки»). Теперь это BosCircleIcon — НАШ символ
             круга, тот же, что в меню «+» на главной: у знака появился один смысл во всём
             приложении, а «Круги» и «Люди» перестали быть двумя картинками про людей. */}
-        {[["all", "Все", I.Globe], ["circles", "Круги", BosCircleIcon], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
+        {/* «Круги» → «Общие цели» (David 2026-07-17: одно имя наверху и на «Все»). */}
+        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (
