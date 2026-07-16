@@ -122,6 +122,8 @@ const LIVE_SCREENS = {
   "team-cabinet": () => CircleCabinetLive,
   // Привычка круга — ОТДЕЛЬНАЯ страница (стандарт-лесенка, как личная деталь), не шторка.
   "team-habit": () => CircleHabitDetailLive,
+  // Человек в круге — тоже страница (кадр 3), не шторка.
+  "team-person": () => CirclePersonDetailLive,
   levels: () => LevelsLive,
   "course-detail": () => CourseDetailLive,
   "partner-detail": () => PartnerDetailLive,
@@ -210,7 +212,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v770";
+const APP_VERSION = "v771";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.

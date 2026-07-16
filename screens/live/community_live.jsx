@@ -3216,8 +3216,12 @@ function MyCirclesLive({ app, navigate, isDark, onAll }) {
   return (
     <div>
       <CommSectionHeadLive title="🫂 Мои круги" onAll={onAll} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
-        {teams.map(function (t) { return <LiveTeamCard key={t._id || t.cloudId} t={t} navigate={navigate} rhythm />; })}
+      {/* КОМПАКТ-СЕТКА (David 2026-07-16: «в Сообществе все круги — компактной карточкой с волной»). */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+        {teams.map(function (t) {
+          return <BosCircleCardCompactLive key={t._id || t.cloudId} t={t} joined
+            onOpen={function () { navigate("team-detail", { team: t, from: "community" }); }} />;
+        })}
       </div>
     </div>
   );
@@ -3755,9 +3759,9 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
   //    ленте, целиком с нитью, чипами и «Вступить».
   real.slice(0, 6).forEach(function (t) {
     cards.push(
-      <div key={"real:" + t.id} style={{ width: 300, flexShrink: 0, scrollSnapAlign: "start" }}>
-        {typeof BosCircleCardLive === "function"
-          ? <BosCircleCardLive t={t} joined={false} busy={!!busy[t.id]} requested={!!reqd[t.id]} onJoin={join} />
+      <div key={"real:" + t.id} style={{ width: 172, flexShrink: 0, scrollSnapAlign: "start" }}>
+        {typeof BosCircleCardCompactLive === "function"
+          ? <BosCircleCardCompactLive t={t} joined={false} busy={!!busy[t.id]} requested={!!reqd[t.id]} onJoin={join} />
           : null}
       </div>
     );

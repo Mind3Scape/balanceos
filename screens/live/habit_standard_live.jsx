@@ -131,8 +131,9 @@ function BosHabitStandardBodyLive({ model, isDark }) {
   return (
     <div>
       {/* Шапка: плитка-иконка + имя + контекст, ОТМЕТКА-ЧЕКБОКС справа (единственный жест).
-          headExtra (карандаш владельца и т.п.) живёт В РЯДУ, перед чекбоксом — не поверх него. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          headExtra (карандаш владельца и т.п.) живёт В РЯДУ, перед чекбоксом — не поверх него.
+          bare (аккордеон в списке привычек круга): шапки нет — имя и чекбокс уже в строке выше. */}
+      {!m.bare && <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
         <span style={{ width: 42, height: 42, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
           background: m.color ? m.color + "26" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)")),
           boxShadow: m.color ? "none" : bosTileGlass(isDark) }}>{bosIcon(m.emoji, 20, m.color)}</span>
@@ -142,10 +143,10 @@ function BosHabitStandardBodyLive({ model, isDark }) {
         </div>
         {m.headExtra || null}
         {m.check}
-      </div>
+      </div>}
       {/* Чипы: сделано в · серия · обычно в · N из M. */}
       {m.chips && m.chips.length > 0 && (
-        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 10 }}>
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: m.bare ? 2 : 10 }}>
           {m.chips.map((c, i) => c.gold ? (
             <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: BOS_ROOM_GOLD_INK, background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
           ) : (
@@ -176,7 +177,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
 }
 
 /* ШТОРКА ПРИВЫЧКИ КРУГА — ступень 3 стандарта (кадр 2 финала И). Один код с личной деталью. */
-function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, dayRows, done, onToggle, onEdit, onPerson, isDark }) {
+function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, dayRows, done, onToggle, onEdit, onPerson, isDark, bare }) {
   const h = habit || {};
   const membersN = (members || []).length || 1;
   const [isDone, setIsDone] = React.useState(!!done);
@@ -245,13 +246,14 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
   });
 
   const chips = [];
-  if (isDone && doneAt) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " в " + doneAt] });
-  else if (isDone) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " сделано"] });
+  if (!bare && isDone && doneAt) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " в " + doneAt] });
+  else if (!bare && isDone) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " сделано"] });
   if (myStreak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />, " серия " + (myStreak >= 31 ? "31+" : myStreak)] });
   if (peakMin != null && typeof bosPeakLabel === "function") chips.push({ gold: true, node: [<I.Clock key="p" size={11} color={BOS_ROOM_GOLD} strokeWidth={2} />, " обычно в " + bosPeakLabel(peakMin)] });
   chips.push({ node: doneUsers.length + " из " + membersN + " сегодня" });
 
   const model = {
+    bare: !!bare,
     emoji: h.emoji, color: h.color && h.color !== "#0a0a0a" ? h.color : null, name: h.name,
     ctx: "круг «" + ((team && team.name) || "") + "» · " + membersN + " " + bosRoomPeopleWord(membersN),
     headExtra: onEdit ? (
@@ -266,7 +268,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
       setMarkAt(next ? bosRoomHHMM(Date.now()) : null);
       onToggle && onToggle();
     }} />,
-    thread,
+    thread: bare ? null : thread,
     rhythm: { mode: "circle", hist, monthCells, monthHint: "кольцо = доля круга", yearMonths, yearHint: "твой год · кольцо месяца = доля дней", onYearOpen: loadYear, accent: h.color },
     peopleTitle: "Кто уже сегодня",
     peopleExtra: doneUsers.length + " " + bosRoomPeopleWord(doneUsers.length),
@@ -280,8 +282,13 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
   };
 
   return (
-    <div style={{ padding: "2px 2px 8px" }}>
+    <div style={{ padding: bare ? 0 : "2px 2px 8px" }}>
       <BosHabitStandardBodyLive model={model} isDark={isDark} />
+      {bare && onEdit && (
+        <button onClick={onEdit} className="tap" style={{ marginTop: 10, width: "100%", border: 0, borderRadius: 999, padding: "9px 0", fontSize: 11.5, fontWeight: 700, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)", color: "var(--text-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <I.Pencil size={12} strokeWidth={2} />Изменить привычку
+        </button>
+      )}
     </div>
   );
 }

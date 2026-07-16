@@ -66,8 +66,9 @@ function BosRoomH2({ children, extra }) {
   );
 }
 
-/* Строка «Мой день»: привычка или дело. Кружок = отметить, тело строки = статистика (onOpen). */
-function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert }) {
+/* Строка списка привычек/дел. Кружок = отметить; тело строки = аккордеон статистики (onOpen),
+   шеврон поворачивается при раскрытии. */
+function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert, expanded }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 2px", borderTop: first ? 0 : "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") }}>
       <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
@@ -90,6 +91,7 @@ function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on,
             ))}
           </span>
         ) : null}
+        {onOpen ? <I.ChevronRight size={13} color="var(--text-4)" style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }} /> : null}
       </div>
       {inert
         ? <span aria-hidden style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.18)" : "rgba(10,10,10,0.12)") }} />
@@ -550,15 +552,10 @@ function TeamDetailLive() {
     el.scrollTop = el.scrollHeight;
   }, [feedShown.length]);
 
-  const openPerson = (p) => {
-    if (!p) return;
-    openSheet(<CirclePersonSheetLive team={t} person={p} meId={meId} habits={teamHabits} rangeRows={rangeRows} dayRows={dayRows}
-      cheersOn={cheersOn} cheered={!!myCheered[p.id]} onCheer={() => sendCheer(p.id)}
-      onWrite={(name) => { setText((cur) => cur || ("@" + name + " ")); setTimeout(() => { try { composerRef.current && composerRef.current.focus(); } catch (e) {} }, 380); }}
-      isDark={isDark} />);
-  };
-  // Строка привычки → ОТДЕЛЬНАЯ СТРАНИЦА (David: «как страница привычек», не шторка).
-  const openHabitSheet = (h) => navigate("team-habit", { team: t, habit: h, from: from });
+  // Человек — ОТДЕЛЬНАЯ СТРАНИЦА (David 2026-07-16: «карточку человека тоже сделай страницей»).
+  const openPerson = (p) => { if (p) navigate("team-person", { team: t, person: p, from: from }); };
+  // Аккордеон привычек (David: строка раскрывается вниз, статистика видна на месте).
+  const [openHabit, setOpenHabit] = React.useState(null);
 
   /* ── праздник закрытого дня круга (механика не менялась) ── */
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
@@ -595,13 +592,24 @@ function TeamDetailLive() {
     const sub = membersN <= 12
       ? ((h.doneToday || 0) + " из " + (h.total != null ? h.total : membersN) + " сегодня" + mySuffix)
       : ((h.doneToday || 0) + " уже" + mySuffix);
+    const opened = openHabit === h.id;
     dayList.push(
       <CircleDayRowLive key={"h" + (h.id || i)} first={dayList.length === 0} isDark={isDark}
         icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
         name={h.name} sub={sub} subGold={done} faces={facesH}
-        on={done} inert={!_live}
+        on={done} inert={!_live} expanded={opened}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
-        onOpen={() => openHabitSheet(h)} />
+        onOpen={() => setOpenHabit(opened ? null : h.id)} />
+    );
+    // АККОРДЕОН (David 2026-07-16: «не на отдельную вкладку — привычка раскрывается вниз,
+    // и видно всё, что в неё входит, как в макетах»): тап по строке → статистика тут же.
+    if (opened) dayList.push(
+      <div key={"hx" + (h.id || i)} style={{ padding: "0 2px 13px" }}>
+        <HabitStandardSheetLive bare mode="circle" habit={h} team={t} members={members} meId={meId}
+          rangeRows={rangeRows} dayRows={dayRows} done={done}
+          onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
+          onEdit={_isOwner ? () => openEditTeamHabit(h) : null} onPerson={openPerson} isDark={isDark} />
+      </div>
     );
   });
   _teamTasks.forEach((tk, i) => {
@@ -1047,8 +1055,7 @@ function CircleCabinetLive() {
   const weekKeys = []; for (let i = 6; i >= 0; i--) weekKeys.push(bosRoomDayKey(i));
   // «Написать» из кабинета = комната с готовым «@Имя » в композере (лички в приложении нет).
   const writeTo = (m) => navigate("team-detail", { team: t, from: from, prefill: "@" + ((m.name || "").split(" ")[0] || "друг") + " " });
-  const openPerson = (m) => openSheet(<CirclePersonSheetLive team={t} person={m} meId={meId} habits={habits} rangeRows={rows} dayRows={dayRows}
-    cheersOn={cheersOn} cheered={!!myCheered[m.id]} onCheer={() => sendCheer(m.id)} onWrite={() => writeTo(m)} isDark={isDark} />);
+  const openPerson = (m) => navigate("team-person", { team: t, person: m, from: from, backRoute: "team-cabinet", backParams: { team: t, from: from } });
 
   const wardRow = (w) => {
     const open = openId === w.m.id;
@@ -1283,10 +1290,7 @@ function CircleHabitDetailLive() {
   const cheersOn = !!(cheers && Array.isArray(cheers.rows));
   const myCheered = {}; if (cheersOn && meId) cheers.rows.forEach((r) => { if (r.from === meId) myCheered[r.to] = true; });
   const sendCheer = (toId) => { if (!cheersOn || myCheered[toId] || toId === meId) return; setCheers((c) => c ? { ...c, rows: c.rows.concat([{ from: meId, to: toId, at: new Date().toISOString() }]) } : c); window.bosCloud.sendTeamCheer(t.cloudId, toId); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } };
-  const openPerson = (p) => openSheet(<CirclePersonSheetLive team={t} person={p} meId={meId} habits={habits}
-    rangeRows={(rangeS && rangeS.rows) || []} dayRows={(dayFeedS && dayFeedS.rows) || []}
-    cheersOn={cheersOn} cheered={!!myCheered[p.id]} onCheer={() => sendCheer(p.id)}
-    onWrite={(name) => navigate("team-detail", { team: t, from: from, prefill: "@" + (((name || "").split(" ")[0]) || "друг") + " " })} isDark={isDark} />);
+  const openPerson = (p) => navigate("team-person", { team: t, person: p, from: from, backRoute: "team-habit", backParams: { team: t, habit: h, from: from } });
   const onEdit = _isOwner ? () => openSheet(<HabitFormSheetLive mode="edit" navigate={navigate}
     habit={{ id: h.id, name: h.name, emoji: h.emoji, color: h.color || null, goalPerDay: h.goalPerDay || 1, duration: 0, isMain: !!h.isMain }}
     teamFor={{ team: t,
@@ -1310,6 +1314,59 @@ function CircleHabitDetailLive() {
       <HabitStandardSheetLive mode="circle" habit={h} team={t} members={members} meId={meId}
         rangeRows={(rangeS && rangeS.rows) || []} dayRows={(dayFeedS && dayFeedS.rows) || []}
         done={done} onToggle={toggle} onEdit={null} onPerson={openPerson} isDark={isDark} />
+    </div>
+  );
+}
+
+/* ══════════════════ СТРАНИЦА ЧЕЛОВЕКА В КРУГЕ (кадр 3) ══════════════════
+   ОТДЕЛЬНАЯ СТРАНИЦА (David 2026-07-16: «карточку человека тоже сделай страницей»).
+   Тело — тот же CirclePersonSheetLive (это просто вёрстка); данные мгновенно из
+   персистентных кэшей комнаты, свежесть — фоновым поллом. Назад — откуда пришли
+   (комната / кабинет / страница привычки — backRoute+backParams). */
+function CirclePersonDetailLive() {
+  const { navigate, params } = useNav();
+  const app = useApp();
+  const t = params?.team || {};
+  const person = params?.person || {};
+  const from = params?.from || "community";
+  const backRoute = params?.backRoute || "team-detail";
+  const backParams = params?.backParams || { team: t, from: from };
+  const isDark = app?.themeOverride === "dark";
+  const _live = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+
+  const [meId, setMeId] = React.useState(null);
+  const [habits, setHabits] = React.useState(() => _bosTeamGet("habits:" + t.cloudId) || []);
+  const [rangeS, setRangeS] = React.useState(() => _bosTeamGet("range31:" + t.cloudId));
+  const [dayFeedS, setDayFeedS] = React.useState(() => _bosTeamGet("dayfeed:" + t.cloudId));
+  const [cheers, setCheers] = React.useState(() => _bosTeamGet("cheers:" + t.cloudId));
+  React.useEffect(() => {
+    if (!_live) return;
+    let on = true;
+    window.bosCloud.uid().then((id) => { if (on) setMeId(id || null); });
+    window.bosCloud.teamHabitsFull(t.cloudId).then((hs) => { if (on && Array.isArray(hs)) setHabits(_bosTeamPut("habits:" + t.cloudId, hs)); });
+    window.bosCloud.teamDayFeed(t.cloudId).then((d) => { if (on && d) setDayFeedS(_bosTeamPut("dayfeed:" + t.cloudId, d)); });
+    window.bosCloud.teamLogsRange(t.cloudId, 31).then((d) => { if (on && d) setRangeS(_bosTeamPut("range31:" + t.cloudId, d)); });
+    if (window.bosCloud.teamCheersToday) window.bosCloud.teamCheersToday(t.cloudId).then((d) => { if (on && d) setCheers(_bosTeamPut("cheers:" + t.cloudId, d)); });
+    return () => { on = false; };
+  }, [_live, t.cloudId]);
+
+  const cheersOn = !!(cheers && Array.isArray(cheers.rows));
+  const myCheered = {}; if (cheersOn && meId) cheers.rows.forEach((r) => { if (r.from === meId) myCheered[r.to] = true; });
+  const sendCheer = () => {
+    if (!cheersOn || myCheered[person.id] || person.id === meId) return;
+    setCheers((c) => c ? { ...c, rows: c.rows.concat([{ from: meId, to: person.id, at: new Date().toISOString() }]) } : c);
+    window.bosCloud.sendTeamCheer(t.cloudId, person.id);
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+  };
+
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader dark={isDark} title="" onBack={() => navigate(backRoute, backParams)} />
+      <CirclePersonSheetLive team={t} person={person} meId={meId} habits={habits}
+        rangeRows={(rangeS && rangeS.rows) || []} dayRows={(dayFeedS && dayFeedS.rows) || []}
+        cheersOn={cheersOn} cheered={!!myCheered[person.id]} onCheer={sendCheer}
+        onWrite={(name) => navigate("team-detail", { team: t, from: from, prefill: "@" + (((name || "").split(" ")[0]) || "друг") + " " })}
+        isDark={isDark} />
     </div>
   );
 }

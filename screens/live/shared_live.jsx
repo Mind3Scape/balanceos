@@ -5796,6 +5796,79 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
 // Кэш последнего удачного списка открытых кругов (витрина, НЕ поиск) — переживает перемонтаж
 // и обрыв сети, чтобы публичный круг не «то появлялся, то исчезал» при каждом заходе на «Круги».
 var _bosDiscoverCache = null;
+/* КОМПАКТНАЯ карточка круга — полширины, «волна дня» без лиц (мокап _devcircle2;
+   David 2026-07-16: «в Сообществе все цели и круги — всегда компактной карточкой»).
+   Данные и персистентный кэш ТЕ ЖЕ, что у большой карточки, — вид миниатюрный:
+   диск+имя → мини-волна на линии дня → «N чел · K сегодня» / «Вступить». */
+function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = !!(app && app.themeOverride === "dark");
+  const ck = t.cloudId || t.id || null;
+  const _roster = (ck && typeof _bosTeamGet === "function") ? _bosTeamGet("roster:" + ck) : null;
+  const memberN = (Array.isArray(_roster) && _roster.length) ? _roster.length : (Array.isArray(t.members) ? t.members.length : (t.members || 0));
+  const [times, setTimes] = React.useState(() => (ck && _bosCircleCardCache.times[ck]) || null);
+  React.useEffect(() => {
+    if (!ck || !joined || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTodayTimes)) return;
+    let on = true;
+    window.bosCloud.teamTodayTimes(ck).then((r) => { if (on && r) { _bosCircleCardCache.times[ck] = r; _bosCircleCardPersist(); setTimes(r); } }).catch(() => {});
+    return () => { on = false; };
+  }, [ck, joined]);
+  const [pulse, setPulse] = React.useState(() => (ck && _bosCircleCardCache.pulse[ck]) || null);
+  React.useEffect(() => {
+    if (!ck || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.circlePulse)) return;
+    let on = true;
+    window.bosCloud.circlePulse(ck).then((p) => { if (on && p) { _bosCircleCardCache.pulse[ck] = p; _bosCircleCardPersist(); setPulse(p); } }).catch(() => {});
+    return () => { on = false; };
+  }, [ck, joined]);
+  const _pt = (x) => (typeof bosParseTs === "function" ? bosParseTs(x) : new Date(x));
+  let hours = [];
+  if (joined && times && times.times) hours = Object.keys(times.times).map((u) => { const d = _pt(times.times[u]); return d.getHours() + d.getMinutes() / 60; });
+  else if (pulse && Array.isArray(pulse.mins) && pulse.mins.length) hours = pulse.mins.map((m) => (typeof bosUtcMinToHour === "function" ? bosUtcMinToHour(m) : m / 60));
+  const todayN = Math.max(pulse ? (pulse.todayN | 0) : 0, (joined && times && times.times) ? Object.keys(times.times).length : 0);
+  const nowPct = bosThreadPct(new Date().getHours() + new Date().getMinutes() / 60);
+  const track = isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.10)";
+  const cap = [];
+  if (memberN) cap.push(memberN + " чел");
+  if (todayN) cap.push(todayN + " сегодня");
+  const body = (
+    <React.Fragment>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
+          background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,var(--disc-a,#eef1f6),var(--disc-b,#dadfe7))"),
+          boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIcon(t.emblem || "👥", 15, null)}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</span>
+      </div>
+      <div style={{ position: "relative", height: 30, marginTop: 8 }}>
+        {hours.length > 0 && (
+          <svg viewBox="0 0 150 22" preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, bottom: 7, width: "100%", height: 22 }}>
+            <defs><linearGradient id="bosCWaveG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={BOS_THREAD_GOLD_L} stopOpacity="0.85" /><stop offset="100%" stopColor={BOS_THREAD_GOLD} stopOpacity="0.10" />
+            </linearGradient></defs>
+            <path d={bosThreadWave(hours, 150, 22)} fill="url(#bosCWaveG)" />
+          </svg>
+        )}
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 8, height: 1.5, borderRadius: 2, background: track }} />
+        <div style={{ position: "absolute", left: 0, bottom: 8, height: 1.5, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + BOS_THREAD_GOLD_L + "," + BOS_THREAD_GOLD + ")" }} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, minHeight: 24 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 10.5, fontWeight: 600, color: "var(--text-4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cap.join(" · ") || " "}</span>
+        {!joined && onJoin && (
+          <button onClick={(e) => { e.stopPropagation(); if (!busy && !requested) onJoin(t); }} className="tap"
+            style={{ border: 0, borderRadius: 999, padding: "5px 11px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+              background: requested ? (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)") : (isDark ? "#fff" : "#0a0a0a"),
+              color: requested ? "var(--text-3)" : (isDark ? "#0a0a0a" : "#fff"), opacity: busy ? 0.6 : 1 }}>
+            {requested ? "Заявка ✓" : "Вступить"}
+          </button>
+        )}
+      </div>
+    </React.Fragment>
+  );
+  const style = { background: "var(--card)", borderRadius: 18, padding: "11px 12px", boxShadow: "var(--card-shadow)", textAlign: "left", minWidth: 0 };
+  return onOpen
+    ? <div className="tap" onClick={onOpen} style={{ ...style, cursor: "pointer" }}>{body}</div>
+    : <div style={style}>{body}</div>;
+}
+
 function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   const isDark = app?.themeOverride === "dark";
   const q = ("" + (query || "")).trim();
@@ -5905,9 +5978,10 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
     <div style={{ marginTop: 10 }}>
       {/* Мои открытые круги — карточкой Главной (David: «одна карточка везде», создатель видит, что круг открыт). */}
       {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* КОМПАКТ-СЕТКА 2 в ряд (David 2026-07-16: «в Сообществе все круги — компактной карточкой»). */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {shownList.map((t) => (
-          <BosCircleCardLive key={t.id} t={t} joined={!!t.joined} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join}
+          <BosCircleCardCompactLive key={t.id} t={t} joined={!!t.joined} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join}
             onOpen={t.joined ? function () { navigate && navigate("team-detail", { team: mineById[t.id] || t, from: "community" }); } : undefined} />
         ))}
       </div>
