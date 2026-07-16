@@ -272,9 +272,14 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
     if (selYear) for (let d = 1; d <= dimY; d++) { const k = nowD.getFullYear() + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); if (selYear[k]) cnt++; }
     return { frac: den ? Math.min(1, cnt / den) : 0, future: false };
   });
+  // Порядок людей = живой лидерборд, как в «Людях» комнаты (David 2026-07-16): сегодняшние
+  // слева, внутри — по дням ЭТОЙ привычки за неделю, молчащие серые — в хвост.
+  const _wkH = {};
+  { const wkSet = {}; wkKeys.forEach((k) => { wkSet[k] = 1; }); (rangeRows || []).forEach((r) => { if (r.h === h.id && wkSet[r.day]) _wkH[r.u] = (_wkH[r.u] || 0) + 1; }); }
+  const _activeOf = (p) => (p.id === meId ? (isDone || !!byUserAt[p.id]) : !!byUserAt[p.id]);
   const gridPeople = (members || []).slice().sort((a, b) => {
-    const w = (p) => (p.id === meId ? 0 : (byUserAt[p.id] ? 1 : 2)); // я → уже сегодня → остальные
-    return w(a) - w(b);
+    const t0 = (_activeOf(b) ? 1 : 0) - (_activeOf(a) ? 1 : 0); if (t0) return t0;
+    return (_wkH[b.id] || 0) - (_wkH[a.id] || 0);
   });
   const peopleGrid = (
     <div>

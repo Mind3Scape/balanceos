@@ -331,9 +331,9 @@ function AILive() {
         </div>
       </div>
 
-      {/* «Следующие шаги» — вместо ленты чипов ГРУППА СТРОК как в настройках (макет B): один
-          язык со всем приложением, каждый шаг читается целиком, ничего не уезжает за край. */}
-      {!isBlank && pills.length > 0 && (
+      {/* «Следующие шаги» — АРХИВ (David 2026-07-16: «убери пока, он в принципе там не нужен»).
+          Блок жив целиком (pills/goPill/pillLabel), вернуть = убрать false из условия. */}
+      {false && !isBlank && pills.length > 0 && (
         <React.Fragment>
           <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Следующие шаги</div>
           <div style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden", marginTop: 8 }}>

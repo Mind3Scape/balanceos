@@ -166,10 +166,22 @@ function HabitDetailLive() {
   if (_shared) {
     const _iDidT = h.done || (_isQuant && _qCount > 0);
     const active = (m) => (m.me ? _iDidT : !!m.todayAt);
+    // Порядок = живой лидерборд, как в «Людях» круга (David 2026-07-16: «в совместных
+    // привычках тоже должны сортироваться»): сегодняшние слева, дальше по активности
+    // за 7 дней, молчащие серые — в хвост. Я ранжируюсь по общим правилам.
+    const _wk7of = (m) => {
+      const src = m.me ? (h.log || {}) : (m.days || {});
+      let n = 0; for (let i = 0; i < 7; i++) if (src[bosRoomDayKey(i)]) n++;
+      return n;
+    };
+    const ranked = buddies.slice().sort((a, b) => {
+      const t0 = (active(b) ? 1 : 0) - (active(a) ? 1 : 0); if (t0) return t0;
+      return _wk7of(b) - _wk7of(a);
+    });
     peopleExtra = buddies.filter(active).length + " из " + buddies.length + " сегодня";
     people = (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center", padding: "4px 0" }}>
-        {buddies.map((m, i) => (
+        {ranked.map((m, i) => (
           <BosRoomFaceLive key={m.id || i} p={{ avatar: m.avatar, name: m.me ? "Ты" : m.name }} size={34} active={active(m)} gold={!!m.me} isDark={isDark} />
         ))}
       </div>

@@ -3725,9 +3725,11 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
     } catch (e) { setList([]); }
     return function () { on = false; };
   }, []);
-  // круги, где я уже состою/владею — не показываем (это витрина чужого/нового)
+  // круги, где я уже состою/владею — не показываем (это витрина чужого/нового);
+  // ранг = больше людей выше (David 2026-07-16: «самые большие — на первых местах»)
   var mineById = {}; ((app && app.teams) || []).forEach(function (t) { if (t && t.cloudId) mineById[t.cloudId] = t; });
-  var real = (list || []).filter(function (t) { return t && !mineById[t.id]; });
+  var real = (list || []).filter(function (t) { return t && !mineById[t.id]; })
+    .sort(function (a, b) { var d = (b.members || 0) - (a.members || 0); if (d) return d; return (Date.parse(a.createdAt || 0) || 0) - (Date.parse(b.createdAt || 0) || 0); });
   // какие популярные шаблоны я уже завёл (по seedId) — помечаем «Ты в деле»
   var mineSeed = {}; ((app && app.teams) || []).forEach(function (t) { if (t && t.seedId) mineSeed[t.seedId] = t; });
   var join = function (t) {
@@ -3766,25 +3768,18 @@ function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
       </div>
     );
   });
-  // 2) заготовленные популярные — «заведи открытый»
-  POPULAR_OPEN_CIRCLES.forEach(function (seed) {
-    var joined = !!mineSeed[seed.id];
-    cards.push(
-      <button key={"seed:" + seed.id} onClick={function () { startSeed(seed); }} className="tap" style={CARD}>
-        <span style={TILE}>{typeof bosIcon === "function" ? bosIcon(seed.emblem, 23, null) : seed.emblem}</span>
-        <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, marginTop: 11 }}>{seed.name}</span>
-        <span style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.35, marginTop: 4, minHeight: 30 }}>{seed.hook}</span>
-        {chip(joined ? "Ты в деле ✓" : (seed.goalText + " · +" + seed.reward + " XP"), false)}
-      </button>
-    );
-  });
+  // 2) заготовленные популярные шаблоны — АРХИВ (David 2026-07-16: «удали все фейковые
+  //    открытые круги»): карточки-заготовки выглядели как живые круги, но людей в них не
+  //    было. Данные (POPULAR_OPEN_CIRCLES) и startSeed живы — вернуть = раскомментировать.
+  // POPULAR_OPEN_CIRCLES.forEach(function (seed) { ... cards.push(<button onClick={() => startSeed(seed)} .../>); });
+  if (!cards.length) return null; // без живых кругов раздел честно молчит (фейков больше нет)
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 4px 2px" }}>
         {/* Заголовок носил эмодзи 🌐 — глобус, а не круг (David 2026-07-15: «там тоже должна быть
             иконка кругов»). Теперь тот же BosCircleIcon, что на пилюле и в меню «+». */}
         <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", display: "inline-flex", alignItems: "center", gap: 7 }}>
-          <BosCircleIcon size={17} strokeWidth={1.9} color="var(--text)" />Открытые круги
+          <BosCircleIcon size={17} strokeWidth={1.9} color="var(--text)" />Общие цели
         </span>
         {onAll && (
           <button onClick={onAll} className="tap" data-haptic="selection" style={{ border: 0, background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 1, fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", padding: 0 }}>

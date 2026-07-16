@@ -3591,6 +3591,17 @@ function BosBalanceWheelLive(props) {
             {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1.1" style={strokeFx} />; })}
             <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.3" strokeDasharray="3 5" strokeLinecap="round" style={strokeFx} />
             <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="2" strokeLinejoin="round" style={strokeFx} />
+            {/* Точки на вершинах САМОЙ оранжевой фигуры (David 2026-07-16: «не хватает точечек
+                на оранжевом, аккуратных»): видно, где именно фигура ломается по каждой сфере. */}
+            {SPH.map(function (s, i) {
+              var p = pt(i, OUT * Math.max(s.v, 0.05)).split(",");
+              return (
+                <g key={"dpt" + i}>
+                  <circle cx={p[0]} cy={p[1]} r="3.4" fill={dark ? "#161619" : "#fff"} style={strokeFx} />
+                  <circle cx={p[0]} cy={p[1]} r="2.1" fill="#EF9F14" stroke="#FEDE34" strokeWidth="0.8" style={strokeFx} />
+                </g>
+              );
+            })}
             {/* Тень самооценки — ПОВЕРХ заливки, тонким пунктиром, без заливки: она не «результат»,
                 а ориентир. Там, где контур выше золота, — разрыв между «важно» и «делаю». */}
             {basePts && <polygon points={basePts} fill="none" stroke={dark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.42)"} strokeWidth="1.4" strokeDasharray="4 4" strokeLinejoin="round" strokeLinecap="round" style={strokeFx} />}
@@ -5838,6 +5849,11 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
           boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIcon(t.emblem || "👥", 15, null)}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</span>
       </div>
+      {/* Описание/цель круга (David 2026-07-16: «места хватает — пусть видно описание, если есть»). */}
+      {(() => {
+        const d = (typeof t.desc === "string" && t.desc) || (typeof t.goal === "string" && t.goal) || (typeof t.goalKind === "string" && t.goalKind) || "";
+        return d ? <div style={{ fontSize: 10, color: "var(--text-4)", lineHeight: 1.35, marginTop: 5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{d}</div> : null;
+      })()}
       <div style={{ position: "relative", height: 30, marginTop: 8 }}>
         {hours.length > 0 && (
           <svg viewBox="0 0 150 22" preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, bottom: 7, width: "100%", height: 22 }}>
@@ -5940,7 +5956,7 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   if (query && !shownList.length) return null;
   if (!shownList.length) return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px", display: "flex", alignItems: "center", gap: 6 }}>{typeof BosCircleIcon === "function" ? <BosCircleIcon size={13} strokeWidth={2} color="var(--text-4)" /> : null}Открытые круги</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px", display: "flex", alignItems: "center", gap: 6 }}>{typeof BosCircleIcon === "function" ? <BosCircleIcon size={13} strokeWidth={2} color="var(--text-4)" /> : null}Общие цели</div>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
         <div style={{ fontSize: 30, lineHeight: 1 }}>🌱</div>
         <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", marginTop: 9, letterSpacing: "-0.2px" }}>Здесь оживут круги людей</div>
@@ -5977,7 +5993,7 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   return (
     <div style={{ marginTop: 10 }}>
       {/* Мои открытые круги — карточкой Главной (David: «одна карточка везде», создатель видит, что круг открыт). */}
-      {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
+      {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Общие цели</div>}
       {/* КОМПАКТ-СЕТКА 2 в ряд (David 2026-07-16: «в Сообществе все круги — компактной карточкой»). */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {shownList.map((t) => (

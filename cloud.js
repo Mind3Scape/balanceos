@@ -579,13 +579,30 @@
   async function discoverTeams() {
     var c = client(); var id = await uid(); if (!c) return [];
     try {
-      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,circle_balance_on,created_at,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60);
-      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // до ALTER circle_balance_on
+      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal,goal_kind,goal_target,circle_balance_on,created_at,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60);
+      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // до ALTER goal/circle_balance_on
       if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // если embed team_members падает под RLS
       var rows = (r && r.data) || [];
-      return rows.filter(function (t) { return !(id && t.owner_id === id); }).map(function (t) {
-        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, createdAt: t.created_at, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
+      var out = rows.filter(function (t) { return !(id && t.owner_id === id); }).map(function (t) {
+        var g = t.goal;
+        var gTitle = (typeof g === "string") ? g : (g && typeof g === "object" && typeof g.title === "string" ? g.title : null);
+        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goal: gTitle, goalKind: t.goal_kind, goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, createdAt: t.created_at, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
       });
+      // ЧЕСТНЫЙ размер круга: embed team_members(count) под RLS видит только СВОИ строки —
+      // у чужих кругов выходил 0, и ранжирование «больше людей выше» было мёртвым (David
+      // 2026-07-16). bos_team_sizes (security definer, patch_team_sizes.sql) отдаёт счёт
+      // по публичным кругам; до патча/при ошибке остаются embed-цифры.
+      try {
+        var ids = out.map(function (t) { return t.id; });
+        if (ids.length) {
+          var rs = await c.rpc("bos_team_sizes", { p_teams: ids });
+          if (!rs.error && Array.isArray(rs.data)) {
+            var szMap = {}; rs.data.forEach(function (x) { if (x && x.team_id) szMap[x.team_id] = x.members | 0; });
+            out.forEach(function (t) { if (szMap[t.id] != null) t.members = Math.max(t.members | 0, szMap[t.id]); });
+          }
+        }
+      } catch (e2) {}
+      return out;
     } catch (e) { return []; }
   }
   // ПОИСК открытых кругов по имени (Сообщество: строка поиска над лентой). Тот же
