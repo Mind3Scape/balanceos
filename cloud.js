@@ -1245,6 +1245,24 @@
       return { rows: r.data.map(function (x) { return { at: x.created_at, day: x.day }; }) };
     } catch (e) { return null; }
   }
+  // ЗАЛЁТЫ (v783): мои дни активности по кругам одной пачкой — в какие дни у меня была
+  // хоть одна отметка в каждом из кругов. Читаю только СВОИ строки (участника RLS пускает);
+  // embed team_habits!inner даёт team_id без второго запроса. Возвращает {teamId:{day:1}}.
+  async function myCircleDays(teamIds, days) {
+    var c = client(); if (!c || !Array.isArray(teamIds) || !teamIds.length) return null;
+    try {
+      var me = await uid(); if (!me) return null;
+      var since = new Date(); since.setDate(since.getDate() - Math.max(1, days || 28));
+      var r = await c.from("team_habit_logs").select("day,team_habits!inner(team_id)").eq("user_id", me).gte("day", _localDay(since)).in("team_habits.team_id", teamIds).limit(2000);
+      if (r.error || !Array.isArray(r.data)) return null;
+      var map = {};
+      r.data.forEach(function (row) {
+        var tid = row.team_habits && row.team_habits.team_id; if (!tid || !row.day) return;
+        (map[tid] = map[tid] || {})[row.day] = 1;
+      });
+      return map;
+    } catch (e) { return null; }
+  }
   // Сегодняшние отметки СО ВРЕМЕНЕМ: [{u,h,at}] — пульс дня (строки «закрыл(а)», пачки,
   // «ты в 06:58», волна нити). team_habit_logs.created_at писался всегда.
   async function teamDayFeed(teamId) {
@@ -1925,7 +1943,7 @@
     createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
     teamMembers: teamMembers, teamMembersStrict: teamMembersStrict, teamMemberIdsStrict: teamMemberIdsStrict, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
-    teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
+    teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday, myCircleDays: myCircleDays,
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, sharedHabitMemberIdsStrict: sharedHabitMemberIdsStrict, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes, circlePulse: circlePulse,

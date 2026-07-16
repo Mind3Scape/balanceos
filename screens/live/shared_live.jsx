@@ -2105,6 +2105,46 @@ function bosCircleLevel(xp) {
   var next = 75 * (L + 1) * L;
   return { level: L, xp: x, cur: x - base, span: next - base, toNext: next - x, frac: Math.max(0, Math.min(1, (x - base) / (next - base))) };
 }
+/* ЗАЛЁТЫ КРУГА (David 2026-07-16: «три раза пропустил — вылетаешь автоматически, и это
+   должно реально работать»). Залёт = СВОЙ запланированный день круга, прошедший целиком
+   без единой отметки. Считаем ПОДРЯД, со вчера назад; любая отметка обнуляет счёт.
+   Расписание — по локальным зеркалам привычек круга (маска Пн..Вс); зеркал нет → каждый
+   день. Активность = локальные логи зеркал ∪ облачные дни (cloudDays — Set «YYYY-MM-DD»,
+   ловит отметки прямо в комнате без зеркала). День знакомства с кругом и раньше не в счёт
+   (bos:strikeseen) — новичка не судим за прошлое. Круг без привычек залётов не копит. */
+function bosCircleStrikes(team, habits, cloudDays) {
+  try {
+    if (!team) return null;
+    var tid = team.cloudId || team._id;
+    if (!tid || typeof bosDayKeyOffset !== "function" || typeof bosTodayKey !== "function") return null;
+    var mirrors = (habits || []).filter(function (h) {
+      return h && h.teamHabitId && !h.shelved &&
+        (h.teamId === tid || h.teamId === team._id ||
+          (Array.isArray(team.habits) && team.habits.some(function (x) { return x && x.id === h.teamHabitId; })));
+    });
+    var hasCloud = !!(cloudDays && cloudDays.size);
+    if (!mirrors.length && !(Array.isArray(team.habits) && team.habits.length) && !hasCloud) return null;
+    var seenKey = "bos:strikeseen:" + tid, seen = null;
+    try { seen = localStorage.getItem(seenKey); } catch (e) {}
+    if (!seen) { seen = bosTodayKey(); try { localStorage.setItem(seenKey, seen); } catch (e) {} }
+    var miss = 0;
+    for (var j = 1; j <= 28; j++) {
+      var k = bosDayKeyOffset(j);
+      if (k <= seen) break;
+      var done = !!(cloudDays && cloudDays.has && cloudDays.has(k));
+      var due = mirrors.length === 0;
+      for (var i = 0; i < mirrors.length && !done; i++) {
+        var h = mirrors[i];
+        if (h.log && h.log[k]) { done = true; break; }
+        var mask = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
+        if (!mask || mask[bosDowOfKey(k)]) due = true;
+      }
+      if (done) break;
+      if (due) miss++;
+    }
+    return { miss: miss, out: miss >= 3 };
+  } catch (e) { return null; }
+}
 /* Батч XP кругов: карточки витрины рождаются пачкой — собираем id на один тик и едем
    ОДНИМ rpc bos_team_xp вместо N запросов. */
 var _bosXPPending = null;
@@ -2963,6 +3003,56 @@ function LevelUpSheetLive({ info, onClose }) {
           </div>
         ) : null}
         <button onClick={close} className="bos-btn" style={{ marginTop: 22 }}>Класс!</button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+/* Шторка ЗАЛЁТОВ круга — «швейцар» показывает её при открытии приложения (David 2026-07-16:
+   «три раза пропустил — вылетаешь автоматически, но об этом надо сообщать»).
+   kind:"warn" — 2 пропуска подряд, честное предупреждение до вылета;
+   kind:"out"  — круг отпустил: личная копия привычек и статистика остались, дверь открыта. */
+function CircleStrikeSheetLive({ info, onClose, navigate }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const [open, setOpen] = React.useState(false);
+  const closingRef = React.useRef(false);
+  React.useEffect(() => { const t = window.setTimeout(() => setOpen(true), 10); return () => window.clearTimeout(t); }, []);
+  React.useEffect(() => {
+    if (window.tgHaptic) { try { window.tgHaptic(info && info.kind === "out" ? "heavy" : "medium"); } catch (e) {} }
+  }, []);
+  if (!info) return null;
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const out = info.kind === "out";
+  const close = () => {
+    if (closingRef.current) return; closingRef.current = true;
+    setOpen(false);
+    window.setTimeout(() => { try { onClose && onClose(); } catch (e) {} }, 340);
+  };
+  const others = (Array.isArray(info.names) && info.names.length > 1) ? info.names.slice(1) : [];
+  const team = (!out && app && Array.isArray(app.teams) && info.teamCloudId) ? app.teams.find((x) => x && x.cloudId === info.teamCloudId) : null;
+  const goRoom = () => { close(); if (team && typeof navigate === "function") window.setTimeout(() => navigate("team-detail", { team: team, from: "home" }), 360); };
+  return (
+    <BottomSheet open={open} onClose={close} dark={isDark}>
+      <div style={{ padding: "8px 24px 26px", textAlign: "center", color: "var(--text)" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 12px", display: "grid", placeItems: "center", fontSize: 30,
+          background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
+          boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{(typeof bosIcon === "function") ? bosIcon(info.emblem || "👥", 30, null) : (info.emblem || "👥")}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.4px" }}>{out ? "Круг отпустил тебя" : "Ещё один пропуск — и круг отпустит"}</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, maxWidth: 292, marginInline: "auto", lineHeight: 1.5 }}>
+          {out
+            ? <React.Fragment>{"В «" + (info.name || "круге") + "» прошло три твоих дня подряд без единой отметки — так работает честное правило круга. Привычки и вся статистика остались с тобой."}{others.length > 0 ? (" То же случилось ещё с " + others.length + " " + (others.length === 1 ? "кругом" : "кругами") + ".") : ""}</React.Fragment>
+            : ("В «" + (info.name || "круге") + "» уже два твоих дня подряд без отметок. Три подряд — и выход из круга случится сам. Одна отметка обнуляет счёт.")}
+        </div>
+        {out && (
+          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 8, maxWidth: 292, marginInline: "auto", lineHeight: 1.5 }}>
+            Дверь открыта: вернуться можно из каталога «Общих целей» или по ссылке-приглашению.
+          </div>
+        )}
+        {!out && team && (
+          <button onClick={goRoom} className="tap" style={{ width: "100%", marginTop: 18, border: 0, borderRadius: 999, padding: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Открыть круг</button>
+        )}
+        <button onClick={close} className="tap" style={{ width: "100%", marginTop: (!out && team) ? 8 : 18, border: 0, borderRadius: 999, padding: 14, background: (!out && team) ? (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)") : (isDark ? "#fff" : "#0a0a0a"), color: (!out && team) ? "var(--text)" : (isDark ? "#0a0a0a" : "#fff"), fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Понятно</button>
+        <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
       </div>
     </BottomSheet>
   );

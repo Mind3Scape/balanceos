@@ -965,6 +965,7 @@ function AppProvider({ children }) {
   const [pendingDayClose, setPendingDayClose] = useState(null); // today's Daily Balance just closed → one calm completion reveal
   const [pendingLevelUp, setPendingLevelUp] = useState(null); // {level, prev, unlock} — вырос уровень → празднуем один раз
   const [pendingJoinWelcome, setPendingJoinWelcome] = useState(null); // freshly-joined shared habit / team via invite link → greet «X позвал тебя»
+  const [pendingCircleStrike, setPendingCircleStrike] = useState(null); // залёты круга: {kind:'warn'|'out', name, emblem, names?, teamCloudId?}
   const [userName, setUserName] = useState("Павел");
   const [avatar, setAvatar] = useState(null); // null = default Memoji (assets/sphere.png)
   // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
@@ -1836,6 +1837,53 @@ function AppProvider({ children }) {
   const clearPendingDayClose = () => setPendingDayClose(null);
   const clearPendingLevelUp = () => setPendingLevelUp(null);
   const clearPendingJoinWelcome = () => setPendingJoinWelcome(null);
+  const clearPendingCircleStrike = () => setPendingCircleStrike(null);
+  // ЗАЛЁТЫ КРУГА (David 2026-07-16: «три раза пропустил — вылетаешь автоматически, и это
+  // должно реально работать»): развёртка через 12 сек после старта (после reconciliation
+  // членства на 10-й секунде). Активность беру из ОБЛАКА (myCircleDays — ловит отметки без
+  // зеркала), расписание — из локальных зеркал; сам подсчёт в bosCircleStrikes. При 2 подряд —
+  // честное предупреждение (раз в день на круг); при 3 — bosExitTeam САМОГО СЕБЯ (личная
+  // копия привычек переживает круг) + прощальная шторка. Владельца свой круг не отпускает.
+  const _strikeCtx = useRef(null);
+  _strikeCtx.current = { teams, habits, removeTeam, updateHabit };
+  useEffect(() => {
+    if (mode !== "live") return;
+    const tm = setTimeout(async () => {
+      try {
+        if (!_liveCloud() || typeof bosCircleStrikes !== "function" || typeof bosExitTeam !== "function") return;
+        const ctx = _strikeCtx.current || {};
+        const cand = (ctx.teams || []).filter((t) => t && t.cloudId && t.joined);
+        if (!cand.length) return;
+        let dayMap = null;
+        try { if (window.bosCloud.myCircleDays) dayMap = await window.bosCloud.myCircleDays(cand.map((t) => t.cloudId), 28); } catch (e) {}
+        const kicked = [];
+        let warnInfo = null;
+        for (const t of cand) {
+          const cd = (dayMap && dayMap[t.cloudId]) ? new Set(Object.keys(dayMap[t.cloudId])) : null;
+          const s = bosCircleStrikes(t, ctx.habits, cd);
+          if (!s) continue;
+          try { localStorage.setItem("bos:strike:" + t.cloudId, String(s.miss)); } catch (e) {}
+          if (s.out) {
+            const r = await bosExitTeam({ app: { removeTeam: ctx.removeTeam, habits: ctx.habits, updateHabit: ctx.updateHabit }, team: t, isOwner: false });
+            if (r && r.ok) {
+              kicked.push({ name: t.name, emblem: t.emblem || "👥" });
+              try { localStorage.removeItem("bos:strikeseen:" + t.cloudId); localStorage.removeItem("bos:strikewarn:" + t.cloudId); localStorage.removeItem("bos:strike:" + t.cloudId); } catch (e) {}
+            }
+          } else if (s.miss === 2 && !warnInfo) {
+            let warned = null; try { warned = localStorage.getItem("bos:strikewarn:" + t.cloudId); } catch (e) {}
+            const stamp = "2:" + bosTodayKey();
+            if (warned !== stamp) {
+              try { localStorage.setItem("bos:strikewarn:" + t.cloudId, stamp); } catch (e) {}
+              warnInfo = { kind: "warn", name: t.name, emblem: t.emblem || "👥", teamCloudId: t.cloudId };
+            }
+          }
+        }
+        if (kicked.length) setPendingCircleStrike({ kind: "out", name: kicked[0].name, emblem: kicked[0].emblem, names: kicked.map((k) => k.name) });
+        else if (warnInfo) setPendingCircleStrike(warnInfo);
+      } catch (e) {}
+    }, 12000);
+    return () => clearTimeout(tm);
+  }, [mode]);
   // Инвайт в круг (kind="team-invite"): вступление ТОЛЬКО по явному «Вступить» с превью
   // (brief 2026-07-11). Отказ ничего не публикует и не оставляет заявки.
   const acceptTeamInvite = (teamId) => {
@@ -2059,6 +2107,7 @@ function AppProvider({ children }) {
     pendingDayClose, clearPendingDayClose,
     pendingLevelUp, clearPendingLevelUp,
     pendingJoinWelcome, clearPendingJoinWelcome, acceptTeamInvite, declineTeamInvite,
+    pendingCircleStrike, clearPendingCircleStrike,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,

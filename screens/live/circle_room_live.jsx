@@ -147,6 +147,8 @@ function CircleLevelSheetLive({ lvl, todayGain, rhythm, isDark }) {
         {rule("🎁", "Круг вырос — подарок каждому", "Новый уровень приносит конфетти и XP каждому, кто был в деле на этой неделе: уровень × 10.")}
         <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)" }} />
         {rule("⛰", "Чем выше — тем дороже шаг", "Пороги растут: 2-й уровень — 150 XP, 5-й — 1 500, 10-й — 6 750. Круг качать сложнее, чем себя, — это общее дело.")}
+        <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)" }} />
+        {rule("👋", "Три пропуска подряд — выход", "Пропустил три своих дня подряд без единой отметки — круг отпускает тебя автоматически. Привычки и статистика остаются с тобой, одна отметка обнуляет счёт, вернуться можно всегда.")}
       </div>
       <button onClick={close} className="tap" style={{ width: "100%", border: 0, borderRadius: 999, padding: "13px 0", fontSize: 14, fontWeight: 800, cursor: "pointer", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", marginTop: 12 }}>Понятно</button>
     </div>
@@ -722,6 +724,14 @@ function TeamDetailLive() {
   const rhythmToday = membersN > 0 && todayN >= need;
   const todayGain = todayN * 10 * (rhythmToday ? 2 : 1);
   const openLevelSheet = () => { if (circleLvl) openSheet(<CircleLevelSheetLive lvl={circleLvl} todayGain={todayGain} rhythm={rhythmToday} isDark={isDark} />); };
+  // МОИ ЗАЛЁТЫ в этом круге (David 2026-07-16): честный счётчик «пропуск N из 3» в визитке.
+  // Активность = облачные дни (rangeRows, ловит отметки без зеркала) ∪ логи зеркал внутри
+  // bosCircleStrikes. Владельца свой круг не отпускает — ему счётчик не рисуем.
+  const myStrikes = React.useMemo(() => {
+    if (_isOwner || !_live || typeof bosCircleStrikes !== "function") return null;
+    const cd = new Set(); (rangeRows || []).forEach((r) => { if (r.u === meId) cd.add(r.day); });
+    return bosCircleStrikes(t, app?.habits, cd);
+  }, [rangeRows, meId, _isOwner, _live]);
   // ПРАЗДНИК АПА: уровень вырос с прошлого визита → конфетти + шторка + подарок XP
   // каждому активному за неделю (уровень×10; идемпотентно по ключу уровня).
   React.useEffect(() => {
@@ -912,6 +922,13 @@ function TeamDetailLive() {
               <div style={{ height: "100%", width: (circleLvl.frac * 100).toFixed(1) + "%", borderRadius: 999, background: "linear-gradient(90deg,#FEDE34,#EF9F14)", transition: "width .6s ease" }} />
             </div>
           </React.Fragment>
+        )}
+        {/* Мои залёты: тихо на 1-м, тревожно на 2-м; на 3-м человека тут уже нет. */}
+        {myStrikes && myStrikes.miss > 0 && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginTop: 10, borderRadius: 12, padding: "7px 10px", background: myStrikes.miss >= 2 ? "rgba(224,54,43,0.09)" : "rgba(240,195,10,0.10)" }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: myStrikes.miss >= 2 ? "#C03428" : BOS_ROOM_GOLD_INK, flexShrink: 0 }}>{"Пропуск " + Math.min(myStrikes.miss, 3) + " из 3"}</span>
+            <span style={{ fontSize: 10.5, color: "var(--text-4)", minWidth: 0 }}>{myStrikes.miss >= 2 ? "ещё один — и круг отпустит · отметка обнуляет" : "три подряд — выход из круга · отметка обнуляет"}</span>
+          </div>
         )}
         {_live && (circleStreak > 0 || todayN > 0) && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 9, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") }}>
