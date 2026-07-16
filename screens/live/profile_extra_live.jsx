@@ -580,7 +580,10 @@ function NotificationsLive() {
     else setB(k, null);
   };
   // Чат живёт в «Пульсе дня» комнаты круга (v765) — уведомление ведёт прямо в комнату.
-  const openChat = (t) => { try { localStorage.setItem("bos:chatread:" + t.cloudId, String(Date.now())); } catch (e) {} navigate("team-detail", { team: t, from: "notifications" }); };
+  // Метка прочтения — ВСЕГДА ISO-строкой (та же база, что created_at сообщений). Раньше тут
+  // писалась эпоха-мс — читатели ждали ISO, и значок непрочитанного мигал «то горит, то нет».
+  // Из уведомления идём сразу НА ВКЛАДКУ ЧАТА комнаты (tab:"chat").
+  const openChat = (t) => { try { localStorage.setItem("bos:chatread:" + t.cloudId, new Date().toISOString()); if (typeof bosTeamUnreadClear === "function") bosTeamUnreadClear(t.cloudId); } catch (e) {} navigate("team-detail", { team: t, from: "notifications", tab: "chat" }); };
   const openTeam = (t) => navigate("team-detail", { team: t, from: "notifications" });
   const openFriends = () => navigate("friends", { from: "notifications" });
   const openBuddy = (h) => navigate("habit-detail", { habit: h, from: "notifications" });
@@ -596,7 +599,7 @@ function NotificationsLive() {
   };
   const clearAll = () => {
     // «Новое» уже поглощено при показе; дочитаем чаты и спрячем всё, кроме заявок.
-    if (data) data.chats.forEach((c) => { try { localStorage.setItem("bos:chatread:" + c.team.cloudId, String(Date.now())); } catch (e) {} });
+    if (data) data.chats.forEach((c) => { try { localStorage.setItem("bos:chatread:" + c.team.cloudId, new Date().toISOString()); if (typeof bosTeamUnreadClear === "function") bosTeamUnreadClear(c.team.cloudId); } catch (e) {} });
     try { window.dispatchEvent(new Event("bos:notifSeenChanged")); } catch (e) {}
     setCleared(true);
   };

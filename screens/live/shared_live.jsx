@@ -2234,6 +2234,23 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
     bosTeamUnreadPeek(ck).then((r) => { if (on && r) setUnread(r.count || 0); }).catch(() => {});
     return () => { on = false; };
   }, [ck, joined, ctx.mode]);
+  // РЕАЛТАЙМ (David 2026-07-17: «значок должен показывать реальные сообщения, в реалтайме»):
+  // подписка на чат круга прямо с карточки — чужое сообщение прилетело → бейдж загорается сразу;
+  // чат прочитан в комнате (bos:chatunread) → гаснет сразу. Каналов мало: только СВОИ круги.
+  React.useEffect(() => {
+    if (!ck || !joined || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.subscribeMessages)) return;
+    let me = null; try { me = window.bosCloud.uidSync && window.bosCloud.uidSync(); } catch (e) {}
+    let unsub = function () {};
+    try {
+      unsub = window.bosCloud.subscribeMessages(ck, (row) => {
+        if (!row || row.user_id === me) return;
+        setUnread((u) => { const n = (u || 0) + 1; try { _bosTeamUnreadCache[ck] = { at: Date.now(), count: n }; } catch (e) {} return n; });
+      });
+    } catch (e) {}
+    const onClear = (ev) => { if (ev && ev.detail && ev.detail.cloudId === ck) setUnread(ev.detail.count || 0); };
+    window.addEventListener("bos:chatunread", onClear);
+    return () => { try { unsub(); } catch (e) {} window.removeEventListener("bos:chatunread", onClear); };
+  }, [ck, joined, ctx.mode]);
 
   const faces = React.useMemo(() => {
     const map = (times && times.times) || null;
@@ -2263,10 +2280,14 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
         // Значок чата ВСЕГДА на месте (David: «иконка чата должна быть видна всегда — просто
         // видим, появились непрочитанные или нет»). Пустой — тихая стеклянная иконка «чат
         // тут есть»; с непрочитанными — в ней число и полная плотность.
-        <span aria-label={unread > 0 ? "новых сообщений: " + unread : "чат круга"} style={Object.assign({ position: "absolute", top: 12, right: 12, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: unread > 0 ? "0 8px" : "0 6px", borderRadius: 999, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: isDark ? "#fff" : "#0a0a0a", opacity: unread > 0 ? 1 : 0.6, pointerEvents: "none" }, (typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}))}>
+        // ТАП по значку (David 2026-07-17) — сразу в комнату НА ВКЛАДКУ ЧАТА, не на «День».
+        <button aria-label={unread > 0 ? "новых сообщений: " + unread : "чат круга"}
+          onClick={ctx.mode ? undefined : (e) => { e.stopPropagation(); onOpen && onOpen({ chat: true }); }}
+          className={ctx.mode ? "" : "tap"} data-haptic="selection"
+          style={Object.assign({ position: "absolute", top: 12, right: 12, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 4, height: 22, padding: unread > 0 ? "0 8px" : "0 6px", border: 0, borderRadius: 999, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums", fontFamily: "inherit", color: isDark ? "#fff" : "#0a0a0a", opacity: unread > 0 ? 1 : 0.6, cursor: ctx.mode ? "default" : "pointer" }, (typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}))}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3.2c5.3 0 9.6 3.4 9.6 7.6s-4.3 7.6-9.6 7.6c-.9 0-1.8-.1-2.6-.3l-4.6 2.3a.55.55 0 0 1-.79-.64l1-3.4C3.1 14.9 2.4 13.1 2.4 10.8 2.4 6.6 6.7 3.2 12 3.2z" /></svg>
           {unread > 0 ? (unread > 99 ? "99+" : unread) : null}
-        </span>
+        </button>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {lvl ? (
@@ -2669,8 +2690,7 @@ async function bosNotifCollectLive(app) {
         // Марка прочтения хранится как ISO-строка (created_at последнего сообщения) — читать через
         // Date, НЕ Number (Number(ISO)=NaN→эпоха→«непрочитано» горело бы всегда). David: значок
         // должен зажигаться честно, по реальному непрочитанному.
-        const _lrRaw = localStorage.getItem("bos:chatread:" + t.cloudId);
-        const lastRead = _lrRaw ? new Date(_lrRaw).getTime() : 0;
+        const lastRead = (typeof bosChatReadTs === "function") ? bosChatReadTs(localStorage.getItem("bos:chatread:" + t.cloudId)) : 0;
         if (window.bosCloud.unreadMessages) {
           const u = await window.bosCloud.unreadMessages(t.cloudId, lastRead);
           if (u && u.count) out.chats.push({ team: t, count: u.count, last: u.last });
@@ -2730,14 +2750,22 @@ async function bosNotifHasFreshLive(app) {
    плиток и ре-рендеры не молотили облако. Возвращает { count } или null. Марку прочтения читаем
    через Date (та же база времени, что у сообщений). */
 var _bosTeamUnreadCache = {};
+/* Метка прочтения чата: исторически писалась и ISO-строкой, и эпохой-миллисекунд (путь из
+   «Уведомлений») — из-за смеси значок «то горит, то гаснет» (David 2026-07-17). Парсер терпит
+   ОБА формата; все новые записи — только ISO. */
+function bosChatReadTs(raw) {
+  if (!raw) return 0;
+  if (/^\d+$/.test(raw)) return +raw;
+  var t = new Date(raw).getTime();
+  return isNaN(t) ? 0 : t;
+}
 function bosTeamUnreadCacheGet(cloudId) { var c = _bosTeamUnreadCache[cloudId]; return (c && Date.now() - c.at < 60000) ? c : null; }
 async function bosTeamUnreadPeek(cloudId) {
   if (!cloudId || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.unreadMessages)) return null;
   var cached = bosTeamUnreadCacheGet(cloudId);
   if (cached) return cached;
   try {
-    var raw = localStorage.getItem("bos:chatread:" + cloudId);
-    var since = raw ? new Date(raw).getTime() : 0;
+    var since = bosChatReadTs(localStorage.getItem("bos:chatread:" + cloudId));
     var u = await window.bosCloud.unreadMessages(cloudId, since);
     if (!u) return _bosTeamUnreadCache[cloudId] || null;
     var rec = { at: Date.now(), count: u.count || 0 };
@@ -2745,8 +2773,13 @@ async function bosTeamUnreadPeek(cloudId) {
     return rec;
   } catch (e) { return _bosTeamUnreadCache[cloudId] || null; }
 }
-/* Когда чат прочитан внутри детали — обнулим кэш плитки, чтобы значок сразу погас и на сетке. */
-function bosTeamUnreadClear(cloudId) { if (cloudId) _bosTeamUnreadCache[cloudId] = { at: Date.now(), count: 0 }; }
+/* Когда чат прочитан внутри детали — обнулим кэш плитки И скажем об этом живым карточкам
+   (bos:chatunread), чтобы значок погас сразу, без ожидания следующего peek. */
+function bosTeamUnreadClear(cloudId) {
+  if (!cloudId) return;
+  _bosTeamUnreadCache[cloudId] = { at: Date.now(), count: 0 };
+  try { window.dispatchEvent(new CustomEvent("bos:chatunread", { detail: { cloudId: cloudId, count: 0 } })); } catch (e) {}
+}
 try { window.addEventListener("bos:notifSeenChanged", function () { _bosTeamUnreadCache = {}; }); } catch (e) {}
 
 /* Welcome modal shown when you open an invite LINK and land in a shared habit / team — so the
@@ -5458,7 +5491,8 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
   // BosCircleCardLive (утверждённый макет «Волна дня»). Прежние ветки — в git до v762,
   // настройка вида — в _parked/goal-card-styles/README.md.
   const navigate = ((typeof useNav === "function") ? useNav() : {}).navigate || function () {};
-  const onOpen = ctx.mode ? undefined : function () { navigate("team-detail", { team: t, from: from }); };
+  // Тап по карточке → комната («День»); тап по значку чата → комната сразу НА ВКЛАДКЕ ЧАТА.
+  const onOpen = ctx.mode ? undefined : function (opts) { navigate("team-detail", { team: t, from: from, tab: (opts && opts.chat) ? "chat" : undefined }); };
   return <BosCircleCardLive t={t} joined ctx={ctx} onOpen={onOpen} />;
 }
 

@@ -494,7 +494,9 @@ function TeamDetailLive() {
   // ВКЛАДКИ КОМНАТЫ (макет А, выбор David 2026-07-16): «День круга» и «Чат» — сегменты-
   // иконки под шапкой (точка-в-кольце = круг, пузырь = чат; линейные SVG). Чат больше
   // не в «подвале»: «Написать» из кабинета/карточки человека открывает сразу чат.
-  const [roomTab, setRoomTab] = React.useState(() => (params && params.prefill ? "chat" : "day"));
+  // tab:"chat" — вход сразу на вкладку чата (тап по значку чата на внешней карточке / из
+  // уведомления); prefill («Написать @Имя») тоже ведёт в чат.
+  const [roomTab, setRoomTab] = React.useState(() => (params && (params.tab === "chat" || params.prefill) ? "chat" : "day"));
   // Фото из чата НА ВЕСЬ ЭКРАН (David 2026-07-16: «нажимаю на фотку — не открывается,
   // в уменьшенном виде что толку»): тап по снимку → тёмный просмотр, тап — закрыть.
   const [photoView, setPhotoView] = React.useState(null);
@@ -769,8 +771,9 @@ function TeamDetailLive() {
   // Непрочитанное для бейджа сегмента «Чат»: чужие сообщения новее последнего прочтения.
   let unreadN = 0;
   try {
-    const _readIso = localStorage.getItem("bos:chatread:" + t.cloudId) || "";
-    unreadN = msgs.filter((m) => !m.me && m.ts && (!_readIso || new Date(m.ts).toISOString() > _readIso)).length;
+    // Метку читаем через bosChatReadTs — терпит и ISO, и старую эпоху-мс (иначе значок мигал).
+    const _readTs = (typeof bosChatReadTs === "function") ? bosChatReadTs(localStorage.getItem("bos:chatread:" + t.cloudId)) : 0;
+    unreadN = msgs.filter((m) => !m.me && m.ts && m.ts > _readTs).length;
   } catch (e) {}
 
   /* ── праздник закрытого дня круга (механика не менялась) ── */
@@ -947,11 +950,13 @@ function TeamDetailLive() {
             <span style={{ fontSize: 10.5, color: "var(--text-4)", minWidth: 0 }}>{myStrikes.miss >= 2 ? "ещё один — и круг отпустит · отметка обнуляет" : "три подряд — выход из круга · отметка обнуляет"}</span>
           </div>
         )}
-        {_live && (circleStreak > 0 || todayN > 0) && (
+        {/* «N/M сегодня» УБРАНО из шапки (David 2026-07-17: «фигня, дубль» — та же цифра живёт
+            у секции «Сегодня» строкой «N из M в деле»). Осталась серия + «ты в верхней трети». */}
+        {_live && (circleStreak > 0 || topThird) && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 9, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") }}>
             {circleStreak > 0 && <I.Flame size={12} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />}
             {circleStreak > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)" }}>{streakCap} {circleStreak === 1 ? "день" : circleStreak < 5 ? "дня" : "дней"} круг в ритме</span>}
-            <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{(circleStreak > 0 ? "· " : "") + todayN + "/" + (membersN || "?") + " сегодня" + (topThird ? " · ты в верхней трети" : "")}</span>
+            {topThird && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{(circleStreak > 0 ? "· " : "") + "ты в верхней трети"}</span>}
           </div>
         )}
       </div>
