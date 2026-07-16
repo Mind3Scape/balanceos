@@ -176,8 +176,8 @@ function CircleLevelUpSheetLive({ level, gift, isDark }) {
   );
 }
 
-/* Меню «⋯» шапки комнаты — грамматика CreateMenuLive с Главной: отдельные пилюли
-   выпадают из-под кнопки, иконки в кружках, лёгкий стаггер. */
+/* Меню «⋯» шапки комнаты — ЦЕЛЬНЫЙ блок-меню (David 2026-07-17: «не раздельные пилюльки,
+   а цельные»): один скруглённый лист из-под кнопки, строки с тонкими разделителями. */
 function CircleRoomMenuLive({ open, onClose, anchorRef, items, isDark }) {
   const [pos, setPos] = React.useState(null);
   React.useEffect(() => {
@@ -189,21 +189,23 @@ function CircleRoomMenuLive({ open, onClose, anchorRef, items, isDark }) {
   if (!open || !pos) return null;
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, width: 236, display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+      <div onClick={(e) => e.stopPropagation()} role="menu" style={{ position: "fixed", right: pos.right, top: pos.top, width: 232, borderRadius: 16, overflow: "hidden",
+        background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
+        WebkitBackdropFilter: "blur(22px) saturate(150%)", backdropFilter: "blur(22px) saturate(150%)",
+        border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"),
+        boxShadow: "0 12px 32px rgba(0,0,0," + (isDark ? "0.5" : "0.16") + ")",
+        transformOrigin: "top right", animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both" }}>
         {items.map((it, i) => (
-          <button key={i} role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
-            display: "flex", width: "100%", alignItems: "center", justifyContent: "flex-start", gap: 11, whiteSpace: "nowrap",
-            padding: "8px 17px 8px 8px", borderRadius: 999, cursor: "pointer",
-            background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
-            WebkitBackdropFilter: "blur(22px) saturate(150%)", backdropFilter: "blur(22px) saturate(150%)",
-            border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"),
-            boxShadow: "0 12px 32px rgba(0,0,0," + (isDark ? "0.5" : "0.16") + ")",
-            fontSize: 15, fontWeight: 600, color: isDark ? "#f2f2f5" : "#0a0a0a",
-            transformOrigin: "top right", animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both", animationDelay: (i * 0.05) + "s",
-          }}>
-            <span aria-hidden style={{ width: 34, height: 34, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{it.icon}</span>
-            {it.label}
-          </button>
+          <React.Fragment key={i}>
+            {i > 0 && <div aria-hidden style={{ height: 0.5, background: isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.07)" }} />}
+            <button role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
+              display: "flex", width: "100%", alignItems: "center", gap: 12, whiteSpace: "nowrap",
+              padding: "12px 15px", border: 0, background: "transparent", cursor: "pointer", textAlign: "left",
+              fontSize: 15, fontWeight: 600, color: isDark ? "#f2f2f5" : "#0a0a0a", fontFamily: "inherit" }}>
+              <span aria-hidden style={{ width: 22, display: "grid", placeItems: "center", flexShrink: 0, color: "inherit" }}>{it.icon}</span>
+              {it.label}
+            </button>
+          </React.Fragment>
         ))}
       </div>
     </div>,
@@ -835,14 +837,16 @@ function TeamDetailLive() {
         )}
         {/* СЕГМЕНТЫ (макет А): точка-в-кольце = «День круга», пузырь = «Чат»; золотой бейдж
             непрочитанного. Теперь в шапке, по центру. */}
+        {/* Переключатель — ТО ЖЕ стекло и та же высота 40, что у пилюли справа (David
+            2026-07-17: «одним целым с правым блоком»). */}
         <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
-          <div style={{ display: "inline-flex", background: isDark ? "rgba(255,255,255,0.09)" : "rgba(120,120,128,0.14)", borderRadius: 999, padding: 2.5 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", height: 40, boxSizing: "border-box", borderRadius: 999, padding: 3, ...glass }}>
             {["day", "chat"].map((id) => {
               const on = roomTab === id;
               return (
                 <button key={id} onClick={() => { setRoomTab(id); if (id === "chat") { try { window.scrollTo(0, 0); } catch (e) {} } }} className="tap" data-haptic="selection"
                   aria-label={id === "day" ? "День круга" : "Чат"}
-                  style={{ position: "relative", border: 0, borderRadius: 999, padding: "6px 22px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  style={{ position: "relative", border: 0, borderRadius: 999, height: 34, padding: "0 22px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center",
                     background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)", transition: "background .15s, color .15s" }}>
                   {id === "day" ? (
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
@@ -874,12 +878,14 @@ function TeamDetailLive() {
           </button>
         </div>
       </div>
+      {/* «Редактировать» — ПЕРВЫМ и для владельца ЛЮБОГО круга (David 2026-07-17: «исчезло
+          редактирование целей»): та же форма __isTeam, что в кабинете (save=updateTeam). */}
       <CircleRoomMenuLive open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={moreRef} isDark={isDark} items={[
+        _isOwner ? { icon: <I.Pencil size={17} strokeWidth={1.9} />, label: "Редактировать", go: () => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />) } : null,
         { icon: <I.Share size={18} strokeWidth={1.9} />, label: "Позвать в круг", go: () => openSheet(<TeamShareSheetLive team={t} />) },
         circleLvl ? { icon: (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="8.4" strokeDasharray="39 14" transform="rotate(-90 12 12)" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
         ), label: "Уровень круга — " + circleLvl.level, go: openLevelSheet } : null,
-        (_isOwner && !_live) ? { icon: <I.Pencil size={17} strokeWidth={1.9} />, label: "Настройки круга", go: () => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />) } : null,
       ].filter(Boolean)} />
 
       {roomTab === "day" && (<React.Fragment>
