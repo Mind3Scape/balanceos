@@ -71,7 +71,7 @@
   function spawn(o) {
     var dark = o.dark != null ? !!o.dark : isDarkNow();
     var colors = palette(dark);
-    var count = o.count | 0 || 26;
+    var count = o.count | 0 || 44;
     var power = o.power || 12;
     var spread = o.spread || 2.1;           // радиан, вилка вокруг «вверх»
     var base = o.angle != null ? o.angle : -Math.PI / 2;
@@ -133,7 +133,7 @@
       ctx.restore();
     }
     if (!alive) { teardown(); return; }
-    if (pieces.length > 400) pieces = pieces.filter(function (p) { return !p.dead; });
+    if (pieces.length > 700) pieces = pieces.filter(function (p) { return !p.dead; });
     raf = requestAnimationFrame(frame);
   }
 
@@ -171,7 +171,9 @@
     // и уже делает tgHaptic("success"). Свой буз здесь дал бы двойной толчок подряд.
     // ttl вырос вместе с замедлением падения: на прежних 1500мс кусочки таяли ещё в воздухе,
     // не долетев, — и вместо «упало» получалось «исчезло».
-    var base = { count: 26, power: 12, spread: 1.9, ttl: 1900 };
+    // count 26→44 (David 2026-07-16: «поскупились на конфетти, праздника не чувствуешь») —
+    // щедрее, но по-прежнему одна короткая вспышка, не фейерверк.
+    var base = { count: 44, power: 12, spread: 1.9, ttl: 1900 };
     if (anchor) bosConfettiFrom(anchor, base); else bosConfetti(base);
   }
 
@@ -213,9 +215,9 @@
     var L = r && r.width ? r.left : window.innerWidth / 2 - 190;
     var W = r && r.width ? r.width : 380;
     var B = r && r.height ? r.top + r.height : window.innerHeight;
-    bosConfetti({ x: L + W * 0.08, y: B - 20, angle: -Math.PI / 2.45, spread: 0.75, count: 24, power: 19, ttl: 2650 });
-    bosConfetti({ x: L + W * 0.92, y: B - 20, angle: -Math.PI / 1.72, spread: 0.75, count: 24, power: 19, ttl: 2650 });
-    window.setTimeout(function () { bosConfetti({ y: (r ? r.top + r.height * 0.36 : window.innerHeight * 0.36), count: 22, power: 11, spread: 2.4, ttl: 2150 }); }, 260);
+    bosConfetti({ x: L + W * 0.08, y: B - 20, angle: -Math.PI / 2.45, spread: 0.75, count: 40, power: 19, ttl: 2650 });
+    bosConfetti({ x: L + W * 0.92, y: B - 20, angle: -Math.PI / 1.72, spread: 0.75, count: 40, power: 19, ttl: 2650 });
+    window.setTimeout(function () { bosConfetti({ y: (r ? r.top + r.height * 0.36 : window.innerHeight * 0.36), count: 36, power: 11, spread: 2.4, ttl: 2150 }); }, 260);
   }
 
   window.bosConfetti = bosConfetti;

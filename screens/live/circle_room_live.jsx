@@ -531,7 +531,6 @@ function TeamDetailLive() {
 
   // Мой день: отметился ли я и когда («ты в HH:MM» в строке привычки, «Ты» в ленте чата).
   const myRows = meId ? dayRows.filter((r) => r.u === meId) : [];
-  const myTimeFor = (hid) => { const r = myRows.filter((x) => x.h === hid).sort((a, b) => (a.at < b.at ? -1 : 1))[0]; return r ? bosRoomHHMM(r.at) : null; };
 
   /* ── чат: сообщения + отметки + огоньки + вехи, одна лента по времени.
      МОИ отметки — в ленте по хронологии, как у всех (David: «не надо приколачивать
@@ -626,19 +625,16 @@ function TeamDetailLive() {
   const bubbleOther = isDark ? "rgba(255,255,255,0.07)" : "#fff";
 
   const dayList = [];
+  // Строки БЕЗ подписей «N из M · ты в 12:52» (David 2026-07-16: «грязь, захламляет» —
+  // лица уже показывают, кто прокликал, а раскрытие даёт подробности).
   teamHabits.forEach((h, i) => {
     const done = myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
-    const myT = done ? myTimeFor(h.id) : null;
-    const mySuffix = done ? (myT ? " · ты в " + myT : " · ты только что") : "";
-    const sub = membersN <= 12
-      ? ((h.doneToday || 0) + " из " + (h.total != null ? h.total : membersN) + " сегодня" + mySuffix)
-      : ((h.doneToday || 0) + " уже" + mySuffix);
     const opened = openHabit === h.id;
     dayList.push(
       <CircleDayRowLive key={"h" + (h.id || i)} first={dayList.length === 0} isDark={isDark}
         icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
-        name={h.name} sub={sub} subGold={done} faces={facesH}
+        name={h.name} faces={facesH}
         on={done} inert={!_live}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
         onOpen={() => setOpenHabit(opened ? null : h.id)} />
@@ -659,7 +655,7 @@ function TeamDetailLive() {
     dayList.push(
       <CircleDayRowLive key={"t" + tk.id} first={dayList.length === 0} isDark={isDark}
         icon={<I.Flag size={16} strokeWidth={2.2} color="var(--text-2)" />} name={tk.text} tag="дело"
-        sub={(tk.doneCount || 0) + " " + ((tk.doneCount || 0) === 1 ? "сделал" : "сделали")} faces={facesT}
+        faces={facesT}
         on={!!tk.doneByMe} inert={!_live}
         onToggle={() => toggleMyTeamTask(tk)} />
     );
