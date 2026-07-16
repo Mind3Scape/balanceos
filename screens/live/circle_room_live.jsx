@@ -381,6 +381,10 @@ function TeamDetailLive() {
     try { var raw = localStorage.getItem(chatKey); if (raw) return JSON.parse(raw); } catch (e) {}
     return [];
   });
+  // ВКЛАДКИ КОМНАТЫ (макет А, выбор David 2026-07-16): «День круга» и «Чат» — сегменты-
+  // иконки под шапкой (точка-в-кольце = круг, пузырь = чат; линейные SVG). Чат больше
+  // не в «подвале»: «Написать» из кабинета/карточки человека открывает сразу чат.
+  const [roomTab, setRoomTab] = React.useState(() => (params && params.prefill ? "chat" : "day"));
   const mapRow = React.useCallback((r) => {
     const mine = r.user_id === meRef.current;
     const prof = memberMapRef.current[r.user_id];
@@ -400,16 +404,17 @@ function TeamDetailLive() {
     if (_live) return;
     try { localStorage.setItem(chatKey, JSON.stringify(msgs)); } catch (e) { try { localStorage.setItem(chatKey, JSON.stringify(msgs.filter((m) => !m.img))); } catch (e2) {} }
   }, [msgs, chatKey, _live]);
-  // Пульс на экране = чат прочитан: гасим маркер и значок на внешней карточке.
+  // Чат прочитан, только когда ОТКРЫТА вкладка «Чат» (с v774 он за сегментом): гасим
+  // маркер и значок на внешней карточке. Просто зайти в комнату — непрочитанное живо.
   React.useEffect(() => {
-    if (!_live) return;
+    if (!_live || roomTab !== "chat") return;
     try {
       const last = msgs.length ? msgs[msgs.length - 1] : null;
       const iso = last && last.ts ? new Date(last.ts).toISOString() : "";
       localStorage.setItem("bos:chatread:" + t.cloudId, iso);
       if (typeof bosTeamUnreadClear === "function") bosTeamUnreadClear(t.cloudId);
     } catch (e) {}
-  }, [_live, t.cloudId, msgs.length]);
+  }, [_live, t.cloudId, msgs.length, roomTab]);
   // prefill — «Написать» из кабинета/карточки человека приводит сюда с готовым «@Имя ».
   const [text, setText] = React.useState(() => (params && params.prefill) || "");
   const fileRef = React.useRef(null);
@@ -554,14 +559,12 @@ function TeamDetailLive() {
   const feedShown = feedCut ? feedRows.slice(-60) : feedRows;
   const MILES = [7, 14, 30, 50, 100, 200, 365, 500, 730, 1000];
   const hasMiles = (ageDays && MILES.indexOf(ageDays) >= 0) || (gTgt > 0 && gCur > 0);
-  // Лента открыта на СВЕЖЕМ (низ) и докручивается сама, когда прилетает новое, — как мессенджер.
-  const _feedNRef = React.useRef(-1);
+  // Лента открыта на СВЕЖЕМ (низ) и докручивается сама: новое событие ИЛИ переключение
+  // на вкладку «Чат» (лента монтируется заново со scrollTop 0) — как мессенджер.
   React.useLayoutEffect(() => {
     const el = feedBoxRef.current; if (!el) return;
-    if (_feedNRef.current === feedShown.length) return;
-    _feedNRef.current = feedShown.length;
     el.scrollTop = el.scrollHeight;
-  }, [feedShown.length]);
+  }, [feedShown.length, roomTab]);
 
   // Человек — ОТДЕЛЬНАЯ СТРАНИЦА (David 2026-07-16: «карточку человека тоже сделай страницей»).
   const openPerson = (p) => { if (p) navigate("team-person", { team: t, person: p, from: from }); };
@@ -576,6 +579,12 @@ function TeamDetailLive() {
   const levelOf = (id) => (levels && levels[id] && (levels[id].level | 0)) || 0;
   // Аккордеон привычек (David: строка раскрывается вниз, статистика видна на месте).
   const [openHabit, setOpenHabit] = React.useState(null);
+  // Непрочитанное для бейджа сегмента «Чат»: чужие сообщения новее последнего прочтения.
+  let unreadN = 0;
+  try {
+    const _readIso = localStorage.getItem("bos:chatread:" + t.cloudId) || "";
+    unreadN = msgs.filter((m) => !m.me && m.ts && (!_readIso || new Date(m.ts).toISOString() > _readIso)).length;
+  } catch (e) {}
 
   /* ── праздник закрытого дня круга (механика не менялась) ── */
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
@@ -677,6 +686,32 @@ function TeamDetailLive() {
         <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={{ ...navBtn, width: 36, height: 36 }}><I.Share size={15} strokeWidth={2} /></button>
       </div>
 
+      {/* СЕГМЕНТЫ комнаты (макет А): точка-в-кольце = «День круга», пузырь = «Чат».
+          Иконки-линии по просьбе David; на «Чате» золотой бейдж непрочитанного. */}
+      <div style={{ display: "flex", justifyContent: "center", padding: "7px 0 3px" }}>
+        <div style={{ display: "inline-flex", background: isDark ? "rgba(255,255,255,0.09)" : "rgba(120,120,128,0.14)", borderRadius: 999, padding: 2.5 }}>
+          {["day", "chat"].map((id) => {
+            const on = roomTab === id;
+            return (
+              <button key={id} onClick={() => { setRoomTab(id); if (id === "chat") { try { window.scrollTo(0, 0); } catch (e) {} } }} className="tap" data-haptic="selection"
+                aria-label={id === "day" ? "День круга" : "Чат"}
+                style={{ position: "relative", border: 0, borderRadius: 999, padding: "6px 27px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)", transition: "background .15s, color .15s" }}>
+                {id === "day" ? (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
+                ) : (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5z" /></svg>
+                )}
+                {id === "chat" && !on && unreadN > 0 && (
+                  <span style={{ position: "absolute", top: -3, right: 9, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#5a4104", fontSize: 8.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {roomTab === "day" && (<React.Fragment>
       {/* НИТЬ ДНЯ — лица в свой час; на большом круге — волна. */}
       {!threadOff && _live && (
         <div style={{ marginTop: 6 }}>
@@ -745,14 +780,14 @@ function TeamDetailLive() {
           </div>
         </React.Fragment>
       )}
+      </React.Fragment>)}
 
-      {/* ЧАТ — отметки, слова и вехи, одна лента по времени; свои отметки ВНУТРИ ленты,
-          не приколочены сверху (David 2026-07-16). */}
-      <BosRoomH2>Чат</BosRoomH2>
-
+      {/* ЧАТ — своя сторона комнаты (сегмент): отметки, слова и вехи, одна лента по
+          времени; свои отметки ВНУТРИ ленты, не приколочены сверху (David 2026-07-16). */}
+      {roomTab === "chat" && (<React.Fragment>
       {/* Тебя подбодрили — и кто. */}
       {cheeredMe.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9, borderRadius: 14, padding: "8px 11px", background: "rgba(240,195,10,0.10)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "7px 0 9px", borderRadius: 14, padding: "8px 11px", background: "rgba(240,195,10,0.10)" }}>
           <I.Flame size={14} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />
           <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: BOS_ROOM_GOLD_INK }}>Тебя подбодрили — {cheeredMe.length} {bosRoomPeopleWord(cheeredMe.length)}</span>
           <button onClick={() => openSheet(<CircleWhoSheetLive people={cheeredMe.map((u) => rosterById[u]).filter(Boolean)} />)} className="tap"
@@ -760,10 +795,10 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* ЧАТ-БОКС (David: «пульс не должен тянуться бесконечно вниз»): ограниченная область,
-          лента скроллится ВНУТРИ и открыта на свежем, композер приклеен к её дну. */}
-      <div style={{ ...card, overflow: "hidden" }}>
-      <div ref={feedBoxRef} className="screen-scroll" style={{ height: "min(430px, 56vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
+      {/* ЧАТ-БОКС: лента скроллится ВНУТРИ и открыта на свежем, композер приклеен к её
+          дну. С v774 чат — своя вкладка, поэтому бокс занимает почти весь экран. */}
+      <div style={{ ...card, overflow: "hidden", marginTop: cheeredMe.length > 0 ? 0 : 7 }}>
+      <div ref={feedBoxRef} className="screen-scroll" style={{ height: "calc(100vh - " + (cheeredMe.length > 0 ? 320 : 278) + "px)", minHeight: 340, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
       {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px", flexShrink: 0 }}>показаны последние события</div>}
       {feedShown.length === 0 && !hasMiles ? (
         <div style={{ textAlign: "center", padding: "0 24px", margin: "auto" }}>
@@ -843,6 +878,7 @@ function TeamDetailLive() {
         </button>
       </div>
       </div>
+      </React.Fragment>)}
     </div>
   );
 }

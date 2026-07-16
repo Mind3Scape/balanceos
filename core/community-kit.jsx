@@ -507,28 +507,70 @@ function TeamHabitSheet({ team, members = [], onAdd }) {
 }
 
 /* LEVELS / CREDITS — gamification (theme-aware) */
+/* Сжатие фото перед отправкой. Баг «чёрные фото в чате» (2026-07-16): большие снимки
+   iPhone через FileReader-dataURL иногда декодируются в WKWebView не до конца — canvas
+   рисовался ЧЁРНЫМ, и в облако уезжал честный чёрный JPEG. Поэтому теперь:
+   createImageBitmap/objectURL вместо гигантского dataURL, белая подложка (прозрачный
+   PNG в JPEG иначе тоже чернеет), и ПРОБА ПИКСЕЛЕЙ готового кадра — вышел сплошь
+   чёрным → отправляем оригинал файла как есть, лишь бы не чёрный квадрат. */
 function bosCompressImage(file, maxDim, quality) {
-  return new Promise(function (resolve, reject) {
-    var reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = function () {
+  var makeCanvas = function (src, w0, h0) {
+    var scale = Math.min(1, maxDim / Math.max(w0, h0));
+    var w = Math.max(1, Math.round(w0 * scale)), h = Math.max(1, Math.round(h0 * scale));
+    var canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(src, 0, 0, w, h);
+    return canvas;
+  };
+  var looksBlack = function (canvas) {
+    try {
+      var probe = document.createElement("canvas");
+      probe.width = 8; probe.height = 8;
+      var c = probe.getContext("2d");
+      c.drawImage(canvas, 0, 0, 8, 8);
+      var d = c.getImageData(0, 0, 8, 8).data;
+      for (var i = 0; i < d.length; i += 4) if (d[i] > 6 || d[i + 1] > 6 || d[i + 2] > 6) return false;
+      return true;
+    } catch (e) { return false; }
+  };
+  var viaBitmap = function () {
+    if (typeof createImageBitmap !== "function") return Promise.reject(new Error("no-bitmap"));
+    return createImageBitmap(file, { imageOrientation: "from-image" })
+      .catch(function () { return createImageBitmap(file); })
+      .then(function (bmp) {
+        var canvas = makeCanvas(bmp, bmp.width, bmp.height);
+        try { if (bmp.close) bmp.close(); } catch (e) {}
+        return canvas;
+      });
+  };
+  var viaImage = function () {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
       var img = new Image();
-      img.onerror = reject;
+      var done = function (fn, v) { try { URL.revokeObjectURL(url); } catch (e) {} fn(v); };
+      img.onerror = function () { done(reject, new Error("img-decode")); };
       img.onload = function () {
-        var w = img.width, h = img.height;
-        var scale = Math.min(1, maxDim / Math.max(w, h));
-        w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
-        var canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        try {
-          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL("image/jpeg", quality || 0.72));
-        } catch (e) { reject(e); }
+        var draw = function () { try { done(resolve, makeCanvas(img, img.naturalWidth || img.width, img.naturalHeight || img.height)); } catch (e) { done(reject, e); } };
+        if (img.decode) img.decode().then(draw).catch(draw); else draw();
       };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
+      img.src = url;
+    });
+  };
+  var fileAsIs = function () {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type || "")) return Promise.reject(new Error("undisplayable"));
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onerror = reject;
+      r.onload = function () { resolve(r.result); };
+      r.readAsDataURL(file);
+    });
+  };
+  return viaBitmap().catch(viaImage).then(function (canvas) {
+    if (looksBlack(canvas)) return fileAsIs();
+    return canvas.toDataURL("image/jpeg", quality || 0.72);
+  }).catch(fileAsIs);
 }
 
 /* ─── TEAM CHAT — one shared chat for the whole team: messages + photos, in the
