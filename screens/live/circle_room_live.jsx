@@ -924,9 +924,20 @@ function TeamDetailLive() {
               </span>
               <span style={{ fontSize: 10, color: "var(--text-4)" }}>{"до " + (circleLvl.level + 1) + " ур. — " + circleLvl.toNext}</span>
             </div>
-            <div style={{ height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.07)", overflow: "hidden", marginTop: 6 }}>
-              <div style={{ height: "100%", width: (circleLvl.frac * 100).toFixed(1) + "%", borderRadius: 999, background: "linear-gradient(90deg,#FEDE34,#EF9F14)", transition: "width .6s ease" }} />
-            </div>
+            {/* Шкала из ДВУХ слоёв (David 2026-07-17: «+40 XP, а на шкале не отражено»):
+                тёмное золото = до сегодня, светлый хвостик = сегодняшний вклад. Хвостик
+                держит мин. 2.5% — даже +10 из полутора тысяч видно глазом. */}
+            {(() => {
+              const segToday = Math.max(0, Math.min(circleLvl.cur, todayGain));
+              const baseW = Math.max(0, ((circleLvl.cur - segToday) / circleLvl.span) * 100);
+              const todayW = segToday > 0 ? Math.max((segToday / circleLvl.span) * 100, 2.5) : 0;
+              return (
+                <div style={{ display: "flex", height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.07)", overflow: "hidden", marginTop: 6 }}>
+                  <div style={{ height: "100%", width: baseW.toFixed(1) + "%", background: "linear-gradient(90deg,#F0C30A,#EF9F14)", transition: "width .6s ease", flexShrink: 0 }} />
+                  {todayW > 0 && <div style={{ height: "100%", width: todayW.toFixed(1) + "%", background: "linear-gradient(90deg,#FEDE34,#FFEC8A)", transition: "width .6s ease", flexShrink: 0 }} />}
+                </div>
+              );
+            })()}
           </React.Fragment>
         )}
         {/* Мои залёты: тихо на 1-м, тревожно на 2-м; на 3-м человека тут уже нет. */}

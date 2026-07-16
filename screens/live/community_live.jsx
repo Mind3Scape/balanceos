@@ -4006,7 +4006,7 @@ function CommunityLive() {
             круга, тот же, что в меню «+» на главной: у знака появился один смысл во всём
             приложении, а «Круги» и «Люди» перестали быть двумя картинками про людей. */}
         {/* «Круги» → «Общие цели» (David 2026-07-17: одно имя наверху и на «Все»). */}
-        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
+        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["people", "Network", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (

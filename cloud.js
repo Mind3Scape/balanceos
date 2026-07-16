@@ -583,7 +583,10 @@
       if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // до ALTER goal/circle_balance_on
       if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,created_at").eq("vis", "public").order("created_at", { ascending: false }).limit(60); // если embed team_members падает под RLS
       var rows = (r && r.data) || [];
-      var out = rows.filter(function (t) { return !(id && t.owner_id === id); }).map(function (t) {
+      // СВОИ круги (и владельца тоже) НЕ прячем (David 2026-07-17: «публичные цели видны
+      // всем, неважно — вступил, владеешь»; из-за старого фильтра владелец видел на «Все»
+      // одну цель вместо двух). Клиент сам помечает joined и убирает «Вступить».
+      var out = rows.map(function (t) {
         var g = t.goal;
         var gTitle = (typeof g === "string") ? g : (g && typeof g === "object" && typeof g.title === "string" ? g.title : null);
         return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goal: gTitle, goalKind: t.goal_kind, goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, createdAt: t.created_at, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
