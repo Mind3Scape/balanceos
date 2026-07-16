@@ -44,12 +44,17 @@ function BosFlatCheckLive({ on, isDark, onToggle, label }) {
 }
 
 /* Лицо участника: цветное — сегодня в деле, серое — ещё нет. gold — золотой ободок (я/сегодня). */
-function BosRoomFaceLive({ p, size, active, gold, isDark, onClick }) {
+function BosRoomFaceLive({ p, size, active, gold, isDark, onClick, level }) {
   var ring = "0 0 0 2px " + (isDark ? "#1c1c20" : "#fff") + (gold ? ", 0 0 0 3.4px " + BOS_ROOM_GOLD : "");
+  // Бейдж уровня — ВНЕ грейскейла молчащих: цифра читается всегда (David: «хочу видеть лвлы»).
   var node = (
-    <span style={{ borderRadius: "50%", lineHeight: 0, flexShrink: 0, display: "inline-block", boxShadow: ring,
-      filter: active === false ? "grayscale(1)" : "none", opacity: active === false ? 0.45 : 1 }}>
-      <BuddyFaceLive avatar={p.avatar} name={p.name} size={size} />
+    <span style={{ position: "relative", borderRadius: "50%", lineHeight: 0, flexShrink: 0, display: "inline-block", boxShadow: ring }}>
+      <span style={{ display: "inline-block", lineHeight: 0, borderRadius: "50%", filter: active === false ? "grayscale(1)" : "none", opacity: active === false ? 0.45 : 1 }}>
+        <BuddyFaceLive avatar={p.avatar} name={p.name} size={size} />
+      </span>
+      {(level | 0) > 0 && (
+        <span style={{ position: "absolute", right: -5, bottom: -3, minWidth: 15, height: 15, padding: "0 3px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 800, color: BOS_ROOM_GOLD_INK, lineHeight: 1 }}>{level | 0}</span>
+      )}
     </span>
   );
   if (!onClick) return node;
@@ -506,25 +511,32 @@ function TeamDetailLive() {
   const isNewbie = (m) => m.joinedAt && (Date.now() - new Date(m.joinedAt).getTime()) < 3 * 86400000;
   const redCount = _isOwner ? members.filter((m) => m.id !== meId && !isNewbie(m) && silentDays(m) >= 3).length + pending.length : 0;
 
-  // Мой день: отметился ли я и когда (для золотой строки пульса и «ты в HH:MM»).
+  // Мой день: отметился ли я и когда («ты в HH:MM» в строке привычки, «Ты» в ленте чата).
   const myRows = meId ? dayRows.filter((r) => r.u === meId) : [];
-  const myLastRow = myRows.length ? myRows.reduce((a, b) => (a.at > b.at ? a : b)) : null;
   const myTimeFor = (hid) => { const r = myRows.filter((x) => x.h === hid).sort((a, b) => (a.at < b.at ? -1 : 1))[0]; return r ? bosRoomHHMM(r.at) : null; };
 
-  /* ── пульс: сообщения + отметки + огоньки + вехи, одна лента по времени ── */
+  /* ── чат: сообщения + отметки + огоньки + вехи, одна лента по времени.
+     МОИ отметки — в ленте по хронологии, как у всех (David: «не надо приколачивать
+     сверху и показывать на нить — человек и так заметит»). ── */
   const packMode = membersN > 8;
   const feedRows = [];
   msgs.forEach((m, i) => feedRows.push({ k: "msg", ts: m.ts || 0, key: "m" + (m.id != null ? m.id : i), m }));
-  const otherMarks = dayRows.filter((r) => r.u !== meId);
   if (!packMode) {
-    otherMarks.forEach((r) => {
-      const hb = habitById[r.h], p = rosterById[r.u];
-      if (!hb || !p) return;
+    dayRows.forEach((r) => {
+      const hb = habitById[r.h], p0 = rosterById[r.u];
+      if (!hb || !p0) return;
+      const p = r.u === meId ? { ...p0, name: "Ты" } : p0;
       feedRows.push({ k: "mark", ts: _pt(r.at).getTime(), key: "k" + r.u + "-" + r.h, p, hb, at: r.at });
+    });
+    // Тап случился только что — облачная строка ещё едет (полл): локальная правда
+    // сразу даёт строку «только что», при следующем полле её заменит настоящая.
+    const myCloudMarked = {}; myRows.forEach((r) => { myCloudMarked[r.h] = true; });
+    if (meId && rosterById[meId]) teamHabits.forEach((h) => {
+      if (myDone(h) && !myCloudMarked[h.id]) feedRows.push({ k: "mark", ts: Date.now(), key: "kme-" + h.id, p: { ...rosterById[meId], name: "Ты" }, hb: h, at: null });
     });
   } else {
     const buckets = {};
-    otherMarks.forEach((r) => {
+    dayRows.forEach((r) => {
       const hb = habitById[r.h]; if (!hb) return;
       const d = _pt(r.at); const hourEnd = d.getHours() + 1;
       const bk = r.h + ":" + hourEnd;
@@ -553,6 +565,15 @@ function TeamDetailLive() {
 
   // Человек — ОТДЕЛЬНАЯ СТРАНИЦА (David 2026-07-16: «карточку человека тоже сделай страницей»).
   const openPerson = (p) => { if (p) navigate("team-person", { team: t, person: p, from: from }); };
+  // Уровни людей для грида «Люди» и аккордеона (David: «хочу видеть их уровни»).
+  const [levels, setLevels] = React.useState(() => { const c = _bosTeamGet("levels:" + t.cloudId); return (c && c.map) || {}; });
+  React.useEffect(() => {
+    let on = true;
+    if (!_live || !window.bosCloud || !window.bosCloud.profilesPublic || !members.length) return;
+    window.bosCloud.profilesPublic(members.map((m) => m.id)).then((map) => { if (on && map) setLevels(_bosTeamPut("levels:" + t.cloudId, { map: map }).map); }).catch(() => {});
+    return () => { on = false; };
+  }, [_live, t.cloudId, members.length]);
+  const levelOf = (id) => (levels && levels[id] && (levels[id].level | 0)) || 0;
   // Аккордеон привычек (David: строка раскрывается вниз, статистика видна на месте).
   const [openHabit, setOpenHabit] = React.useState(null);
 
@@ -604,7 +625,7 @@ function TeamDetailLive() {
     // и видно всё, что в неё входит, как в макетах»): тап по строке → статистика тут же.
     if (opened) dayList.push(
       <div key={"hx" + (h.id || i)} style={{ padding: "0 2px 13px" }}>
-        <HabitStandardSheetLive bare mode="circle" habit={h} team={t} members={members} meId={meId}
+        <HabitStandardSheetLive bare mode="circle" habit={h} team={t} members={members} meId={meId} levels={levels}
           rangeRows={rangeRows} dayRows={dayRows} done={done}
           onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
           onEdit={_isOwner ? () => openEditTeamHabit(h) : null} onPerson={openPerson} isDark={isDark} />
@@ -714,7 +735,7 @@ function TeamDetailLive() {
                 центрированно смотрелись и занимали всю область карточки»). */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center" }}>
               {members.map((m) => (
-                <BosRoomFaceLive key={m.id} p={m} size={36} active={!!activeSet[m.id]} gold={m.id === meId && !!activeSet[m.id]} isDark={isDark} onClick={() => openPerson(m)} />
+                <BosRoomFaceLive key={m.id} p={m} size={36} active={!!activeSet[m.id]} gold={m.id === meId && !!activeSet[m.id]} level={levelOf(m.id)} isDark={isDark} onClick={() => openPerson(m)} />
               ))}
               <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" aria-label="Позвать в круг"
                 style={{ width: 36, height: 36, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.10)"), background: "transparent" }}>
@@ -725,21 +746,10 @@ function TeamDetailLive() {
         </React.Fragment>
       )}
 
-      {/* ПУЛЬС ДНЯ — начинается с тебя; отметки, слова и вехи — одна лента (подписи-аннотации убраны: David «тупая хуйня»). */}
-      <BosRoomH2>Пульс дня</BosRoomH2>
+      {/* ЧАТ — отметки, слова и вехи, одна лента по времени; свои отметки ВНУТРИ ленты,
+          не приколочены сверху (David 2026-07-16). */}
+      <BosRoomH2>Чат</BosRoomH2>
 
-      {/* Золотая строка: твоя отметка стала первой строкой ленты. */}
-      {_iDidCircle && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9, borderRadius: 14, padding: "8px 11px", background: "rgba(240,195,10,0.12)" }}>
-          <span style={{ borderRadius: "50%", lineHeight: 0, boxShadow: "0 0 0 2px " + BOS_ROOM_GOLD }}>
-            <BuddyFaceLive avatar={(_meMember && _meMember.avatar) || "default"} name="Ты" size={22} />
-          </span>
-          <div style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: BOS_ROOM_GOLD_INK }}>
-            {"Ты " + (myLastRow && habitById[myLastRow.h] ? "закрыл(а) «" + habitById[myLastRow.h].name + "»" : "сегодня в деле") + (myLastRow ? " · " + bosRoomHHMM(myLastRow.at) : " · только что")}
-          </div>
-          {!threadOff && <span style={{ fontSize: 9.5, color: "var(--text-4)", flexShrink: 0 }}>→ на нити ↑</span>}
-        </div>
-      )}
       {/* Тебя подбодрили — и кто. */}
       {cheeredMe.length > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9, borderRadius: 14, padding: "8px 11px", background: "rgba(240,195,10,0.10)" }}>
@@ -758,7 +768,7 @@ function TeamDetailLive() {
       {feedShown.length === 0 && !hasMiles ? (
         <div style={{ textAlign: "center", padding: "0 24px", margin: "auto" }}>
           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 3 }}>Пока тихо</div>
-          <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-4)" }}>Отметь дело дня или напиши кругу — с этого и начинается пульс</div>
+          <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-4)" }}>Отметь дело дня или напиши кругу — с этого начинается разговор</div>
         </div>
       ) : feedShown.map((f) => {
         if (f.k === "msg") {
@@ -798,7 +808,7 @@ function TeamDetailLive() {
             <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--text-2)" }}>
               <b style={{ color: "var(--text)", fontWeight: 700 }}>{f.p.name + " "}</b>
               {"закрыл(а) «" + f.hb.name + "»"}
-              <span style={{ color: "var(--text-4)" }}>{" · " + bosRoomHHMM(f.at)}</span>
+              <span style={{ color: "var(--text-4)" }}>{f.at ? " · " + bosRoomHHMM(f.at) : " · только что"}</span>
             </div>
             {cheersOn && f.p.id !== meId && (
               <button onClick={() => sendCheer(f.p.id)} className="tap" aria-label={"Подбодрить " + f.p.name}

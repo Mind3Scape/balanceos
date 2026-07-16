@@ -182,7 +182,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
 }
 
 /* ШТОРКА ПРИВЫЧКИ КРУГА — ступень 3 стандарта (кадр 2 финала И). Один код с личной деталью. */
-function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, dayRows, done, onToggle, onEdit, onPerson, isDark, bare }) {
+function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rangeRows, dayRows, done, onToggle, onEdit, onPerson, isDark, bare }) {
   const h = habit || {};
   const membersN = (members || []).length || 1;
   const [isDone, setIsDone] = React.useState(!!done);
@@ -258,7 +258,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
         {gridPeople.slice(0, 21).map((p) => (
           <BosRoomFaceLive key={p.id} p={p} size={34} isDark={isDark}
             active={p.id === meId ? (isDone || !!byUserAt[p.id]) : !!byUserAt[p.id]}
-            gold={p.id === selU}
+            gold={p.id === selU} level={(levels && levels[p.id] && (levels[p.id].level | 0)) || 0}
             onClick={() => { if (p.id === selU) { if (onPerson) onPerson(p); } else setSelU(p.id); }} />
         ))}
         {gridPeople.length > 21 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{"+" + (gridPeople.length - 21)}</span>}
