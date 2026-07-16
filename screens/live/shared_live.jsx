@@ -5951,7 +5951,16 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
    create-CTA, shifting nothing above it. The frozen demo keeps core's CloudTeamsDiscover. */
 // Кэш последнего удачного списка открытых кругов (витрина, НЕ поиск) — переживает перемонтаж
 // и обрыв сети, чтобы публичный круг не «то появлялся, то исчезал» при каждом заходе на «Круги».
-var _bosDiscoverCache = null;
+/* Кэш витрины открытых кругов — ПЕРСИСТЕНТНЫЙ (David 2026-07-17: «Общие цели подгружаются
+   через 2-4 секунды, а должны быть сразу»): с прошлого визита лежит в localStorage, секции
+   стартуют мгновенно, сеть обновляет фоном (SWR). Данные публичные — хранить безопасно. */
+var _bosDiscoverCache = (function () {
+  try { var v = JSON.parse(localStorage.getItem("bos:cache:discover") || "null"); return Array.isArray(v) ? v : null; } catch (e) { return null; }
+})();
+function _bosDiscoverCachePut(arr) {
+  _bosDiscoverCache = arr;
+  try { localStorage.setItem("bos:cache:discover", JSON.stringify((arr || []).slice(0, 30))); } catch (e) {}
+}
 /* КОМПАКТНАЯ карточка круга — полширины, «волна дня» без лиц (мокап _devcircle2;
    David 2026-07-16: «в Сообществе все цели и круги — всегда компактной карточкой»).
    Данные и персистентный кэш ТЕ ЖЕ, что у большой карточки, — вид миниатюрный:
@@ -6074,7 +6083,7 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
         p.then((ts) => {
           if (!on) return;
           const arr = Array.isArray(ts) ? ts : [];
-          if (!isSearch) _bosDiscoverCache = arr;                 // обновляем кэш витрины
+          if (!isSearch) _bosDiscoverCachePut(arr);               // обновляем кэш витрины (и localStorage)
           setList(arr); if (onCount) onCount(arr.length);
         }).catch(() => {
           // Обрыв сети/RLS: НЕ гасим витрину в пустоту — держим что было (фикс «то появляется, то исчезает»).

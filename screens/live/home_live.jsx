@@ -944,7 +944,10 @@ function HomeLive() {
             return cardStyle.form === "rect";
           }}
           renderItem={(k, { mode }) => (
-            <div style={{ position: "relative", height: "100%" }}>
+            // Пока открыто long-tap-меню, ОРИГИНАЛ карточки прячем: её превью живёт в меню,
+            // и вдвоём они читались как «дубль со странной подсветкой» (David 2026-07-17) —
+            // особенно когда превью сдвигалось, чтобы меню влезло в экран.
+            <div style={{ position: "relative", height: "100%", visibility: (cardMenu && cardMenu.k === k) ? "hidden" : "visible" }}>
               <div style={{ pointerEvents: mode ? "none" : "auto", height: "100%" }}>{tileFor(k)}</div>
               {mode && <WidgetMinusLive onRemove={() => onMinus(k)} />}
             </div>

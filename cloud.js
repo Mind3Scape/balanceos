@@ -586,10 +586,14 @@
       // СВОИ круги (и владельца тоже) НЕ прячем (David 2026-07-17: «публичные цели видны
       // всем, неважно — вступил, владеешь»; из-за старого фильтра владелец видел на «Все»
       // одну цель вместо двух). Клиент сам помечает joined и убирает «Вступить».
+      // «[object Object]» из старого бага сохранения мог осесть в goal.title/goal_kind —
+      // на карточку такой мусор не отдаём (David 2026-07-17).
+      var _cln = function (s) { return (typeof s === "string" && s && s.indexOf("[object") < 0) ? s : null; };
       var out = rows.map(function (t) {
         var g = t.goal;
-        var gTitle = (typeof g === "string") ? g : (g && typeof g === "object" && typeof g.title === "string" ? g.title : null);
-        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goal: gTitle, goalKind: t.goal_kind, goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, createdAt: t.created_at, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
+        var gTitle = _cln((typeof g === "string") ? g : (g && typeof g === "object" && typeof g.title === "string" ? g.title : null));
+        var gDesc = (g && typeof g === "object") ? _cln(g.desc) : null;
+        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goal: gTitle, desc: gDesc, goalKind: _cln(t.goal_kind), goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, createdAt: t.created_at, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
       });
       // ЧЕСТНЫЙ размер круга: embed team_members(count) под RLS видит только СВОИ строки —
       // у чужих кругов выходил 0, и ранжирование «больше людей выше» было мёртвым (David

@@ -686,9 +686,21 @@ function TeamDetailLive() {
   const hasMiles = (ageDays && MILES.indexOf(ageDays) >= 0) || (gTgt > 0 && gCur > 0);
   // Лента открыта на СВЕЖЕМ (низ) и докручивается сама: новое событие ИЛИ переключение
   // на вкладку «Чат» (лента монтируется заново со scrollTop 0) — как мессенджер.
-  React.useLayoutEffect(() => {
+  // ФОТО грузятся ПОЗЖЕ скролла и распирают ленту («чат открывается посередине», David
+  // 2026-07-17) → повторные докрутки + докрутка на onLoad картинок (если мы у низа).
+  const _scrollFeedBottom = React.useCallback(() => {
+    const el = feedBoxRef.current; if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+  const _feedImgLoaded = React.useCallback(() => {
     const el = feedBoxRef.current; if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 340) el.scrollTop = el.scrollHeight;
+  }, []);
+  React.useLayoutEffect(() => {
+    _scrollFeedBottom();
+    if (roomTab !== "chat") return;
+    const t1 = setTimeout(_scrollFeedBottom, 260);
+    const t2 = setTimeout(_scrollFeedBottom, 750);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [feedShown.length, roomTab]);
 
   // Человек — ОТДЕЛЬНАЯ СТРАНИЦА (David 2026-07-16: «карточку человека тоже сделай страницей»).
@@ -924,20 +936,8 @@ function TeamDetailLive() {
               </span>
               <span style={{ fontSize: 10, color: "var(--text-4)" }}>{"до " + (circleLvl.level + 1) + " ур. — " + circleLvl.toNext}</span>
             </div>
-            {/* Шкала из ДВУХ слоёв (David 2026-07-17: «+40 XP, а на шкале не отражено»):
-                тёмное золото = до сегодня, светлый хвостик = сегодняшний вклад. Хвостик
-                держит мин. 2.5% — даже +10 из полутора тысяч видно глазом. */}
-            {(() => {
-              const segToday = Math.max(0, Math.min(circleLvl.cur, todayGain));
-              const baseW = Math.max(0, ((circleLvl.cur - segToday) / circleLvl.span) * 100);
-              const todayW = segToday > 0 ? Math.max((segToday / circleLvl.span) * 100, 2.5) : 0;
-              return (
-                <div style={{ display: "flex", height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.07)", overflow: "hidden", marginTop: 6 }}>
-                  <div style={{ height: "100%", width: baseW.toFixed(1) + "%", background: "linear-gradient(90deg,#F0C30A,#EF9F14)", transition: "width .6s ease", flexShrink: 0 }} />
-                  {todayW > 0 && <div style={{ height: "100%", width: todayW.toFixed(1) + "%", background: "linear-gradient(90deg,#FEDE34,#FFEC8A)", transition: "width .6s ease", flexShrink: 0 }} />}
-                </div>
-              );
-            })()}
+            {/* Полоса-шкала УБРАНА (David 2026-07-17: «заполнение уровня видим только на
+                кружочке») — прогресс живёт в кольце вокруг диска, тут остаётся строка цифр. */}
           </React.Fragment>
         )}
         {/* Мои залёты: тихо на 1-м, тревожно на 2-м; на 3-м человека тут уже нет. */}
@@ -1058,7 +1058,7 @@ function TeamDetailLive() {
           return m.me ? (
             <div key={f.key} style={{ display: "flex", justifyContent: "flex-end", marginBottom: 9 }}>
               <div style={{ maxWidth: "78%", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: "16px 16px 5px 16px", padding: m.img ? 7 : "8px 12px" }}>
-                {m.img ? <img src={m.img} alt="" loading="lazy" onClick={() => setPhotoView(m.img)} style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4 }}>{m.t}</div>}
+                {m.img ? <img src={m.img} alt="" loading="lazy" onLoad={_feedImgLoaded} onClick={() => setPhotoView(m.img)} style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4 }}>{m.t}</div>}
                 <div style={{ fontSize: 9.5, opacity: 0.55, textAlign: "right", marginTop: 2 }}>{m.time}</div>
               </div>
             </div>
@@ -1068,7 +1068,7 @@ function TeamDetailLive() {
               <div style={{ maxWidth: "78%" }}>
                 <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)", margin: "0 0 2px 4px" }}>{m.who + " · " + (m.time || "")}</div>
                 <div style={{ background: bubbleOther, borderRadius: "16px 16px 16px 5px", padding: m.img ? 7 : "8px 12px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
-                  {m.img ? <img src={m.img} alt="" loading="lazy" onClick={() => setPhotoView(m.img)} style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
+                  {m.img ? <img src={m.img} alt="" loading="lazy" onLoad={_feedImgLoaded} onClick={() => setPhotoView(m.img)} style={{ width: 180, maxWidth: "100%", maxHeight: 230, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} /> : <div style={{ fontSize: 13.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
                 </div>
               </div>
             </div>

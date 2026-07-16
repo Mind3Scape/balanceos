@@ -609,10 +609,14 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         // БЕЗОПАСНЫЙ текст цели (David: в Сообществе показывало «[object Object]»): у облачного круга
         // g0.goal — это ОБЪЕКТ {title,target,unit,...}; старое `"" + g0.goal` давало «[object Object]»,
         // и эта строка уходила в облако (goal_kind) и на карточку. Берём title/строку, иначе строим из числа.
+        // «[object Object]» из старого бага мог УЖЕ лежать в title/goal_kind в базе — такую
+        // строку тоже отбрасываем, иначе мусор самоподдерживается при каждом сохранении
+        // (David 2026-07-17: «на карточке появилось object-object»).
+        const _san = (s) => (typeof s === "string" && s.trim() && s.indexOf("[object") < 0) ? s.trim() : null;
         const _gRaw = g0.goal;
-        const goalText = (typeof _gRaw === "string" && _gRaw.trim()) ? _gRaw.trim()
-          : (_gRaw && typeof _gRaw === "object" && typeof _gRaw.title === "string" && _gRaw.title.trim()) ? _gRaw.title.trim()
-          : (tgt + (unit ? " " + unit : ""));
+        const goalText = _san(_gRaw)
+          || (_gRaw && typeof _gRaw === "object" ? _san(_gRaw.title) : null)
+          || (tgt + (unit ? " " + unit : ""));
         const _desc = (desc || "").trim();
         const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc, circleBalanceOn, threadOff: !threadOn };
         app?.updateTeam(g0._id, patch);

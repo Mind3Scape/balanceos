@@ -3713,16 +3713,24 @@ function ThanksSheetLive({ offerId, toId, toName, week, onDone }) {
 // ведёт на полный список (чип «Круги»). Пусто/оффлайн → остаются заготовки, раздел не мёртвый.
 function OpenCirclesRailLive({ app, navigate, isDark, onAll }) {
   var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
-  var _l = React.useState(null), list = _l[0], setList = _l[1];   // реальные публичные круги (null=грузим)
+  // Старт С КЭША прошлого визита (David 2026-07-17: «должны быть сразу, а не через 2-4 сек»),
+  // сеть обновляет фоном. null = совсем нечего показать (первый запуск) → секция молчит до данных.
+  var _l = React.useState(function () { return (typeof _bosDiscoverCache !== "undefined" && Array.isArray(_bosDiscoverCache) && _bosDiscoverCache.length) ? _bosDiscoverCache : null; }), list = _l[0], setList = _l[1];
   var _b = React.useState({}), busy = _b[0], setBusy = _b[1];
   var _rq = React.useState({}), reqd = _rq[0], setReqd = _rq[1];
   React.useEffect(function () {
     var on = true;
     try {
       if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.discoverTeams) {
-        window.bosCloud.discoverTeams().then(function (ts) { if (on) setList(Array.isArray(ts) ? ts : []); }).catch(function () { if (on) setList([]); });
-      } else setList([]);
-    } catch (e) { setList([]); }
+        window.bosCloud.discoverTeams().then(function (ts) {
+          if (!on) return;
+          var arr = Array.isArray(ts) ? ts : [];
+          if (arr.length && typeof _bosDiscoverCachePut === "function") _bosDiscoverCachePut(arr);
+          // обрыв/пусто при живом кэше → держим кэш, не гасим секцию в ничто
+          setList(function (prev) { return arr.length ? arr : (prev || arr); });
+        }).catch(function () { if (on) setList(function (prev) { return prev || []; }); });
+      } else setList(function (prev) { return prev || []; });
+    } catch (e) { setList(function (prev) { return prev || []; }); }
     return function () { on = false; };
   }, []);
   // ВСЕ публичные общие цели — И те, где я уже состою (David 2026-07-17: «видны всем,
@@ -4006,7 +4014,7 @@ function CommunityLive() {
             круга, тот же, что в меню «+» на главной: у знака появился один смысл во всём
             приложении, а «Круги» и «Люди» перестали быть двумя картинками про людей. */}
         {/* «Круги» → «Общие цели» (David 2026-07-17: одно имя наверху и на «Все»). */}
-        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["people", "Network", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
+        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["people", "Контакты", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (
