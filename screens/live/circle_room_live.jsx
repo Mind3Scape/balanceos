@@ -104,6 +104,55 @@ function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on,
   );
 }
 
+/* Шторка «Уровень круга» — тап по аватарке круга в визитке (David 2026-07-16: «чтобы
+   всплывала шторка, объясняющая, как это работает по-настоящему»). Только честные
+   правила текущей механики — ничего из отложенного (мест/порогов тут нет). */
+function CircleLevelSheetLive({ lvl, todayGain, rhythm, isDark }) {
+  const { close } = useSheet();
+  const rule = (icon, head, body) => (
+    <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 2px" }}>
+      <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 14, background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)" }}>{icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{head}</div>
+        <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginTop: 2 }}>{body}</div>
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ padding: "8px 4px 10px" }}>
+      <div style={{ textAlign: "center" }}>
+        <span style={{ position: "relative", width: 74, height: 74, display: "inline-block" }}>
+          <svg viewBox="0 0 36 36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            <circle cx="18" cy="18" r="16" fill="none" stroke={isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.08)"} strokeWidth="2.8" />
+            <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_ROOM_GOLD} strokeWidth="2.8" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset={(100.5 * (1 - lvl.frac)).toFixed(1)} />
+          </svg>
+          <span style={{ position: "absolute", inset: 6, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 24, fontWeight: 800, color: "var(--text)", background: isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)" }}>{lvl.level}</span>
+        </span>
+        <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginTop: 10, letterSpacing: "-0.3px" }}>{"Уровень круга — " + lvl.level}</div>
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>{lvl.xp + " XP · до " + (lvl.level + 1) + "-го — " + lvl.toNext}</div>
+        <div style={{ height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.07)", overflow: "hidden", margin: "10px 2px 0" }}>
+          <div style={{ height: "100%", width: (lvl.frac * 100).toFixed(1) + "%", borderRadius: 999, background: "linear-gradient(90deg,#FEDE34,#EF9F14)" }} />
+        </div>
+        {todayGain > 0 && (
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: BOS_ROOM_GOLD_INK, marginTop: 8 }}>
+            {"Сегодня +" + todayGain + " XP"}{rhythm ? " · круг в ритме, всё ×2" : ""}
+          </div>
+        )}
+      </div>
+      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "4px 12px", marginTop: 14 }}>
+        {rule("✓", "День человека = +10 XP кругу", "Отметил хотя бы одну привычку круга за день — положил свои +10 в общий опыт. Больше людей в деле — быстрее рост.")}
+        <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)" }} />
+        {rule("🔥", "День в ритме — всё ×2", "Когда отметились все (в большом круге — 80% состава), каждый день этого дня считается вдвое. Маленький живой круг растёт быстрее большой тишины.")}
+        <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)" }} />
+        {rule("🎁", "Круг вырос — подарок каждому", "Новый уровень приносит конфетти и XP каждому, кто был в деле на этой неделе: уровень × 10.")}
+        <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)" }} />
+        {rule("⛰", "Чем выше — тем дороже шаг", "Пороги растут: 2-й уровень — 150 XP, 5-й — 1 500, 10-й — 6 750. Круг качать сложнее, чем себя, — это общее дело.")}
+      </div>
+      <button onClick={close} className="tap" style={{ width: "100%", border: 0, borderRadius: 999, padding: "13px 0", fontSize: 14, fontWeight: 800, cursor: "pointer", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", marginTop: 12 }}>Понятно</button>
+    </div>
+  );
+}
+
 /* Шторка «Круг вырос» — праздник апа уровня (Э1): кольцо, уровень, подарок каждому. */
 function CircleLevelUpSheetLive({ level, gift, isDark }) {
   const { close } = useSheet();
@@ -629,6 +678,9 @@ function TeamDetailLive() {
     return () => { on = false; clearInterval(iv); };
   }, [_live, t.cloudId]);
   const circleLvl = (circleXP != null && typeof bosCircleLevel === "function") ? bosCircleLevel(circleXP) : null;
+  const rhythmToday = membersN > 0 && todayN >= need;
+  const todayGain = todayN * 10 * (rhythmToday ? 2 : 1);
+  const openLevelSheet = () => { if (circleLvl) openSheet(<CircleLevelSheetLive lvl={circleLvl} todayGain={todayGain} rhythm={rhythmToday} isDark={isDark} />); };
   // ПРАЗДНИК АПА: уровень вырос с прошлого визита → конфетти + шторка + подарок XP
   // каждому активному за неделю (уровень×10; идемпотентно по ключу уровня).
   React.useEffect(() => {
@@ -786,7 +838,8 @@ function TeamDetailLive() {
       <div style={{ ...card, padding: "13px 13px 11px", marginTop: 2 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           {circleLvl ? (
-            <span style={{ position: "relative", width: 48, height: 48, flexShrink: 0 }}>
+            <button onClick={openLevelSheet} className="tap" data-haptic="selection" aria-label="Уровень круга"
+              style={{ position: "relative", width: 48, height: 48, flexShrink: 0, border: 0, background: "transparent", padding: 0, cursor: "pointer" }}>
               <svg viewBox="0 0 36 36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
                 <circle cx="18" cy="18" r="16" fill="none" stroke={isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.08)"} strokeWidth="2.6" />
                 <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_ROOM_GOLD} strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset={(100.5 * (1 - circleLvl.frac)).toFixed(1)} />
@@ -795,7 +848,7 @@ function TeamDetailLive() {
                 background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
                 boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 19, null)}</span>
               <span style={{ position: "absolute", right: -4, bottom: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: BOS_ROOM_GOLD_INK, lineHeight: 1, zIndex: 2 }}>{circleLvl.level}</span>
-            </span>
+            </button>
           ) : (
             <span style={{ width: 46, height: 46, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
               background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
@@ -810,8 +863,8 @@ function TeamDetailLive() {
           <React.Fragment>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 11 }}>
               <span style={{ fontSize: 10.5, color: "var(--text-2)", fontWeight: 600 }}>
-                {"Сегодня +" + (todayN * 10 * (membersN > 0 && todayN >= need ? 2 : 1)) + " XP"}
-                {membersN > 0 && todayN >= need && <span style={{ fontSize: 9, color: BOS_ROOM_GOLD_INK, fontWeight: 800, background: "rgba(240,195,10,0.13)", borderRadius: 999, padding: "2px 6px", marginLeft: 4 }}>в ритме ×2</span>}
+                {"Сегодня +" + todayGain + " XP"}
+                {rhythmToday && <span style={{ fontSize: 9, color: BOS_ROOM_GOLD_INK, fontWeight: 800, background: "rgba(240,195,10,0.13)", borderRadius: 999, padding: "2px 6px", marginLeft: 4 }}>в ритме ×2</span>}
               </span>
               <span style={{ fontSize: 10, color: "var(--text-4)" }}>{"до " + (circleLvl.level + 1) + " ур. — " + circleLvl.toNext}</span>
             </div>
