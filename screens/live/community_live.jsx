@@ -83,6 +83,26 @@ function LiveTeamCard({ t, navigate, rhythm }) {
     bosTeamUnreadPeek(t.cloudId).then((u) => { if (on && u) setUnreadN(u.count || 0); }).catch(() => {});
     return () => { on = false; };
   }, [t.cloudId]);
+  // Та же пара ушей, что у карточки на главной (BosCircleCardLive) — иначе бейдж «Вместе»
+  // жил своей жизнью: не гас после прочтения (см. bos:chatunread) и не загорался в реалтайме.
+  React.useEffect(() => {
+    if (!(_cloud && t.cloudId)) return;
+    const ck = t.cloudId;
+    let me = null; try { me = window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync(); } catch (e) {}
+    if (!me && window.bosCloud && window.bosCloud.uid) { try { window.bosCloud.uid().then((u) => { if (u) me = u; }).catch(() => {}); } catch (e) {} }
+    let unsub = function () {};
+    try {
+      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.subscribeMessages) {
+        unsub = window.bosCloud.subscribeMessages(ck, (row) => {
+          if (!row || !row.user_id || row.user_id === me || !me) return;
+          setUnreadN((u) => (u || 0) + 1);
+        });
+      }
+    } catch (e) {}
+    const onClear = (ev) => { if (ev && ev.detail && ev.detail.cloudId === ck) setUnreadN(ev.detail.count || 0); };
+    window.addEventListener("bos:chatunread", onClear);
+    return () => { try { unsub(); } catch (e) {} window.removeEventListener("bos:chatunread", onClear); };
+  }, [t.cloudId]);
   const _loading = _cloud && roster === null; // cloud roster not back yet → skeleton, never «ты один»
   const members = _cloud ? (roster || []) : (t.members || []);
   const count = members.length;

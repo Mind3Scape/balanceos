@@ -2268,10 +2268,13 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   React.useEffect(() => {
     if (!ck || !joined || ctx.mode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.subscribeMessages)) return;
     let me = null; try { me = window.bosCloud.uidSync && window.bosCloud.uidSync(); } catch (e) {}
+    // uidSync до прогрева авторизации даёт null → «row.user_id === null» всегда ложь, и СВОЁ
+    // сообщение считалось непрочитанным (фантомная «1»). Догреваем uid асинхронно.
+    if (!me && window.bosCloud.uid) { try { window.bosCloud.uid().then((u) => { if (u) me = u; }).catch(() => {}); } catch (e) {} }
     let unsub = function () {};
     try {
       unsub = window.bosCloud.subscribeMessages(ck, (row) => {
-        if (!row || row.user_id === me) return;
+        if (!row || !row.user_id || row.user_id === me || !me) return;
         setUnread((u) => { const n = (u || 0) + 1; try { _bosTeamUnreadCache[ck] = { at: Date.now(), count: n }; } catch (e) {} return n; });
       });
     } catch (e) {}

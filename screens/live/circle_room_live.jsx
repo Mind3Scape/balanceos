@@ -71,6 +71,39 @@ function BosRoomH2({ children, extra }) {
   );
 }
 
+// Меню лонгтапа по привычке круга (владелец): Редактировать / Удалить (двухшаговое
+// подтверждение прямо в кнопке) / Отмена. Открывается из CircleRoomLive._lpFire.
+function CircleHabitMenuSheetLive({ h, isDark, onEdit, onDelete }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  const [ask, setAsk] = React.useState(false);
+  const btn = (label, tone, fn) => (
+    <button onClick={fn} className="tap" style={{
+      width: "100%", border: 0, cursor: "pointer", borderRadius: 14, padding: "13px 14px", marginTop: 8,
+      fontSize: 14.5, fontWeight: 600, textAlign: "center",
+      background: tone === "danger" ? "rgba(255,90,95,0.12)" : (tone === "plain" ? "transparent" : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)")),
+      color: tone === "danger" ? "#e03e44" : (tone === "plain" ? "var(--text-4)" : "var(--text)"),
+    }}>{label}</button>
+  );
+  return (
+    <div style={{ padding: "4px 18px 18px", color: "var(--text)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "6px 2px 10px" }}>
+        <span style={{ width: 38, height: 38, borderRadius: 12, background: (h.color || "#0a0a0a") + "1a", display: "grid", placeItems: "center", flexShrink: 0 }}>{bosIcon(h.emoji, 19, h.color)}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>привычка круга</div>
+        </div>
+      </div>
+      {btn("Редактировать", null, () => { try { sheet.close(); } catch (e) {} setTimeout(onEdit, 80); })}
+      {btn(ask ? "Точно удалить? Отметки круга по ней пропадут" : "Удалить из круга", "danger", () => {
+        if (!ask) { setAsk(true); return; }
+        try { sheet.close(); } catch (e) {}
+        setTimeout(onDelete, 80);
+      })}
+      {btn("Отмена", "plain", () => { try { sheet.close(); } catch (e) {} })}
+    </div>
+  );
+}
+
 /* Строка списка привычек/дел. Кружок = отметить; тело строки = аккордеон статистики (onOpen).
    Шеврона нет намеренно (David: рука и так тянется тапнуть) — строка раскрывается сама. */
 function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert }) {
@@ -386,6 +419,28 @@ function TeamDetailLive() {
   const openAddHabit = () => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} teamFor={{ team: t, suggestMain: !(teamHabits && teamHabits.length), onSave: saveTeamHabit, onDelete: removeTeamHabitH }} />);
   const openEditTeamHabit = (h) => openSheet(<HabitFormSheetLive mode="edit" navigate={navigate} habit={{ id: h.id, name: h.name, emoji: h.emoji, color: h.color || null, goalPerDay: h.goalPerDay || 1, duration: 0, isMain: !!h.isMain }} teamFor={{ team: t, onSave: saveTeamHabit, onDelete: removeTeamHabitH }} />);
 
+  // ЛОНГТАП по привычке круга (David 2026-07-16): владелец зажимает строку → меню
+  // «Редактировать / Удалить». Та же механика удержания, что на доске главной: ~480 мс
+  // без движения, хаптик, глотаем следующий click — строка не срабатывает как тап.
+  const _lpRef = React.useRef({ t: 0, x: 0, y: 0 });
+  const _lpSwallowClick = () => {
+    const kill = (e) => { e.stopPropagation(); e.preventDefault(); window.removeEventListener("click", kill, true); };
+    window.addEventListener("click", kill, true);
+    setTimeout(() => { try { window.removeEventListener("click", kill, true); } catch (e) {} }, 400);
+  };
+  const _lpFire = (h) => {
+    _lpSwallowClick();
+    if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e) {} }
+    openSheet(<CircleHabitMenuSheetLive h={h} isDark={isDark} onEdit={() => openEditTeamHabit(h)} onDelete={() => removeTeamHabitH(h.id)} />);
+  };
+  const _lpDown = (h) => (e) => {
+    _lpRef.current.x = e.clientX; _lpRef.current.y = e.clientY;
+    clearTimeout(_lpRef.current.t);
+    _lpRef.current.t = setTimeout(() => { _lpRef.current.t = 0; _lpFire(h); }, 480);
+  };
+  const _lpMove = (e) => { const r = _lpRef.current; if (r.t && (Math.abs(e.clientX - r.x) > 9 || Math.abs(e.clientY - r.y) > 9)) { clearTimeout(r.t); r.t = 0; } };
+  const _lpEnd = () => { clearTimeout(_lpRef.current.t); _lpRef.current.t = 0; };
+
   // Дела круга (разовые, kind='task') — строки «Моего дня» с меткой. Просьбы Э3 — в архиве.
   const [teamTaskData, setTeamTaskData] = React.useState(() => _bosTeamGet("tasks:" + t.cloudId));
   const [tasksTick, setTasksTick] = React.useState(0);
@@ -528,7 +583,11 @@ function TeamDetailLive() {
     if (!_live || roomTab !== "chat") return;
     try {
       const last = msgs.length ? msgs[msgs.length - 1] : null;
-      const iso = last && last.ts ? new Date(last.ts).toISOString() : "";
+      // +1 мс: created_at в базе хранит МИКРОсекунды, JS усекает до мс. Метка «ровно в мс
+      // последнего сообщения» на сервере строго МЕНЬШЕ его created_at (…123 < …123456) —
+      // и peek вечно возвращал «1 непрочитанное» (фантом на внешней карточке, David 2026-07-16).
+      // Округляем вверх — последнее прочитанное больше никогда не считается новым.
+      const iso = last && last.ts ? new Date(last.ts + 1).toISOString() : "";
       localStorage.setItem("bos:chatread:" + t.cloudId, iso);
       if (typeof bosTeamUnreadClear === "function") bosTeamUnreadClear(t.cloudId);
     } catch (e) {}
@@ -809,12 +868,18 @@ function TeamDetailLive() {
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const opened = openHabit === h.id;
     dayList.push(
-      <CircleDayRowLive key={"h" + (h.id || i)} first={dayList.length === 0} isDark={isDark}
-        icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
-        name={h.name} faces={facesH}
-        on={done} inert={!_live}
-        onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
-        onOpen={() => setOpenHabit(opened ? null : h.id)} />
+      // Обёртка-лонгтап: только владелец; удержание → меню «Редактировать / Удалить».
+      <div key={"h" + (h.id || i)}
+        onPointerDown={_isOwner ? _lpDown(h) : undefined} onPointerMove={_isOwner ? _lpMove : undefined}
+        onPointerUp={_isOwner ? _lpEnd : undefined} onPointerCancel={_isOwner ? _lpEnd : undefined}
+        onContextMenu={_isOwner ? (e) => { e.preventDefault(); _lpEnd(); _lpFire(h); } : undefined}>
+        <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
+          icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
+          name={h.name} faces={facesH}
+          on={done} inert={!_live}
+          onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
+          onOpen={() => setOpenHabit(opened ? null : h.id)} />
+      </div>
     );
     // АККОРДЕОН (David 2026-07-16: «не на отдельную вкладку — привычка раскрывается вниз,
     // и видно всё, что в неё входит, как в макетах»): тап по строке → статистика тут же.
@@ -1024,6 +1089,50 @@ function TeamDetailLive() {
           </div>
         </React.Fragment>
       )}
+
+      {/* МОЛОДЦЫ НЕДЕЛИ — лидерборд (David 2026-07-16: «хочется, чтобы кого-то хвалили»).
+          Метрика уже посчитана: wk7 = закрытые дни за 7 дней (тот же порядок, что сортирует
+          «Людей»). Топ-3; в кругах от 8 человек — топ-5, от 20 — топ-10 (задел под большие
+          группы). Показываем только когда есть кого хвалить (2+ людей и хоть один день). */}
+      {membersN >= 2 && (() => {
+        const _lbN = membersN >= 20 ? 10 : (membersN >= 8 ? 5 : 3);
+        const _lb = members
+          .map((m) => ({ m, n: wk7[m.id] || 0 }))
+          .filter((x) => x.n > 0)
+          .sort((a, b) => (b.n - a.n) || ((activeSet[b.m.id] ? 1 : 0) - (activeSet[a.m.id] ? 1 : 0)))
+          .slice(0, _lbN);
+        if (!_lb.length) return null;
+        const _meIn = _lb.some((x) => x.m.id === meId);
+        const _medal = (i) => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+        return (
+          <React.Fragment>
+            <BosRoomH2 extra={_meIn
+              ? <span style={{ fontSize: 10.5, fontWeight: 700, color: BOS_ROOM_GOLD_INK, background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 9px" }}>ты в лидерах ✦</span>
+              : <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>дни за неделю</span>}>Молодцы недели</BosRoomH2>
+            <div style={{ ...card, padding: "5px 12px" }}>
+              {_lb.map((x, i) => (
+                <button key={x.m.id} onClick={() => openPerson(x.m)} className="tap" style={{
+                  width: "100%", border: 0, background: "transparent", cursor: "pointer", textAlign: "left",
+                  display: "flex", alignItems: "center", gap: 11, padding: "9px 2px",
+                  borderTop: i ? ("1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)")) : 0,
+                }}>
+                  <span style={{ width: 24, textAlign: "center", fontSize: _medal(i) ? 17 : 12.5, fontWeight: 800, color: "var(--text-4)", flexShrink: 0 }}>{_medal(i) || (i + 1)}</span>
+                  <BosRoomFaceLive p={x.m} size={32} active={!!activeSet[x.m.id]} gold={i === 0} level={levelOf(x.m.id)} isDark={isDark} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {x.m.name || "Без имени"}{x.m.id === meId && <span style={{ color: "var(--text-4)", fontWeight: 500 }}> · ты</span>}
+                  </span>
+                  {activeSet[x.m.id] && <span aria-label="сегодня в деле" style={{ fontSize: 12, flexShrink: 0 }}>🔥</span>}
+                  <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 700, borderRadius: 999, padding: "4px 10px",
+                    background: i === 0 ? "rgba(240,195,10,0.16)" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)"),
+                    color: i === 0 ? BOS_ROOM_GOLD_INK : "var(--text-2)" }}>
+                    {x.n} {x.n === 1 ? "день" : (x.n <= 4 ? "дня" : "дней")}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </React.Fragment>
+        );
+      })()}
       </React.Fragment>)}
 
       {/* ЧАТ — своя сторона комнаты (сегмент): отметки, слова и вехи, одна лента по
