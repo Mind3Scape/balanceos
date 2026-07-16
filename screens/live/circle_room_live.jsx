@@ -66,9 +66,9 @@ function BosRoomH2({ children, extra }) {
   );
 }
 
-/* Строка списка привычек/дел. Кружок = отметить; тело строки = аккордеон статистики (onOpen),
-   шеврон поворачивается при раскрытии. */
-function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert, expanded }) {
+/* Строка списка привычек/дел. Кружок = отметить; тело строки = аккордеон статистики (onOpen).
+   Шеврона нет намеренно (David: рука и так тянется тапнуть) — строка раскрывается сама. */
+function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 2px", borderTop: first ? 0 : "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") }}>
       <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
@@ -91,7 +91,6 @@ function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on,
             ))}
           </span>
         ) : null}
-        {onOpen ? <I.ChevronRight size={13} color="var(--text-4)" style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }} /> : null}
       </div>
       {inert
         ? <span aria-hidden style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.18)" : "rgba(10,10,10,0.12)") }} />
@@ -597,7 +596,7 @@ function TeamDetailLive() {
       <CircleDayRowLive key={"h" + (h.id || i)} first={dayList.length === 0} isDark={isDark}
         icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
         name={h.name} sub={sub} subGold={done} faces={facesH}
-        on={done} inert={!_live} expanded={opened}
+        on={done} inert={!_live}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
         onOpen={() => setOpenHabit(opened ? null : h.id)} />
     );

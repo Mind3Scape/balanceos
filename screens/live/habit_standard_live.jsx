@@ -1,7 +1,9 @@
 /* СТАНДАРТ ДЕТАЛЬНОЙ ПРИВЫЧКИ — «лесенка» (макет Л, _devgoal3.html, 2026-07-16).
 
    ОДНО тело на три ступени: ЛИЧНАЯ → С ДРУЗЬЯМИ (+«Сегодня»-нить, +«Кто со мной») →
-   В КРУГЕ (нить стала волной, «Неделя» — гистограммой «где ты», +«Кто уже сегодня»).
+   В КРУГЕ вместо «Ритма» — «НЕДЕЛЯ» выбранного человека + люди под ней: тап по лицу
+   показывает ЕГО неделю, тап ещё раз открывает карточку (David 2026-07-16: «не столбцы,
+   а недельный график, а внизу люди»). Месяц/год остались только у личной ступени.
    Стандарт держится не декларацией, а фактом: и личная деталь (extra_live), и шторка
    привычки круга (circle_room_live) зовут ОДИН BosHabitStandardBodyLive.
 
@@ -28,6 +30,9 @@ function bosStdWeek() {
 }
 var BOS_STD_MONTHS_SHORT = ["Я", "Ф", "М", "А", "М", "И", "И", "А", "С", "О", "Н", "Д"];
 var BOS_STD_MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+/* Кэш «обычно в» по привычке (10 мин): открыл-закрыл аккордеон — без повторного запроса. */
+var _bosStdTimesCache = {};
 
 /* Кольцо-клетка (язык bosDayRing v660) с подписью внутри/снизу. */
 function BosStdRingCell({ pct, size, label, below, accent, isDark, dim, today }) {
@@ -202,54 +207,71 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
   const facesToday = doneUsers.map((u) => rosterById[u]).filter(Boolean).map((p) => ({ avatar: p.avatar, name: p.id === meId ? "Ты" : p.name, hr: _hr(byUserAt[p.id]) }));
   const thread = facesToday.length <= 6 ? { faces: facesToday } : { hours: doneUsers.map((u) => _hr(byUserAt[u])) };
 
-  // «Обычно в …» — час пик круга за 30 дней из bos_circle_pulse (кэш 2 мин в cloud.js,
-  // лишнего запроса при каждом открытии шторки нет). До SQL-патча пульса — честно молчим.
-  const [peakMin, setPeakMin] = React.useState(null);
+  // «Обычно в …» — медиана времени отметок ЭТОЙ привычки за 14 дней (teamHabitTimes).
+  // Раньше чип брал час пик всего круга — у всех привычек было одно время (David: «как
+  // такое может быть?»). Мало данных (<5 отметок или <3 дней) — чипа честно нет.
+  const [usualMin, setUsualMin] = React.useState(() => { const c0 = _bosStdTimesCache[h.id]; return c0 ? c0.v : null; });
   React.useEffect(() => {
     let on = true;
-    if (team && team.cloudId && window.bosCloud && window.bosCloud.circlePulse) {
-      window.bosCloud.circlePulse(team.cloudId).then((p) => { if (on && p && p.peak != null) setPeakMin(p.peak); }).catch(() => {});
-    }
+    const c0 = _bosStdTimesCache[h.id];
+    if (c0 && Date.now() - c0.at < 600000) { setUsualMin(c0.v); return; }
+    if (!h.id || !window.bosCloud || !window.bosCloud.teamHabitTimes) return;
+    window.bosCloud.teamHabitTimes(h.id, 14).then((d) => {
+      if (!on || !d) return;
+      const rows = d.rows || [];
+      const daysSeen = {}; rows.forEach((r) => { if (r.day) daysSeen[r.day] = true; });
+      let v = null;
+      if (rows.length >= 5 && Object.keys(daysSeen).length >= 3) {
+        const mins = rows.map((r) => { const dt = _pt(r.at); return dt.getHours() * 60 + dt.getMinutes(); }).sort((a, b) => a - b);
+        v = mins[Math.floor(mins.length / 2)];
+      }
+      _bosStdTimesCache[h.id] = { at: Date.now(), v };
+      setUsualMin(v);
+    }).catch(() => {});
     return () => { on = false; };
-  }, [team && team.cloudId]);
+  }, [h.id]);
+  const usualLbl = usualMin == null ? null : (() => { let hh = Math.floor(usualMin / 60), mm = Math.round((usualMin % 60) / 15) * 15; if (mm === 60) { hh = (hh + 1) % 24; mm = 0; } return (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm; })();
 
-  // Неделя (гистограмма «где ты»): сколько дней из 7 у каждого участника — по ЭТОЙ привычке.
-  const wk = {}; const wkeys = {}; for (let i = 0; i < 7; i++) wkeys[bosRoomDayKey(i)] = true;
-  (rangeRows || []).forEach((r) => { if (r.h === h.id && wkeys[r.day]) wk[r.u] = (wk[r.u] || 0) + 1; });
-  const dist = [0, 0, 0, 0, 0, 0, 0, 0];
-  (members || []).forEach((m) => { dist[Math.min(7, wk[m.id] || 0)]++; });
-  const hist = { dist, me: Math.min(7, wk[meId] || 0) };
-
-  // Месяц: доля круга в деле по дням текущего месяца.
-  const now = new Date();
-  const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const byDayUsers = {}; (rangeRows || []).forEach((r) => { if (r.h === h.id) (byDayUsers[r.day] = byDayUsers[r.day] || {})[r.u] = true; });
-  const monthCells = Array.from({ length: dim }).map((_, i) => {
-    const k = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(i + 1).padStart(2, "0");
-    return { pct: Object.keys(byDayUsers[k] || {}).length / membersN, dim: k > bosRoomDayKey(0), today: k === bosRoomDayKey(0) };
+  // «НЕДЕЛЯ» выбранного человека + люди (David: «не столбцы, а недельный график, а внизу
+  // люди — тыкнул на человека и видишь его неделю; тап ещё раз — карточка»). Стартуешь с себя.
+  const [selU, setSelU] = React.useState(meId);
+  // meId может доехать ПОЗЖЕ первого рендера (страница открылась, «кто я» ещё грузится) —
+  // useState его не догонит сам; догоняем, пока человек не выбран руками.
+  React.useEffect(() => { setSelU((s) => (s == null ? meId : s)); }, [meId]);
+  const selName = selU === meId ? "ты" : ((rosterById[selU] && rosterById[selU].name) || "");
+  const todayK = bosRoomDayKey(0);
+  const wkKeys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : bosStdWeek().map((c) => c.k);
+  const selDays = {}; (rangeRows || []).forEach((r) => { if (r.h === h.id && r.u === selU) selDays[r.day] = true; });
+  if (selU === meId) { if (isDone) selDays[todayK] = true; else delete selDays[todayK]; } // сегодня — за оптимистичным тапом
+  const weekCells = wkKeys.map((k, i) => ({ pct: selDays[k] ? 1 : 0, l: ["П", "В", "С", "Ч", "П", "С", "В"][i], dim: k > todayK, today: k === todayK }));
+  const gridPeople = (members || []).slice().sort((a, b) => {
+    const w = (p) => (p.id === meId ? 0 : (byUserAt[p.id] ? 1 : 2)); // я → уже сегодня → остальные
+    return w(a) - w(b);
   });
-
-  // Год — ТВОЙ (ленивая догрузка своих строк с 1 января при открытии вкладки).
-  const [myYear, setMyYear] = React.useState(null);
-  const loadYear = React.useCallback(() => {
-    if (myYear || !window.bosCloud || !window.bosCloud.teamMyHabitYear || !h.id) return;
-    window.bosCloud.teamMyHabitYear(h.id).then((d) => { if (d) setMyYear(d); }).catch(() => {});
-  }, [myYear, h.id]);
-  const yearMonths = Array.from({ length: 12 }).map((_, mi) => {
-    const future = mi > now.getMonth();
-    if (future) return { frac: 0, future: true };
-    const dimM = new Date(now.getFullYear(), mi + 1, 0).getDate();
-    const den = mi === now.getMonth() ? now.getDate() : dimM;
-    let cnt = 0;
-    if (myYear) for (let d = 1; d <= dimM; d++) { const k = now.getFullYear() + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); if (myYear[k]) cnt++; }
-    return { frac: den ? Math.min(1, cnt / den) : 0, future: false };
-  });
+  const weekPeople = (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, justifyItems: "center", padding: "4px 0 0" }}>
+        {weekCells.map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={26} below={c.l} accent={h.color && h.color !== "#0a0a0a" ? h.color : null} isDark={isDark} dim={c.dim} today={c.today} />)}
+      </div>
+      <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)", margin: "11px 0 10px" }} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center" }}>
+        {gridPeople.slice(0, 21).map((p) => (
+          <BosRoomFaceLive key={p.id} p={p} size={34} isDark={isDark}
+            active={p.id === meId ? (isDone || !!byUserAt[p.id]) : !!byUserAt[p.id]}
+            gold={p.id === selU}
+            onClick={() => { if (p.id === selU) { if (onPerson) onPerson(p); } else setSelU(p.id); }} />
+        ))}
+        {gridPeople.length > 21 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{"+" + (gridPeople.length - 21)}</span>}
+      </div>
+      <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "center", marginTop: 9 }}>тап по лицу — его неделя · ещё раз — карточка</div>
+    </div>
+  );
 
   const chips = [];
   if (!bare && isDone && doneAt) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " в " + doneAt] });
   else if (!bare && isDone) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " сделано"] });
   if (myStreak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />, " серия " + (myStreak >= 31 ? "31+" : myStreak)] });
-  if (peakMin != null && typeof bosPeakLabel === "function") chips.push({ gold: true, node: [<I.Clock key="p" size={11} color={BOS_ROOM_GOLD} strokeWidth={2} />, " обычно в " + bosPeakLabel(peakMin)] });
+  if (usualLbl) chips.push({ gold: true, node: [<I.Clock key="p" size={11} color={BOS_ROOM_GOLD} strokeWidth={2} />, " обычно в " + usualLbl] });
   chips.push({ node: doneUsers.length + " из " + membersN + " сегодня" });
 
   const model = {
@@ -269,16 +291,9 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, rangeRows, d
       onToggle && onToggle();
     }} />,
     thread: bare ? null : thread,
-    rhythm: { mode: "circle", hist, monthCells, monthHint: "кольцо = доля круга", yearMonths, yearHint: "твой год · кольцо месяца = доля дней", onYearOpen: loadYear, accent: h.color },
-    peopleTitle: "Кто уже сегодня",
-    peopleExtra: doneUsers.length + " " + bosRoomPeopleWord(doneUsers.length),
-    people: (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center", padding: "4px 0" }}>
-        {doneUsers.slice(0, 20).map((u) => { const p = rosterById[u]; return p ? <BosRoomFaceLive key={u} p={p} size={34} isDark={isDark} onClick={onPerson ? () => onPerson(p) : null} /> : null; })}
-        {doneUsers.length > 20 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{"+" + (doneUsers.length - 20)}</span>}
-        {!doneUsers.length && <span style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-4)", padding: "4px 2px", justifySelf: "start" }}>Сегодня ещё никого — будь первым(ой)</span>}
-      </div>
-    ),
+    peopleTitle: "Неделя",
+    peopleExtra: selName,
+    people: weekPeople,
   };
 
   return (

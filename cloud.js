@@ -1192,6 +1192,18 @@
       return out;
     } catch (e) { return null; }
   }
+  // «Обычно в …» ОДНОЙ привычки: времена её отметок за 14 дней. Раньше чип брал час пик
+  // ВСЕГО круга (bos_circle_pulse) — у всех привычек выходило одно и то же время
+  // (David: «как такое может быть, если все тыкают привычки в разное время?»).
+  async function teamHabitTimes(habitId, days) {
+    var c = client(); if (!c || !habitId) return null;
+    try {
+      var since = new Date(); since.setDate(since.getDate() - Math.max(0, (days || 14) - 1));
+      var r = await c.from("team_habit_logs").select("created_at,day").eq("team_habit_id", habitId).gte("day", _localDay(since)).limit(1000);
+      if (r.error || !Array.isArray(r.data)) return null;
+      return { rows: r.data.map(function (x) { return { at: x.created_at, day: x.day }; }) };
+    } catch (e) { return null; }
+  }
   // Сегодняшние отметки СО ВРЕМЕНЕМ: [{u,h,at}] — пульс дня (строки «закрыл(а)», пачки,
   // «ты в 06:58», волна нити). team_habit_logs.created_at писался всегда.
   async function teamDayFeed(teamId) {
@@ -1876,7 +1888,7 @@
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, sharedHabitMemberIdsStrict: sharedHabitMemberIdsStrict, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes, circlePulse: circlePulse,
-    teamLogsRange: teamLogsRange, teamMyHabitYear: teamMyHabitYear, teamDayFeed: teamDayFeed, teamCheersToday: teamCheersToday, sendTeamCheer: sendTeamCheer,
+    teamLogsRange: teamLogsRange, teamMyHabitYear: teamMyHabitYear, teamDayFeed: teamDayFeed, teamHabitTimes: teamHabitTimes, teamCheersToday: teamCheersToday, sendTeamCheer: sendTeamCheer,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
