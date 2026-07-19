@@ -132,9 +132,12 @@ function HabitDetailLive() {
     const k = _mk(i + 1);
     const dimC = k > _todayK || !_maskOk(now.getMonth(), i + 1);
     const tdy = k === _todayK;
-    if (!_shared) return { pct: _dayPct(k), dim: dimC, today: tdy };
+    const late = !!(h.lateDays && h.lateDays[k]);
+    // Прошлый ЗАПЛАНИРОВАННЫЙ день, который я НЕ закрыл → можно отметить задним числом.
+    const canMark = k < _todayK && !_log[k] && _maskOk(now.getMonth(), i + 1);
+    if (!_shared) return { pct: _dayPct(k), dim: dimC, today: tdy, k, late, canMark };
     const didN = buddies.filter((m) => (m.me ? (_log[k] || (m.days && m.days[k])) : (m.days && m.days[k]))).length;
-    return { pct: didN / buddies.length, dim: dimC, today: tdy };
+    return { pct: didN / buddies.length, dim: dimC, today: tdy, k, late, canMark };
   });
   // Год: кольцо месяца = доля от ЗАПЛАНИРОВАННЫХ дней — привычка «3 раза в неделю» у идеального
   // человека заполняет кольцо целиком, а не на 43%.
@@ -205,7 +208,11 @@ function HabitDetailLive() {
     ctx: (_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
       + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : ""),
     chips, thread, unified: true, primary,
-    rhythm: { mode: _shared ? "friends" : "solo", weekCells, monthCells, monthHint: _shared ? "кольцо = доля друзей" : "кольцо = день сделан", yearMonths, yearHint: "кольцо месяца = доля дней", accent },
+    // Календарь-герой (David 2026-07-19: выбрал 3-й вариант): открываем СРАЗУ на месяце,
+    // блок называется «Календарь» (пилюля Неделя·Месяц·Год остаётся для переключения).
+    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", initialTab: "month", weekCells, monthCells, monthHint: _shared ? "кольцо = доля друзей" : "кольцо = день сделан", yearMonths, yearHint: "кольцо месяца = доля дней", accent,
+      // Тап по прошлому незакрытому дню месяца → лист «задним числом» (без XP).
+      onDayMark: (app && app.markHabitDay) ? (k) => openSheet(<BackdateSheetLive habit={h} dayKey={k} app={app} isDark={isDark} />) : undefined },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 

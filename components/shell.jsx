@@ -763,7 +763,14 @@ function bosRuDays(n) {
 // the orb/journal "pay" XP, which the app communicates. Monotonic (just counts of entries).
 function bosTotalXP(habits, extras) {
   var n = 0;
-  (habits || []).forEach(function (h) { if (h && h.log) n += Object.keys(h.log).length; });
+  // Отметки ЗАДНИМ ЧИСЛОМ (h.lateDays) считаются в календарь/серию, но НЕ в XP: опыт только
+  // за отметку в тот же день, иначе фарм очков закрытием прошлых дней (David 2026-07-19).
+  (habits || []).forEach(function (h) {
+    if (!h || !h.log) return;
+    var late = h.lateDays || null;
+    if (!late) { n += Object.keys(h.log).length; return; }
+    Object.keys(h.log).forEach(function (k) { if (!late[k]) n++; });
+  });
   var xp = n * 10;
   if (extras) {
     xp += Object.keys(extras.moods || {}).length * 5;              // +5 за отметку состояния
@@ -1032,6 +1039,28 @@ function AppProvider({ children }) {
     // а не ждут своего 90-сек опроса (David 2026-07-16: «не вижу, чтобы уровень рос»).
     try { if (h.teamHabitId && _liveCloud() && window.bosCloud.toggleTeamHabitToday) window.bosCloud.toggleTeamHabitToday(h.teamHabitId, on).then(function () { try { window.dispatchEvent(new Event("bos:teamxp")); } catch (e2) {} }); } catch (e) {}
     return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log, h.days) });
+  }));
+  // ОТМЕТКА ЗАДНИМ ЧИСЛОМ (David 2026-07-19): закрыть ЗАБЫТЫЙ прошлый день. День идёт в лог
+  // (→ календарь + серия, синк в облако/шэрд как обычная отметка), НО помечается в h.lateDays,
+  // и bosTotalXP такие дни В XP НЕ СЧИТАЕТ (опыт только за отметку в тот же день — иначе абьюз).
+  // lateDays живёт в data-блобе привычки (upsertHabit) → переживает перезагрузку и синкается.
+  // Только прошлые дни и только «включить» (снятие забытой отметки — обычный тап по дню).
+  const markHabitDay = (id, dayKey) => setHabits(hs => hs.map(h => {
+    if (h.id !== id || mode !== "live") return h;
+    var tk = bosTodayKey();
+    if (!dayKey || dayKey >= tk) return h;               // задним числом = строго прошлое
+    var log = h.log ? Object.assign({}, h.log) : {};
+    if (log[dayKey]) return h;                             // уже отмечен — ничего не делаем
+    log[dayKey] = true;
+    var lateDays = Object.assign({}, h.lateDays || {}); lateDays[dayKey] = true;
+    try { if (h.cloudId && _liveCloud()) window.bosCloud.toggleHabitLog(h.cloudId, dayKey, true); } catch (e) {}
+    try { if (h.shareCode && _liveCloud() && window.bosCloud.setSharedLog) window.bosCloud.setSharedLog(h.shareCode, dayKey, true); } catch (e) {}
+    try { if (h.teamHabitId && _liveCloud() && window.bosCloud.toggleTeamHabitDay) window.bosCloud.toggleTeamHabitDay(h.teamHabitId, dayKey, true); } catch (e) {}
+    var nh = Object.assign({}, h, { log: log, lateDays: lateDays, streak: bosStreak(log, h.days) });
+    // Персист lateDays в облако (data-блоб) — cloudId и остальные поля целы; log/done/streak
+    // upsertHabit сам отрезает, поэтому пишем именно ради lateDays.
+    try { if (nh.cloudId && _liveCloud()) window.bosCloud.upsertHabit(nh); } catch (e) {}
+    return nh;
   }));
   const addHabit = (h) => {
     const nh = { id: _nid(), done: false, streak: 0, ...h, cloudId: (h && h.cloudId) || _uuid() };
@@ -2138,7 +2167,7 @@ function AppProvider({ children }) {
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,
     habits, goals,
-    toggleHabit, addHabit, updateHabit, removeHabit, reorderHabits,
+    toggleHabit, markHabitDay, addHabit, updateHabit, removeHabit, reorderHabits,
     addGoal, updateGoal, removeGoal, reorderGoals,
     taskLists, addTaskList, updateTaskList, removeTaskList, addTask, toggleTask, removeTask, updateTask,
     teams, addTeam, removeTeam, updateTeam, reorderTeams, addTeamHabit, removeTeamHabit,

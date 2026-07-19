@@ -526,9 +526,13 @@ function bosDayRing(pct, accent, isDark, opts) {
   return (
     <svg viewBox="0 0 40 40" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
       <circle cx="20" cy="20" r={R} fill="none" stroke={track} strokeWidth={sw} />
-      {pct > 0 ? <circle cx="20" cy="20" r={R} fill="none" stroke={arc} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + gap} transform="rotate(-90 20 20)" /> : null}
+      {/* opts.late — день закрыт ЗАДНИМ ЧИСЛОМ: дуга бледная (без XP) + метка-точка в углу. */}
+      {pct > 0 ? <circle cx="20" cy="20" r={R} fill="none" stroke={arc} strokeOpacity={opts.late ? 0.42 : 1} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + gap} transform="rotate(-90 20 20)" /> : null}
+      {opts.late ? <circle cx="31.5" cy="8.5" r="3.4" fill={neutral ? "#EF9F14" : arc} stroke={isDark ? "#1c1c20" : "#fff"} strokeWidth="1.2" /> : null}
       <circle cx="20" cy="20" r={R - sw / 2 + 0.3} fill="none" stroke={sheen} strokeWidth="0.7" />
-      {opts.today ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "rgba(255,255,255,0.42)" : "rgba(10,10,10,0.24)"} strokeWidth="1.1" />
+      {/* «Сегодня» — ЗОЛОТАЯ обводка (David 2026-07-19: «день выделяешь оранжевым, а у нас
+          основной золотой»): раньше кольцо было серым — теперь бренд-золото, как флейм/полосы. */}
+      {opts.today ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "#FEDE34" : "#EF9F14"} strokeWidth="1.5" />
         : (opts.sel ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "rgba(255,255,255,0.26)" : "rgba(10,10,10,0.15)"} strokeWidth="1" /> : null)}
     </svg>
   );
