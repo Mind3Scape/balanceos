@@ -758,3 +758,41 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
    каждая следующая шкала стартует чуть позже (var(--si) задаётся в flipList), лёгкая короткая волна
    вместо «весь блок разом». Имена/значения тоже проявляются с тем же шагом — единое движение. */
 .bosLR.list .lr-bar i { transition: width .5s cubic-bezier(.32,.72,0,1) calc(.5s + var(--si, 0) * .055s); }
+
+/* ═══════ ПЛАНЕТА состояния (лайв) — движок из планета-v4, namespace bosPl ═══════
+   Живой шёлк: тело красится настроением (--h), день добавляет лёгкий ореол (box-shadow
+   через --halo на обёртке). Демо НЕ использует эти классы (там остаётся SiriOrb). */
+.bosPl{ position:relative; border-radius:50%;
+  background:
+    radial-gradient(circle at 40% 30%, #ffffff 0%, #fdfcfd 30%, #f2eff5 58%, #e2dde9 86%, #d4cddd 100%);
+  box-shadow:
+    inset 0 -14px 30px rgba(96,88,138,.17),
+    inset 0 10px 22px rgba(255,255,255,.95),
+    0 6px 16px rgba(0,0,0,.18); }
+.bosPl-clip{ position:absolute; inset:0; border-radius:50%; overflow:hidden }
+.bosPl-waves{ position:absolute; inset:0 }
+.bosPl-wv{ position:absolute; border-radius:50%; filter:blur(12px) }
+.bosPl-veil{ position:absolute; inset:0; border-radius:50%;
+  background:
+    radial-gradient(circle at 36% 22%, rgba(255,255,255,.8) 0%, rgba(255,255,255,.22) 30%, rgba(255,255,255,0) 55%),
+    radial-gradient(circle at 50% 118%, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 42%) }
+.bosPl-rim{ position:absolute; inset:0; border-radius:50%;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), inset 0 0 14px rgba(255,255,255,.35) }
+
+@keyframes bosPlSwirl{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+@keyframes bosPlShimmer{ 0%,100%{filter:hue-rotate(0) saturate(1)} 33%{filter:hue-rotate(14deg) saturate(1.15)} 66%{filter:hue-rotate(-12deg) saturate(.95)} }
+@keyframes bosPlWobbleA{ 0%,100%{transform:translate(0,0) rotate(var(--r)) scale(1)} 33%{transform:translate(10%,12%) rotate(calc(var(--r) + 14deg)) scale(1.1)} 66%{transform:translate(-8%,-6%) rotate(calc(var(--r) - 11deg)) scale(.94)} }
+@keyframes bosPlWobbleB{ 0%,100%{transform:translate(0,0) rotate(var(--r)) scale(1)} 40%{transform:translate(-11%,8%) rotate(calc(var(--r) - 15deg)) scale(1.08)} 75%{transform:translate(8%,-9%) rotate(calc(var(--r) + 11deg)) scale(.94)} }
+.bosPl--live .bosPl-waves{ animation: bosPlSwirl 44s linear infinite, bosPlShimmer 16s ease-in-out infinite }
+.bosPl--live .bosPl-wv.ka{ animation:bosPlWobbleA 9s ease-in-out infinite }
+.bosPl--live .bosPl-wv.kb{ animation:bosPlWobbleB 12s ease-in-out infinite }
+@media (prefers-reduced-motion: reduce){ .bosPl--live, .bosPl--live *{ animation:none !important } }
+
+/* мини-планета: один div, дёшево — для ≤24px (дорожка недели, точки календаря) */
+.bosPl-mini{ border-radius:50%;
+  background:
+    radial-gradient(circle at 36% 30%,
+      hsl(var(--h,265) 42% 96%) 0%,
+      hsl(var(--h,265) 40% 86%) 46%,
+      hsl(var(--h,265) 36% 74%) 100%);
+  box-shadow: inset -1px -1.5px 2.5px rgba(70,60,110,.28), inset 1px 1px 2px rgba(255,255,255,.7); }

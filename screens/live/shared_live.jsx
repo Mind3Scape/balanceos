@@ -5,6 +5,83 @@
    demo-defined name. Loaded after core/ and the framework, before the live screen files.
    v197 — live ↔ demo ↔ core split, phase 2. */
 
+/* ─── PLANET ORB (лайв) — сфера состояния из планета-v4 ────────────────────────
+   Живой жемчужный шёлк вместо стеклянного орба. Прочтение (David 2026-07-19):
+   ТЕЛО красится настроением (hue из mood-цвета) + день добавляет ЛЁГКИЙ ОРЕОЛ.
+   Демо НЕ трогаем — там остаётся SiriOrb/StateOrb. CSS: классы .bosPl* в styles.css.
+   `mood` — hex-цвет настроения (mood.c). live=true → крупная анимированная (1-2 на экран);
+   иначе статичный кадр. Мелочь (≤24px) → PlanetMini (один div, дёшево). */
+function bosPlHue(hex) {
+  const h = (hex && hex[0] === "#" && hex.length >= 7) ? hex : "#8f9bb0";
+  const r = parseInt(h.slice(1, 3), 16) / 255, g = parseInt(h.slice(3, 5), 16) / 255, b = parseInt(h.slice(5, 7), 16) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (!d) return 265;
+  let hue = 0;
+  if (mx === r) hue = ((g - b) / d) % 6; else if (mx === g) hue = (b - r) / d + 2; else hue = (r - g) / d + 4;
+  hue *= 60; return (hue + 360) % 360;
+}
+function bosPlHalo(hex, a) {
+  const h = (hex && hex[0] === "#" && hex.length >= 7) ? hex : "#8f9bb0";
+  return "rgba(" + parseInt(h.slice(1, 3), 16) + "," + parseInt(h.slice(3, 5), 16) + "," + parseInt(h.slice(5, 7), 16) + "," + a + ")";
+}
+/* Детерминированная композиция волн из сида (одна и та же планета при том же seed+hue). */
+function bosPlBlobs(seed, hue) {
+  let x = (seed >>> 0) || 1;
+  const rnd = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x = x >>> 0; return x / 4294967296; };
+  const defs = [
+    { w: [56, 70], h: [46, 58], x: [-6, 14], y: [-8, 10], hs: 28, s: 64, l: 70, o: .95, k: "ka" },
+    { w: [104, 126], h: [44, 56], x: [-14, -4], y: [30, 42], hs: -8, s: 76, l: 50, o: 1, k: "kb" },
+    { w: [50, 66], h: [52, 66], x: [52, 64], y: [8, 22], hs: 52, s: 56, l: 70, o: .88, k: "ka" },
+    { w: [62, 80], h: [36, 48], x: [8, 22], y: [62, 74], hs: -52, s: 48, l: 74, o: .72, k: "kb" },
+    { w: [80, 96], h: [28, 38], x: [0, 12], y: [50, 60], hs: 0, s: 48, l: 30, o: .55, k: "kb", deep: 1 },
+  ];
+  const out = defs.map((d) => {
+    const W = d.w[0] + rnd() * (d.w[1] - d.w[0]), H = d.h[0] + rnd() * (d.h[1] - d.h[0]);
+    const X = d.x[0] + rnd() * (d.x[1] - d.x[0]), Y = d.y[0] + rnd() * (d.y[1] - d.y[0]);
+    const rot = -30 + rnd() * 60;
+    const col = d.deep
+      ? "hsl(" + (hue + d.hs) + " " + d.s + "% " + d.l + "% / .34)"
+      : "hsl(" + (hue + d.hs) + " " + d.s + "% " + d.l + "%)";
+    return { k: d.k, style: {
+      width: W + "%", height: H + "%", left: X + "%", top: Y + "%",
+      "--r": rot.toFixed(1) + "deg", transform: "rotate(" + rot.toFixed(1) + "deg)",
+      opacity: d.o, background: "radial-gradient(ellipse at 50% 50%, " + col + " 0%, transparent 71%)",
+    } };
+  });
+  out.push({ k: "ka", style: {
+    width: "92%", height: "22%", left: "4%", top: "48%",
+    "--r": "-13deg", transform: "rotate(-13deg)", filter: "blur(7px)", opacity: .5,
+    background: "radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.85) 0%, transparent 68%)",
+  } });
+  return out;
+}
+const PlanetOrb = React.memo(function PlanetOrb({ size = 72, mood, seed = 7, live = false, halo = true }) {
+  const hue = bosPlHue(mood);
+  const px = size, k = px / 220;
+  const blobs = bosPlBlobs(seed, hue);
+  const haloShadow = (halo && mood) ? ("0 0 " + Math.round(px * 0.34) + "px " + Math.round(px * 0.10) + "px " + bosPlHalo(mood, 0.42)) : "none";
+  return (
+    <div style={{ position: "relative", width: px, height: px, borderRadius: "50%", boxShadow: haloShadow }}>
+      <div style={{ position: "absolute", left: 0, top: 0, transform: "scale(" + k + ")", transformOrigin: "top left" }}>
+        <div className={"bosPl" + (live ? " bosPl--live" : "")} style={{ width: 220, height: 220, "--h": hue }}>
+          <div className="bosPl-clip">
+            <div className="bosPl-waves">
+              {blobs.map((b, i) => <i key={i} className={"bosPl-wv " + b.k} style={b.style} />)}
+            </div>
+          </div>
+          <div className="bosPl-veil" />
+          <div className="bosPl-rim" />
+        </div>
+      </div>
+    </div>
+  );
+}, (a, b) => a.size === b.size && a.mood === b.mood && a.seed === b.seed && a.live === b.live && a.halo === b.halo);
+/* Мини-планета для ≤24px (дорожка недели, точки календаря) — один div, дёшево. */
+const PlanetMini = React.memo(function PlanetMini({ size = 22, mood, style }) {
+  const hue = bosPlHue(mood);
+  return <div className="bosPl-mini" style={Object.assign({ width: size, height: size, "--h": hue }, style)} />;
+}, (a, b) => a.size === b.size && a.mood === b.mood && a.style === b.style);
+
 /* aiReply → live-only: no demo `AI_DEMO` canned line. Empty model reply → honest fallback. */
 async function aiReplyLive(history, ctx) {
   const sys = AI_SYSTEM + (ctx ? ("\n\n" + ctx) : "");
@@ -5831,7 +5908,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
       }}>
       <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>
         <div style={{ position: "relative", flexShrink: 0, width: 72, height: 72, display: "grid", placeItems: "center" }}>
-          <StateOrb size={72} tint={tintFromMood(mood.c)} intensity={isDark ? 1.25 : 1.05} />
+          <PlanetOrb size={72} mood={mood.c} live seed={7} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -5858,7 +5935,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
                 width: 22, height: 22, borderRadius: "50%", display: "block",
                 boxShadow: d.today ? `0 0 0 2px ${trailRing}` : "none",
               }}>
-                <StaticOrb size={22} tint={tintFromMood(d.m.c)} seed={1.2} intensity={0.45} />
+                <PlanetMini size={22} mood={d.m.c} />
               </span>
             ) : (
               <span style={{
