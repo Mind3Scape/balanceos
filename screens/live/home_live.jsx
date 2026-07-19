@@ -862,7 +862,7 @@ function HomeLive() {
           («Добрый вечер, Александра») уместилось рядом с аватаром и не переносилось. */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
         {typeof HeroAccountAvatarLive === "function" && (
-          <HeroAccountAvatarLive navigate={navigate} avatar={app?.avatar} pct={_lvl.pct} level={_lvl.level} size={56} isDark={isDark} />
+          <HeroAccountAvatarLive navigate={navigate} avatar={app?.avatar} pct={_lvl.pct} level={_lvl.level} size={56} isDark={isDark} stMood={(() => { try { const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : ""; return (app?.dayMoods && app.dayMoods[_tk] != null && app?.mood?.c) ? app.mood.c : null; } catch (e) { return null; } })()} />
         )}
         {/* ИМЯ — крупной строкой, приветствие с датой — мелкой. Это не украшательство: «Добрый
             день, Давид» в одну строку НЕ ВЛЕЗАЕТ рядом с аватаром и двумя кнопками. Померено:

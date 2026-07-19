@@ -5973,7 +5973,22 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
    pencil button), holding the user's REAL avatar (photo / memoji / emoji / default face via
    BosAvatar). The tile sheen + a bright top rim sit ON TOP so it reads as glass — no mood tint,
    no animated orb. Drop-in for HeroOrbFace (same avatar / inset / size props). */
-function HeroAvatarGlassLive({ avatar, inset = 6, size = 60 }) {
+function HeroAvatarGlassLive({ avatar, inset = 6, size = 60, mood }) {
+  const avStr = "" + (avatar || "");
+  const isMemoji = /^m\d+$/.test(avStr);
+  // Планета-подложка состояния — только для эмодзи/дефолт-аватара и только когда состояние
+  // ОТМЕЧЕНО (mood != null). Мемоджи (фото) состояние НЕ красит; не отмечено → серое стекло
+  // как было (David 2026-07-19). Демо не трогается — это лайв-компонент.
+  const planet = !isMemoji && !!mood;
+  if (planet) {
+    const isEmoji = avStr.indexOf("emoji:") === 0;
+    return (
+      <div style={{ position: "absolute", inset, borderRadius: "50%", overflow: "hidden", boxShadow: "0 2px 7px rgba(0,0,0,0.12)" }}>
+        <div style={{ position: "absolute", inset: 0 }}><PlanetOrb size={size} mood={mood} live /></div>
+        {isEmoji && <span aria-hidden style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: Math.round(size * 0.5), lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>{avStr.slice(6)}</span>}
+      </div>
+    );
+  }
   return (
     <div style={{ position: "absolute", inset, borderRadius: "50%", overflow: "hidden",
       background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "0 2px 7px rgba(0,0,0,0.12)" }}>
@@ -5988,7 +6003,7 @@ function HeroAvatarGlassLive({ avatar, inset = 6, size = 60 }) {
 /* Account avatar for the «Сводка от ИИ» hero — the glass disc + a MINIMALIST XP-to-next-level
    ring (gold light→dark + glass sheen). David: «верни аватар в блок сводки — это главный блок с
    фишкой ИИ; колечко минималистичное = XP до уровня». Tap → profile (orbits + settings). */
-function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, level = 0 }) {
+function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, level = 0, stMood }) {
   const r = size / 2 - 2;              // ring radius (strokeWidth 2.5, ~1.25 margin each side)
   const C = 2 * Math.PI * r;
   const off = C * (1 - (pct || 0) / 100);
@@ -6008,7 +6023,7 @@ function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, l
       {/* Disc pulled IN from the ring (inset 7 → ~4px card-colour gap) so the gold ring and the glass
           circle read as two distinct elements — without the gap the disc sat flush under the ring and
           the glass was invisible (David: «дать колечку чуть пространства от кружочка со стеклом»). */}
-      <HeroAvatarGlassLive avatar={avatar} inset={7} size={size - 14} />
+      <HeroAvatarGlassLive avatar={avatar} inset={7} size={size - 14} mood={stMood} />
       {/* Цифра текущего УРОВНЯ — золотой бейдж, ЦЕНТРИРОВАННЫЙ на самом кольце в нижне-ПРАВОЙ точке
           (45°), а не у края аватара (David: «чуть правее снизу, по центру кольца — так не перекрывает
           лицо»). bc = точка окружности кольца на 45°; бейдж ставим центром на неё. */}
