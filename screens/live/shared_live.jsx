@@ -4387,16 +4387,26 @@ var BOS_STATE = [
 // lo/hi = диапазон валентности (0..6), в котором грань уместна. David 2026-07-09: «Тревога/
 // Раздражение не должны висеть при Хорошо». Светлые грани живут вверху шкалы, тяжёлые — внизу,
 // спокойные (Спокойствие/Собран) — почти во всём диапазоне. Уже выбранную грань НЕ прячем.
+// Заливной глиф «Тревога» (в наборе I нет alert-иконки) — треугольник-«!» с вырезом (evenodd),
+// currentColor, чтобы наследовать цвет чипа (белый на выбранном, тёмный на невыбранном).
+function BosAnxGlyph(p) {
+  var s = p && p.size || 15;
+  return <svg width={s} height={s} viewBox="0 0 24 24" style={{ display: "block" }} aria-hidden>
+    <path fill={(p && p.color) || "currentColor"} fillRule="evenodd" d="M12 3.4c.71 0 1.37.38 1.72.99l7.92 13.86c.72 1.26-.19 2.82-1.72 2.82H4.08c-1.53 0-2.44-1.56-1.72-2.82L10.28 4.39c.35-.61 1.01-.99 1.72-.99zM11 9.1v5h2v-5h-2zm0 6.6v1.9h2v-1.9h-2z" />
+  </svg>;
+}
+// Грань = ярлык + заливная SVG-иконка (G) для чипов пикера (David: не цветные эмодзи, а SVG).
+// Поле i (эмодзи) сохранено для ТЕКСТОВЫХ строк дня/виджета, где нужен инлайн-символ.
 var BOS_FACETS = [
-  { id: "energy",   i: "⚡",  t: "Энергия",     lo: 3, hi: 6 },
-  { id: "calm",     i: "🌿",  t: "Спокойствие", lo: 2, hi: 6 },
-  { id: "joy",      i: "😊",  t: "Радость",     lo: 4, hi: 6 },
-  { id: "inspired", i: "✨",  t: "Вдохновение", lo: 4, hi: 6 },
-  { id: "focus",    i: "🎯",  t: "Собран",      lo: 3, hi: 6 },
-  { id: "tired",    i: "😮‍💨", t: "Усталость",   lo: 0, hi: 3 },
-  { id: "anxious",  i: "😣",  t: "Тревога",     lo: 0, hi: 2 },
-  { id: "sad",      i: "😔",  t: "Грусть",      lo: 0, hi: 2 },
-  { id: "angry",    i: "😤",  t: "Раздражение", lo: 0, hi: 2 },
+  { id: "energy",   i: "⚡",  t: "Энергия",     G: I.Bolt,     lo: 3, hi: 6 },
+  { id: "calm",     i: "🌿",  t: "Спокойствие", G: I.Leaf,     lo: 2, hi: 6 },
+  { id: "joy",      i: "😊",  t: "Радость",     G: I.Sun,      lo: 4, hi: 6 },
+  { id: "inspired", i: "✨",  t: "Вдохновение", G: I.Sparkles, lo: 4, hi: 6 },
+  { id: "focus",    i: "🎯",  t: "Собран",      G: I.Target,   lo: 3, hi: 6 },
+  { id: "tired",    i: "😮‍💨", t: "Усталость",   G: I.Moon,     lo: 0, hi: 3 },
+  { id: "anxious",  i: "😣",  t: "Тревога",     G: BosAnxGlyph, lo: 0, hi: 2 },
+  { id: "sad",      i: "😔",  t: "Грусть",      G: I.Droplet,  lo: 0, hi: 2 },
+  { id: "angry",    i: "😤",  t: "Раздражение", G: I.Flame,    lo: 0, hi: 2 },
 ];
 // Грани под текущую валентность (bucket 0..6) + всё, что уже отмечено (чтобы выбор не пропадал при
 // сдвиге слайдера). Пустой набор невозможен — Спокойствие/Собран/Усталость покрывают середину.
@@ -4504,12 +4514,8 @@ function StateSheetLive(props) {
     <div style={{ padding: "2px 20px 20px", color: cardText, textAlign: "center" }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: subMuted }}>{props && props.evening ? "Вечерняя отметка" : "Как ты сейчас"}</div>
       <div style={{ position: "relative", width: 128, height: 128, margin: "12px auto 2px", display: "grid", placeItems: "center" }}>
-        {/* Планета вместо стеклянного орба; свечение позади убрано (David: цвет только в сфере),
-            лицо-эмодзи остаётся сверху. Размером не дышит — живёт внутренность. */}
+        {/* Планета без лица — цвет сам меняется под состояние (David 2026-07-19). Размером не дышит. */}
         <PlanetOrb size={116} tint={tint} live />
-        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-          <span key={bucket} style={{ fontSize: 44, lineHeight: 1, filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.25))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
-        </div>
       </div>
       <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 28, fontWeight: 700, letterSpacing: "-0.5px", lineHeight: 1.1, marginTop: 6 }}>{word}</div>
 
@@ -4547,14 +4553,14 @@ function StateSheetLive(props) {
                   boxShadow: on ? ("0 2px 9px " + selC + "55") : (isDark ? "inset 0 0 0 0.7px rgba(255,255,255,0.07)" : "inset 0 0 0 0.7px rgba(0,0,0,0.05)"),
                   transition: "background .16s, color .16s, box-shadow .16s",
                 }}>
-                <span style={{ fontSize: 14, lineHeight: 1 }}>{f.i}</span><span>{f.t}</span>
+                <span style={{ display: "inline-flex", lineHeight: 0, opacity: on ? 1 : 0.85 }}>{f.G ? <f.G filled size={15} /> : null}</span><span>{f.t}</span>
               </button>
             );
           })}
         </div>
       </div>}
 
-      {!saved && <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Пара слов, если хочешь…"
+      {!saved && <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Как себя чувствуешь или что повлияло?"
         style={{ width: "100%", marginTop: 16, background: fieldBg, border: "1px solid var(--line)", borderRadius: 14, padding: "12px 14px", color: cardText, fontSize: 16, fontFamily: "inherit", outline: 0, boxSizing: "border-box", textAlign: "left" }} />}
 
       {!saved ? (
@@ -4688,9 +4694,6 @@ function StateSliderLive({ app, isDark }) {
       <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
         <div style={{ position: "relative", width: 58, height: 58, flexShrink: 0, display: "grid", placeItems: "center" }}>
           <PlanetOrb size={58} tint={tint} live />
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-            <span key={idx} style={{ fontSize: 23, lineHeight: 1, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
-          </div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
