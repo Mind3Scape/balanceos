@@ -55,13 +55,13 @@ function bosPlBlobs(seed, hue) {
   } });
   return out;
 }
-const PlanetOrb = React.memo(function PlanetOrb({ size = 72, mood, seed = 7, live = false, halo = true }) {
+const PlanetOrb = React.memo(function PlanetOrb({ size = 72, mood, seed = 7, live = false }) {
   const hue = bosPlHue(mood);
   const px = size, k = px / 220;
   const blobs = bosPlBlobs(seed, hue);
-  const haloShadow = (halo && mood) ? ("0 0 " + Math.round(px * 0.34) + "px " + Math.round(px * 0.10) + "px " + bosPlHalo(mood, 0.42)) : "none";
+  // Без ореола (David 2026-07-19): цвет ТОЛЬКО внутри сферы, никакого свечения вокруг.
   return (
-    <div style={{ position: "relative", width: px, height: px, borderRadius: "50%", boxShadow: haloShadow }}>
+    <div style={{ position: "relative", width: px, height: px, borderRadius: "50%" }}>
       <div style={{ position: "absolute", left: 0, top: 0, transform: "scale(" + k + ")", transformOrigin: "top left" }}>
         <div className={"bosPl" + (live ? " bosPl--live" : "")} style={{ width: 220, height: 220, "--h": hue }}>
           <div className="bosPl-clip">
@@ -75,12 +75,14 @@ const PlanetOrb = React.memo(function PlanetOrb({ size = 72, mood, seed = 7, liv
       </div>
     </div>
   );
-}, (a, b) => a.size === b.size && a.mood === b.mood && a.seed === b.seed && a.live === b.live && a.halo === b.halo);
-/* Мини-планета для ≤24px (дорожка недели, точки календаря) — один div, дёшево. */
-const PlanetMini = React.memo(function PlanetMini({ size = 22, mood, style }) {
-  const hue = bosPlHue(mood);
-  return <div className="bosPl-mini" style={Object.assign({ width: size, height: size, "--h": hue }, style)} />;
-}, (a, b) => a.size === b.size && a.mood === b.mood && a.style === b.style);
+}, (a, b) => a.size === b.size && a.mood === b.mood && a.seed === b.seed && a.live === b.live);
+/* Мини-сфера (дорожка недели, точки календаря) = ТА ЖЕ планета, только маленькая и статичная
+   (David: «условно единым целым, просто маленьким; двигаться необязательно»). */
+const PlanetMini = React.memo(function PlanetMini({ size = 22, mood, seed = 7, style }) {
+  return <span style={Object.assign({ display: "block", width: size, height: size }, style)}>
+    <PlanetOrb size={size} mood={mood} seed={seed} live={false} />
+  </span>;
+}, (a, b) => a.size === b.size && a.mood === b.mood && a.seed === b.seed && a.style === b.style);
 
 /* aiReply → live-only: no demo `AI_DEMO` canned line. Empty model reply → honest fallback. */
 async function aiReplyLive(history, ctx) {
