@@ -4504,10 +4504,9 @@ function StateSheetLive(props) {
     <div style={{ padding: "2px 20px 20px", color: cardText, textAlign: "center" }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: subMuted }}>{props && props.evening ? "Вечерняя отметка" : "Как ты сейчас"}</div>
       <div style={{ position: "relative", width: 128, height: 128, margin: "12px auto 2px", display: "grid", placeItems: "center" }}>
-        <div aria-hidden style={{ position: "absolute", inset: -18, borderRadius: "50%", background: "radial-gradient(circle, " + tint[1] + "44 0%, " + tint[1] + "14 45%, transparent 72%)", filter: "blur(14px)" }} />
-        <div style={{ transform: "scale(" + breath + ")" }}>
-          <StateOrb size={116} tint={tint} intensity={1.2} />
-        </div>
+        {/* Планета вместо стеклянного орба; свечение позади убрано (David: цвет только в сфере),
+            лицо-эмодзи остаётся сверху. Размером не дышит — живёт внутренность. */}
+        <PlanetOrb size={116} tint={tint} live />
         <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
           <span key={bucket} style={{ fontSize: 44, lineHeight: 1, filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.25))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
         </div>
@@ -4688,7 +4687,7 @@ function StateSliderLive({ app, isDark }) {
     <div style={{ width: "100%", background: bg, padding: "10px 14px 12px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
         <div style={{ position: "relative", width: 58, height: 58, flexShrink: 0, display: "grid", placeItems: "center" }}>
-          <StateOrb size={58} tint={tint} intensity={isDark ? 1.25 : 1.08} />
+          <PlanetOrb size={58} tint={tint} live />
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
             <span key={idx} style={{ fontSize: 23, lineHeight: 1, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
           </div>
