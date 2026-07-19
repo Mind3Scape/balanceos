@@ -5925,9 +5925,9 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{(mood.i ? mood.i + " " : "") + mood.t}</div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{mood.t}</div>
           {_facets.length
-            ? <div style={{ fontSize: 12.5, color: subMuted, marginTop: 5, lineHeight: 1.45 }}>{_facets.map((f) => (f.i ? f.i + " " : "") + f.t).join("   ·   ")}</div>
+            ? <div style={{ fontSize: 12.5, color: subMuted, marginTop: 5, lineHeight: 1.45 }}>{_facets.map((f) => f.t).join("   ·   ")}</div>
             : <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>Отмечай каждый день, добавляй строку — удержишь неделю подряд, получишь бонус.</div>}
         </div>
       </div>

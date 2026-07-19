@@ -90,7 +90,7 @@ function StateScreenLive() {
     note: ("" + ((dn[k] || {}).note || "")).trim(), tags: ((dn[k] || {}).tags || []),
   }));
   const fmtD = (k) => { try { const a = k.split("-"); return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date(+a[0], +a[1] - 1, +a[2])); } catch (e) { return k; } };
-  const facetsLine = (tags) => tags.map((t) => { const f = (typeof bosFacetByLabel === "function") ? bosFacetByLabel(t) : null; return (f && f.i ? f.i + " " : "") + t; }).join("  ·  ");
+  const facetsLine = (tags) => tags.map((t) => "" + t).join("  ·  ");
   const secLbl = { fontSize: 11, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)", margin: "20px 4px 8px", display: "flex", justifyContent: "space-between", alignItems: "baseline" };
   const card = { background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: 16 };
   const insRow = (emoji, text, src, gold) => (
@@ -114,7 +114,7 @@ function StateScreenLive() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)" }}>Сегодня</div>
           <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.5px", marginTop: 2, color: "var(--text)" }}>
-            {mToday ? (mToday.i + " " + mToday.t) : "Не отмечено"}
+            {mToday ? mToday.t : "Не отмечено"}
           </div>
           {mToday && eToday.tags && eToday.tags.length > 0 && (
             <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>{facetsLine(eToday.tags)}</div>
@@ -232,7 +232,9 @@ function StateHistorySheetLive({ app, dark = false }) {
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: "52vh", overflowY: "auto" }}>
           {entries.map((e, i) => (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 12px", background: C.tile, borderRadius: 14 }}>
-              <span style={{ width: 36, height: 36, borderRadius: "50%", background: e.m ? ("linear-gradient(160deg, " + e.m.c + ", " + e.m.c + "99)") : "rgba(127,181,255,0.18)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0, marginTop: 1 }}>{e.m ? e.m.i : "📝"}</span>
+              <span style={{ width: 36, height: 36, flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center" }}>
+                {e.m ? <PlanetMini size={36} mood={e.m.c} /> : <span style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(127,181,255,0.18)", display: "grid", placeItems: "center", fontSize: 18 }}>📝</span>}
+              </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{e.m ? e.m.t : "Запись дня"}</div>
                 <div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>{fmt(e.key)}</div>
@@ -1073,7 +1075,7 @@ function HistoryLive() {
                   </span>
                   <div style={{ flex: 1 }}>
                     <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Состояние</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginTop: 2 }}>{(dm.i ? dm.i + " " : "") + dm.t}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginTop: 2 }}>{dm.t}</div>
                   </div>
                 </div>
               );
