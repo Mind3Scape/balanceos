@@ -124,9 +124,31 @@ function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHin
   );
 }
 
+/* КНОПКА-ОТМЕТКА (David 2026-07-19: «кружок в правом верхнем углу сливается с другими
+   круглыми кнопками — надо аккуратной центровой кнопкой»). Живёт в «едином блоке» под нитью.
+   Не сделано — тёмная CTA (как «Вступить»); сделано — золотая пилюля с чеком. XP по-прежнему
+   даёт onToggle (детекторы празднований в AppProvider — не в этой кнопке). */
+function BosMarkButtonLive({ done, onToggle, label, doneLabel, isDark }) {
+  return (
+    <button onClick={onToggle} className="tap" data-haptic="selection" aria-label={label || "Отметить сегодня"}
+      style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", border: 0, cursor: "pointer", borderRadius: 15, padding: "13px 15px", textAlign: "left",
+        background: done ? "rgba(240,195,10,0.15)" : (isDark ? "#fff" : "#0a0a0a"), transition: "background .15s" }}>
+      <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center",
+        background: done ? "linear-gradient(135deg," + BOS_ROOM_GOLD_L + "," + BOS_ROOM_GOLD + ")" : "transparent",
+        boxShadow: done ? "none" : "inset 0 0 0 2px " + (isDark ? "rgba(10,10,10,0.4)" : "rgba(255,255,255,0.6)") }}>
+        {done ? <I.Check size={14} strokeWidth={3} color="#4a3400" /> : null}
+      </span>
+      <span style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: "-0.2px", color: done ? BOS_ROOM_GOLD_INK : (isDark ? "#0a0a0a" : "#fff") }}>
+        {done ? (doneLabel || "Сегодня отмечено") : (label || "Отметить сегодня")}
+      </span>
+    </button>
+  );
+}
+
 /* ТЕЛО СТАНДАРТА — общее для личной детали (экран) и шторки привычки круга.
    model = { emoji, color, name, ctx, chips:[{gold,node}], check:<node>, thread:{faces,hours}|null,
-             threadHint, rhythm:{...props BosRhythmBlockLive}, peopleTitle, peopleExtra, people:<node>|null } */
+             threadHint, rhythm:{...props BosRhythmBlockLive}, peopleTitle, peopleExtra, people:<node>|null,
+             unified:bool (David: слить привычку+нить+кнопку в один блок), primary:<node> (кнопка-отметка) } */
 function BosHabitStandardBodyLive({ model, isDark }) {
   const m = model;
   // В bare-аккордеоне внутренние блоки — цвета заднего фона страницы (серые), иначе они
@@ -140,6 +162,60 @@ function BosHabitStandardBodyLive({ model, isDark }) {
       {extra || null}
     </div>
   );
+  // Общая шапка (плитка + имя + контекст). В unified чекбокс НЕ рисуем — отметка кнопкой внизу.
+  const headInner = !m.bare && (
+    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+      <span style={{ width: 42, height: 42, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
+        background: m.color ? m.color + "26" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)")),
+        boxShadow: m.color ? "none" : bosTileGlass(isDark) }}>{bosIcon(m.emoji, 20, m.color)}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{m.name}</div>
+        {m.ctx && <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.ctx}</div>}
+      </div>
+      {m.headExtra || null}
+      {!m.unified && m.check}
+    </div>
+  );
+  const chipsNode = (m.chips && m.chips.length > 0) ? (
+    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: m.bare ? 2 : 10 }}>
+      {m.chips.map((c, i) => c.gold ? (
+        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: BOS_ROOM_GOLD_INK, background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
+      ) : (
+        <span key={i} style={{ ...bosChipGlass(isDark), display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
+      ))}
+    </div>
+  ) : null;
+
+  // ЕДИНЫЙ БЛОК (David 2026-07-19): привычка + чипы + «Сегодня»-нить + кнопка-отметка в ОДНОЙ
+  // карточке (кнопка вместо сливающегося кружка в шапке). Ритм и люди — блоками ниже, как прежде.
+  if (m.unified) {
+    return (
+      <div>
+        <div style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "14px 15px" }}>
+          {headInner}
+          {chipsNode}
+          {m.thread && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>Сегодня</span>
+                {m.threadHint && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span>}
+              </div>
+              <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} />
+            </div>
+          )}
+          {m.primary && <div style={{ marginTop: 14 }}>{m.primary}</div>}
+        </div>
+        {m.rhythm && <BosRhythmBlockLive {...m.rhythm} bare={m.bare} isDark={isDark} />}
+        {m.people && (
+          <React.Fragment>
+            {h2(m.peopleTitle || "Кто со мной", m.peopleExtra ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.peopleExtra}</span> : null)}
+            <div style={{ ...blockCard, padding: "9px 14px" }}>{m.people}</div>
+          </React.Fragment>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Шапка: плитка-иконка + имя + контекст, ОТМЕТКА-ЧЕКБОКС справа (единственный жест).

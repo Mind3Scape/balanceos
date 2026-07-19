@@ -188,24 +188,23 @@ function HabitDetailLive() {
     );
   }
 
-  // Отметка в шапке — ЖИВОЙ компонент отметки приложения (галочка / счётчик / таймер).
-  const check = (
-    <div style={{ flexShrink: 0, width: 46, height: 46, display: "grid", placeItems: "center" }}>
-      <div style={{ transform: "scale(1.25)", transformOrigin: "center" }}>
-        {(h.duration > 0 && !_isQuant && typeof HabitTimerCheck === "function")
-          ? <HabitTimerCheck habit={h} app={app} xp={10} />
-          : (_isQuant && typeof HabitCountCheck === "function")
-            ? <HabitCountCheck habit={h} app={app} xp={10} />
-            : <HabitCheck done={h.done} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} xp={10} float color={h.color} dark={isDark} />}
-      </div>
-    </div>
-  );
+  // Отметка — АККУРАТНАЯ КНОПКА в едином блоке (David 2026-07-19: круглый чекбокс в шапке
+  // сливался с круглыми кнопками навигации сверху). Булева привычка — кнопка-пилюля; счётная/
+  // таймер — их живой контрол по центру блока (у них свой жест). XP и празднования — как раньше
+  // (детекторы в AppProvider срабатывают на toggleHabit, не на этой кнопке).
+  const _isTimer = h.duration > 0 && !_isQuant;
+  const primary = (_isTimer && typeof HabitTimerCheck === "function")
+    ? <div style={{ display: "flex", justifyContent: "center", padding: "2px 0", transform: "scale(1.15)", transformOrigin: "center" }}><HabitTimerCheck habit={h} app={app} xp={10} /></div>
+    : (_isQuant && typeof HabitCountCheck === "function")
+      ? <div style={{ display: "flex", justifyContent: "center", padding: "2px 0", transform: "scale(1.1)", transformOrigin: "center" }}><HabitCountCheck habit={h} app={app} xp={10} /></div>
+      : <BosMarkButtonLive done={h.done} isDark={isDark} label="Отметить сегодня" doneLabel="Сегодня отмечено"
+          onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} />;
 
   const model = {
     emoji: h.emoji, color: accent, name: h.name,
     ctx: (_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
       + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : ""),
-    chips, check, thread,
+    chips, thread, unified: true, primary,
     rhythm: { mode: _shared ? "friends" : "solo", weekCells, monthCells, monthHint: _shared ? "кольцо = доля друзей" : "кольцо = день сделан", yearMonths, yearHint: "кольцо месяца = доля дней", accent },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
