@@ -602,9 +602,8 @@ function AILive() {
       {/* «Чтение дня» — только факт с цифрой (или честный вопрос). Орб — в цвет состояния. */}
       <div data-tour="ai-hero" style={{ background: "var(--card)", borderRadius: 22, padding: "15px 16px", boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "center" }}>
         <div style={{ flexShrink: 0, width: 64, height: 64, display: "grid", placeItems: "center" }}>
-          <svg viewBox="-80 -80 160 160" width="64" height="64" style={{ overflow: "visible" }}>
-            <SiriOrb r={46} tint={liveTint} t={t} intensity={1}/>
-          </svg>
+          <PlanetOrb size={64} tint={liveTint} live />
+
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>

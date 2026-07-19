@@ -765,10 +765,10 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .bosPl{ position:relative; border-radius:50%;
   background:
     radial-gradient(circle at 37% 27%,
-      hsl(var(--h,265) 42% 96%) 0%,
-      hsl(var(--h,265) 54% 84%) 36%,
-      hsl(var(--h,265) 62% 71%) 70%,
-      hsl(var(--h,265) 64% 59%) 100%);
+      hsl(var(--h,265) var(--s,55%) 96%) 0%,
+      hsl(var(--h,265) var(--s,55%) 84%) 36%,
+      hsl(var(--h,265) var(--s,55%) 71%) 70%,
+      hsl(var(--h,265) var(--s,55%) 59%) 100%);
   box-shadow:
     inset 0 -14px 30px rgba(40,38,58,.20),
     inset 0 10px 22px rgba(255,255,255,.80),

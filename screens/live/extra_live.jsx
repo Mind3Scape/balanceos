@@ -742,7 +742,7 @@ function AIChatLive() {
     if (m.kind === "greeting") {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
-          <StateChatOrb size={28} tint={stateTint}/>
+          <PlanetOrb size={28} tint={stateTint} />
           <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text }}>{m.t}</div>
         </div>
       );
@@ -750,7 +750,7 @@ function AIChatLive() {
     if (m.kind === "text") {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
-          <StateChatOrb size={28} tint={stateTint}/>
+          <PlanetOrb size={28} tint={stateTint} />
           <div style={{ maxWidth: "78%", background: TH.aiBubble, border: TH.aiBubbleBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text, lineHeight: 1.45 }}>{m.t}</div>
         </div>
       );
@@ -760,7 +760,7 @@ function AIChatLive() {
       if (a.type === "open") {
         return (
           <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
-            <StateChatOrb size={28} tint={stateTint}/>
+            <PlanetOrb size={28} tint={stateTint} />
             <button className="tap" onClick={() => navigate(a.route)} style={{ flex: 1, maxWidth: "85%", textAlign: "left", background: TH.aiCard, border: TH.aiCardBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderTopLeftRadius: 4, padding: "13px 16px", color: TH.text, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <span style={{ fontSize: 14, fontWeight: 600 }}>{a.label || "Открыть"}</span>
               <span style={{ fontSize: 17, color: TH.muted }}>→</span>
@@ -770,7 +770,7 @@ function AIChatLive() {
       }
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
-          <StateChatOrb size={28} tint={stateTint}/>
+          <PlanetOrb size={28} tint={stateTint} />
           <div style={{ flex: 1, maxWidth: "85%", background: TH.aiCard, border: TH.aiCardBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderTopLeftRadius: 4, padding: 14, color: TH.text }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ width: 40, height: 40, borderRadius: 14, background: a.color ? a.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{a.emoji || "✨"}</span>
@@ -796,7 +796,7 @@ function AIChatLive() {
     // transcripts rendering correctly.
     return (
       <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
-        <StateChatOrb size={28} tint={stateTint}/>
+        <PlanetOrb size={28} tint={stateTint} />
         <div style={{
           flex: 1, background: TH.aiCard, border: TH.aiCardBorder, boxShadow: TH.bubbleShadow,
           borderRadius: 22, borderTopLeftRadius: 4,
@@ -867,7 +867,7 @@ function AIChatLive() {
 
         {typing && (
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
-            <StateChatOrb size={28} tint={stateTint}/>
+            <PlanetOrb size={28} tint={stateTint} />
             <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderBottomLeftRadius: 4, padding: "12px 14px", display: "flex", gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0s ease-in-out infinite" }}/>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0.2s ease-in-out infinite" }}/>

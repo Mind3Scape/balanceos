@@ -109,7 +109,7 @@ function StateScreenLive() {
       {/* Сегодня */}
       <div style={{ ...card, display: "flex", alignItems: "center", gap: 14 }}>
         <span style={{ width: 62, height: 62, flexShrink: 0, display: "grid", placeItems: "center" }}>
-          <StateOrb size={60} tint={mToday ? tintFromMood(mToday.c) : ["#c3cbd9", "#8f9bb0", "#586278"]} intensity={mToday ? 1.1 : 0.75} />
+          <PlanetOrb size={60} tint={mToday ? tintFromMood(mToday.c) : ["#c3cbd9", "#8f9bb0", "#586278"]} live />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)" }}>Сегодня</div>
@@ -131,7 +131,7 @@ function StateScreenLive() {
         {week.map((d, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, opacity: d.future ? 0.35 : 1 }}>
             {d.m
-              ? <span style={{ width: 30, height: 30, borderRadius: "50%", boxShadow: d.today ? "0 0 0 2px var(--text)" : "none" }}><StaticOrb size={30} tint={tintFromMood(d.m.c)} seed={1.2} intensity={0.5} /></span>
+              ? <span style={{ width: 30, height: 30, borderRadius: "50%", boxShadow: d.today ? "0 0 0 2px var(--text)" : "none" }}><PlanetMini size={30} mood={d.m.c} /></span>
               : <span style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface-3, rgba(127,127,127,0.10))", boxShadow: d.today ? "0 0 0 2px var(--text)" : "none" }} />}
             <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)" }}>{d.wd}</span>
           </div>
@@ -182,7 +182,7 @@ function StateScreenLive() {
           {entries.map((e, i) => (
             <div key={i} style={{ ...card, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12 }}>
               {e.m
-                ? <span style={{ width: 34, height: 34, flexShrink: 0, marginTop: 1 }}><StaticOrb size={34} tint={tintFromMood(e.m.c)} seed={0.8} intensity={0.5} /></span>
+                ? <span style={{ width: 34, height: 34, flexShrink: 0, marginTop: 1 }}><PlanetMini size={34} mood={e.m.c} seed={3} /></span>
                 : <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--surface-3, rgba(127,127,127,0.10))", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0, marginTop: 1 }}>📝</span>}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)" }}>{e.m ? e.m.t : "Запись дня"}<span style={{ fontWeight: 500, color: "var(--text-4)", fontSize: 12, marginLeft: 8 }}>{fmtD(e.key)}</span></div>
@@ -1069,7 +1069,7 @@ function HistoryLive() {
               return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
                   <span style={{ width: 36, height: 36, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <StaticOrb size={34} tint={tintFromMood(dm.c)} seed={1.2} intensity={0.7} />
+                    <PlanetMini size={34} mood={dm.c} />
                   </span>
                   <div style={{ flex: 1 }}>
                     <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Состояние</div>
