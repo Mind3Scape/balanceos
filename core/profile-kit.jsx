@@ -94,7 +94,7 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open, minimal = false, spinT, hideLevelRing = false }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open, minimal = false, spinT, hideLevelRing = false, centerMood }) {
   // hideLevelRing (Вселенная): скрыть золотое КОЛЬЦО-прогресс вокруг центра (David: «перегружает»),
   // цифра уровня остаётся. Геометрия (inset под кольцо) не меняется → стык диск↔орбита не плывёт.
   // openMode+minimal (Вселенная) дополнительно читает CSS-переменные с обёртки:
@@ -352,12 +352,22 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             <circle cx="30" cy="30" r="28" stroke="url(#orbXpRingC)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * (1 - Math.max(0.02, (levelPct || 0) / 100))} />
           </svg>
         )}
+        {(centerMood && !avIsMemoji && typeof PlanetOrb !== "undefined") ? (
+          // Центр = живая планета состояния (эмодзи/дефолт), когда состояние отмечено (лайв).
+          // Орбиты/люди/привычки НЕ трогаем. Мемоджи и «не отмечено» → серый диск как было.
+          <div aria-hidden style={{ position: "absolute", inset: levelBadge > 0 ? 7 : 0, borderRadius: "50%", overflow: "hidden",
+            boxShadow: "inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)" }}>
+            <div style={{ position: "absolute", inset: 0 }}><PlanetOrb size={levelBadge > 0 ? 46 : 60} mood={centerMood} live /></div>
+            {avIsEmoji && <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>{avStr.slice(6)}</span>}
+          </div>
+        ) : (
         <div aria-hidden style={{ position: "absolute", inset: levelBadge > 0 ? 7 : 0, borderRadius: "50%",
           background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
           boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
           display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
           {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}
         </div>
+        )}
         {/* Level-number badge at 45° on the ring — identical language to the home hero avatar.
             Центрирование цифры = grid (David: «циферки не центрированы» — line-height с border врал). */}
         {levelBadge > 0 && (
