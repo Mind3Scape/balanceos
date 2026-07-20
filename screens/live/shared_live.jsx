@@ -5050,6 +5050,9 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
           return (
             <div key={id} ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
               style={{ position: "relative", touchAction: mode ? "none" : "auto",
+                // minWidth:0 — иначе min-content плитки (nowrap-имя компакт-карточки)
+                // распирает 1fr-колонку → ВСЯ доска шире экрана и уезжает за край.
+                minWidth: 0,
                 gridColumn: (spanFull && spanFull(id)) ? "1 / -1" : undefined,
                 transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
                 transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
@@ -5499,10 +5502,22 @@ function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.
    orbits:false   — орбиты остаются ВНУТРИ круга и во «Вселенной», но не на карточке: две
                     картинки про одно и то же («кто») на одной карточке и давали разнобой;
    progress/name  — всегда, это факты, а не украшение. */
-var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: false, progress: true };
-function bosLoadGoalStyle() { return Object.assign({}, BOS_GOAL_STYLE_DEFAULT); }
+var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: false, progress: true, size: "big" };
+// РАЗМЕР карточки цели/круга вернулся НАСТРОЙКОЙ (David 2026-07-20: «хочу компактную, как в
+// Сообществе, либо полноценную большую»): size = big (баннер как есть) | compact (полширины,
+// язык компактной карточки Сообщества). Форма/орбиты ОСТАЮТСЯ стандартом (урок v760 «стандарт
+// не может быть настройкой») — из сохранённого читаем ТОЛЬКО size, старые формы не воскресают.
+function bosLoadGoalStyle() {
+  var s = Object.assign({}, BOS_GOAL_STYLE_DEFAULT);
+  try { var v = JSON.parse(localStorage.getItem("bos:goalStyle") || "null"); if (v && v.size === "compact") s.size = "compact"; } catch (e) {}
+  return s;
+}
 function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s || {})); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
-function useBosGoalStyle() { return BOS_GOAL_STYLE_DEFAULT; }
+function useBosGoalStyle() {
+  var st = React.useState(bosLoadGoalStyle), s = st[0], setS = st[1];
+  React.useEffect(function () { var h = function () { setS(bosLoadGoalStyle()); }; window.addEventListener("bos:cardStyleChanged", h); return function () { window.removeEventListener("bos:cardStyleChanged", h); }; }, []);
+  return s;
+}
 // ─── ОБЩИЕ ПЛИТКИ привычки/цели (David: «унифицировать») ──────────────────────────────────────────
 // Плитки вынесены СЮДА из HabitsLive и стали самодостаточными (тема/стиль/хендлеры через хуки), чтобы
 // и страница «Привычки», и виджеты ГЛАВНОЙ рисовали ОДНО И ТО ЖЕ и слушали ОДИН стиль. `from` = откуда
@@ -5643,8 +5658,14 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits", big = f
   // BosCircleCardLive (утверждённый макет «Волна дня»). Прежние ветки — в git до v762,
   // настройка вида — в _parked/goal-card-styles/README.md.
   const navigate = ((typeof useNav === "function") ? useNav() : {}).navigate || function () {};
+  const goalStyle = useBosGoalStyle();
   // Тап по карточке → комната («День»); тап по значку чата → комната сразу НА ВКЛАДКЕ ЧАТА.
   const onOpen = ctx.mode ? undefined : function (opts) { navigate("team-detail", { team: t, from: from, tab: (opts && opts.chat) ? "chat" : undefined }); };
+  // Настройка «Вид целей → компактные» (David 2026-07-20): ТА ЖЕ компактная карточка,
+  // что в Сообществе, — один вид на всех страницах, ничего нового не изобретаем.
+  // minWidth:0 — компактная карточка растёт из каталога с фикс-шириной; в 2-колоночной сетке
+  // без зажима она распирает колонку и вся доска уезжает за край экрана.
+  if (goalStyle.size === "compact" && typeof BosCircleCardCompactLive === "function") return <div style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}><BosCircleCardCompactLive t={t} joined onOpen={onOpen} /></div>;
   return <BosCircleCardLive t={t} joined ctx={ctx} onOpen={onOpen} />;
 }
 
@@ -5687,6 +5708,22 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
       </div>
     </div>
   ) : null;
+  // КОМПАКТНАЯ карточка цели (настройка «Вид целей», David 2026-07-20): полширины, язык
+  // компактной карточки Сообщества — иконка · имя · процент, ниже тонкая полоса прогресса.
+  if (goalStyle.size === "compact") {
+    return (
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 18, boxShadow: sk.shadow, padding: "12px 13px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 9, minHeight: 74, boxSizing: "border-box", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <span className="bos-ticon" style={{ width: 30, height: 30, borderRadius: 10, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 16, sk.hasColor ? sk.iconInk : g.color)}</span>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: sk.txt, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
+        </div>
+        <div style={{ height: 5, borderRadius: 999, background: sk.track, overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: sk.hasColor ? sk.fill : ("linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent) }} />
+        </div>
+      </div>
+    );
+  }
   if (banner) {
     return (
       <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
@@ -5754,12 +5791,14 @@ function HabitMonthMini({ habit, square = false }) {
 function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement }) {
   const [pos, setPos] = React.useState(null);
   const [hs, setHs] = React.useState(bosLoadCardStyle);
+  const [gs, setGs] = React.useState(bosLoadGoalStyle);
   // Тёмная тема и Эффект стекла УЕХАЛИ отсюда в «Я → Настройки» (конституция §14: одна настройка —
   // один дом; глобальное не живёт на доске). Здесь остаётся только ВИД доски (стиль привычек/целей)
   // и доступ к Архиву. Тумблеры темы/стекла — единственный дом: Я → Настройки → Предпочтения.
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle());
+    setGs(bosLoadGoalStyle());
     // Из шестерёнки в ТРЯСКЕ (placement="bottom") — по ЦЕНТРУ над панелью «Готово», всплывает снизу
     // (David: «должна открываться по центру над Готово, из шестерёнки»). Иначе — под якорем/справа.
     if (placement === "bottom") { setPos({ mode: "bottom" }); }
@@ -5822,6 +5861,14 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
         <div style={{ marginTop: 6 }}>
           {toggleRow("Люди", hs.faces, (v) => setH({ faces: v }))}
           {hs.form === "square" && toggleRow("Название", hs.name, (v) => setH({ name: v }))}
+        </div>
+        {divider}
+        {/* Вид целей ВЕРНУЛСЯ (David 2026-07-20): только РАЗМЕР — большая (баннер, дефолт слева)
+            или компактная как в Сообществе. Форма/орбиты остаются стандартом (урок v760). */}
+        <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 7, color: "rgba(10,10,10,0.5)" }}>Вид целей</div>
+        <div style={{ display: "flex", gap: 7 }}>
+          {formBtn("big", BN, gs.size, (k) => { const n = Object.assign({}, gs, { size: k }); setGs(n); bosSaveGoalStyle(n); })}
+          {formBtn("compact", SQ, gs.size, (k) => { const n = Object.assign({}, gs, { size: k }); setGs(n); bosSaveGoalStyle(n); })}
         </div>
         {/* Архив — всегда доступен (тема/стекло уехали в Я → Настройки по §14; здесь остаётся только
             вид доски + доступ к архиву скрытых привычек/целей). */}

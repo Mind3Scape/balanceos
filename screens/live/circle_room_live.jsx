@@ -1112,18 +1112,23 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* МОЙ ДЕНЬ В КРУГЕ — вкладки «Привычки · Дела» (David 2026-07-20: «не смешивать в одно»);
-          счётчик справа — по активной вкладке. Заголовки-вкладки в стиле BosRoomH2. */}
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 4px 8px" }}>
-        <span style={{ display: "inline-flex", gap: 14 }}>
-          {[["habits", "Привычки"], ["tasks", "Дела"]].map(([id, label]) => (
-            <button key={id} onClick={() => setListTab(id)} className="tap" data-haptic="selection"
-              style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase",
-                color: listTab === id ? "var(--text)" : "var(--text-4)", transition: "color .15s" }}>{label}</button>
-          ))}
-        </span>
-        {listTab === "habits" && teamHabits.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{_myDoneCount + " из " + teamHabits.length}</span>}
-        {listTab === "tasks" && _teamTasks.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{_teamTasks.filter((x) => x.doneByMe).length + " из " + _teamTasks.length}</span>}
+      {/* МОЙ ДЕНЬ В КРУГЕ — вкладки «Привычки · Дела» (David 2026-07-20: «не смешивать в одно;
+          переключатель посимпатичней»): пилюля-сегмент в языке шапки комнаты (активный сегмент =
+          чёрная/белая таблетка, как «День/Чат»); счётчик справа — по активной вкладке. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0 9px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, padding: 3, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)" }}>
+          {[["habits", "Привычки"], ["tasks", "Дела"]].map(([id, label]) => {
+            const on = listTab === id;
+            return (
+              <button key={id} onClick={() => setListTab(id)} className="tap" data-haptic="selection"
+                style={{ border: 0, borderRadius: 999, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, letterSpacing: "-0.1px", cursor: "pointer",
+                  background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
+                  boxShadow: on ? "0 1px 3px rgba(0,0,0,0.14)" : "none", transition: "background .15s, color .15s" }}>{label}</button>
+            );
+          })}
+        </div>
+        {listTab === "habits" && teamHabits.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)", paddingRight: 4 }}>{_myDoneCount + " из " + teamHabits.length}</span>}
+        {listTab === "tasks" && _teamTasks.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)", paddingRight: 4 }}>{_teamTasks.filter((x) => x.doneByMe).length + " из " + _teamTasks.length}</span>}
       </div>
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (

@@ -587,7 +587,7 @@ function HabitsLive() {
             // во всю ширину; квадрат = половина. Раньше колонки зависели от формы привычек → квадрат цели
             // растягивался в 1-колоночной сетке. Теперь формы привычек и целей независимы.
             if (!k) return false;
-            if (k[0] === "g" || k[0] === "t") return goalStyle.form === "banner";
+            if (k[0] === "g" || k[0] === "t") return goalStyle.size === "compact" ? false : goalStyle.form === "banner";
             return cardStyle.form === "rect";
           }}
           renderItem={(k, ctx) => { const e = entries.find((x) => x.k === k); if (!e) return null; return e.type === "t" ? teamTile(e.item, ctx) : e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx); }} />

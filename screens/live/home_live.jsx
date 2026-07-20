@@ -793,10 +793,23 @@ function HomeLive() {
     try { const n = nodeOf(id); if (n != null) nodes[id] = n; } catch (e) {}
   });
   const keyVisible = (k) => (k.indexOf("w:") === 0 ? nodes[k.slice(2)] != null : true);
-  const visibleKeys = effLayout.order.filter(keyVisible);
+  // ПИЛЮЛЯ «Все · Привычки · Цели» — воскрешение демо-переключателя (David 2026-07-20: «не будет
+  // длинного скролла вниз, быстро переключаюсь с привычек на цели»). Фильтрует ТОЛЬКО плитки
+  // практик; виджеты (w:) видны всегда. Выбор запоминается между входами.
+  const [boardTab, setBoardTab] = React.useState(() => { try { return localStorage.getItem("bos:boardTab") || "all"; } catch (e) { return "all"; } });
+  const pickBoardTab = (t) => { setBoardTab(t); try { localStorage.setItem("bos:boardTab", t); } catch (e) {} };
+  const keyOnTab = (k) => {
+    if (boardTab === "all" || !k || k.indexOf("w:") === 0) return true;
+    if (boardTab === "habits") return k.indexOf("h:") === 0;
+    return k.indexOf("g:") === 0 || k.indexOf("t:") === 0; // «Цели» = цели + круги (круг — совместная цель)
+  };
+  const keyShown = (k) => keyVisible(k) && keyOnTab(k);
+  const visibleKeys = effLayout.order.filter(keyShown);
   const onReorderKeys = (newVisible) => {
+    // Виден лишь срез доски (вкладка) → сливаем его новый порядок в ОБЩИЙ, скрытые ключи
+    // остаются на своих местах — порядок другой вкладки не теряется.
     let vi = 0;
-    const merged = effLayout.order.map((k) => (keyVisible(k) ? newVisible[vi++] : k));
+    const merged = effLayout.order.map((k) => (keyShown(k) ? newVisible[vi++] : k));
     saveLayout({ order: merged });
   };
   const gridCtl = React.useRef(null);
@@ -932,6 +945,15 @@ function HomeLive() {
           (там уже есть «➕ Создать привычку» + мягкий ИИ-старт «Рассказать о себе»). Прежнюю большую
           карточку «Создай первую привычку» убрал — она дублировала пилюлю и занимала пол-экрана
           (David: «нету смысла показывать на пол-экрана, в пилюлях уже есть»). Доска — с первой привычкой. */}
+      {/* Пилюля «Все · Привычки · Цели» — демо-переключатель вернулся (фильтр доски). */}
+      {!trulyNew && (
+        <div className="tab-pill" style={{ margin: "2px 0 12px", ...(isDark ? { background: "rgba(255,255,255,0.07)" } : null) }}>
+          {[["all", "Все"], ["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => (
+            <button key={id} className={"tap " + (boardTab === id ? "active" : "")} data-haptic="selection" onClick={() => pickBoardTab(id)}
+              style={{ padding: "9px 14px", fontWeight: 600, ...(boardTab === id && isDark ? { background: "#2a2a2e", color: "#fff" } : null) }}>{label}</button>
+          ))}
+        </div>
+      )}
       {trulyNew ? (
         <WidgetBoundaryLive wid="hero">{(() => { try { return nodeOf("hero"); } catch (e) { return null; } })()}</WidgetBoundaryLive>
       ) : visibleKeys.length > 0 ? (
@@ -948,7 +970,7 @@ function HomeLive() {
           spanFull={(k) => {
             // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).
             if (!k || k.indexOf("w:") === 0) return true;
-            if (k.indexOf("g:") === 0 || k.indexOf("t:") === 0) return goalStyle.form === "banner";
+            if (k.indexOf("g:") === 0 || k.indexOf("t:") === 0) return goalStyle.size === "compact" ? false : goalStyle.form === "banner";
             return cardStyle.form === "rect";
           }}
           renderItem={(k, { mode }) => (
