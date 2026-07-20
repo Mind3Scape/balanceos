@@ -78,7 +78,6 @@ const PlanetOrb = React.memo(function PlanetOrb({ size = 72, mood, tint, seed = 
               {blobs.map((b, i) => <i key={i} className={"bosPl-wv " + b.k} style={b.style} />)}
             </div>
           </div>
-          <div className="bosPl-veil" />
           <div className="bosPl-rim" />
         </div>
       </div>
