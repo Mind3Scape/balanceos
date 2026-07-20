@@ -1060,6 +1060,13 @@ function IntroScreen() {
               вход через тг»). На реальном боте это единственный вход. */}
           {!(typeof bosIsDemoBot === "function" && bosIsDemoBot()) && (
           <button onClick={() => {
+              // Вне Telegram НЕ заводим анонимный live:local-мир — честно уводим в бота
+              // (инвайт из ?team=/?habit=/?ref= переезжает в start_param). Исключение:
+              // старый браузерный профиль уже существует — не отрезаем человека от его данных.
+              if (!window.__TG && !(window.bosStore && window.bosStore.has && window.bosStore.has("live:local"))) {
+                try { window.location.href = (typeof bosTelegramGateLink === "function") ? bosTelegramGateLink() : "https://t.me/BalanceOS8_bot"; } catch (e) {}
+                return;
+              }
               // The state dial is a FIRST-ENTRY-only moment for a live user. If they've already
               // been through it once, log in straight to home — no dial again (David). First
               // time (no flag): go to the dial, which marks the flag when finished.

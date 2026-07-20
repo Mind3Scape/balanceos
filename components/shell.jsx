@@ -627,6 +627,21 @@ function bosInviteLink(uid) {
 function bosTeamInviteLink(cloudId) {
   return "https://t.me/" + BOS_BOT_USERNAME + (cloudId ? "?startapp=team_" + cloudId : "");
 }
+// «ДВА МИРА» (2026-07-20): вне Telegram кнопка «Войти через Telegram» раньше МОЛЧА заводила
+// отдельный анонимный профиль live:local — у человека получалось два независимых мира
+// (Telegram и браузер), и «создал — исчезло»: создаёшь в одном, ищешь в другом. Теперь
+// кнопка честно ВЕДЁТ В БОТА, перенося инвайт из веб-ссылки (?team=/?habit=/?ref=) в
+// start_param — контекст приглашения не теряется по дороге.
+function bosTelegramGateLink() {
+  var sp = null;
+  try {
+    var q = new URLSearchParams(window.location.search);
+    if (q.get("team")) sp = "team_" + q.get("team");
+    else if (q.get("habit")) sp = "hb_" + q.get("habit") + (q.get("ref") ? "__" + q.get("ref") : "");
+    else if (q.get("ref")) sp = "ref_" + q.get("ref");
+  } catch (e) {}
+  return "https://t.me/" + BOS_BOT_USERNAME + (sp ? "?startapp=" + sp : "");
+}
 // The referral id that brought THIS user in: from the Telegram start_param ("ref_<uid>")
 // when launched via the bot deep-link, else the web ?ref= query. Null if organic.
 function bosReferralId() {
@@ -1295,7 +1310,9 @@ function AppProvider({ children }) {
 
   const [teams, setTeams] = useState(SEED_TEAMS);
   // New teams go to the TOP so the just-created one is immediately visible.
-  const addTeam = (t) => { const nt = { progress: 0, members: [], habits: [], ...t, _id: _nid() }; setTeams(ts => [nt, ...ts]); return nt; };
+  // _bornAt — метка рождения: эффект-добивка недорождённых кругов не трогает свежие круги,
+  // чьё собственное создание в облаке ещё летит (иначе создали бы дубль наперегонки).
+  const addTeam = (t) => { const nt = { progress: 0, members: [], habits: [], ...t, _id: _nid(), _bornAt: Date.now() }; setTeams(ts => [nt, ...ts]); return nt; };
   const removeTeam = (id) => setTeams(ts => ts.filter(t => t._id !== id));
   // Teams persist in the snapshot blob (no per-row sort), so reorder is just the array order.
   const reorderTeams = (orderedIds) => setTeams(ts => {
@@ -1306,6 +1323,68 @@ function AppProvider({ children }) {
     return next;
   });
   const updateTeam = (id, patch) => setTeams(ts => ts.map(t => t._id === id ? { ...t, ...patch } : t));
+  // НЕДОРОЖДЁННЫЕ КРУГИ (2026-07-20, добивка риска промоушена цели). Круг, созданный локально
+  // (цель→круг или создание при обрыве), мог не доехать до облака: createTeam не в durable-
+  // очереди (он НЕ идемпотентен — слепой повтор наплодил бы дубли), и круг НАВСЕГДА оставался
+  // только на этом телефоне — без ссылки-приглашения и синка, а исходная цель уже удалена.
+  // Добиваем: круг без cloudId после гидрации → сначала СВЕРКА с облаком (вдруг ответ
+  // потерялся, а круг родился — тогда УСЫНОВЛЯЕМ свой же круг по имени, не плодя дубль),
+  // иначе создаём заново; затем довозим командные привычки. Повтор — при каждом возврате
+  // в приложение + один отложенный заход после гидрации.
+  const _teamRetryBusy = useRef({});
+  const [_teamRetryTick, _setTeamRetryTick] = useState(0);
+  useEffect(() => {
+    if (mode !== "live") return;
+    const f = () => { if (document.visibilityState === "visible") _setTeamRetryTick(t => t + 1); };
+    document.addEventListener("visibilitychange", f);
+    const t0 = setTimeout(() => _setTeamRetryTick(t => t + 1), 12000); // после гидрации точно
+    return () => { document.removeEventListener("visibilitychange", f); clearTimeout(t0); };
+  }, [mode]);
+  useEffect(() => {
+    if (mode !== "live" || hydratingRef.current) return;
+    if (!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.createTeam)) return;
+    const all = (teams || []).filter(t => t && t._id && !t.cloudId);
+    // Свежие (<45с) не трогаем: их собственный createTeam ещё в полёте — не плодим дубль.
+    const orphans = all.filter(t => !t._bornAt || (Date.now() - t._bornAt) > 45000);
+    if (!orphans.length) {
+      if (all.length) { const ty = setTimeout(() => _setTeamRetryTick(x => x + 1), 60000); return () => clearTimeout(ty); }
+      return;
+    }
+    // По ОДНОМУ за проход: получив cloudId, teams меняется и эффект сам придёт за следующим.
+    // Параллельно нельзя — два одноимённых сироты усыновили бы одну и ту же облачную строку.
+    [orphans[0]].forEach(t => {
+      if (_teamRetryBusy.current[t._id]) return;
+      _teamRetryBusy.current[t._id] = 1;
+      (async () => {
+        try {
+          let row = null;
+          try {
+            const mine = await window.bosCloud.myTeamsLive();
+            if (Array.isArray(mine)) {
+              const taken = {}; (teams || []).forEach(x => { if (x && x.cloudId) taken[x.cloudId] = 1; });
+              const m = mine.find(x => x && x.role === "owner" && x.team && !taken[x.team.id] && (x.team.name || "") === (t.name || ""));
+              if (m) row = m.team;
+            }
+          } catch (e) {}
+          if (!row) row = await window.bosCloud.createTeam({ name: t.name || "Круг", emblem: t.emblem || "✨", vis: t.vis || "private", goalKind: (typeof t.goal === "string" ? t.goal : (t.name || null)), goalTarget: t.target || null, goal: { type: t.type || "collective", target: t.target || 0, unit: t.unit || "", title: t.name || "", stake: t.stake || 0, accent: t.accent } });
+          if (!(row && row.id)) return; // не дозвонились — следующий возврат в приложение попробует снова
+          const cid = row.id;
+          setTeams(ts => (ts || []).map(x => (x && x._id === t._id) ? { ...x, cloudId: cid } : x));
+          if (t.circleBalanceOn === false && window.bosCloud.updateTeam) { try { window.bosCloud.updateTeam(cid, { circleBalanceOn: false }); } catch (e) {} }
+          // Командные привычки: у усыновлённого круга что-то уже может быть — сверяем по имени.
+          let cloudHs = [];
+          try { cloudHs = (await window.bosCloud.teamHabitsFull(cid)) || []; } catch (e) {}
+          const mineHs = (habits || []).filter(h => h && h.teamId === t._id);
+          for (let i = 0; i < mineHs.length; i++) {
+            const h = mineHs[i];
+            let th = cloudHs.find(x => x && (x.name || "") === (h.name || ""));
+            if (!th) { try { th = await window.bosCloud.addTeamHabit(cid, { name: h.name, emoji: h.emoji, isMain: i === 0, goalPerDay: h.goalPerDay }); } catch (e) {} }
+            if (th && th.id) updateHabit(h.id, { teamId: cid, teamHabitId: th.id });
+          }
+        } catch (e) {} finally { delete _teamRetryBusy.current[t._id]; }
+      })();
+    });
+  }, [mode, teams, _teamRetryTick]);
   const addTeamHabit = (teamId, h) => setTeams(ts => ts.map(t => {
     if (t._id !== teamId) return t;
     const nh = { id: _nid(), doneToday: 0, total: (t.members?.length || 1), weekPct: 0, isMain: false, week: [0,0,0,0,0,0,0], ...h };

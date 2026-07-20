@@ -1399,7 +1399,15 @@ function SignUpScreen() {
   const goFresh = () => { app?.enterFresh?.(name); navigate("home"); };
   // The real door: sign in with the Telegram account → everything persists. The state dial
   // (onb-mood) now runs first; it calls enterLive on «Продолжить», then lands on home.
-  const goLive = () => { navigate("onb-mood", { moodOnly: true, next: "live" }); };
+  const goLive = () => {
+    // Вне Telegram НЕ заводим анонимный live:local-мир — уводим в бота (см. bosTelegramGateLink);
+    // старый браузерный профиль с данными — исключение, человека от них не отрезаем.
+    if (!window.__TG && !(window.bosStore && window.bosStore.has && window.bosStore.has("live:local"))) {
+      try { window.location.href = (typeof bosTelegramGateLink === "function") ? bosTelegramGateLink() : "https://t.me/BalanceOS8_bot"; } catch (e) {}
+      return;
+    }
+    navigate("onb-mood", { moodOnly: true, next: "live" });
+  };
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
       <div style={{ flex: 1, padding: "max(64px, calc(var(--tg-top-inset, 0px) + 22px)) 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
