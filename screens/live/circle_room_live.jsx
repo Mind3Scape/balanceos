@@ -104,6 +104,38 @@ function CircleHabitMenuSheetLive({ h, isDark, onEdit, onDelete }) {
   );
 }
 
+// Меню лонгтапа по ДЕЛУ круга (владелец): Удалить (двухшаговое подтверждение) / Отмена.
+// (David 2026-07-20: «создал задачу фото завтрака, а удалить не могу»).
+function CircleTaskMenuSheetLive({ tk, isDark, onDelete }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  const [ask, setAsk] = React.useState(false);
+  const btn = (label, tone, fn) => (
+    <button onClick={fn} className="tap" style={{
+      width: "100%", border: 0, cursor: "pointer", borderRadius: 14, padding: "13px 14px", marginTop: 8,
+      fontSize: 14.5, fontWeight: 600, textAlign: "center",
+      background: tone === "danger" ? "rgba(255,90,95,0.12)" : (tone === "plain" ? "transparent" : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)")),
+      color: tone === "danger" ? "#e03e44" : (tone === "plain" ? "var(--text-4)" : "var(--text)"),
+    }}>{label}</button>
+  );
+  return (
+    <div style={{ padding: "4px 18px 18px", color: "var(--text)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "6px 2px 10px" }}>
+        <span style={{ width: 38, height: 38, borderRadius: 12, background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flag size={17} strokeWidth={2.1} color="var(--text-2)" /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tk.text}</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>дело круга</div>
+        </div>
+      </div>
+      {btn(ask ? "Точно удалить? Отметки круга по нему пропадут" : "Удалить из круга", "danger", () => {
+        if (!ask) { setAsk(true); return; }
+        try { sheet.close(); } catch (e) {}
+        setTimeout(onDelete, 80);
+      })}
+      {btn("Отмена", "plain", () => { try { sheet.close(); } catch (e) {} })}
+    </div>
+  );
+}
+
 /* Строка списка привычек/дел. Кружок = отметить; тело строки = аккордеон статистики (onOpen).
    Шеврона нет намеренно (David: рука и так тянется тапнуть) — строка раскрывается сама. */
 function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert }) {
@@ -438,6 +470,17 @@ function TeamDetailLive() {
     clearTimeout(_lpRef.current.t);
     _lpRef.current.t = setTimeout(() => { _lpRef.current.t = 0; _lpFire(h); }, 480);
   };
+  // Тот же лонгтап для ДЕЛА (владелец): удержание → меню «Удалить» (David 2026-07-20).
+  const _lpFireTask = (tk) => {
+    _lpSwallowClick();
+    if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e) {} }
+    openSheet(<CircleTaskMenuSheetLive tk={tk} isDark={isDark} onDelete={() => removeTeamTaskCloud(tk)} />);
+  };
+  const _lpDownTask = (tk) => (e) => {
+    _lpRef.current.x = e.clientX; _lpRef.current.y = e.clientY;
+    clearTimeout(_lpRef.current.t);
+    _lpRef.current.t = setTimeout(() => { _lpRef.current.t = 0; _lpFireTask(tk); }, 480);
+  };
   const _lpMove = (e) => { const r = _lpRef.current; if (r.t && (Math.abs(e.clientX - r.x) > 9 || Math.abs(e.clientY - r.y) > 9)) { clearTimeout(r.t); r.t = 0; } };
   const _lpEnd = () => { clearTimeout(_lpRef.current.t); _lpRef.current.t = 0; };
 
@@ -462,6 +505,12 @@ function TeamDetailLive() {
     });
   };
   const addTeamTaskCloud = (tx) => { if (!tx || !window.bosCloud.addTeamTask) return; window.bosCloud.addTeamTask(t.cloudId, tx).then(() => setTasksTick((n) => n + 1)); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  // Удаление дела: оптимистично убираем строку сразу, облако вдогонку; ошибка — перечитка вернёт.
+  const removeTeamTaskCloud = (tk) => {
+    if (!tk || !tk.id || !window.bosCloud.removeTeamTask) return;
+    setTeamTaskData((d) => (d ? { ...d, tasks: (d.tasks || []).filter((x) => x.id !== tk.id) } : d));
+    window.bosCloud.removeTeamTask(tk.id).then(() => setTasksTick((n) => n + 1)).catch(() => setTasksTick((n) => n + 1));
+  };
 
   // Прогресс цели (банк, режимы) — ТОНКО (решение David): строка в шапке + веха в пульсе.
   const [goalProg, setGoalProg] = React.useState(() => _bosTeamGet("goal:" + t.cloudId));
@@ -860,10 +909,14 @@ function TeamDetailLive() {
   const card = { background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)" };
   const bubbleOther = isDark ? "rgba(255,255,255,0.07)" : "#fff";
 
+  // ПРИВЫЧКИ и ДЕЛА — раздельные вкладки одного блока (David 2026-07-20: «чтобы не
+  // смешивалось всё в одно; тогда дела не надо подписывать как дела»). Плюс внизу
+  // остаётся универсальным. dayList = строки активной вкладки.
+  const [listTab, setListTab] = React.useState("habits");
   const dayList = [];
   // Строки БЕЗ подписей «N из M · ты в 12:52» (David 2026-07-16: «грязь, захламляет» —
   // лица уже показывают, кто прокликал, а раскрытие даёт подробности).
-  teamHabits.forEach((h, i) => {
+  if (listTab === "habits") teamHabits.forEach((h, i) => {
     const done = myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const opened = openHabit === h.id;
@@ -892,14 +945,21 @@ function TeamDetailLive() {
       </div>
     );
   });
-  _teamTasks.forEach((tk, i) => {
+  if (listTab === "tasks") _teamTasks.forEach((tk, i) => {
     const facesT = (Array.isArray(tk.doneUsers) ? tk.doneUsers : []).map((u) => rosterById[u]).filter(Boolean);
     dayList.push(
-      <CircleDayRowLive key={"t" + tk.id} first={dayList.length === 0} isDark={isDark}
-        icon={<I.Flag size={16} strokeWidth={2.2} color="var(--text-2)" />} name={tk.text} tag="дело"
-        faces={facesT}
-        on={!!tk.doneByMe} inert={!_live}
-        onToggle={() => toggleMyTeamTask(tk)} />
+      // Обёртка-лонгтап (владелец): удержание → «Удалить» (David: «фото завтрака не удалить»).
+      // Метка «дело» убрана — вкладка «Дела» уже говорит, что это.
+      <div key={"t" + tk.id}
+        onPointerDown={_isOwner ? _lpDownTask(tk) : undefined} onPointerMove={_isOwner ? _lpMove : undefined}
+        onPointerUp={_isOwner ? _lpEnd : undefined} onPointerCancel={_isOwner ? _lpEnd : undefined}
+        onContextMenu={_isOwner ? (e) => { e.preventDefault(); _lpEnd(); _lpFireTask(tk); } : undefined}>
+        <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
+          icon={<I.Flag size={16} strokeWidth={2.2} color="var(--text-2)" />} name={tk.text}
+          faces={facesT}
+          on={!!tk.doneByMe} inert={!_live}
+          onToggle={() => toggleMyTeamTask(tk)} />
+      </div>
     );
   });
 
@@ -1052,13 +1112,33 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* МОЙ ДЕНЬ В КРУГЕ — один список: привычки + дела, чекбоксы справа. */}
-      <BosRoomH2 extra={(teamHabits.length + _teamTasks.length) > 0 ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{(_myDoneCount + _teamTasks.filter((x) => x.doneByMe).length) + " из " + (teamHabits.length + _teamTasks.length)}</span> : null}>Привычки</BosRoomH2>
+      {/* МОЙ ДЕНЬ В КРУГЕ — вкладки «Привычки · Дела» (David 2026-07-20: «не смешивать в одно»);
+          счётчик справа — по активной вкладке. Заголовки-вкладки в стиле BosRoomH2. */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 4px 8px" }}>
+        <span style={{ display: "inline-flex", gap: 14 }}>
+          {[["habits", "Привычки"], ["tasks", "Дела"]].map(([id, label]) => (
+            <button key={id} onClick={() => setListTab(id)} className="tap" data-haptic="selection"
+              style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase",
+                color: listTab === id ? "var(--text)" : "var(--text-4)", transition: "color .15s" }}>{label}</button>
+          ))}
+        </span>
+        {listTab === "habits" && teamHabits.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{_myDoneCount + " из " + teamHabits.length}</span>}
+        {listTab === "tasks" && _teamTasks.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{_teamTasks.filter((x) => x.doneByMe).length + " из " + _teamTasks.length}</span>}
+      </div>
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (
           <div style={{ padding: "18px 6px", textAlign: "center" }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>{_isOwner ? "Дай кругу первое общее дело" : "Ведущий ещё не добавил привычек"}</div>
-            <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>{_isOwner ? "Привычка на каждый день или разовое дело" : "Загляни позже — здесь появится список дня"}</div>
+            {listTab === "habits" ? (
+              <React.Fragment>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>{_isOwner ? "Дай кругу первую привычку" : "Ведущий ещё не добавил привычек"}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>{_isOwner ? "Общий ритм — то, что круг делает каждый день" : "Загляни позже — здесь появится список дня"}</div>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>{_isOwner ? "Разовых дел пока нет" : "Дел пока нет"}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>{_isOwner ? "Дело — разовый шаг: сделал, отметил, готово" : "Ведущий может дать кругу разовое дело"}</div>
+              </React.Fragment>
+            )}
           </div>
         )}
         {_isOwner && (
