@@ -556,6 +556,27 @@ function _uniqLocal(arr) {
   });
   return arr;
 }
+// СЛИЯНИЕ облачных строк с локальным списком вместо «всё-или-ничего» (жалобы 2026-07-20
+// «создал цель/привычку — исчезла / не появилась»). Правила: локальная копия каждого элемента
+// главнее («телефон — главный», урок v617) — облако НИКОГДА не перезаписывает существующий
+// локальный элемент; но строки облака, которых на телефоне НЕТ, ДОБАВЛЯЮТСЯ — созданное на
+// другом устройстве (или потерянное локальной гонкой) возвращается само. Матч ТОЛЬКО по
+// cloudId (_nid перераздаётся каждый старт — грабли локальных id). Строки с незакрытым
+// офлайн-удалением в очереди синка не воскрешаем.
+function _bosMergeRows(prev, rows, roll) {
+  var p = prev || [];
+  var pend = {};
+  try { if (window.bosCloud && window.bosCloud.pendingDeletes) pend = window.bosCloud.pendingDeletes() || {}; } catch (e) {}
+  var have = {};
+  p.forEach(function (x) { if (x && x.cloudId != null) have[x.cloudId] = 1; });
+  var add = [];
+  (rows || []).forEach(function (r) {
+    if (!r || r.cloudId == null || have[r.cloudId] || pend[r.cloudId]) return;
+    var it = Object.assign({ id: _nid() }, r);
+    add.push(roll ? roll(it) : it);
+  });
+  return add.length ? p.concat(add) : p;
+}
 // «Дела»-списки хранятся ЛОКАЛЬНО и раньше брали id из _nid() (счётчик, что сбрасывается в 1000
 // каждую загрузку) → первый новый список после перезагрузки получал 1001 и СТАЛКИВАЛСЯ с уже
 // сохранённым 1001: два списка с одним id → правка/удаление задевали ОБА («дубли», «всё удаляется»).
@@ -1011,7 +1032,11 @@ function AppProvider({ children }) {
   // UPSERT into the habit's log, with done/streak re-derived from it (T0.2).
   // Live cloud sync is per-action (fire-and-forget, guarded): local stays the source of
   // truth, the row write is a background mirror. cloudId = the habit's stable cloud key.
-  const _liveCloud = () => mode === "live" && window.bosCloud && window.bosCloud.enabled();
+  // НЕ проверяем enabled() (=клиент уже собрался): пока CDN-скрипт Supabase ещё летит,
+  // enabled() честно false — и раньше зеркальная запись ПРОПУСКАЛАСЬ НАВСЕГДА (создал
+  // привычку в первые секунды → в облако она не попадала никогда: ни на второе устройство,
+  // ни на восстановление). Очередь в cloud.js durable: оп сам дождётся клиента и уедет.
+  const _liveCloud = () => mode === "live" && !!window.bosCloud;
   const toggleHabit = (id) => setHabits(hs => hs.map(h => {
     if (h.id !== id) return h;
     if (mode !== "live") return { ...h, done: !h.done };
@@ -1075,6 +1100,8 @@ function AppProvider({ children }) {
     return u;
   }));
   const removeHabit = (id) => {
+    const _h0 = (habits || []).find(x => x.id === id);
+    const _hcid = (_h0 && _h0.cloudId) || null; // вечный ключ — для чистки habitCloudIds у целей
     setHabits(hs => {
       const h = hs.find(x => x.id === id);
       try { if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId); } catch (e) {}
@@ -1085,8 +1112,10 @@ function AppProvider({ children }) {
     // Аудит #3: убрать удалённую привычку из habitIds всех целей — иначе остаётся «мёртвая
     // ссылка» и цель молча теряет её вклад. Чистим связь и миррорим цель в облако.
     setGoals(gs => gs.map(g => {
-      if (!Array.isArray(g.habitIds) || g.habitIds.indexOf(id) < 0) return g;
-      const ng = { ...g, habitIds: g.habitIds.filter(x => x !== id) };
+      const hitId = Array.isArray(g.habitIds) && g.habitIds.indexOf(id) >= 0;
+      const hitCloud = _hcid && Array.isArray(g.habitCloudIds) && g.habitCloudIds.indexOf(_hcid) >= 0;
+      if (!hitId && !hitCloud) return g;
+      const ng = { ...g, habitIds: (g.habitIds || []).filter(x => x !== id), habitCloudIds: (g.habitCloudIds || []).filter(x => x !== _hcid) };
       try { if (ng.cloudId && _liveCloud()) window.bosCloud.upsertGoal(ng); } catch (e) {}
       return ng;
     }));
@@ -1135,7 +1164,9 @@ function AppProvider({ children }) {
     return () => { try { window.removeEventListener("bos:pushChanged", f); } catch (e) {} };
   }, []);
   useEffect(() => {
-    if (mode !== "live" || !_liveCloud()) return;
+    // Здесь строгая проверка enabled() (клиент реально готов): эффект одноразовый (ref-флажки),
+    // и «выстрел в пустоту» без клиента потерял бы синк напоминаний до перезапуска.
+    if (mode !== "live" || !_liveCloud() || !window.bosCloud.enabled()) return;
     const tz = -(new Date().getTimezoneOffset()); // Москва UTC+3 → +180
     if (!_tzSyncedRef.current && window.bosCloud.saveTz) { _tzSyncedRef.current = true; try { window.bosCloud.saveTz(tz); } catch (e) {} }
     if (!_remSyncedRef.current && window.bosCloud.upsertReminder && habits && habits.length) {
@@ -1163,9 +1194,13 @@ function AppProvider({ children }) {
     // Аудит #4: освободить «только внутри цели» привычки, иначе после удаления цели они
     // становятся невидимыми призраками (нигде не видно, не удалить, но копят XP). Снимаем
     // goalOnly/goalId → привычка снова видна на главной. (Промоушен в круг уже делает это сам.)
+    const _g0 = (goals || []).find(x => x.id === id);
+    const _gcid = (_g0 && _g0.cloudId) || null;
     setHabits(hs => hs.map(h => {
-      if (h.goalId !== id) return h;
-      const nh = { ...h, goalOnly: false, goalId: null };
+      // Матчим и по вечной ссылке goalCloudId — после восстановления локальный goalId мёртв,
+      // и без этого привычка удалённой цели оставалась невидимым призраком.
+      if (h.goalId !== id && !(_gcid && h.goalCloudId === _gcid)) return h;
+      const nh = { ...h, goalOnly: false, goalId: null, goalCloudId: null };
       try { if (nh.cloudId && _liveCloud()) window.bosCloud.upsertHabit(nh); } catch (e) {}
       return nh;
     }));
@@ -1184,6 +1219,79 @@ function AppProvider({ children }) {
     try { if (_liveCloud()) out.forEach((g, i) => { const old = gs.find(x => x.id === g.id); if (g.cloudId && (!old || old.sort !== i)) window.bosCloud.upsertGoal(g); }); } catch (e) {}
     return out;
   });
+
+  // САМОЛЕЧЕНИЕ связей цель↔привычка (2026-07-20). Локальные id (_nid) умирают при каждом
+  // восстановлении из облака, а связь хранилась ИМЕННО на них (h.goalId, g.habitIds) — после
+  // восстановления цель теряла свои привычки, а goalOnly-привычка становилась невидимым
+  // призраком (нет ни на главной, ни в цели). Правда о связи теперь — вечные cloudId
+  // (h.goalCloudId, g.habitCloudIds): здесь локальные ссылки пересобираются из вечных, а
+  // безнадёжный призрак расколдовывается обратно на главную. Идемпотентно: нет изменений —
+  // нет setState, поэтому эффект сходится за один-два прохода и не зацикливается.
+  const [_relinkTick, _setRelinkTick] = useState(0);
+  useEffect(() => {
+    if (mode !== "live") return;
+    const gById = {}, gByCloud = {};
+    (goals || []).forEach(g => { if (!g) return; gById[g.id] = g; if (g.cloudId != null) gByCloud[g.cloudId] = g; });
+    const hById = {}, hByCloud = {};
+    (habits || []).forEach(h => { if (!h) return; hById[h.id] = h; if (h.cloudId != null) hByCloud[h.cloudId] = h; });
+    const settling = hydratingRef.current; // гидрация ещё летит — цель могла просто не доехать
+    let needLater = false;
+    let hChanged = false;
+    const nh = (habits || []).map(h => {
+      if (!h || (h.goalId == null && h.goalCloudId == null && !h.goalOnly)) return h;
+      const byLocal = h.goalId != null ? gById[h.goalId] : null;
+      const byCloud = h.goalCloudId != null ? gByCloud[h.goalCloudId] : null;
+      const tgt = byLocal || byCloud || null;
+      if (tgt) {
+        const wantCloud = tgt.cloudId != null ? tgt.cloudId : null;
+        if (h.goalId === tgt.id && (h.goalCloudId || null) === wantCloud) return h;
+        hChanged = true; return { ...h, goalId: tgt.id, goalCloudId: wantCloud };
+      }
+      // Цель не нашлась. Во время гидрации НЕ расколдовываем (она может доехать со слиянием
+      // через секунды — сняли бы goalCloudId и потеряли связь навсегда); после — призрак
+      // безнадёжен, возвращаем привычку на главную.
+      if (settling) { needLater = true; return h; }
+      hChanged = true; return { ...h, goalId: null, goalCloudId: null, goalOnly: false };
+    });
+    let gChanged = false;
+    const ng = (goals || []).map(g => {
+      if (!g) return g;
+      const rawIds = Array.isArray(g.habitIds) ? g.habitIds : [];
+      const rawClouds = Array.isArray(g.habitCloudIds) ? g.habitCloudIds : [];
+      if (!rawIds.length && !rawClouds.length) return g;
+      const ids = [], clouds = [], seen = {}, seenC = {};
+      rawIds.forEach(id => {
+        const h = hById[id]; if (!h || seen[h.id]) { if (!h && settling) needLater = true; return; }
+        seen[h.id] = 1; ids.push(h.id);
+        if (h.cloudId != null && !seenC[h.cloudId]) { seenC[h.cloudId] = 1; clouds.push(h.cloudId); }
+      });
+      rawClouds.forEach(cid => {
+        if (cid == null) return;
+        const h = hByCloud[cid];
+        if (h && !seen[h.id]) { seen[h.id] = 1; ids.push(h.id); }
+        if (!seenC[cid]) { seenC[cid] = 1; clouds.push(cid); } // привычка ещё не доехала — вечную ссылку НЕ теряем
+      });
+      // Мёртвые локальные id при живой гидрации не выбрасываем — дождёмся полного списка.
+      if (settling && (ids.length < rawIds.length)) return g;
+      const same = ids.length === rawIds.length && ids.every((v, i) => v === rawIds[i]) && clouds.length === rawClouds.length && clouds.every((v, i) => v === rawClouds[i]);
+      if (same) return g;
+      gChanged = true; return { ...g, habitIds: ids, habitCloudIds: clouds };
+    });
+    if (hChanged) setHabits(prev => (prev === habits ? nh : prev));
+    if (gChanged) setGoals(prev => (prev === goals ? ng : prev));
+    // Зеркалим вылеченные связи в облако — иначе следующее восстановление сломает их снова.
+    try {
+      if (_liveCloud()) {
+        if (hChanged) nh.forEach((h, i) => { if (h !== habits[i] && h.cloudId) window.bosCloud.upsertHabit(h); });
+        if (gChanged) ng.forEach((g, i) => { if (g !== goals[i] && g.cloudId) window.bosCloud.upsertGoal(g); });
+      }
+    } catch (e) {}
+    // Гидрация ещё шла и что-то осталось нерешённым → добьём после того, как она точно села.
+    if (needLater && !hChanged && !gChanged) {
+      const t = setTimeout(() => _setRelinkTick(x => x + 1), 9500);
+      return () => clearTimeout(t);
+    }
+  }, [mode, habits, goals, _relinkTick]);
 
   const [teams, setTeams] = useState(SEED_TEAMS);
   // New teams go to the TOP so the just-created one is immediately visible.
@@ -1750,7 +1858,10 @@ function AppProvider({ children }) {
                 // локальный =24 ещё летел вверх) затирала прогресс. Есть данные локально → они и есть правда,
                 // телефон сам синкает их ВВЕРХ. Облачные строки применяем ТОЛЬКО для ВОССТАНОВЛЕНИЯ на пустом
                 // устройстве (новый телефон / переустановка / потеря localStorage). Та же философия, что v594 у кругов.
-                if (rows.length) { setHabits(function (prev) { return (prev && prev.length) ? prev : rows.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); }); }); return; }
+                // v2 (2026-07-20): раньше «непустое локальное» ОТБРАСЫВАЛО облако целиком — привычка,
+                // созданная на другом устройстве (или потерянная локальной гонкой), не появлялась
+                // НИКОГДА. Теперь слияние: локальные копии нетронуты, недостающие строки добавляются.
+                if (rows.length) { setHabits(function (prev) { return _bosMergeRows(prev, rows, bosRollHabit); }); return; }
                 if (!_seedHabits.length) return;
                 // CONFIRM truly-empty before migrating local habits → rows. A transient false-empty
                 // read (auth/RLS race just after sign-in) once re-ran this migration on an account that
@@ -1761,11 +1872,16 @@ function AppProvider({ children }) {
                   .then(function () { return window.bosCloud.loadHabits(); })
                   .then(function (rows2) {
                     if (rows2 === null) return;
-                    // «Телефон — главный» и здесь: не затираем существующие локальные привычки (см. выше).
-                    if (rows2.length) { setHabits(function (prev) { return (prev && prev.length) ? prev : rows2.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); }); }); return; }
-                    var wi = _seedHabits.map(function (h) { return Object.assign({ id: _nid() }, h, { cloudId: h.cloudId || _uuid() }); });
-                    setHabits(wi.map(bosRollHabit));
-                    wi.forEach(function (h) { try { window.bosCloud.upsertHabit(h); var lg = h.log || {}; Object.keys(lg).forEach(function (day) { if (lg[day]) window.bosCloud.toggleHabitLog(h.cloudId, day, true); }); } catch (e) {} });
+                    if (rows2.length) { setHabits(function (prev) { return _bosMergeRows(prev, rows2, bosRollHabit); }); return; }
+                    // Миграция сида в строки. РАНЬШЕ: setHabits(wi) ЗАМЕНЯЛ весь список — привычка,
+                    // созданная за эти секунды (пока летали два loadHabits + пауза 800мс), молча
+                    // СТИРАЛАСЬ с экрана. Теперь функциональное слияние: текущее состояние — база,
+                    // сид только ДОБАВЛЯЕТ недостающее; в облако зеркалим весь итог (там пусто).
+                    setHabits(function (prev) {
+                      var out = _bosMergeRows(prev, _seedHabits.map(function (h) { return Object.assign({}, h, { cloudId: h.cloudId || _uuid() }); }), bosRollHabit);
+                      out.forEach(function (h) { try { if (h && h.cloudId) { window.bosCloud.upsertHabit(h); var lg = h.log || {}; Object.keys(lg).forEach(function (day) { if (lg[day]) window.bosCloud.toggleHabitLog(h.cloudId, day, true); }); } } catch (e) {} });
+                      return out;
+                    });
                   });
               }).then(function () {
                 // hb_<code> link → join the SAME shared habit (a buddy, NOT a team): append it
@@ -1790,9 +1906,10 @@ function AppProvider({ children }) {
               });
               window.bosCloud.loadGoals().then(function (rows) {
                 if (rows === null) return;
-                // «Телефон — главный» (как у привычек): облако не затирает локальные цели/их прогресс,
-                // только восстанавливает на пустом устройстве.
-                if (rows.length) { setGoals(function (prev) { return (prev && prev.length) ? prev : rows.map(function (g) { return Object.assign({ id: _nid() }, g); }); }); return; }
+                // v2 (2026-07-20): слияние вместо «всё-или-ничего» — локальные цели нетронуты
+                // (телефон — главный), недостающие облачные строки ДОБАВЛЯЮТСЯ. Лечит «создал
+                // цель — исчезла»: даже потерянная локальной гонкой цель возвращается из облака.
+                if (rows.length) { setGoals(function (prev) { return _bosMergeRows(prev, rows, null); }); return; }
                 if (!_seedGoals.length) return;
                 // Same dup-guard as habits: confirm truly-empty (re-read after a beat) before migrating
                 // local goals → rows, so a transient false-empty read can't create a second copy.
@@ -1800,10 +1917,16 @@ function AppProvider({ children }) {
                   .then(function () { return window.bosCloud.loadGoals(); })
                   .then(function (rows2) {
                     if (rows2 === null) return;
-                    if (rows2.length) { setGoals(function (prev) { return (prev && prev.length) ? prev : rows2.map(function (g) { return Object.assign({ id: _nid() }, g); }); }); return; }
-                    var wg = _seedGoals.map(function (g) { return Object.assign({ id: _nid() }, g, { cloudId: g.cloudId || _uuid() }); });
-                    setGoals(wg);
-                    wg.forEach(function (g) { try { window.bosCloud.upsertGoal(g); } catch (e) {} });
+                    if (rows2.length) { setGoals(function (prev) { return _bosMergeRows(prev, rows2, null); }); return; }
+                    // РАНЬШЕ: setGoals(wg) ЗАМЕНЯЛ список целиком — цель, созданная за секунды
+                    // миграции, СТИРАЛАСЬ (та самая «создал цель, к ней привычку — привычка
+                    // осталась, цель исчезла»: цепочки целей и привычек независимы, и стирало
+                    // только одну). Теперь текущее состояние — база, сид лишь добавляет.
+                    setGoals(function (prev) {
+                      var out = _bosMergeRows(prev, _seedGoals.map(function (g) { return Object.assign({}, g, { cloudId: g.cloudId || _uuid() }); }), null);
+                      out.forEach(function (g) { try { if (g && g.cloudId) window.bosCloud.upsertGoal(g); } catch (e) {} });
+                      return out;
+                    });
                   });
               });
             } catch (e) {}

@@ -4020,7 +4020,7 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   var nt = app.addTeam(teamObj);
   // Личные привычки цели теперь принадлежат кругу: teamId связывает, goalOnly снимаем (пусть видно),
   // goalId чистим (цели больше нет). teamHabitId долетит из облака (миррор отметок в командный лог).
-  linked.forEach(function (h) { app.updateHabit(h.id, { teamId: nt._id, goalId: null, goalOnly: false }); });
+  linked.forEach(function (h) { app.updateHabit(h.id, { teamId: nt._id, goalId: null, goalCloudId: null, goalOnly: false }); });
   if (goalLike.id != null && app.removeGoal) app.removeGoal(goalLike.id); // цель → круг (не остаётся дублем)
   // opts.route — вызывающий может остаться НА СВОЁМ экране (same-route → params-refresh,
   // без перехода): деталь цели передаёт "goal-detail" и блок «Люди» вырастает на месте.

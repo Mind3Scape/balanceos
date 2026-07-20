@@ -334,7 +334,15 @@
     try {
       switch (op.type) {
         case "habitLog":
-          if (a.on) { var r = await c.from("habit_logs").upsert({ habit_id: a.cloudId, user_id: id, day: a.day }, { onConflict: "habit_id,day", ignoreDuplicates: true }); return !r.error; }
+          if (a.on) {
+            var r = await c.from("habit_logs").upsert({ habit_id: a.cloudId, user_id: id, day: a.day }, { onConflict: "habit_id,day", ignoreDuplicates: true });
+            if (!r.error) return true;
+            // Привычка уже удалена в облаке (с другого устройства) → отметка в никуда. Роняем оп
+            // как «успех», иначе он ВЕЧНО клинит очередь (flushQueue стоп на первой ошибке) и
+            // глушит ВСЕ последующие синки — «создаю, а нигде не появляется».
+            if (_isFkGone(r.error)) return true;
+            return false;
+          }
           { var rd = await c.from("habit_logs").delete().eq("habit_id", a.cloudId).eq("day", a.day); return !rd.error; }
         case "upsertHabit": { var ru = await c.from("habits").upsert({ id: a.cloudId, user_id: id, data: a.data, sort: a.sort || 0 }, { onConflict: "id" }); return !ru.error; }
         case "deleteHabit": { var rh = await c.from("habits").delete().eq("id", a.cloudId); return !rh.error; }
@@ -385,6 +393,12 @@
     var list = _ledgerLoad();
     if (args && args.ref && list.some(function (x) { return x && x.ref === args.ref; })) return; // дубль
     list.push(args); _ledgerSave(list);
+  }
+  // Нарушение внешнего ключа: родительской строки уже нет (удалили с другого устройства).
+  // Такой оп ретраями не вылечить — его надо РОНЯТЬ, а не клинить им очередь.
+  function _isFkGone(err) {
+    var m = ((err && (err.code || "")) + " " + (err && (err.message || ""))).toLowerCase();
+    return m.indexOf("23503") >= 0 || m.indexOf("foreign key") >= 0;
   }
   function _isMissingFn(err) {
     var m = ((err && (err.code || "")) + " " + (err && (err.message || ""))).toLowerCase();
@@ -520,6 +534,13 @@
   async function deleteGoal(cloudId) {
     if (!cloudId) return false;
     return _durable({ type: "deleteGoal", key: "deleteGoal:" + cloudId, args: { cloudId: cloudId } });
+  }
+  // cloudId'ы с НЕОТПРАВЛЕННЫМ удалением в очереди — чтобы слияние при гидрации
+  // не воскресило привычку/цель, удалённую офлайн секунду назад.
+  function pendingDeletes() {
+    var s = {};
+    _q.forEach(function (o) { if (o && (o.type === "deleteHabit" || o.type === "deleteGoal") && o.args && o.args.cloudId) s[o.args.cloudId] = 1; });
+    return s;
   }
 
   // ── D3 · команды в облаке (создать / найти / вступить) ──────────────────────
@@ -1946,7 +1967,7 @@
     savePublicStats: savePublicStats, profilesPublic: profilesPublic, allPublic: allPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
-    loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,
+    loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal, pendingDeletes: pendingDeletes,
     createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
     teamMembers: teamMembers, teamMembersStrict: teamMembersStrict, teamMemberIdsStrict: teamMemberIdsStrict, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,

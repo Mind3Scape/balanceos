@@ -160,7 +160,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
     // привязываем её к цели (habitIds) — деталь цели под шторкой обновится сама.
-    if (goalFor) { base.goalId = goalFor.id; base.goalOnly = goalOnly; }
+    // goalCloudId — ВЕЧНАЯ ссылка на цель: локальный goalId умирает при восстановлении из
+    // облака (счётчик _nid), и без вечной ссылки привычка-призрак теряла свою цель навсегда.
+    if (goalFor) { base.goalId = goalFor.id; base.goalCloudId = goalFor.cloudId || null; base.goalOnly = goalOnly; }
     // Публикуем расписание напоминания в облако (для пуша ботом, когда приложение закрыто). Ключ =
     // стабильный cloudId привычки; свой tz_offset (сервер не знает пояс). Выкл → удаляем строку.
     // Graceful: пока патч habit_reminders не прогнан — тихий no-op, ничего не ломается.
@@ -179,7 +181,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       if (!goalFor || !nh) return false;
       const g = (app?.goals || []).find((x) => x.id === goalFor.id);
       const ids = (((g && g.habitIds) || [])).concat(nh.id);
-      app?.updateGoal(goalFor.id, { habitIds: ids });
+      // Вечная ссылка и с этой стороны: цель помнит привычку по cloudId — переживает восстановление.
+      const cids = (((g && g.habitCloudIds) || [])).concat(nh.cloudId ? [nh.cloudId] : []);
+      app?.updateGoal(goalFor.id, { habitIds: ids, habitCloudIds: cids });
       return true;
     };
     // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
@@ -587,7 +591,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   ];
   // REAL — the user's own habits. Несём id (нужно, чтобы сохранить связь цель↔привычка). При
   // редактировании — заранее отмечаем уже привязанные (g0.habitIds). Эти отметки двигают кольцо цели.
-  const [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map((h) => ({ id: h.id, e: h.emoji || "✨", n: h.name, on: !!(g0 && (g0.habitIds || []).includes(h.id)) })));
+  const [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map((h) => ({ id: h.id, cloudId: h.cloudId || null, e: h.emoji || "✨", n: h.name, on: !!(g0 && (g0.habitIds || []).includes(h.id)) })));
   const toggleLinked = (i) => setLinkedHabits((hs) => hs.map((h, j) => (j === i ? { ...h, on: !h.on } : h)));
   // Единицы цели — чистые чипы (David: «в карточке цели что-то типа считать количество»); «своё» = произвольная.
   const GOAL_UNITS = ["раз", "км", "страниц", "минут", "часов", "кг"];
@@ -636,9 +640,11 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       }
       return;
     }
-    // КРУГ ВЫКЛ → личная цель; habitIds наполняют её кольцо.
+    // КРУГ ВЫКЛ → личная цель; habitIds наполняют её кольцо. habitCloudIds — вечная копия
+    // связи (локальные id умирают при восстановлении из облака, cloudId — нет).
     const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
-    const data = { emoji: iconPick, color, tint, name: nm, target: tgt, unit, deadline, circle: false, habitIds, desc: (desc || "").trim() };
+    const habitCloudIds = linkHabit ? linkedHabits.filter((h) => h.on && h.cloudId).map((h) => h.cloudId) : [];
+    const data = { emoji: iconPick, color, tint, name: nm, target: tgt, unit, deadline, circle: false, habitIds, habitCloudIds, desc: (desc || "").trim() };
     if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     if (editing) app?.updateGoal(g0.id, data);
     else app?.addGoal(data);
