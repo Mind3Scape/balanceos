@@ -655,16 +655,27 @@ function Stage({ mode, prevMode, blend, dark = true, tintOverride }) {
   const aTog     = mode === "together" ? 1 : 0;
   const aHab     = mode === "habits"  ? 1 : (prevMode === "habits"  ? 1 - blend : 0);
 
+  // ЛАЙВ (реальное приложение) → центральная сфера = наша планета (единый материал со всем
+  // приложением); декоративные слои-фон остаются. ДЕМО-бот → старый стеклянный SiriOrb (демо
+  // заморожено). Планета красится tint сцены/слайдера, размер едет за size сцены.
+  const usePlanet = typeof bosIsDemoBot === "function" && !bosIsDemoBot() && typeof PlanetOrb !== "undefined";
   return (
-    <svg viewBox="-160 -160 320 320" style={{ width: 320, height: 320, display: "block", overflow: "visible", transition: "filter 0.6s" }}>
-      <LayerComfort  t={t} alpha={aComfort} R={size} dark={dark}/>
-      <LayerState    t={t} alpha={aState} dark={dark}/>
-      <LayerCompound t={t} alpha={aComp} dark={dark}/>
-      <LayerTogether t={t} alpha={aTog} dark={dark}/>
-      <LayerHabits   t={t} alpha={aHab} dark={dark}/>
-      <ParticleField mode={mode} t={t} prevMode={prevMode} blend={blend} R={size} dark={dark}/>
-      <SiriOrb r={size} tint={tint} t={t} intensity={intensity}/>
-    </svg>
+    <div style={{ position: "relative", width: 320, height: 320, overflow: "visible" }}>
+      <svg viewBox="-160 -160 320 320" style={{ position: "absolute", inset: 0, width: 320, height: 320, display: "block", overflow: "visible", transition: "filter 0.6s" }}>
+        <LayerComfort  t={t} alpha={aComfort} R={size} dark={dark}/>
+        <LayerState    t={t} alpha={aState} dark={dark}/>
+        <LayerCompound t={t} alpha={aComp} dark={dark}/>
+        <LayerTogether t={t} alpha={aTog} dark={dark}/>
+        <LayerHabits   t={t} alpha={aHab} dark={dark}/>
+        <ParticleField mode={mode} t={t} prevMode={prevMode} blend={blend} R={size} dark={dark}/>
+        {!usePlanet && <SiriOrb r={size} tint={tint} t={t} intensity={intensity}/>}
+      </svg>
+      {usePlanet && (
+        <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 2 * size, height: 2 * size, pointerEvents: "none" }}>
+          <PlanetOrb size={2 * size} tint={tint} live />
+        </div>
+      )}
+    </div>
   );
 }
 
