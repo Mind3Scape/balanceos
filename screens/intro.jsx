@@ -918,9 +918,9 @@ function IntroScreen() {
         <div aria-hidden style={{ position: "absolute", inset: 0, margin: "auto", width: 168, height: 168, borderRadius: "50%", border: "1.5px solid " + (dark ? "rgba(180,210,255,0.38)" : "rgba(90,130,190,0.32)"), animation: "orbBurst 1.5s 0.25s ease-out both", pointerEvents: "none" }}/>
         <div style={{ position: "relative", animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both" }}>
           <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark} tintOverride={moodTint}/>
-          {/* Mood face — anchored to the orb itself (not the grid), so it stays
-             dead-centre on the sphere no matter how short the screen is */}
-          {cur.mode === "mood" && (
+          {/* Mood face — только в ДЕМО (старый орб с лицом). В ЛАЙВЕ лицо убрано:
+             состояние читается цветом планеты (David 2026-07-19, как в пикере). */}
+          {cur.mode === "mood" && (typeof bosIsDemoBot === "function" && bosIsDemoBot()) && (
             <div key={moodIdx} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none", zIndex: 3 }}>
               <span style={{ fontSize: 50, lineHeight: 1, animation: "moodFacePop 0.42s cubic-bezier(0.34,1.56,0.64,1) both", filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.35))" }}>{moodFace}</span>
             </div>
