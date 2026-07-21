@@ -796,10 +796,12 @@ function HomeLive() {
   // ПИЛЮЛЯ «Все · Привычки · Цели» — воскрешение демо-переключателя (David 2026-07-20: «не будет
   // длинного скролла вниз, быстро переключаюсь с привычек на цели»). Фильтрует ТОЛЬКО плитки
   // практик; виджеты (w:) видны всегда. Выбор запоминается между входами.
-  const [boardTab, setBoardTab] = React.useState(() => { try { return localStorage.getItem("bos:boardTab") || "all"; } catch (e) { return "all"; } });
+  // Двух вкладок достаточно (David 2026-07-20: «Все не нужна») — как демо-пилюля.
+  // Старое сохранённое "all" честно падает в дефолт «Привычки».
+  const [boardTab, setBoardTab] = React.useState(() => { try { return localStorage.getItem("bos:boardTab") === "goals" ? "goals" : "habits"; } catch (e) { return "habits"; } });
   const pickBoardTab = (t) => { setBoardTab(t); try { localStorage.setItem("bos:boardTab", t); } catch (e) {} };
   const keyOnTab = (k) => {
-    if (boardTab === "all" || !k || k.indexOf("w:") === 0) return true;
+    if (!k || k.indexOf("w:") === 0) return true;
     if (boardTab === "habits") return k.indexOf("h:") === 0;
     return k.indexOf("g:") === 0 || k.indexOf("t:") === 0; // «Цели» = цели + круги (круг — совместная цель)
   };
@@ -810,7 +812,7 @@ function HomeLive() {
   const _firstTileKey = visibleKeys.find((k) => k && k.indexOf("w:") !== 0) || null;
   const _tabsPill = (
     <div className="tab-pill" style={{ margin: "2px 0 0", ...(isDark ? { background: "rgba(255,255,255,0.07)" } : null) }}>
-      {[["all", "Все"], ["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => (
+      {[["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => (
         <button key={id} className={"tap " + (boardTab === id ? "active" : "")} data-haptic="selection" onClick={() => pickBoardTab(id)}
           style={{ padding: "9px 14px", fontWeight: 600, ...(boardTab === id && isDark ? { background: "#2a2a2e", color: "#fff" } : null) }}>{label}</button>
       ))}
