@@ -4907,7 +4907,11 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
    menu (enterReorder, exposed via ctlRef) — a grid has no obvious drag-handle, so we don't want a
    stray hold to start dragging. In REORDER mode every tile jiggles and a press begins a drag at
    once; «Готово» (floating, portal'd like BosReorderList) leaves the mode. */
-function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel, onGear }) {
+// sepBeforeId/sepNode — статичная «прослойка» на всю ширину ПЕРЕД элементом sepBeforeId
+// (пилюля «Все·Привычки·Цели» на главной: она должна стоять над первой плиткой практик,
+// а не над виджетами). Не тащится и не участвует в порядке; если sepBeforeId в сетке нет
+// (вкладка пуста) — прослойка рисуется в конце, чтобы переключатель не исчезал.
+function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel, onGear, sepBeforeId, sepNode }) {
   const [mode, setMode] = React.useState(false);
   const [order, setOrder] = React.useState(ids);
   const [drag, setDrag] = React.useState({ id: null, from: -1, to: -1, dx: 0, dy: 0 });
@@ -5047,6 +5051,23 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
         {order.map((id, idx) => {
           const isDrag = drag.id === id;
           const sh = isDrag ? { x: 0, y: 0 } : shiftOf(idx);
+          const sep = (sepNode && sepBeforeId != null && id === sepBeforeId) ? <div key="__bos-sep" style={{ gridColumn: "1 / -1", minWidth: 0 }}>{sepNode}</div> : null;
+          if (sep) return (
+            <React.Fragment key={"f" + id}>
+              {sep}
+              <div ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
+                style={{ position: "relative", touchAction: mode ? "none" : "auto",
+                  minWidth: 0,
+                  gridColumn: (spanFull && spanFull(id)) ? "1 / -1" : undefined,
+                  transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
+                  transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
+                  zIndex: isDrag ? 40 : 1, willChange: mode ? "transform" : "auto" }}>
+                <div className={mode && !isDrag ? "bos-jiggle" : ""} style={{ animationDelay: (-(idx % 5) * 0.045) + "s", borderRadius: 22, boxShadow: isDrag ? "0 16px 34px rgba(20,30,60,0.22)" : "none" }}>
+                  {renderItem(id, { mode, dragging: isDrag })}
+                </div>
+              </div>
+            </React.Fragment>
+          );
           return (
             <div key={id} ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
               style={{ position: "relative", touchAction: mode ? "none" : "auto",
@@ -5063,6 +5084,8 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
             </div>
           );
         })}
+        {/* Вкладка без плиток (sepBeforeId не нашёлся) → прослойка в конце: переключатель не исчезает. */}
+        {sepNode && (sepBeforeId == null || order.indexOf(sepBeforeId) < 0) && <div key="__bos-sep-tail" style={{ gridColumn: "1 / -1", minWidth: 0 }}>{sepNode}</div>}
       </div>
     </>
   );

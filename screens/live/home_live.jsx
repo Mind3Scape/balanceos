@@ -805,6 +805,17 @@ function HomeLive() {
   };
   const keyShown = (k) => keyVisible(k) && keyOnTab(k);
   const visibleKeys = effLayout.order.filter(keyShown);
+  // Пилюля живёт НЕ над доской, а ПРЯМО НАД первой плиткой практик (David 2026-07-20:
+  // «виджеты остаются, а привычки/цели меняются — переключатель должен быть над ними»).
+  const _firstTileKey = visibleKeys.find((k) => k && k.indexOf("w:") !== 0) || null;
+  const _tabsPill = (
+    <div className="tab-pill" style={{ margin: "2px 0 0", ...(isDark ? { background: "rgba(255,255,255,0.07)" } : null) }}>
+      {[["all", "Все"], ["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => (
+        <button key={id} className={"tap " + (boardTab === id ? "active" : "")} data-haptic="selection" onClick={() => pickBoardTab(id)}
+          style={{ padding: "9px 14px", fontWeight: 600, ...(boardTab === id && isDark ? { background: "#2a2a2e", color: "#fff" } : null) }}>{label}</button>
+      ))}
+    </div>
+  );
   const onReorderKeys = (newVisible) => {
     // Виден лишь срез доски (вкладка) → сливаем его новый порядок в ОБЩИЙ, скрытые ключи
     // остаются на своих местах — порядок другой вкладки не теряется.
@@ -945,15 +956,6 @@ function HomeLive() {
           (там уже есть «➕ Создать привычку» + мягкий ИИ-старт «Рассказать о себе»). Прежнюю большую
           карточку «Создай первую привычку» убрал — она дублировала пилюлю и занимала пол-экрана
           (David: «нету смысла показывать на пол-экрана, в пилюлях уже есть»). Доска — с первой привычкой. */}
-      {/* Пилюля «Все · Привычки · Цели» — демо-переключатель вернулся (фильтр доски). */}
-      {!trulyNew && (
-        <div className="tab-pill" style={{ margin: "2px 0 12px", ...(isDark ? { background: "rgba(255,255,255,0.07)" } : null) }}>
-          {[["all", "Все"], ["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => (
-            <button key={id} className={"tap " + (boardTab === id ? "active" : "")} data-haptic="selection" onClick={() => pickBoardTab(id)}
-              style={{ padding: "9px 14px", fontWeight: 600, ...(boardTab === id && isDark ? { background: "#2a2a2e", color: "#fff" } : null) }}>{label}</button>
-          ))}
-        </div>
-      )}
       {trulyNew ? (
         <WidgetBoundaryLive wid="hero">{(() => { try { return nodeOf("hero"); } catch (e) { return null; } })()}</WidgetBoundaryLive>
       ) : visibleKeys.length > 0 ? (
@@ -967,6 +969,7 @@ function HomeLive() {
           onAdd={openAddSheet}
           onGear={() => { setStyleLow(false); setStyleBottom(true); setStyleOpen(true); }}
           addLabel="Добавить на главную"
+          sepBeforeId={_firstTileKey} sepNode={_tabsPill}
           spanFull={(k) => {
             // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).
             if (!k || k.indexOf("w:") === 0) return true;
