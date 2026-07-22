@@ -162,39 +162,32 @@ function HabitDetailLive() {
     return gen ? (d.getDate() + " " + BOS_MON_GEN[d.getMonth()]) : (BOS_DOW_RU[d.getDay()] + ", " + d.getDate() + " " + BOS_MON_GEN[d.getMonth()]);
   };
 
-  // ДЕНЬ — не отдельный ящик, а ПРОДОЛЖЕНИЕ карточки календаря (David 2026-07-22:
-  // «разрозненно и перегружено — минималистично, но без потери функционала»): тонкая строка
-  // «дата · кто во сколько»; прошлый пустой день — тихая пилюля «Отметить · без XP».
-  const _selRows = _entriesFor(selDay);
+  // ТЕЛЕПОРТ БЕЗ ДУБЛЯ (David 2026-07-22: «панель дня повторяет историю — перегруз»):
+  // тап по дню с отметками ПОДСВЕЧИВАЕТ его строку в истории (скролл + вспышка), никакой
+  // отдельной панели. Только пустой прошлый день даёт строку-пилюлю «Отметить · без XP» —
+  // это единственный функционал, которого в истории нет.
   const _selD = new Date(+selDay.slice(0, 4), +selDay.slice(5, 7) - 1, +selDay.slice(8, 10));
   const _canBackdate = !!(selDay < _todayK && !_log[selDay] && _maskOk(now.getMonth(), _selD.getDate()) && app && app.markHabitDay);
-  const _rightOf = (e) => e.late ? "задним числом" : (e.time || (e.me ? "" : "отметился"));
-  const dayNode = (
-    <div>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{_dayLbl(selDay)}</span>
-        {selDay !== _todayK && <button onClick={() => setSelDay(_todayK)} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11, fontWeight: 700, color: "var(--text-4)", cursor: "pointer" }}>сегодня</button>}
-      </div>
-      {_selRows.length ? _selRows.map((e, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: i ? 5 : 7 }}>
-          {!e.me && (e.avatar
-            ? <img src={e.avatar} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-            : <span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>{("" + (e.who || "?")).slice(0, 1)}</span>)}
-          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {e.who}{e.part ? " · " + e.part + " из " + _qGoal : ""}
-          </span>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: e.late || (!e.time && !e.me) ? "var(--text-4)" : (isDark ? "#FEDE34" : "#B4820A") }}>{_rightOf(e)}</span>
-        </div>
-      )) : (
-        _canBackdate
-          ? <button onClick={() => { try { app.markHabitDay(h.id, selDay); } catch (e) {} }} className="tap" data-haptic="selection"
-              style={{ marginTop: 7, border: 0, borderRadius: 999, padding: "6px 13px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", color: "#B4820A", background: "rgba(240,195,10,0.13)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <I.Check size={11} strokeWidth={3} color="#B4820A" />Отметить · без XP
-            </button>
-          : <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 7 }}>{selDay === _todayK ? "отметок ещё нет" : "отметок не было"}</div>
-      )}
+  const _flashHist = (k) => {
+    setTimeout(() => {
+      try {
+        const el = document.getElementById("bos-hist-" + k);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.animate([{ background: "rgba(240,195,10,0)" }, { background: "rgba(240,195,10,0.22)" }, { background: "rgba(240,195,10,0)" }],
+          { duration: 1100, easing: "ease-in-out" });
+      } catch (e) {}
+    }, 60);
+  };
+  const dayNode = _canBackdate ? (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{_dayLbl(selDay)}</span>
+      <button onClick={() => { try { app.markHabitDay(h.id, selDay); } catch (e) {} }} className="tap" data-haptic="selection"
+        style={{ border: 0, borderRadius: 999, padding: "6px 13px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", color: "#B4820A", background: "rgba(240,195,10,0.13)", display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+        <I.Check size={11} strokeWidth={3} color="#B4820A" />Отметить · без XP
+      </button>
     </div>
-  );
+  ) : null;
 
   // ИСТОРИЯ — одна тихая строка НА ДЕНЬ («15 июля · Ты 07:12»), новые сверху; тап — телепорт.
   const _histDays = {};
@@ -261,9 +254,10 @@ function HabitDetailLive() {
     chips, thread, unified: true, check,
     // Календарь-герой: ОДИН месяц (неделя/год убраны — David 2026-07-22), золотой градиент;
     // тап по дню — телепорт, панель дня живёт ВНУТРИ этой же карточки (belowNode).
-    // belowNode только при ТЕЛЕПОРТЕ в другой день: про сегодня уже говорят чип «✓ в 07:12»
-    // и история — дублировать строкой под сеткой незачем (David 2026-07-22).
-    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent, onDayTap: (k) => setSelDay(k), belowNode: selDay === _todayK ? null : dayNode },
+    // Тап по дню: пустой прошлый → пилюля «Отметить · без XP» под сеткой; день с отметками →
+    // подсветка его строки в ИСТОРИИ (никаких панелей-дублей — David 2026-07-22).
+    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent,
+      onDayTap: (k) => { setSelDay(k); if (_entriesFor(k).length) _flashHist(k); }, belowNode: dayNode },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 
@@ -287,7 +281,7 @@ function HabitDetailLive() {
           </div>
           <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "4px 14px" }}>
             {histDays.map((d, i) => (
-              <button key={d.k} onClick={() => setSelDay(d.k)} className="tap" data-haptic="selection"
+              <button key={d.k} id={"bos-hist-" + d.k} onClick={() => setSelDay(d.k)} className="tap" data-haptic="selection"
                 style={{ display: "flex", width: "100%", textAlign: "left", alignItems: "center", gap: 10, border: 0, background: "transparent", cursor: "pointer", padding: "9px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") : "none" }}>
                 <span style={{ width: 60, flexShrink: 0, fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{_dayLbl(d.k, true)}</span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.sum}</span>

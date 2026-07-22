@@ -810,12 +810,21 @@ function HomeLive() {
   // Пилюля живёт НЕ над доской, а ПРЯМО НАД первой плиткой практик (David 2026-07-20:
   // «виджеты остаются, а привычки/цели меняются — переключатель должен быть над ними»).
   const _firstTileKey = visibleKeys.find((k) => k && k.indexOf("w:") !== 0) || null;
+  // Пилюля в языке СЕГМЕНТА КОМНАТЫ КРУГА (David 2026-07-22: «фон бледненький, незаметно;
+  // закругление не то»): белая карточка-пилюля с тенью на сером фоне доски, активная
+  // вкладка — чёрная таблетка с белым текстом (в тёмной теме наоборот).
   const _tabsPill = (
-    <div className="tab-pill" style={{ margin: "2px 0 0", ...(isDark ? { background: "rgba(255,255,255,0.07)" } : null) }}>
-      {[["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => (
-        <button key={id} className={"tap " + (boardTab === id ? "active" : "")} data-haptic="selection" onClick={() => pickBoardTab(id)}
-          style={{ padding: "9px 14px", fontWeight: 600, ...(boardTab === id && isDark ? { background: "#2a2a2e", color: "#fff" } : null) }}>{label}</button>
-      ))}
+    <div className="tab-pill" style={{ margin: "2px 0 0", padding: 4, background: isDark ? "rgba(255,255,255,0.09)" : "var(--card)", boxShadow: isDark ? "none" : "var(--card-shadow)" }}>
+      {[["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => {
+        const on = boardTab === id;
+        return (
+          <button key={id} className="tap" data-haptic="selection" onClick={() => pickBoardTab(id)}
+            style={{ padding: "10px 14px", fontWeight: 700, fontSize: 14,
+              background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent",
+              color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
+              boxShadow: "none" }}>{label}</button>
+        );
+      })}
     </div>
   );
   const onReorderKeys = (newVisible) => {
