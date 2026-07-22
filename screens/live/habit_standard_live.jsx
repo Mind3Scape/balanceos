@@ -40,7 +40,7 @@ function BosStdRingCell({ pct, size, label, below, accent, isDark, dim, today, l
     <span style={{ display: "inline-grid", justifyItems: "center", opacity: dim ? 0.35 : 1 }}>
       <span style={{ position: "relative", width: size, height: size, display: "grid", placeItems: "center" }}>
         <span style={{ position: "absolute", inset: 0 }}>{bosDayRing(pct, accent || BOS_ROOM_GOLD, isDark, { sw: size >= 30 ? 4 : 3.4, today: !!today, late: !!late, gold: !!gold, sel: !!sel })}</span>
-        {label != null && <span style={{ fontSize: size >= 30 ? 9 : 8, fontWeight: today ? 800 : 700, color: today ? (isDark ? "#FEDE34" : "#B4820A") : "var(--text-4)", position: "relative" }}>{label}</span>}
+        {label != null && <span style={{ fontSize: size >= 30 ? 9 : 8, fontWeight: today ? 800 : 700, color: (gold && pct >= 1) ? "#6b4e00" : (today ? "var(--text)" : "var(--text-4)"), position: "relative" }}>{label}</span>}
       </span>
       {below != null && <span style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-4)", marginTop: 2 }}>{below}</span>}
     </span>

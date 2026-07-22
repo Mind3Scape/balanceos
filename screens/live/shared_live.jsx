@@ -528,18 +528,17 @@ function bosDayRing(pct, accent, isDark, opts) {
           смотрится не очень, наш стандарт — золотой градиент»). Id у градиента один на все
           svg — они идентичны, url(#) честно находит первый в документе. */}
       {opts.gold ? <defs><linearGradient id="bosGoldArc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FEDE34" /><stop offset="100%" stopColor="#EF9F14" /></linearGradient></defs> : null}
-      {/* Полностью закрытый золотой день — еле заметная золотая заливка внутри кольца:
-          сделанные дни читаются «наполненными», а не просто обведёнными (David 2026-07-22). */}
-      {opts.gold && pct >= 1 ? <circle cx="20" cy="20" r={R - sw / 2 - 0.4} fill="rgba(240,195,10,0.12)" /> : null}
+      {/* СМЫСЛЫ ЕДИНЫ (David 2026-07-22): ЗОЛОТО = ТОЛЬКО наполненность дня. «Сегодня» —
+          не золотое кольцо (нелогично), а тихая СЕРАЯ заливка внутри. */}
+      {opts.today ? <circle cx="20" cy="20" r={R - sw / 2 - 0.4} fill={isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.07)"} /> : null}
+      {/* Наполненный день — ЗАЛИТ золотом целиком (наполненность = заливка, не бледное
+          колечко); «задним числом» — то же золото, приглушённое (без XP). */}
+      {opts.gold && pct >= 1 ? <circle cx="20" cy="20" r={R - sw / 2 - 0.4} fill="url(#bosGoldArc)" fillOpacity={opts.late ? 0.45 : 0.92} /> : null}
       <circle cx="20" cy="20" r={R} fill="none" stroke={track} strokeWidth={sw} />
-      {/* opts.late — день закрыт ЗАДНИМ ЧИСЛОМ: дуга бледная (без XP). Точку-метку убрали —
-          читалась как непонятный значок (David 2026-07-22); словами говорят панель дня и история. */}
       {pct > 0 ? <circle cx="20" cy="20" r={R} fill="none" stroke={opts.gold ? "url(#bosGoldArc)" : arc} strokeOpacity={opts.late ? 0.45 : 1} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + gap} transform="rotate(-90 20 20)" /> : null}
       <circle cx="20" cy="20" r={R - sw / 2 + 0.3} fill="none" stroke={sheen} strokeWidth="0.7" />
-      {/* «Сегодня» — ТОНКОЕ золотое кольцо (2px читалось «грубовато-жирновато» — David
-          2026-07-22) + золотая цифра в клетке; выбранный день — тихое нейтральное кольцо. */}
-      {opts.today ? <circle cx="20" cy="20" r={R + sw / 2 + 1.3} fill="none" stroke={isDark ? "#FEDE34" : "#EF9F14"} strokeWidth="1.2" />
-        : (opts.sel ? <circle cx="20" cy="20" r={R + sw / 2 + 1.3} fill="none" stroke={isDark ? "rgba(255,255,255,0.36)" : "rgba(10,10,10,0.26)"} strokeWidth="1.1" /> : null)}
+      {/* Выбранный день (телепорт) — тихое нейтральное кольцо. */}
+      {opts.sel ? <circle cx="20" cy="20" r={R + sw / 2 + 1.3} fill="none" stroke={isDark ? "rgba(255,255,255,0.36)" : "rgba(10,10,10,0.26)"} strokeWidth="1.1" /> : null}
     </svg>
   );
 }
