@@ -118,12 +118,11 @@ function HabitDetailLive() {
     thread = { faces };
   }
 
-  // «Ритм»: неделя (мои кольца) · месяц (мой / доля друзей) · год (мои 12 колец-месяцев).
+  // «Календарь» = ОДИН месяц (David 2026-07-22: «уберём неделю и год пока»). Заполнение —
+  // золотой градиент (наш стандарт), клетки крупнее. Тап по прожитому дню — ТЕЛЕПОРТ в него.
   const _dayPct = (k) => (h.done && k === _todayK) ? 1 : (_log[k] ? 1 : (_isQuant && h.counts && h.counts[k] ? Math.min(1, h.counts[k] / _qGoal) : 0));
-  // Неделя — Пн→Вс ТЕКУЩЕЙ недели (конвенция всего приложения, bosWeekKeys), а не скользящие
-  // 7 дней: иначе с остальными календарями разнобой. Дни отдыха по расписанию и будущее — пригашены.
-  const _wkKeys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : bosStdWeek().map((c) => c.k);
-  const weekCells = _wkKeys.map((k, i) => ({ pct: _dayPct(k), l: ["П", "В", "С", "Ч", "П", "С", "В"][i], dim: (_mask && !_mask[i]) || k > _todayK, today: k === _todayK }));
+  // Телепорт: выбранный день (по умолчанию сегодня); панель дня и история живут под календарём.
+  const [selDay, setSelDay] = React.useState(_todayK);
   const now = new Date();
   const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const _mk = (d) => now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
@@ -133,27 +132,88 @@ function HabitDetailLive() {
     const dimC = k > _todayK || !_maskOk(now.getMonth(), i + 1);
     const tdy = k === _todayK;
     const late = !!(h.lateDays && h.lateDays[k]);
-    // Прошлый ЗАПЛАНИРОВАННЫЙ день, который я НЕ закрыл → можно отметить задним числом.
-    const canMark = k < _todayK && !_log[k] && _maskOk(now.getMonth(), i + 1);
-    if (!_shared) return { pct: _dayPct(k), dim: dimC, today: tdy, k, late, canMark };
+    const canTap = k <= _todayK; // телепорт — в любой прожитый день (и в сегодня)
+    const sel = k === selDay && !tdy; // сегодня и так в золотом кольце
+    if (!_shared) return { pct: _dayPct(k), dim: dimC, today: tdy, k, late, canTap, sel };
     const didN = buddies.filter((m) => (m.me ? (_log[k] || (m.days && m.days[k])) : (m.days && m.days[k]))).length;
-    return { pct: didN / buddies.length, dim: dimC, today: tdy, k, late, canMark };
+    return { pct: didN / buddies.length, dim: dimC, today: tdy, k, late, canTap, sel };
   });
-  // Год: кольцо месяца = доля от ЗАПЛАНИРОВАННЫХ дней — привычка «3 раза в неделю» у идеального
-  // человека заполняет кольцо целиком, а не на 43%.
-  const yearMonths = Array.from({ length: 12 }).map((_, mi) => {
-    const future = mi > now.getMonth();
-    if (future) return { frac: 0, future: true };
-    const dimM = new Date(now.getFullYear(), mi + 1, 0).getDate();
-    const upto = mi === now.getMonth() ? now.getDate() : dimM;
-    let cnt = 0, planned = 0;
-    for (let d = 1; d <= dimM; d++) {
-      const k = now.getFullYear() + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-      if (d <= upto && _maskOk(mi, d)) planned++;
-      if (_log[k]) cnt++;
-    }
-    return { frac: planned ? Math.min(1, cnt / planned) : 0, future: false };
-  });
+
+  // ОТМЕТКИ ДНЯ + ИСТОРИЯ (David 2026-07-22: «тыкаю на день — телепортируюсь в него и вижу,
+  // кто отмечался; и внизу история отметок — кто во сколько»). Мои времена — локальный журнал
+  // bos:marktimes (v791); у друзей время известно только за сегодня (todayAt).
+  const _mtStore = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("bos:marktimes:" + ((app && app.persistId) || "live")) || "{}"); } catch (e) { return {}; }
+  }, [app && app.persistId, h.done, _qCount]);
+  const _myMin = (k) => { const d = _mtStore[k] || {}; const v = d["" + (h.cloudId || h.id)]; return v == null ? d["" + h.id] : v; };
+  const _fmtMin = (v) => v == null ? null : (Math.floor(v / 60) < 10 ? "0" : "") + Math.floor(v / 60) + ":" + (v % 60 < 10 ? "0" : "") + (v % 60);
+  const _entriesFor = (k) => {
+    const out = [];
+    if (_dayPct(k) > 0) out.push({ who: "Ты", me: true, time: _fmtMin(_myMin(k)), late: !!(h.lateDays && h.lateDays[k]), part: _isQuant && !_log[k] && !(h.done && k === _todayK) ? Math.min(_qGoal, (h.counts && h.counts[k]) || 0) : 0 });
+    if (_shared) buddies.forEach((m) => {
+      if (m.me || !(m.days && m.days[k])) return;
+      out.push({ who: m.name, avatar: m.avatar, time: (k === _todayK && m.todayAt) ? (typeof bosRoomHHMM === "function" ? bosRoomHHMM(m.todayAt) : null) : null });
+    });
+    return out;
+  };
+  const _dayLbl = (k, gen) => {
+    if (k === _todayK) return "Сегодня";
+    const d = new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10));
+    return gen ? (d.getDate() + " " + BOS_MON_GEN[d.getMonth()]) : (BOS_DOW_RU[d.getDay()] + ", " + d.getDate() + " " + BOS_MON_GEN[d.getMonth()]);
+  };
+
+  // ПАНЕЛЬ ДНЯ — куда телепортирует тап по календарю: дата, отметки этого дня (кто во
+  // сколько), а для прошлого пустого запланированного дня — «Отметить этот день» прямо тут
+  // (день и серия зачтутся, XP честно нет — подпись под кнопкой, без отдельной шторки).
+  const _selRows = _entriesFor(selDay);
+  const _selD = new Date(+selDay.slice(0, 4), +selDay.slice(5, 7) - 1, +selDay.slice(8, 10));
+  const _canBackdate = !!(selDay < _todayK && !_log[selDay] && _maskOk(now.getMonth(), _selD.getDate()) && app && app.markHabitDay);
+  const _entryRow = (e, i) => (
+    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)") : "none" }}>
+      {e.me
+        ? <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)" }}><I.Check size={13} strokeWidth={3} color="#4a3400" /></span>
+        : (e.avatar
+          ? <img src={e.avatar} alt="" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+          : <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>{("" + (e.who || "?")).slice(0, 1)}</span>)}
+      <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {e.who}{e.part ? <span style={{ color: "var(--text-4)", fontWeight: 600 }}>{" · " + e.part + " из " + _qGoal}</span> : null}
+      </span>
+      {e.late
+        ? <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap" }}>задним числом</span>
+        : (e.time
+          ? <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#FEDE34" : "#B4820A" }}>{e.time}</span>
+          : (e.me ? null : <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>отметился</span>))}
+    </div>
+  );
+  const dayPanel = (
+    <div style={{ marginTop: 10, background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "12px 14px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text)" }}>{_dayLbl(selDay)}</span>
+        {selDay !== _todayK && <button onClick={() => setSelDay(_todayK)} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11, fontWeight: 700, color: isDark ? "#FEDE34" : "#B4820A", cursor: "pointer" }}>← к сегодня</button>}
+      </div>
+      {_selRows.length
+        ? <div style={{ marginTop: 2 }}>{_selRows.map(_entryRow)}</div>
+        : <div style={{ fontSize: 12, color: "var(--text-4)", padding: "7px 0 2px" }}>{selDay === _todayK ? "сегодня отметок ещё нет" : "в этот день отметок не было"}</div>}
+      {_canBackdate && (
+        <div style={{ marginTop: 9 }}>
+          <button onClick={() => { try { app.markHabitDay(h.id, selDay); } catch (e) {} }} className="tap" data-haptic="selection"
+            style={{ width: "100%", border: 0, borderRadius: 13, padding: "11px 0", fontSize: 13.5, fontWeight: 800, cursor: "pointer", color: "#4a3400", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <I.Check size={15} strokeWidth={3} color="#4a3400" />Отметить этот день
+          </button>
+          <div style={{ fontSize: 10, color: "var(--text-4)", textAlign: "center", marginTop: 5 }}>зачтётся в календарь и серию · XP — только за отметку в тот же день</div>
+        </div>
+      )}
+    </div>
+  );
+
+  // ИСТОРИЯ ОТМЕТОК «под всем»: последние дни с отметками, новые сверху; тап — телепорт в день.
+  const _histDays = {};
+  _logDays.forEach((k) => { _histDays[k] = 1; });
+  if (_isQuant && h.counts) Object.keys(h.counts).forEach((k) => { if (h.counts[k] > 0 && /^\d{4}-\d{2}-\d{2}$/.test(k)) _histDays[k] = 1; });
+  if (_shared) buddies.forEach((m) => { if (!m.me && m.days) Object.keys(m.days).forEach((k) => { if (m.days[k] && /^\d{4}-\d{2}-\d{2}$/.test(k)) _histDays[k] = 1; }); });
+  const _histKeys = Object.keys(_histDays).filter((k) => k <= _todayK).sort().reverse().slice(0, 14);
+  const histRows = [];
+  _histKeys.forEach((k) => { _entriesFor(k).forEach((e) => histRows.push(Object.assign({}, e, { day: k }))); });
 
   // Чипы: сделано · серия · лучшая · всего (данные старого трио — теперь языком чипов).
   const chips = [];
@@ -208,11 +268,10 @@ function HabitDetailLive() {
     ctx: (_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
       + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : ""),
     chips, thread, unified: true, primary,
-    // Календарь-герой (David 2026-07-19: выбрал 3-й вариант): открываем СРАЗУ на месяце,
-    // блок называется «Календарь» (пилюля Неделя·Месяц·Год остаётся для переключения).
-    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", initialTab: "month", weekCells, monthCells, monthHint: _shared ? "кольцо = доля друзей" : "кольцо = день сделан", yearMonths, yearHint: "кольцо месяца = доля дней", accent,
-      // Тап по прошлому незакрытому дню месяца → лист «задним числом» (без XP).
-      onDayMark: (app && app.markHabitDay) ? (k) => openSheet(<BackdateSheetLive habit={h} dayKey={k} app={app} isDark={isDark} />) : undefined },
+    // Календарь-герой: ОДИН месяц (неделя/год убраны — David 2026-07-22), золотой градиент,
+    // тап по дню телепортирует в панель дня прямо под календарём.
+    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent, onDayTap: (k) => setSelDay(k) },
+    rhythmBelow: dayPanel,
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 
@@ -228,6 +287,29 @@ function HabitDetailLive() {
         </div>
       } />
       <BosHabitStandardBodyLive model={model} isDark={isDark} />
+      {/* История отметок — журнал «кто во сколько» под всем (David 2026-07-22); тап по строке —
+          тот же телепорт, что тап по дню в календаре. */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 4px 8px" }}>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>История отметок</span>
+        {histRows.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>тап — в тот день</span>}
+      </div>
+      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: histRows.length ? "4px 14px" : "12px 14px" }}>
+        {histRows.length ? histRows.slice(0, 25).map((e, i) => (
+          <button key={i} onClick={() => setSelDay(e.day)} className="tap" data-haptic="selection"
+            style={{ display: "flex", width: "100%", textAlign: "left", alignItems: "center", gap: 10, border: 0, background: "transparent", cursor: "pointer", padding: "9px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)") : "none" }}>
+            <span style={{ width: 62, flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: "var(--text-4)" }}>{_dayLbl(e.day, true)}</span>
+            {e.me
+              ? <span style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)" }}><I.Check size={11} strokeWidth={3} color="#4a3400" /></span>
+              : (e.avatar
+                ? <img src={e.avatar} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                : <span style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{("" + (e.who || "?")).slice(0, 1)}</span>)}
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.who}</span>
+            {e.late
+              ? <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap" }}>задним числом</span>
+              : (e.time ? <span style={{ fontSize: 11.5, fontWeight: 700, color: isDark ? "#FEDE34" : "#B4820A" }}>{e.time}</span> : null)}
+          </button>
+        )) : <div style={{ fontSize: 12, color: "var(--text-4)" }}>пока пусто — первая отметка появится здесь</div>}
+      </div>
     </div>
   );
 }

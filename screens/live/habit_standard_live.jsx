@@ -35,12 +35,12 @@ var BOS_STD_MONTHS = ["Январь", "Февраль", "Март", "Апрел�
 var _bosStdTimesCache = {};
 
 /* Кольцо-клетка (язык bosDayRing v660) с подписью внутри/снизу. */
-function BosStdRingCell({ pct, size, label, below, accent, isDark, dim, today, late }) {
+function BosStdRingCell({ pct, size, label, below, accent, isDark, dim, today, late, gold, sel }) {
   return (
     <span style={{ display: "inline-grid", justifyItems: "center", opacity: dim ? 0.35 : 1 }}>
       <span style={{ position: "relative", width: size, height: size, display: "grid", placeItems: "center" }}>
-        <span style={{ position: "absolute", inset: 0 }}>{bosDayRing(pct, accent || BOS_ROOM_GOLD, isDark, { sw: size >= 30 ? 4 : 3.4, today: !!today, late: !!late })}</span>
-        {label != null && <span style={{ fontSize: 8, fontWeight: 700, color: "var(--text-4)", position: "relative" }}>{label}</span>}
+        <span style={{ position: "absolute", inset: 0 }}>{bosDayRing(pct, accent || BOS_ROOM_GOLD, isDark, { sw: size >= 30 ? 4 : 3.4, today: !!today, late: !!late, gold: !!gold, sel: !!sel })}</span>
+        {label != null && <span style={{ fontSize: size >= 30 ? 9 : 8, fontWeight: today ? 800 : 700, color: today ? (isDark ? "#FEDE34" : "#B4820A") : "var(--text-4)", position: "relative" }}>{label}</span>}
       </span>
       {below != null && <span style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-4)", marginTop: 2 }}>{below}</span>}
     </span>
@@ -70,8 +70,9 @@ function BosStdHist({ dist, me, isDark }) {
 
 /* «РИТМ» — один блок времени. Пилюля-переключатель в заголовке СПРАВА (компактная, v3):
    свёрнута — один таймфрейм «Неделя ⌄»; тап — три пилюли на месте; выбор схлопывает. */
-function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, onDayMark }) {
-  const [tab, setTab] = React.useState(initialTab || "week");
+function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, single, gold, onDayTap }) {
+  // single (David 2026-07-22): «уберём неделю и год пока» — один месяц, пилюли нет.
+  const [tab, setTab] = React.useState(single ? "month" : (initialTab || "week"));
   const [open, setOpen] = React.useState(false);
   const LBL = { week: "Неделя", month: "Месяц", year: "Год" };
   React.useEffect(() => { if (tab === "year" && onYearOpen) onYearOpen(); }, [tab]);
@@ -80,9 +81,9 @@ function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHin
       style={{ border: 0, borderRadius: 999, padding: "5px 11px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
         ...(on ? { background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff" } : { ...bosChipGlass(isDark), color: "var(--text-2)" }) }}>{kids}</button>
   );
-  const control = open
+  const control = single ? null : (open
     ? <span style={{ display: "inline-flex", gap: 4 }}>{["week", "month", "year"].map((id) => pill(id, id === tab, LBL[id]))}</span>
-    : pill(tab, false, [LBL[tab], <svg key="v" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>]);
+    : pill(tab, false, [LBL[tab], <svg key="v" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>]));
   let body = null;
   if (tab === "week") {
     body = (mode === "circle" && hist)
@@ -93,17 +94,19 @@ function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHin
         </div>
       );
   } else if (tab === "month") {
-    // Тап по ПРОШЛОМУ незакрытому дню (c.canMark) → отметка задним числом (onDayMark).
-    const cell = (c, i) => <BosStdRingCell pct={c.pct} size={24} label={i + 1} accent={accent} isDark={isDark} dim={c.dim} today={c.today} late={c.late} />;
+    // Телепорт в день (David 2026-07-22): тап по ЛЮБОМУ прожитому дню (c.canTap) — не шторка,
+    // а возврат в этот день (панель дня и история под календарём). single — клетки крупнее.
+    const sz = single ? 31 : 24;
+    const cell = (c, i) => <BosStdRingCell pct={c.pct} size={sz} label={i + 1} accent={accent} isDark={isDark} dim={c.dim} today={c.today} late={c.late} gold={gold} sel={c.sel} />;
     body = (
       <div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, justifyItems: "center" }}>
-          {(monthCells || []).map((c, i) => (onDayMark && c.canMark)
-            ? <button key={i} onClick={() => onDayMark(c.k)} className="tap" data-haptic="selection" aria-label={"Отметить " + (i + 1) + " задним числом"} style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", lineHeight: 0 }}>{cell(c, i)}</button>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: single ? 6 : 4, justifyItems: "center" }}>
+          {(monthCells || []).map((c, i) => (onDayTap && c.canTap)
+            ? <button key={i} onClick={() => onDayTap(c.k)} className="tap" data-haptic="selection" aria-label={"Открыть день " + (i + 1)} style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", lineHeight: 0 }}>{cell(c, i)}</button>
             : <React.Fragment key={i}>{cell(c, i)}</React.Fragment>)}
         </div>
-        {(onDayMark) && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "center", marginTop: 7 }}>тап по прошлому дню — отметить задним числом (без XP)</div>}
-        {monthHint && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "right", marginTop: monthHint && onDayMark ? 2 : 5 }}>{monthHint}</div>}
+        {(onDayTap) && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "center", marginTop: 7 }}>тап по дню — отметки этого дня</div>}
+        {monthHint && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "right", marginTop: monthHint && onDayTap ? 2 : 5 }}>{monthHint}</div>}
       </div>
     );
   } else {
@@ -150,36 +153,9 @@ function BosMarkButtonLive({ done, onToggle, label, doneLabel, isDark }) {
   );
 }
 
-/* ЛИСТ «ЗАДНИМ ЧИСЛОМ» (David 2026-07-19): тап по прошлому дню в календаре → честно
-   объясняем — день и серия зачтутся, а XP нет (только за отметку в тот же день). */
+/* Русские имена дней/месяцев — для панели дня («Вторник, 15 июля») в детальной привычке. */
 var BOS_DOW_RU = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 var BOS_MON_GEN = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-function BackdateSheetLive({ habit, dayKey, app, isDark }) {
-  const sheet = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
-  const p = ("" + dayKey).split("-");
-  const d = new Date(+p[0], (+p[1]) - 1, +p[2]);
-  const dateLbl = BOS_DOW_RU[d.getDay()] + ", " + d.getDate() + " " + BOS_MON_GEN[d.getMonth()];
-  const row = (icon, title, sub, gold) => (
-    <div style={{ display: "flex", gap: 11, alignItems: "flex-start", padding: "11px 0", borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.06)") }}>
-      <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: gold ? "rgba(240,195,10,0.14)" : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"), color: gold ? "#EF9F14" : "var(--text-4)" }}>{icon}</span>
-      <div><div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{title}</div><div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>{sub}</div></div>
-    </div>
-  );
-  return (
-    <div style={{ padding: "4px 20px 20px", color: "var(--text)" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-4)" }}>{dateLbl}</div>
-      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", margin: "3px 0 6px", lineHeight: 1.2 }}>Отметить «{habit.name}» задним числом?</div>
-      {row(<I.Check size={16} strokeWidth={3} color="#EF9F14" />, "Засчитаем в календарь и серию", "День закрасится, серия не прервётся.", true)}
-      {row(<I.Bolt size={15} color="var(--text-4)" />, "XP не начислим", "Опыт — только за отметку в тот же день. За прошлые дни очки не даём.", false)}
-      <button onClick={() => { try { if (app && app.markHabitDay) app.markHabitDay(habit.id, dayKey); } catch (e) {} try { sheet.close(); } catch (e) {} }} className="tap" data-haptic="selection"
-        style={{ width: "100%", border: 0, borderRadius: 15, padding: "15px 0", marginTop: 16, fontSize: 15, fontWeight: 800, cursor: "pointer", color: "#4a3400", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <I.Check size={17} strokeWidth={3} color="#4a3400" />Отметить задним числом
-      </button>
-      <button onClick={() => { try { sheet.close(); } catch (e) {} }} className="tap"
-        style={{ width: "100%", border: 0, background: "transparent", padding: "12px 0 2px", marginTop: 4, fontSize: 14, fontWeight: 700, color: "var(--text-4)", cursor: "pointer" }}>Отмена</button>
-    </div>
-  );
-}
 
 /* ТЕЛО СТАНДАРТА — общее для личной детали (экран) и шторки привычки круга.
    model = { emoji, color, name, ctx, chips:[{gold,node}], check:<node>, thread:{faces,hours}|null,
@@ -242,6 +218,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
           {m.primary && <div style={{ marginTop: 14 }}>{m.primary}</div>}
         </div>
         {m.rhythm && <BosRhythmBlockLive {...m.rhythm} bare={m.bare} isDark={isDark} />}
+        {m.rhythmBelow || null}
         {m.people && (
           <React.Fragment>
             {h2(m.peopleTitle || "Кто со мной", m.peopleExtra ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.peopleExtra}</span> : null)}
@@ -289,6 +266,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
       )}
       {/* «Ритм» — один блок времени с пилюлей. */}
       {m.rhythm && <BosRhythmBlockLive {...m.rhythm} bare={m.bare} isDark={isDark} />}
+      {m.rhythmBelow || null}
       {/* Люди ступени: «Кто со мной» (друзья) / «Кто уже сегодня» (круг). */}
       {m.people && (
         <React.Fragment>

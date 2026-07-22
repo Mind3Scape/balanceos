@@ -524,14 +524,18 @@ function bosDayRing(pct, accent, isDark, opts) {
   var sheen = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.82)";
   return (
     <svg viewBox="0 0 40 40" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
+      {/* opts.gold — заполнение ЗОЛОТЫМ ГРАДИЕНТОМ (David 2026-07-22: «сплошной оранжевый
+          смотрится не очень, наш стандарт — золотой градиент»). Id у градиента один на все
+          svg — они идентичны, url(#) честно находит первый в документе. */}
+      {opts.gold ? <defs><linearGradient id="bosGoldArc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FEDE34" /><stop offset="100%" stopColor="#EF9F14" /></linearGradient></defs> : null}
       <circle cx="20" cy="20" r={R} fill="none" stroke={track} strokeWidth={sw} />
       {/* opts.late — день закрыт ЗАДНИМ ЧИСЛОМ: дуга бледная (без XP) + метка-точка в углу. */}
-      {pct > 0 ? <circle cx="20" cy="20" r={R} fill="none" stroke={arc} strokeOpacity={opts.late ? 0.42 : 1} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + gap} transform="rotate(-90 20 20)" /> : null}
+      {pct > 0 ? <circle cx="20" cy="20" r={R} fill="none" stroke={opts.gold ? "url(#bosGoldArc)" : arc} strokeOpacity={opts.late ? 0.42 : 1} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + gap} transform="rotate(-90 20 20)" /> : null}
       {opts.late ? <circle cx="31.5" cy="8.5" r="3.4" fill={neutral ? "#EF9F14" : arc} stroke={isDark ? "#1c1c20" : "#fff"} strokeWidth="1.2" /> : null}
       <circle cx="20" cy="20" r={R - sw / 2 + 0.3} fill="none" stroke={sheen} strokeWidth="0.7" />
       {/* «Сегодня» — ЗОЛОТАЯ обводка (David 2026-07-19: «день выделяешь оранжевым, а у нас
           основной золотой»): раньше кольцо было серым — теперь бренд-золото, как флейм/полосы. */}
-      {opts.today ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "#FEDE34" : "#EF9F14"} strokeWidth="1.5" />
+      {opts.today ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "#FEDE34" : "#EF9F14"} strokeWidth="2" />
         : (opts.sel ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "rgba(255,255,255,0.26)" : "rgba(10,10,10,0.15)"} strokeWidth="1" /> : null)}
     </svg>
   );
