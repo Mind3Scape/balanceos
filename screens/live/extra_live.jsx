@@ -261,7 +261,9 @@ function HabitDetailLive() {
     chips, thread, unified: true, check,
     // Календарь-герой: ОДИН месяц (неделя/год убраны — David 2026-07-22), золотой градиент;
     // тап по дню — телепорт, панель дня живёт ВНУТРИ этой же карточки (belowNode).
-    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent, onDayTap: (k) => setSelDay(k), belowNode: dayNode },
+    // belowNode только при ТЕЛЕПОРТЕ в другой день: про сегодня уже говорят чип «✓ в 07:12»
+    // и история — дублировать строкой под сеткой незачем (David 2026-07-22).
+    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent, onDayTap: (k) => setSelDay(k), belowNode: selDay === _todayK ? null : dayNode },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 
