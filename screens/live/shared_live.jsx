@@ -529,16 +529,15 @@ function bosDayRing(pct, accent, isDark, opts) {
           svg — они идентичны, url(#) честно находит первый в документе. */}
       {opts.gold ? <defs><linearGradient id="bosGoldArc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FEDE34" /><stop offset="100%" stopColor="#EF9F14" /></linearGradient></defs> : null}
       {/* СМЫСЛЫ ЕДИНЫ (David 2026-07-22): ЗОЛОТО = ТОЛЬКО наполненность дня. «Сегодня» И
-          выбранный день — одна тихая СЕРАЯ заливка внутри (выбранный — ещё и кольцо). */}
-      {opts.today || opts.sel ? <circle cx="20" cy="20" r={R - sw / 2 - 0.4} fill={isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.07)"} /> : null}
+          выбранный день — ОДНА тихая СЕРАЯ заливка внутри, БЕЗ кольца (David: «зачем и заливка,
+          и кольцо — оставь заливку»). Выбранный чуть насыщеннее сегодня — их видно порознь. */}
+      {opts.today || opts.sel ? <circle cx="20" cy="20" r={R - sw / 2 - 0.4} fill={isDark ? (opts.sel ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.10)") : (opts.sel ? "rgba(10,10,10,0.14)" : "rgba(10,10,10,0.07)")} /> : null}
       {/* Наполненный день — ЗАЛИТ золотом целиком (наполненность = заливка, не бледное
           колечко); «задним числом» — то же золото, приглушённое (без XP). */}
       {opts.gold && pct >= 1 ? <circle cx="20" cy="20" r={R - sw / 2 - 0.4} fill="url(#bosGoldArc)" fillOpacity={opts.late ? 0.45 : 0.92} /> : null}
       <circle cx="20" cy="20" r={R} fill="none" stroke={track} strokeWidth={sw} />
       {pct > 0 ? <circle cx="20" cy="20" r={R} fill="none" stroke={opts.gold ? "url(#bosGoldArc)" : arc} strokeOpacity={opts.late ? 0.45 : 1} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + gap} transform="rotate(-90 20 20)" /> : null}
       <circle cx="20" cy="20" r={R - sw / 2 + 0.3} fill="none" stroke={sheen} strokeWidth="0.7" />
-      {/* Выбранный день (телепорт) — тихое нейтральное кольцо. */}
-      {opts.sel ? <circle cx="20" cy="20" r={R + sw / 2 + 1.3} fill="none" stroke={isDark ? "rgba(255,255,255,0.36)" : "rgba(10,10,10,0.26)"} strokeWidth="1.1" /> : null}
     </svg>
   );
 }

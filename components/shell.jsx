@@ -1102,6 +1102,25 @@ function AppProvider({ children }) {
     try { if (nh.cloudId && _liveCloud()) window.bosCloud.upsertHabit(nh); } catch (e) {}
     return nh;
   }));
+  // ТУМБЛЕР ЛЮБОГО ПРОШЛОГО ДНЯ (David 2026-07-22: «тыкнул день — отметь его тут же наверху»):
+  // симметричный markHabitDay — умеет и СНЯТЬ забытую отметку. Сегодня отдаём toggleHabit (там XP),
+  // будущее не трогаем. Отметка/снятие идут в лог+lateDays+облако/шэрд/команду, XP за прошлое не капает.
+  const toggleHabitDay = (id, dayKey) => setHabits(hs => hs.map(h => {
+    if (h.id !== id || mode !== "live") return h;
+    var tk = bosTodayKey();
+    if (!dayKey || dayKey >= tk) return h;                 // сегодня → toggleHabit; будущее нельзя
+    var log = h.log ? Object.assign({}, h.log) : {};
+    var lateDays = Object.assign({}, h.lateDays || {});
+    var on;
+    if (log[dayKey]) { delete log[dayKey]; delete lateDays[dayKey]; on = false; }
+    else { log[dayKey] = true; lateDays[dayKey] = true; on = true; }
+    try { if (h.cloudId && _liveCloud()) window.bosCloud.toggleHabitLog(h.cloudId, dayKey, on); } catch (e) {}
+    try { if (h.shareCode && _liveCloud() && window.bosCloud.setSharedLog) window.bosCloud.setSharedLog(h.shareCode, dayKey, on); } catch (e) {}
+    try { if (h.teamHabitId && _liveCloud() && window.bosCloud.toggleTeamHabitDay) window.bosCloud.toggleTeamHabitDay(h.teamHabitId, dayKey, on); } catch (e) {}
+    var nh = Object.assign({}, h, { log: log, lateDays: lateDays, streak: bosStreak(log, h.days) });
+    try { if (nh.cloudId && _liveCloud()) window.bosCloud.upsertHabit(nh); } catch (e) {}
+    return nh;
+  }));
   const addHabit = (h) => {
     const nh = { id: _nid(), done: false, streak: 0, ...h, cloudId: (h && h.cloudId) || _uuid() };
     setHabits(hs => [...hs, nh]);
@@ -2369,7 +2388,7 @@ function AppProvider({ children }) {
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,
     habits, goals,
-    toggleHabit, markHabitDay, addHabit, updateHabit, removeHabit, reorderHabits,
+    toggleHabit, markHabitDay, toggleHabitDay, addHabit, updateHabit, removeHabit, reorderHabits,
     addGoal, updateGoal, removeGoal, reorderGoals,
     taskLists, addTaskList, updateTaskList, removeTaskList, addTask, toggleTask, removeTask, updateTask,
     teams, addTeam, removeTeam, updateTeam, reorderTeams, addTeamHabit, removeTeamHabit,

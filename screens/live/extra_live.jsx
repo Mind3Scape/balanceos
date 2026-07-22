@@ -162,31 +162,27 @@ function HabitDetailLive() {
     return gen ? (d.getDate() + " " + BOS_MON_GEN[d.getMonth()]) : (BOS_DOW_RU[d.getDay()] + ", " + d.getDate() + " " + BOS_MON_GEN[d.getMonth()]);
   };
 
-  // ТЕЛЕПОРТ БЕЗ ДУБЛЯ (David 2026-07-22: «панель дня повторяет историю — перегруз»):
-  // тап по дню с отметками ПОДСВЕЧИВАЕТ его строку в истории (скролл + вспышка), никакой
-  // отдельной панели. Только пустой прошлый день даёт строку-пилюлю «Отметить · без XP» —
-  // это единственный функционал, которого в истории нет.
-  const _selD = new Date(+selDay.slice(0, 4), +selDay.slice(5, 7) - 1, +selDay.slice(8, 10));
-  const _canBackdate = !!(selDay < _todayK && !_log[selDay] && _maskOk(now.getMonth(), _selD.getDate()) && app && app.markHabitDay);
-  const _flashHist = (k) => {
-    setTimeout(() => {
-      try {
-        const el = document.getElementById("bos-hist-" + k);
-        if (!el) return;
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.animate([{ background: "rgba(240,195,10,0)" }, { background: "rgba(240,195,10,0.22)" }, { background: "rgba(240,195,10,0)" }],
-          { duration: 1100, easing: "ease-in-out" });
-      } catch (e) {}
-    }, 60);
-  };
-  const dayNode = _canBackdate ? (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{_dayLbl(selDay)}</span>
-      <button onClick={() => { try { app.markHabitDay(h.id, selDay); } catch (e) {} }} className="tap" data-haptic="selection"
-        style={{ border: 0, borderRadius: 999, padding: "6px 13px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", color: "#B4820A", background: "rgba(240,195,10,0.13)", display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-        <I.Check size={11} strokeWidth={3} color="#B4820A" />Отметить · без XP
-      </button>
-    </div>
+  // ТЕЛЕПОРТ В ДЕНЬ ЧЕРЕЗ ШАПКУ (David 2026-07-22: «тыкнул день — наверху вижу, отмечена ли
+  // прогулка, и отмечаю ТАМ ЖЕ; не надо ни нижней кнопки, ни отката в историю»). Тап по дню
+  // календаря/истории меняет ТОЛЬКО selDay — шапка перестраивается под этот день: подпись =
+  // дата, чекбокс = состояние этого дня, тап по нему ставит/снимает (прошлое — без XP).
+  const _selPast = selDay !== _todayK;
+  const _selMarked = _selPast ? !!_log[selDay] : (h.done || (_isQuant && _qCount > 0));
+  const _selLate = !!(h.lateDays && h.lateDays[selDay]);
+  // Чекбокс прошлого дня в шапке — золотой (язык «наполненности»), без всплывашки +XP.
+  const _pastCheck = (
+    <button onClick={() => { if (app && app.toggleHabitDay) app.toggleHabitDay(h.id, selDay); }} className="tap" data-haptic="selection"
+      aria-label={_selMarked ? "Снять отметку за этот день" : "Отметить этот день"}
+      style={{ width: 30, height: 30, borderRadius: "50%", border: 0, cursor: "pointer", flexShrink: 0, display: "grid", placeItems: "center",
+        background: _selMarked ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "transparent",
+        boxShadow: _selMarked ? "none" : "inset 0 0 0 2px " + (isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.18)") }}>
+      {_selMarked ? <I.Check size={15} strokeWidth={3} color="#4a3400" /> : null}
+    </button>
+  );
+  // «Сегодня» — тихий возврат из прошлого дня (headExtra в шапке).
+  const _backToToday = _selPast ? (
+    <button onClick={() => setSelDay(_todayK)} className="tap" data-haptic="selection"
+      style={{ border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "5px 11px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Сегодня</button>
   ) : null;
 
   // ИСТОРИЯ — одна тихая строка НА ДЕНЬ («15 июля · Ты 07:12»), новые сверху; тап — телепорт.
@@ -197,12 +193,17 @@ function HabitDetailLive() {
   const _histKeys = Object.keys(_histDays).filter((k) => k <= _todayK).sort().reverse().slice(0, 14);
   const histDays = _histKeys.map((k) => ({ k, sum: _entriesFor(k).map((e) => e.who + (e.late ? " · задним числом" : (e.time ? " · " + e.time : ""))).join("  ·  ") })).filter((d) => d.sum);
 
-  // Чипы — только ЖИВЫЕ золотые («✓ в 07:12», серия); «лучшая/всего» уходят тихой строкой
-  // к заголовку календаря (David 2026-07-22: меньше соревнующихся за внимание пилюль).
+  // Чипы. СЕГОДНЯ: «✓ в 07:12» + «серия». ПРОШЛЫЙ ДЕНЬ (телепорт): один чип про ЭТОТ день —
+  // «✓ отмечено» / «✓ задним числом» / серый «не отмечено» — чтобы наверху сразу видеть состояние.
   const chips = [];
   const _todayMinLbl = _fmtMin(_myMin(_todayK));
-  if (h.done || (_isQuant && _qCount >= _qGoal)) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color="#B4820A" />, _todayMinLbl ? " в " + _todayMinLbl : " сделано"] });
-  if (streak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />, " серия " + streak] });
+  if (_selPast) {
+    if (_selMarked) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color="#B4820A" />, _selLate ? " задним числом" : (_fmtMin(_myMin(selDay)) ? " в " + _fmtMin(_myMin(selDay)) : " отмечено")] });
+    else chips.push({ node: "не отмечено" });
+  } else {
+    if (h.done || (_isQuant && _qCount >= _qGoal)) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color="#B4820A" />, _todayMinLbl ? " в " + _todayMinLbl : " сделано"] });
+    if (streak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />, " серия " + streak] });
+  }
   const calExtra = [best > 0 ? "лучшая " + best : null, total > 0 ? "всего " + total : null].filter(Boolean).join(" · ") || null;
 
   // «Кто со мной» (ступень 2) — кружочки ровной сеткой, как люди в целях (David 2026-07-16:
@@ -240,24 +241,30 @@ function HabitDetailLive() {
   // (детекторы в AppProvider срабатывают на toggleHabit, не на этой кнопке).
   // Отметка = ТОТ ЖЕ живой контрол, что на внешней карточке (HabitCheck / счётчик / таймер) —
   // один язык жеста на всё приложение (David 2026-07-22: «на внешних всё по-другому»).
+  // Чекбокс шапки: СЕГОДНЯ — живой контрол приложения (HabitCheck/счётчик/таймер, с +XP);
+  // ПРОШЛЫЙ ДЕНЬ (телепорт) — золотой чекбокс без XP (_pastCheck).
   const _isTimer = h.duration > 0 && !_isQuant;
-  const check = (_isTimer && typeof HabitTimerCheck === "function")
-    ? <HabitTimerCheck habit={h} app={app} xp={10} />
-    : (_isQuant && typeof HabitCountCheck === "function")
-      ? <HabitCountCheck habit={h} app={app} xp={10} />
-      : <HabitCheck done={!!h.done} color={accent} dark={isDark} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} />;
+  const check = _selPast ? _pastCheck
+    : (_isTimer && typeof HabitTimerCheck === "function")
+      ? <HabitTimerCheck habit={h} app={app} xp={10} />
+      : (_isQuant && typeof HabitCountCheck === "function")
+        ? <HabitCountCheck habit={h} app={app} xp={10} />
+        : <HabitCheck done={!!h.done} color={accent} dark={isDark} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} />;
 
   const model = {
     emoji: h.emoji, color: accent, name: h.name,
-    ctx: (_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
-      + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : ""),
-    chips, thread, unified: true, check,
-    // Календарь-герой: ОДИН месяц (неделя/год убраны — David 2026-07-22), золотой градиент;
-    // тап по дню — телепорт, панель дня живёт ВНУТРИ этой же карточки (belowNode).
-    // Тап по дню: пустой прошлый → пилюля «Отметить · без XP» под сеткой; день с отметками →
-    // подсветка его строки в ИСТОРИИ (никаких панелей-дублей — David 2026-07-22).
+    // Подпись = контекст привычки СЕГОДНЯ, а на прошлом дне — сама дата (телепорт: «ты в этом дне»).
+    ctx: _selPast
+      ? _dayLbl(selDay)
+      : ((_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
+        + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : "")),
+    chips,
+    // Нить «Сегодня» — только когда смотришь сегодня (на прошлом дне она про сегодня = сбивает).
+    thread: _selPast ? null : thread,
+    unified: true, check, headExtra: _backToToday,
+    // Календарь: ОДИН месяц, золото = наполненность; тап по дню = телепорт в шапку (без панелей/дублей).
     rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent,
-      onDayTap: (k) => { setSelDay(k); if (_entriesFor(k).length) _flashHist(k); }, belowNode: dayNode },
+      onDayTap: (k) => setSelDay(k) },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 
@@ -281,7 +288,7 @@ function HabitDetailLive() {
           </div>
           <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "4px 14px" }}>
             {histDays.map((d, i) => (
-              <button key={d.k} id={"bos-hist-" + d.k} onClick={() => setSelDay(d.k)} className="tap" data-haptic="selection"
+              <button key={d.k} onClick={() => setSelDay(d.k)} className="tap" data-haptic="selection"
                 style={{ display: "flex", width: "100%", textAlign: "left", alignItems: "center", gap: 10, border: 0, background: "transparent", cursor: "pointer", padding: "9px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") : "none" }}>
                 <span style={{ width: 60, flexShrink: 0, fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{_dayLbl(d.k, true)}</span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.sum}</span>
