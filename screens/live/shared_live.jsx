@@ -3737,24 +3737,28 @@ function BosBalanceWheelLive(props) {
   var SPH = data.spheres, N = SPH.length;
   var stt = React.useState(null); var selId = stt[0], setSel = stt[1];
 
-  var OUT = 104, R_NODE = 120, TARGET = 0.55, targetPct = Math.round(TARGET * 100);
-  var LIST_LEFT = 6, LIST_TOP = 142, ROW_H = 54;
+  // «ЖИДКОЕ СТЕКЛО» (утверждённый макет 2026-07-22-колесо-баланса-ios27.html): точечное
+  // поле вместо сетки, идеал = кольцо точек, тело = полупрозрачная теплокарта, контур =
+  // рёбра с градиентами вершина→вершина (цвет ТЕЧЁТ по силе), цифры только у крайних сфер.
+  var OUT = 100, LAB = 124, TARGET = 0.55, targetPct = Math.round(TARGET * 100);
   var pt = function (i, r) { var t = i * Math.PI / 3; return (r * Math.sin(t)).toFixed(1) + "," + (-r * Math.cos(t)).toFixed(1); };
-  var hex = function (L) { var a = []; for (var i = 0; i < N; i++) a.push(pt(i, OUT * L)); return a.join(" "); };
-  var dataPts = SPH.map(function (s, i) { return pt(i, OUT * Math.max(s.v, 0.05)); }).join(" ");
-  // ТЕНЬ — как человек САМ себя оценил в базовом опросе (1..5 → 0..1). Рисуется тонким контуром
-  // ПОВЕРХ золотой заливки, но заливка остаётся тем, что он реально ДЕЛАЕТ. Весь смысл — в разрыве
-  // между «ценю» и «делаю»: колесо никогда не показывает дела, которых не было.
-  var base = (app && app.baseline) || null;
-  var basePts = base ? SPH.map(function (s, i) { return pt(i, OUT * Math.max((base[s.id] || 0) / 5, 0.05)); }).join(" ") : null;
+  var pt2 = function (i, r) { var t = i * Math.PI / 3; return [r * Math.sin(t), -r * Math.cos(t)]; };
+  var dataPts = SPH.map(function (s, i) { return pt(i, OUT * Math.max(s.v, 0.06)); }).join(" ");
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
-  var gridCol = dark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.10)";
-  var spokeCol = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
-  var goldDash = dark ? "rgba(240,200,40,0.50)" : "rgba(216,164,0,0.46)";
+  var bwStatus = total >= 75 ? "Отлично" : total >= 55 ? "Хорошо" : total >= 35 ? "В движении" : "Начало";
+  // Шкалы цвета (сила сферы = цвет + плотность; David: цвет должен считываться)
+  var _lerp = function (a, b, t) { return a + (b - a) * t; };
+  var _h2r = function (h) { h = h.replace("#", ""); return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; };
+  var _r2h = function (a) { return "#" + a.map(function (x) { var s = Math.round(x).toString(16); return s.length < 2 ? "0" + s : s; }).join(""); };
+  var _onScale = function (v, SC) { v = Math.max(SC[0][0], Math.min(1, v)); for (var i = 1; i < SC.length; i++) { if (v <= SC[i][0]) { var t = (v - SC[i - 1][0]) / (SC[i][0] - SC[i - 1][0]); var a = _h2r(SC[i - 1][1]), b = _h2r(SC[i][1]); return _r2h([_lerp(a[0], b[0], t), _lerp(a[1], b[1], t), _lerp(a[2], b[2], t)]); } } return SC[SC.length - 1][1]; };
+  var segCol = function (v) { return _onScale(v, [[0.3, "#F0EDE4"], [0.6, "#FAE39B"], [1, "#F6BC3C"]]); };
+  var edgeColW = function (v) { return _onScale(v, [[0.3, "#CFC9BB"], [0.5, "#E6C476"], [0.7, "#F5B62A"], [1, "#FBBF13"]]); };
+  var fillA = function (v) { return _onScale(v, [[0.3, "#E3DCCA"], [0.6, "#F6DC7E"], [1, "#FBBF13"]]); };
+  var fillB = function (v) { return _onScale(v, [[0.3, "#D6CDB8"], [0.6, "#EFC24A"], [1, "#EF9F14"]]); };
+  var opaFor = function (v) { return (0.10 + 0.26 * Math.max(0, Math.min(1, (v - 0.3) / 0.7))).toFixed(2); };
   var goldInk = dark ? "#F0C838" : "#C8930A";
-  var trackCol = dark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var iconCol = dark ? "#e8e8ea" : "#101828";
-  var RC = 2 * Math.PI * 20;
+  var rowIcCol = dark ? "#c8c8cd" : "#57585f";
 
   var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
   var strong = null; SPH.forEach(function (s) { if (s.n && (!strong || s.v > strong.v)) strong = s; });
@@ -3783,139 +3787,144 @@ function BosBalanceWheelLive(props) {
   var selSphere = null; SPH.forEach(function (s) { if (s.id === selId) selSphere = s; });
   var byV = SPH.slice().sort(function (a, b) { return b.v - a.v; });
 
-  var rootRef = React.useRef(null), radarRef = React.useRef(null), dialRef = React.useRef(null);
-  var nodeRefs = React.useRef({}), isListRef = React.useRef(false), animatingRef = React.useRef(false);
+  // Два состояния (макет ios27): «колесо» ↔ «раскрыто» (React-state). Колесо — ОДИН svg,
+  // FLIP-ом уезжающий в мини-стекло (замер rect до/после смены раскладки → WAAPI-компенсация);
+  // строки ранжира влетают каскадом (CSS-анимации с задержкой по индексу — язык v736).
+  var stList = React.useState(false); var list = stList[0], setList = stList[1];
+  var rootRef = React.useRef(null), svgBoxRef = React.useRef(null), flipRef = React.useRef(null);
   var EASE = "cubic-bezier(.32,.72,0,1)";
-  var orbOf = function (id) { var n = nodeRefs.current[id]; return n && n.querySelector(".lr-orb"); };
-
-  function placeWheel() {
+  var beginFlip = function () { var b = svgBoxRef.current; flipRef.current = b ? b.getBoundingClientRect() : null; };
+  React.useLayoutEffect(function () {
+    var first = flipRef.current; flipRef.current = null;
+    var box = svgBoxRef.current;
+    if (!first || !box) return;
+    var last = box.getBoundingClientRect();
+    if (!last.width || !first.width) return;
+    var dx = first.left - last.left, dy = first.top - last.top, sc = first.width / last.width;
+    try {
+      box.animate([{ transform: "translate(" + dx.toFixed(1) + "px," + dy.toFixed(1) + "px) scale(" + sc.toFixed(3) + ")" }, { transform: "none" }],
+        { duration: 520, easing: EASE });
+    } catch (e) {}
+  }, [list]);
+  function tapRadar() { beginFlip(); if (list) setList(false); else { setSel(null); setList(true); } }
+  // Стандарт: тап по сфере ВЕЗДЕ раскрывает аккордеон. Из ранжира — сворачиваем колесо и открываем.
+  function tapNode(s) { if (list) { beginFlip(); setSel(s.id); setList(false); } else setSel(s.id === selId ? null : s.id); }
+  // ── SVG колеса (один на оба состояния; в мини CSS прячет поле/подписи/блеск/тень) ──
+  var wheelSvg = (function () {
+    var defs = [], segs = [], edges = [], dots = [], ideal = [], verts = [], labs = [];
+    for (var i = 0; i < N; i++) {
+      var j = (i + 1) % N;
+      var P1 = pt2(i, OUT * Math.max(SPH[i].v, 0.06)), P2 = pt2(j, OUT * Math.max(SPH[j].v, 0.06));
+      defs.push(<linearGradient key={"sg" + i} id={uid + "sg" + i} gradientUnits="userSpaceOnUse" x1={P1[0]} y1={P1[1]} x2={P2[0]} y2={P2[1]}>
+        <stop offset="0" stopColor={segCol(SPH[i].v)} stopOpacity={opaFor(SPH[i].v)} /><stop offset="1" stopColor={segCol(SPH[j].v)} stopOpacity={opaFor(SPH[j].v)} /></linearGradient>);
+      defs.push(<linearGradient key={"eg" + i} id={uid + "eg" + i} gradientUnits="userSpaceOnUse" x1={P1[0]} y1={P1[1]} x2={P2[0]} y2={P2[1]}>
+        <stop offset="0" stopColor={edgeColW(SPH[i].v)} /><stop offset="1" stopColor={edgeColW(SPH[j].v)} /></linearGradient>);
+      segs.push(<path key={"s" + i} d={"M0 0 L" + P1[0].toFixed(1) + " " + P1[1].toFixed(1) + " L" + P2[0].toFixed(1) + " " + P2[1].toFixed(1) + " Z"} fill={"url(#" + uid + "sg" + i + ")"} />);
+      edges.push(<path key={"e" + i} d={"M" + P1[0].toFixed(1) + " " + P1[1].toFixed(1) + " L" + P2[0].toFixed(1) + " " + P2[1].toFixed(1)} fill="none" stroke={"url(#" + uid + "eg" + i + ")"} strokeWidth="2.2" strokeLinecap="round" style={{ vectorEffect: "non-scaling-stroke" }} />);
+    }
+    var dotCol = dark ? "rgba(255,255,255,0.14)" : "rgba(20,20,30,0.10)";
+    var dotCol2 = dark ? "rgba(255,255,255,0.08)" : "rgba(20,20,30,0.06)";
+    [0.33, 0.66, 1].forEach(function (rf) { for (var k = 0; k < N; k++) { var p = pt2(k, OUT * rf); dots.push(<circle key={"d" + rf + k} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="1.15" fill={dotCol} />); } });
+    for (var k2 = 0; k2 < N; k2++) { [0.5, 0.83].forEach(function (rf) { var a = (k2 + 0.5) * Math.PI / 3; dots.push(<circle key={"m" + rf + k2} cx={(Math.sin(a) * OUT * rf).toFixed(1)} cy={(-Math.cos(a) * OUT * rf).toFixed(1)} r="1" fill={dotCol2} />); }); }
+    var idealCol = dark ? "rgba(240,200,60,0.45)" : "rgba(140,100,10,0.38)";
+    for (var d = 0; d < N * 6; d++) { var a2 = d * Math.PI / (N * 3); ideal.push(<circle key={"i" + d} cx={(Math.sin(a2) * OUT * TARGET).toFixed(1)} cy={(-Math.cos(a2) * OUT * TARGET).toFixed(1)} r="0.9" fill={idealCol} />); }
     SPH.forEach(function (s, i) {
-      var n = nodeRefs.current[s.id]; if (!n) return;
-      var t = i * Math.PI / 3;
-      n.style.transition = "none";
-      n.style.left = "calc(50% + " + (R_NODE * Math.sin(t)).toFixed(1) + "px)";
-      n.style.top = (152 - R_NODE * Math.cos(t)).toFixed(1) + "px";
-      n.style.transform = "translate(-50%,-50%)";
+      var p = pt2(i, OUT * Math.max(s.v, 0.06));
+      verts.push(<g key={"v" + i}><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3.6" fill={dark ? "#1c1c20" : "#fff"} style={{ filter: "drop-shadow(0 1px 2px rgba(30,30,40,0.25))" }} /><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="2.1" fill={edgeColW(s.v)} /></g>);
     });
-  }
-  React.useLayoutEffect(function () { if (!isListRef.current && !animatingRef.current) placeWheel(); });
+    // Подписи: все сферы тихо; ЦИФРЫ — только у сильнейшей и слабейшей (лаконичность макета).
+    SPH.forEach(function (s, i) {
+      var p = pt2(i, LAB);
+      var x = Math.sin(i * Math.PI / 3);
+      var anch = Math.abs(x) < 0.35 ? "middle" : (x > 0 ? "start" : "end");
+      var edgeCase = !!(s.n && ((strong && s.id === strong.id) || (weak && s.id === weak.id)));
+      var valCol = weak && s.id === weak.id ? (dark ? "#E0A070" : "#b0663a") : (dark ? "#F0C838" : "#a8790a");
+      labs.push(
+        <g key={"l" + i} onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }}>
+          <text className={"bw-lab" + (edgeCase ? "" : " dim")} x={p[0].toFixed(1)} y={(p[1] + (edgeCase ? -3 : 3)).toFixed(1)} textAnchor={anch}>{s.l}</text>
+          {edgeCase ? <text className="bw-val" x={p[0].toFixed(1)} y={(p[1] + 11).toFixed(1)} textAnchor={anch} fill={valCol}>{Math.round(s.v * 100)}</text> : null}
+        </g>
+      );
+    });
+    return (
+      <svg viewBox="-148 -150 296 300">
+        <defs>
+          {defs}
+          <linearGradient id={uid + "gl"} x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stopColor="#ffffff" stopOpacity="0.75" /><stop offset="0.35" stopColor="#ffffff" stopOpacity="0.08" /><stop offset="1" stopColor="#ffffff" stopOpacity="0" /></linearGradient>
+          <filter id={uid + "sf"} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="9" /></filter>
+        </defs>
+        <g className="bw-field">{dots}{ideal}</g>
+        <polygon className="bw-shadow" points={dataPts} fill="rgba(214,150,20,0.16)" filter={"url(#" + uid + "sf)"} transform="translate(0 5) scale(0.985)" />
+        {segs}
+        <polygon className="bw-gloss" points={dataPts} fill={"url(#" + uid + "gl)"} opacity="0.35" />
+        <g style={{ filter: "drop-shadow(0 1px 3px rgba(200,140,20,0.35))" }}>{edges}</g>
+        <g className="bw-verts">{verts}</g>
+        <g className="bw-labels">{labs}</g>
+      </svg>
+    );
+  })();
 
-  function dialListTransform() {
-    var r = radarRef.current.getBoundingClientRect(), d = dialRef.current.getBoundingClientRect();
-    var dcx = d.left + d.width / 2, dcy = d.top + d.height / 2;
-    var tx = r.left + 56, ty = r.top + 60;                          // маленький радар — ВЛЕВО-вверх
-    return "translate(-50%,-50%) translate(" + (tx - dcx).toFixed(1) + "px," + (ty - dcy).toFixed(1) + "px) scale(.58)";
-  }
-  function flipList(toList) {
-    if (animatingRef.current) return; animatingRef.current = true;
-    var root = rootRef.current, dial = dialRef.current;
-    var order = SPH.map(function (s) { return s.id; });
-    var first = {}; order.forEach(function (id) { first[id] = orbOf(id).getBoundingClientRect(); });   // якорь — КРУЖОК
-    root.classList.add("flying");                                                                     // прячем имена/полосы, пока летят кружки
-    if (toList) {
-      // --si = порядковый номер строки сверху вниз: шкалы вырастают каскадом (лёгкая волна),
-      // а не все разом (David 2026-07-14). CSS читает var(--si) в transition-delay шкалы.
-      byV.forEach(function (s, i) { var n = nodeRefs.current[s.id]; n.style.setProperty("--si", i); n.style.transition = "none"; n.style.left = LIST_LEFT + "px"; n.style.top = (LIST_TOP + i * ROW_H) + "px"; n.style.transform = "translate(0,0)"; });
-    } else placeWheel();
-    root.classList.toggle("list", toList);
-    var from = getComputedStyle(dial).transform, to = toList ? dialListTransform() : "translate(-50%,-50%)";
-    dial.getAnimations().forEach(function (a) { a.cancel(); });
-    dial.animate([{ transform: from }, { transform: to }], { duration: 560, easing: EASE, fill: "forwards" });
-    // якорь — КРУЖОК: смещаем узел так, чтобы кружок стартовал из своей прежней точки (иконка не прыгает)
-    var off = {}; order.forEach(function (id) { var lo = orbOf(id).getBoundingClientRect(); off[id] = { dx: first[id].left - lo.left, dy: first[id].top - lo.top }; });
-    order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transform = "translate(" + off[id].dx.toFixed(1) + "px," + off[id].dy.toFixed(1) + "px) " + (toList ? "" : "translate(-50%,-50%)"); });
-    void root.offsetWidth;
-    order.forEach(function (id) { var n = nodeRefs.current[id]; n.style.transition = "transform .56s " + EASE; n.style.transform = toList ? "translate(0,0)" : "translate(-50%,-50%)"; });
-    setTimeout(function () { animatingRef.current = false; root.classList.remove("flying"); }, 580);   // сели → имена/полосы проявляются
-    isListRef.current = toList;
-  }
-  function tapRadar() { if (isListRef.current) flipList(false); else { setSel(null); flipList(true); } }
-  // Стандарт: тап по сфере ВЕЗДЕ раскрывает аккордеон (как на «Балансе жизни»). В режиме списка
-  // сначала плавно сворачиваем колесо, затем открываем аккордеон — тот же результат, что в колесе.
-  function tapNode(s) { if (isListRef.current) { setSel(s.id); flipList(false); } else setSel(s.id === selId ? null : s.id); }
+  // Стекло-карта (макет: жидкое стекло с бликом; bare — без собственной карты)
+  var glassCard = bare ? { padding: 0 } : {
+    borderRadius: 28, padding: "18px 18px 20px", position: "relative",
+    background: dark ? "linear-gradient(165deg, rgba(46,47,54,0.78), rgba(28,29,34,0.66))" : "linear-gradient(165deg, rgba(255,255,255,0.78), rgba(255,255,255,0.5) 55%, rgba(255,255,255,0.64))",
+    WebkitBackdropFilter: "blur(24px) saturate(1.3)", backdropFilter: "blur(24px) saturate(1.3)",
+    boxShadow: dark ? "0 22px 46px rgba(0,0,0,0.38), inset 0 1px 0.5px rgba(255,255,255,0.09)" : "0 22px 46px rgba(30,34,50,0.12), 0 2px 8px rgba(30,34,50,0.05), inset 0 1.5px 1px rgba(255,255,255,0.95), inset 0 0 0 0.6px rgba(255,255,255,0.6)"
+  };
 
-  var strokeFx = { vectorEffect: "non-scaling-stroke" };
   return (
-    <div style={bare ? { padding: 0 } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "14px 16px 14px" }}>
-      <div className="bosLR" ref={rootRef}>
-        <div className="lr-head">
-          {!hideTitle ? <span className="lr-title">Баланс жизни</span> : <span />}
-          <span className="lr-pill"><b>{total}%</b><span>· цель {targetPct}%</span></span>
+    <div style={glassCard}>
+      <div className={"bosLR bw27" + (list ? " bw-list" : "")} ref={rootRef}>
+        {!hideTitle && <div className="bw-cap">Баланс жизни</div>}
+        <div className="bw-score">
+          <span className="n">{total}</span><span className="m">/ 100</span>
+          <span className="bw-stat">{bwStatus}</span>
         </div>
 
-        <div className="lr-radar" ref={radarRef}>
-          <svg className="lr-svg" ref={dialRef} viewBox="-150 -150 300 300" onClick={tapRadar}>
-            <defs>
-              <radialGradient id={uid} cx="50%" cy="46%" r="62%">
-                <stop offset="0%" stopColor="#FFD64A" stopOpacity="0.50" />
-                <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12" />
-              </radialGradient>
-            </defs>
-            <polygon points={hex(1)} fill="none" stroke={gridCol} strokeWidth="1.2" style={strokeFx} />
-            <polygon points={hex(0.667)} fill="none" stroke={gridCol} strokeWidth="1.1" opacity="0.75" style={strokeFx} />
-            <polygon points={hex(0.333)} fill="none" stroke={gridCol} strokeWidth="1.1" opacity="0.5" style={strokeFx} />
-            {SPH.map(function (s, i) { var p = pt(i, OUT).split(","); return <line key={"sp" + i} x1="0" y1="0" x2={p[0]} y2={p[1]} stroke={spokeCol} strokeWidth="1.1" style={strokeFx} />; })}
-            <polygon points={hex(TARGET)} fill="none" stroke={goldDash} strokeWidth="1.3" strokeDasharray="3 5" strokeLinecap="round" style={strokeFx} />
-            {/* Тень самооценки — ПОД золотом, лёгкая полупрозрачная серая заливка БЕЗ пунктира
-                (David 2026-07-16: «два пунктира — жутко; база = еле заметный прозрачный серый»).
-                Видна только там, где выступает за золото, — это и есть разрыв «ценю ↔ делаю». */}
-            {basePts && <polygon points={basePts} fill={dark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.06)"} stroke={dark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.09)"} strokeWidth="1" strokeLinejoin="round" style={strokeFx} />}
-            <polygon points={dataPts} fill={"url(#" + uid + ")"} stroke="#EF9F14" strokeWidth="2" strokeLinejoin="round" style={strokeFx} />
-            {/* Точки на вершинах САМОЙ оранжевой фигуры (David 2026-07-16: «не хватает точечек
-                на оранжевом, аккуратных»): видно, где именно фигура ломается по каждой сфере. */}
-            {SPH.map(function (s, i) {
-              var p = pt(i, OUT * Math.max(s.v, 0.05)).split(",");
+        {list ? (
+          <div className="bw-miniRow">
+            <div className="bw-svgbox mini" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}</div>
+            <div className="bw-insight">
+              {(strong && weak && strong.id !== weak.id)
+                ? <span>Сильнее всего — <b>{strong.l}</b>.<br />Слабее всех — <b>{weak.l}</b>: {(typeof BOS_SPHERE_NUDGE !== "undefined" && BOS_SPHERE_NUDGE[weak.id]) || "небольшой ход поднимет сферу"}.</span>
+                : insightNode()}
+            </div>
+          </div>
+        ) : (
+          <div className="bw-svgbox" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}</div>
+        )}
+
+        {list && (
+          <div className="bw-rows">
+            {byV.map(function (s, i) {
+              var pct = s.n ? Math.round(s.v * 100) : 0;
+              var weakRow = !s.n || s.v < TARGET;
+              var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
               return (
-                <g key={"dpt" + i}>
-                  <circle cx={p[0]} cy={p[1]} r="3.4" fill={dark ? "#161619" : "#fff"} style={strokeFx} />
-                  <circle cx={p[0]} cy={p[1]} r="2.1" fill="#EF9F14" stroke="#FEDE34" strokeWidth="0.8" style={strokeFx} />
-                </g>
+                <button key={s.id} className="bw-row tap" data-no-haptic style={{ animationDelay: (i * 0.045) + "s" }} onClick={function () { tapNode(s); }}>
+                  <span className="bw-ric">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 17, color: rowIcCol })) || s.e}</span>
+                  <span className="bw-nm">{s.l}</span>
+                  <span className="bw-track">
+                    <span className="bw-fill" style={{ width: Math.max(pct, 3) + "%", background: "linear-gradient(90deg," + fillA(Math.max(s.v, 0.3)) + "," + fillB(Math.max(s.v, 0.3)) + ")", animationDelay: (0.12 + i * 0.05) + "s" }} />
+                    <span className="bw-tick" style={{ left: targetPct + "%" }} />
+                  </span>
+                  <span className="bw-pct" style={{ color: weakRow ? (dark ? "#E0A070" : "#b0663a") : (dark ? "#c9c9ce" : "#5a5b63") }}>{pct}%</span>
+                  <svg className="bw-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+                </button>
               );
             })}
-            {/* Точки-якоря на вершинах осей (David 2026-07-14): «непонятно, к кому какой угол привязан».
-                По одной аккуратной точке на конце каждой оси — прямо под своей сферой. Заполненная —
-                золотая с ободком, пустая — тихая серая. Небольшие, но заметные; тянутся к иконке сферы. */}
-            {SPH.map(function (s, i) {
-              var p = pt(i, OUT).split(",");
-              var lit = !!s.n;
-              return (
-                <g key={"vtx" + i}>
-                  <circle cx={p[0]} cy={p[1]} r="4.6" fill={dark ? "#161619" : "#fff"} style={strokeFx} />
-                  <circle cx={p[0]} cy={p[1]} r="2.8" fill={lit ? "#EF9F14" : gridCol} stroke={lit ? "#FEDE34" : "none"} strokeWidth={lit ? 0.9 : 0} style={strokeFx} />
-                </g>
-              );
-            })}
-          </svg>
+            <div className="bw-rowsub">Тап по сфере — что в неё входит (привычки и цели). Засечка на полосе — твой идеал.</div>
+          </div>
+        )}
 
-          {/* подсказка ИИ — видна только в режиме списка, справа от маленького радара */}
-          <div className="lr-insight"><span className="t">{insightNode()}</span></div>
+        {!list && !selSphere && nudge && (
+          <button className="bw-whisper tap" data-no-haptic onClick={function () { setSel(nudge.s.id); }}>
+            <span className="bw-moon">{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[nudge.s.id]) || "Sparkles", { size: 14, color: "#8a6400" })) || nudge.s.e}</span>
+            <span style={{ flex: 1, minWidth: 0 }}>{nudge.t}</span>
+          </button>
+        )}
 
-          {SPH.map(function (s, i) {
-            var fill = s.n ? Math.max(s.v, 0.03) : 0, off = (RC * (1 - fill)).toFixed(1);
-            var pct = s.n ? Math.round(s.v * 100) : 0;
-            var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
-            var on = s.id === selId;
-            return (
-              <button key={s.id} className={"lr-node" + (on ? " sel" : "")} data-id={s.id} ref={function (el) { nodeRefs.current[s.id] = el; }}
-                onClick={function () { tapNode(s); }}>
-                <span className="lr-orb">
-                  <svg className="lr-ring" viewBox="0 0 46 46">
-                    <defs>
-                      <linearGradient id={uid + "r" + i} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#EF9F14" /><stop offset="1" stopColor="#FEDE34" /></linearGradient>
-                    </defs>
-                    <circle cx="23" cy="23" r="20" fill="none" stroke={trackCol} strokeWidth="3" />
-                    {fill > 0 ? <circle cx="23" cy="23" r="20" fill="none" stroke={"url(#" + uid + "r" + i + ")"} strokeWidth="3" strokeLinecap="round" strokeDasharray={RC.toFixed(1)} strokeDashoffset={off} transform="rotate(-90 23 23)" style={{ transition: "stroke-dashoffset .7s " + EASE }} /> : null}
-                  </svg>
-                  <span className="lr-disc">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 17, color: iconCol })) || s.e}</span>
-                </span>
-                <span className="lr-nm">{s.l}</span>
-                <span className="lr-meta"><span className="lr-bar"><i style={{ "--w": pct + "%" }} /></span><span className="lr-val">{pct}</span></span>
-              </button>
-            );
-          })}
-        </div>
-
-        {selSphere ? (function () {
+        {!list && selSphere ? (function () {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
           return (
@@ -3950,22 +3959,7 @@ function BosBalanceWheelLive(props) {
               </div>
             </div>
           );
-        })() : (
-          <div className="lr-foot" style={{ marginTop: 2 }}>
-            {nudge && (
-              <button onClick={function () { setSel(nudge.s.id); }} className="tap" data-no-haptic
-                style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", background: dark ? "rgba(240,200,40,0.12)" : "rgba(240,195,10,0.10)", border: "0.5px solid " + (dark ? "rgba(240,200,40,0.30)" : "rgba(216,164,0,0.28)"), borderRadius: 16, padding: "12px 13px", cursor: "pointer", textAlign: "left" }}>
-                <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: dark ? "rgba(240,200,40,0.22)" : "rgba(240,195,10,0.18)" }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[nudge.s.id]) || "Sparkles", { size: 16, color: goldInk })) || nudge.s.e}</span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.35 }}>{nudge.t}</span>
-                {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} color={goldInk} /> : null}
-              </button>
-            )}
-            <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, padding: "0 2px" }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
-              <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Кольцо у сферы — её заполненность. Тап по сфере — что в неё входит; тап по кругу — все сферы в процентах.</div>
-            </div>
-          </div>
-        )}
+        })() : null}
       </div>
     </div>
   );
