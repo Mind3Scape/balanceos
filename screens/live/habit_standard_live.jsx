@@ -70,7 +70,7 @@ function BosStdHist({ dist, me, isDark }) {
 
 /* «РИТМ» — один блок времени. Пилюля-переключатель в заголовке СПРАВА (компактная, v3):
    свёрнута — один таймфрейм «Неделя ⌄»; тап — три пилюли на месте; выбор схлопывает. */
-function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, single, gold, onDayTap }) {
+function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, single, gold, onDayTap, belowNode }) {
   // single (David 2026-07-22): «уберём неделю и год пока» — один месяц, пилюли нет.
   const [tab, setTab] = React.useState(single ? "month" : (initialTab || "week"));
   const [open, setOpen] = React.useState(false);
@@ -105,8 +105,7 @@ function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHin
             ? <button key={i} onClick={() => onDayTap(c.k)} className="tap" data-haptic="selection" aria-label={"Открыть день " + (i + 1)} style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", lineHeight: 0 }}>{cell(c, i)}</button>
             : <React.Fragment key={i}>{cell(c, i)}</React.Fragment>)}
         </div>
-        {(onDayTap) && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "center", marginTop: 7 }}>тап по дню — отметки этого дня</div>}
-        {monthHint && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "right", marginTop: monthHint && onDayTap ? 2 : 5 }}>{monthHint}</div>}
+        {monthHint && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "right", marginTop: 5 }}>{monthHint}</div>}
       </div>
     );
   } else {
@@ -123,33 +122,16 @@ function BosRhythmBlockLive({ mode, title, weekCells, hist, monthCells, monthHin
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 4px 8px", minHeight: 27 }}>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{title || "Ритм"}</span>
-        {control}
+        {control || (titleExtra ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{titleExtra}</span> : null)}
       </div>
       {/* bare (аккордеон в белой карточке): блок цвета ЗАДНЕГО ФОНА, не белый-на-белом,
-          от которого читалась одна окантовка (David 2026-07-17). */}
-      <div style={{ background: bare ? (isDark ? "#151517" : "var(--bg, #f2f2f4)") : "var(--card)", borderRadius: 18, boxShadow: bare ? "none" : "var(--card-shadow)", padding: "13px 14px" }}>{body}</div>
+          от которого читалась одна окантовка (David 2026-07-17). belowNode — продолжение
+          ВНУТРИ карточки (панель выбранного дня): календарь и день = один рассказ, не два ящика. */}
+      <div style={{ background: bare ? (isDark ? "#151517" : "var(--bg, #f2f2f4)") : "var(--card)", borderRadius: 18, boxShadow: bare ? "none" : "var(--card-shadow)", padding: "13px 14px" }}>
+        {body}
+        {belowNode ? <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.06)") }}>{belowNode}</div> : null}
+      </div>
     </div>
-  );
-}
-
-/* КНОПКА-ОТМЕТКА (David 2026-07-19: «кружок в правом верхнем углу сливается с другими
-   круглыми кнопками — надо аккуратной центровой кнопкой»). Живёт в «едином блоке» под нитью.
-   Не сделано — тёмная CTA (как «Вступить»); сделано — золотая пилюля с чеком. XP по-прежнему
-   даёт onToggle (детекторы празднований в AppProvider — не в этой кнопке). */
-function BosMarkButtonLive({ done, onToggle, label, doneLabel, isDark }) {
-  return (
-    <button onClick={onToggle} className="tap" data-haptic="selection" aria-label={label || "Отметить сегодня"}
-      style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", border: 0, cursor: "pointer", borderRadius: 15, padding: "13px 15px", textAlign: "left",
-        background: done ? "rgba(240,195,10,0.15)" : (isDark ? "#fff" : "#0a0a0a"), transition: "background .15s" }}>
-      <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center",
-        background: done ? "linear-gradient(135deg," + BOS_ROOM_GOLD_L + "," + BOS_ROOM_GOLD + ")" : "transparent",
-        boxShadow: done ? "none" : "inset 0 0 0 2px " + (isDark ? "rgba(10,10,10,0.4)" : "rgba(255,255,255,0.6)") }}>
-        {done ? <I.Check size={14} strokeWidth={3} color="#4a3400" /> : null}
-      </span>
-      <span style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: "-0.2px", color: done ? BOS_ROOM_GOLD_INK : (isDark ? "#0a0a0a" : "#fff") }}>
-        {done ? (doneLabel || "Сегодня отмечено") : (label || "Отметить сегодня")}
-      </span>
-    </button>
   );
 }
 
@@ -174,7 +156,8 @@ function BosHabitStandardBodyLive({ model, isDark }) {
       {extra || null}
     </div>
   );
-  // Общая шапка (плитка + имя + контекст). В unified чекбокс НЕ рисуем — отметка кнопкой внизу.
+  // Общая шапка (плитка + имя + контекст + отметка). Отметка — ТОТ ЖЕ чекбокс, что на
+  // внешних карточках (David 2026-07-22: «на внешних всё по-другому» — один язык везде).
   const headInner = !m.bare && (
     <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
       <span style={{ width: 42, height: 42, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
@@ -185,7 +168,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
         {m.ctx && <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.ctx}</div>}
       </div>
       {m.headExtra || null}
-      {!m.unified && m.check}
+      {m.check || null}
     </div>
   );
   const chipsNode = (m.chips && m.chips.length > 0) ? (

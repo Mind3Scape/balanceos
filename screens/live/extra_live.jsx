@@ -162,65 +162,55 @@ function HabitDetailLive() {
     return gen ? (d.getDate() + " " + BOS_MON_GEN[d.getMonth()]) : (BOS_DOW_RU[d.getDay()] + ", " + d.getDate() + " " + BOS_MON_GEN[d.getMonth()]);
   };
 
-  // ПАНЕЛЬ ДНЯ — куда телепортирует тап по календарю: дата, отметки этого дня (кто во
-  // сколько), а для прошлого пустого запланированного дня — «Отметить этот день» прямо тут
-  // (день и серия зачтутся, XP честно нет — подпись под кнопкой, без отдельной шторки).
+  // ДЕНЬ — не отдельный ящик, а ПРОДОЛЖЕНИЕ карточки календаря (David 2026-07-22:
+  // «разрозненно и перегружено — минималистично, но без потери функционала»): тонкая строка
+  // «дата · кто во сколько»; прошлый пустой день — тихая пилюля «Отметить · без XP».
   const _selRows = _entriesFor(selDay);
   const _selD = new Date(+selDay.slice(0, 4), +selDay.slice(5, 7) - 1, +selDay.slice(8, 10));
   const _canBackdate = !!(selDay < _todayK && !_log[selDay] && _maskOk(now.getMonth(), _selD.getDate()) && app && app.markHabitDay);
-  const _entryRow = (e, i) => (
-    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)") : "none" }}>
-      {e.me
-        ? <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)" }}><I.Check size={13} strokeWidth={3} color="#4a3400" /></span>
-        : (e.avatar
-          ? <img src={e.avatar} alt="" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-          : <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>{("" + (e.who || "?")).slice(0, 1)}</span>)}
-      <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {e.who}{e.part ? <span style={{ color: "var(--text-4)", fontWeight: 600 }}>{" · " + e.part + " из " + _qGoal}</span> : null}
-      </span>
-      {e.late
-        ? <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap" }}>задним числом</span>
-        : (e.time
-          ? <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#FEDE34" : "#B4820A" }}>{e.time}</span>
-          : (e.me ? null : <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>отметился</span>))}
-    </div>
-  );
-  const dayPanel = (
-    <div style={{ marginTop: 10, background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "12px 14px" }}>
+  const _rightOf = (e) => e.late ? "задним числом" : (e.time || (e.me ? "" : "отметился"));
+  const dayNode = (
+    <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text)" }}>{_dayLbl(selDay)}</span>
-        {selDay !== _todayK && <button onClick={() => setSelDay(_todayK)} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11, fontWeight: 700, color: isDark ? "#FEDE34" : "#B4820A", cursor: "pointer" }}>← к сегодня</button>}
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{_dayLbl(selDay)}</span>
+        {selDay !== _todayK && <button onClick={() => setSelDay(_todayK)} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11, fontWeight: 700, color: "var(--text-4)", cursor: "pointer" }}>сегодня</button>}
       </div>
-      {_selRows.length
-        ? <div style={{ marginTop: 2 }}>{_selRows.map(_entryRow)}</div>
-        : <div style={{ fontSize: 12, color: "var(--text-4)", padding: "7px 0 2px" }}>{selDay === _todayK ? "сегодня отметок ещё нет" : "в этот день отметок не было"}</div>}
-      {_canBackdate && (
-        <div style={{ marginTop: 9 }}>
-          <button onClick={() => { try { app.markHabitDay(h.id, selDay); } catch (e) {} }} className="tap" data-haptic="selection"
-            style={{ width: "100%", border: 0, borderRadius: 13, padding: "11px 0", fontSize: 13.5, fontWeight: 800, cursor: "pointer", color: "#4a3400", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-            <I.Check size={15} strokeWidth={3} color="#4a3400" />Отметить этот день
-          </button>
-          <div style={{ fontSize: 10, color: "var(--text-4)", textAlign: "center", marginTop: 5 }}>зачтётся в календарь и серию · XP — только за отметку в тот же день</div>
+      {_selRows.length ? _selRows.map((e, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: i ? 5 : 7 }}>
+          {!e.me && (e.avatar
+            ? <img src={e.avatar} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            : <span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>{("" + (e.who || "?")).slice(0, 1)}</span>)}
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {e.who}{e.part ? " · " + e.part + " из " + _qGoal : ""}
+          </span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: e.late || (!e.time && !e.me) ? "var(--text-4)" : (isDark ? "#FEDE34" : "#B4820A") }}>{_rightOf(e)}</span>
         </div>
+      )) : (
+        _canBackdate
+          ? <button onClick={() => { try { app.markHabitDay(h.id, selDay); } catch (e) {} }} className="tap" data-haptic="selection"
+              style={{ marginTop: 7, border: 0, borderRadius: 999, padding: "6px 13px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", color: "#B4820A", background: "rgba(240,195,10,0.13)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <I.Check size={11} strokeWidth={3} color="#B4820A" />Отметить · без XP
+            </button>
+          : <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 7 }}>{selDay === _todayK ? "отметок ещё нет" : "отметок не было"}</div>
       )}
     </div>
   );
 
-  // ИСТОРИЯ ОТМЕТОК «под всем»: последние дни с отметками, новые сверху; тап — телепорт в день.
+  // ИСТОРИЯ — одна тихая строка НА ДЕНЬ («15 июля · Ты 07:12»), новые сверху; тап — телепорт.
   const _histDays = {};
   _logDays.forEach((k) => { _histDays[k] = 1; });
   if (_isQuant && h.counts) Object.keys(h.counts).forEach((k) => { if (h.counts[k] > 0 && /^\d{4}-\d{2}-\d{2}$/.test(k)) _histDays[k] = 1; });
   if (_shared) buddies.forEach((m) => { if (!m.me && m.days) Object.keys(m.days).forEach((k) => { if (m.days[k] && /^\d{4}-\d{2}-\d{2}$/.test(k)) _histDays[k] = 1; }); });
   const _histKeys = Object.keys(_histDays).filter((k) => k <= _todayK).sort().reverse().slice(0, 14);
-  const histRows = [];
-  _histKeys.forEach((k) => { _entriesFor(k).forEach((e) => histRows.push(Object.assign({}, e, { day: k }))); });
+  const histDays = _histKeys.map((k) => ({ k, sum: _entriesFor(k).map((e) => e.who + (e.late ? " · задним числом" : (e.time ? " · " + e.time : ""))).join("  ·  ") })).filter((d) => d.sum);
 
-  // Чипы: сделано · серия · лучшая · всего (данные старого трио — теперь языком чипов).
+  // Чипы — только ЖИВЫЕ золотые («✓ в 07:12», серия); «лучшая/всего» уходят тихой строкой
+  // к заголовку календаря (David 2026-07-22: меньше соревнующихся за внимание пилюль).
   const chips = [];
-  if (h.done || (_isQuant && _qCount >= _qGoal)) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color="#B4820A" />, " сегодня сделано"] });
+  const _todayMinLbl = _fmtMin(_myMin(_todayK));
+  if (h.done || (_isQuant && _qCount >= _qGoal)) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color="#B4820A" />, _todayMinLbl ? " в " + _todayMinLbl : " сделано"] });
   if (streak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />, " серия " + streak] });
-  if (best > 0) chips.push({ node: "лучшая " + best });
-  if (total > 0) chips.push({ node: "всего " + total });
+  const calExtra = [best > 0 ? "лучшая " + best : null, total > 0 ? "всего " + total : null].filter(Boolean).join(" · ") || null;
 
   // «Кто со мной» (ступень 2) — кружочки ровной сеткой, как люди в целях (David 2026-07-16:
   // «пусть выглядят как в целях люди — просто кружочки, ряды»): сделал сегодня — цветной,
@@ -255,23 +245,23 @@ function HabitDetailLive() {
   // сливался с круглыми кнопками навигации сверху). Булева привычка — кнопка-пилюля; счётная/
   // таймер — их живой контрол по центру блока (у них свой жест). XP и празднования — как раньше
   // (детекторы в AppProvider срабатывают на toggleHabit, не на этой кнопке).
+  // Отметка = ТОТ ЖЕ живой контрол, что на внешней карточке (HabitCheck / счётчик / таймер) —
+  // один язык жеста на всё приложение (David 2026-07-22: «на внешних всё по-другому»).
   const _isTimer = h.duration > 0 && !_isQuant;
-  const primary = (_isTimer && typeof HabitTimerCheck === "function")
-    ? <div style={{ display: "flex", justifyContent: "center", padding: "2px 0", transform: "scale(1.15)", transformOrigin: "center" }}><HabitTimerCheck habit={h} app={app} xp={10} /></div>
+  const check = (_isTimer && typeof HabitTimerCheck === "function")
+    ? <HabitTimerCheck habit={h} app={app} xp={10} />
     : (_isQuant && typeof HabitCountCheck === "function")
-      ? <div style={{ display: "flex", justifyContent: "center", padding: "2px 0", transform: "scale(1.1)", transformOrigin: "center" }}><HabitCountCheck habit={h} app={app} xp={10} /></div>
-      : <BosMarkButtonLive done={h.done} isDark={isDark} label="Отметить сегодня" doneLabel="Сегодня отмечено"
-          onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} />;
+      ? <HabitCountCheck habit={h} app={app} xp={10} />
+      : <HabitCheck done={!!h.done} color={accent} dark={isDark} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} />;
 
   const model = {
     emoji: h.emoji, color: accent, name: h.name,
     ctx: (_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
       + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : ""),
-    chips, thread, unified: true, primary,
-    // Календарь-герой: ОДИН месяц (неделя/год убраны — David 2026-07-22), золотой градиент,
-    // тап по дню телепортирует в панель дня прямо под календарём.
-    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent, onDayTap: (k) => setSelDay(k) },
-    rhythmBelow: dayPanel,
+    chips, thread, unified: true, check,
+    // Календарь-герой: ОДИН месяц (неделя/год убраны — David 2026-07-22), золотой градиент;
+    // тап по дню — телепорт, панель дня живёт ВНУТРИ этой же карточки (belowNode).
+    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent, onDayTap: (k) => setSelDay(k), belowNode: dayNode },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 
@@ -287,29 +277,23 @@ function HabitDetailLive() {
         </div>
       } />
       <BosHabitStandardBodyLive model={model} isDark={isDark} />
-      {/* История отметок — журнал «кто во сколько» под всем (David 2026-07-22); тап по строке —
-          тот же телепорт, что тап по дню в календаре. */}
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 4px 8px" }}>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>История отметок</span>
-        {histRows.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>тап — в тот день</span>}
-      </div>
-      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: histRows.length ? "4px 14px" : "12px 14px" }}>
-        {histRows.length ? histRows.slice(0, 25).map((e, i) => (
-          <button key={i} onClick={() => setSelDay(e.day)} className="tap" data-haptic="selection"
-            style={{ display: "flex", width: "100%", textAlign: "left", alignItems: "center", gap: 10, border: 0, background: "transparent", cursor: "pointer", padding: "9px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)") : "none" }}>
-            <span style={{ width: 62, flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: "var(--text-4)" }}>{_dayLbl(e.day, true)}</span>
-            {e.me
-              ? <span style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)" }}><I.Check size={11} strokeWidth={3} color="#4a3400" /></span>
-              : (e.avatar
-                ? <img src={e.avatar} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                : <span style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{("" + (e.who || "?")).slice(0, 1)}</span>)}
-            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.who}</span>
-            {e.late
-              ? <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap" }}>задним числом</span>
-              : (e.time ? <span style={{ fontSize: 11.5, fontWeight: 700, color: isDark ? "#FEDE34" : "#B4820A" }}>{e.time}</span> : null)}
-          </button>
-        )) : <div style={{ fontSize: 12, color: "var(--text-4)" }}>пока пусто — первая отметка появится здесь</div>}
-      </div>
+      {/* История — одна тихая строка на день, тап = телепорт в день (пустая — блока нет). */}
+      {histDays.length > 0 && (
+        <React.Fragment>
+          <div style={{ padding: "16px 4px 8px" }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>История</span>
+          </div>
+          <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "4px 14px" }}>
+            {histDays.map((d, i) => (
+              <button key={d.k} onClick={() => setSelDay(d.k)} className="tap" data-haptic="selection"
+                style={{ display: "flex", width: "100%", textAlign: "left", alignItems: "center", gap: 10, border: 0, background: "transparent", cursor: "pointer", padding: "9px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") : "none" }}>
+                <span style={{ width: 60, flexShrink: 0, fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{_dayLbl(d.k, true)}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.sum}</span>
+              </button>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }
