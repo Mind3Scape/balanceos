@@ -71,71 +71,6 @@ function BosRoomH2({ children, extra }) {
   );
 }
 
-// Меню лонгтапа по привычке круга (владелец): Редактировать / Удалить (двухшаговое
-// подтверждение прямо в кнопке) / Отмена. Открывается из CircleRoomLive._lpFire.
-function CircleHabitMenuSheetLive({ h, isDark, onEdit, onDelete }) {
-  const sheet = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
-  const [ask, setAsk] = React.useState(false);
-  const btn = (label, tone, fn) => (
-    <button onClick={fn} className="tap" style={{
-      width: "100%", border: 0, cursor: "pointer", borderRadius: 14, padding: "13px 14px", marginTop: 8,
-      fontSize: 14.5, fontWeight: 600, textAlign: "center",
-      background: tone === "danger" ? "rgba(255,90,95,0.12)" : (tone === "plain" ? "transparent" : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)")),
-      color: tone === "danger" ? "#e03e44" : (tone === "plain" ? "var(--text-4)" : "var(--text)"),
-    }}>{label}</button>
-  );
-  return (
-    <div style={{ padding: "4px 18px 18px", color: "var(--text)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "6px 2px 10px" }}>
-        <span style={{ width: 38, height: 38, borderRadius: 12, background: (h.color || "#0a0a0a") + "1a", display: "grid", placeItems: "center", flexShrink: 0 }}>{bosIcon(h.emoji, 19, h.color)}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
-          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>привычка круга</div>
-        </div>
-      </div>
-      {btn("Редактировать", null, () => { try { sheet.close(); } catch (e) {} setTimeout(onEdit, 80); })}
-      {btn(ask ? "Точно удалить? Отметки круга по ней пропадут" : "Удалить из круга", "danger", () => {
-        if (!ask) { setAsk(true); return; }
-        try { sheet.close(); } catch (e) {}
-        setTimeout(onDelete, 80);
-      })}
-      {btn("Отмена", "plain", () => { try { sheet.close(); } catch (e) {} })}
-    </div>
-  );
-}
-
-// Меню лонгтапа по ДЕЛУ круга (владелец): Удалить (двухшаговое подтверждение) / Отмена.
-// (David 2026-07-20: «создал задачу фото завтрака, а удалить не могу»).
-function CircleTaskMenuSheetLive({ tk, isDark, onDelete }) {
-  const sheet = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
-  const [ask, setAsk] = React.useState(false);
-  const btn = (label, tone, fn) => (
-    <button onClick={fn} className="tap" style={{
-      width: "100%", border: 0, cursor: "pointer", borderRadius: 14, padding: "13px 14px", marginTop: 8,
-      fontSize: 14.5, fontWeight: 600, textAlign: "center",
-      background: tone === "danger" ? "rgba(255,90,95,0.12)" : (tone === "plain" ? "transparent" : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)")),
-      color: tone === "danger" ? "#e03e44" : (tone === "plain" ? "var(--text-4)" : "var(--text)"),
-    }}>{label}</button>
-  );
-  return (
-    <div style={{ padding: "4px 18px 18px", color: "var(--text)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "6px 2px 10px" }}>
-        <span style={{ width: 38, height: 38, borderRadius: 12, background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flag size={17} strokeWidth={2.1} color="var(--text-2)" /></span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tk.text}</div>
-          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>дело круга</div>
-        </div>
-      </div>
-      {btn(ask ? "Точно удалить? Отметки круга по нему пропадут" : "Удалить из круга", "danger", () => {
-        if (!ask) { setAsk(true); return; }
-        try { sheet.close(); } catch (e) {}
-        setTimeout(onDelete, 80);
-      })}
-      {btn("Отмена", "plain", () => { try { sheet.close(); } catch (e) {} })}
-    </div>
-  );
-}
-
 /* Строка списка привычек/дел. Кружок = отметить; тело строки = аккордеон статистики (onOpen).
    Шеврона нет намеренно (David: рука и так тянется тапнуть) — строка раскрывается сама. */
 function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert }) {
@@ -451,38 +386,16 @@ function TeamDetailLive() {
   const openAddHabit = () => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} teamFor={{ team: t, suggestMain: !(teamHabits && teamHabits.length), onSave: saveTeamHabit, onDelete: removeTeamHabitH }} />);
   const openEditTeamHabit = (h) => openSheet(<HabitFormSheetLive mode="edit" navigate={navigate} habit={{ id: h.id, name: h.name, emoji: h.emoji, color: h.color || null, goalPerDay: h.goalPerDay || 1, duration: 0, isMain: !!h.isMain }} teamFor={{ team: t, onSave: saveTeamHabit, onDelete: removeTeamHabitH }} />);
 
-  // ЛОНГТАП по привычке круга (David 2026-07-16): владелец зажимает строку → меню
-  // «Редактировать / Удалить». Та же механика удержания, что на доске главной: ~480 мс
-  // без движения, хаптик, глотаем следующий click — строка не срабатывает как тап.
-  const _lpRef = React.useRef({ t: 0, x: 0, y: 0 });
-  const _lpSwallowClick = () => {
-    const kill = (e) => { e.stopPropagation(); e.preventDefault(); window.removeEventListener("click", kill, true); };
-    window.addEventListener("click", kill, true);
-    setTimeout(() => { try { window.removeEventListener("click", kill, true); } catch (e) {} }, 400);
-  };
-  const _lpFire = (h) => {
-    _lpSwallowClick();
-    if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e) {} }
-    openSheet(<CircleHabitMenuSheetLive h={h} isDark={isDark} onEdit={() => openEditTeamHabit(h)} onDelete={() => removeTeamHabitH(h.id)} />);
-  };
-  const _lpDown = (h) => (e) => {
-    _lpRef.current.x = e.clientX; _lpRef.current.y = e.clientY;
-    clearTimeout(_lpRef.current.t);
-    _lpRef.current.t = setTimeout(() => { _lpRef.current.t = 0; _lpFire(h); }, 480);
-  };
-  // Тот же лонгтап для ДЕЛА (владелец): удержание → меню «Удалить» (David 2026-07-20).
-  const _lpFireTask = (tk) => {
-    _lpSwallowClick();
-    if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e) {} }
-    openSheet(<CircleTaskMenuSheetLive tk={tk} isDark={isDark} onDelete={() => removeTeamTaskCloud(tk)} />);
-  };
-  const _lpDownTask = (tk) => (e) => {
-    _lpRef.current.x = e.clientX; _lpRef.current.y = e.clientY;
-    clearTimeout(_lpRef.current.t);
-    _lpRef.current.t = setTimeout(() => { _lpRef.current.t = 0; _lpFireTask(tk); }, 480);
-  };
-  const _lpMove = (e) => { const r = _lpRef.current; if (r.t && (Math.abs(e.clientX - r.x) > 9 || Math.abs(e.clientY - r.y) > 9)) { clearTimeout(r.t); r.t = 0; } };
-  const _lpEnd = () => { clearTimeout(_lpRef.current.t); _lpRef.current.t = 0; };
+  // СВАЙП ВЛЕВО по строке круга (David 2026-07-22: «лонгтап-шторка не прикольно — свайп влево
+  // на любой привычке/деле, там кнопки редактировать и удалить»). Владельцу — тот же SwipeRow,
+  // что на доске главной; удаление прямое (свайп + тап по красной = осознанный жест).
+  const _habitSwipe = (h) => [
+    { key: "edit", label: "Изменить", icon: I.Pencil, tone: "share", onAction: () => openEditTeamHabit(h) },
+    { key: "del", label: "Удалить", icon: I.Trash, tone: "delete", onAction: () => removeTeamHabitH(h.id) },
+  ];
+  const _taskSwipe = (tk) => [
+    { key: "del", label: "Удалить", icon: I.Trash, tone: "delete", onAction: () => removeTeamTaskCloud(tk) },
+  ];
 
   // Дела круга (разовые, kind='task') — строки «Моего дня» с меткой. Просьбы Э3 — в архиве.
   const [teamTaskData, setTeamTaskData] = React.useState(() => _bosTeamGet("tasks:" + t.cloudId));
@@ -920,20 +833,18 @@ function TeamDetailLive() {
     const done = myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const opened = openHabit === h.id;
-    dayList.push(
-      // Обёртка-лонгтап: только владелец; удержание → меню «Редактировать / Удалить».
-      <div key={"h" + (h.id || i)}
-        onPointerDown={_isOwner ? _lpDown(h) : undefined} onPointerMove={_isOwner ? _lpMove : undefined}
-        onPointerUp={_isOwner ? _lpEnd : undefined} onPointerCancel={_isOwner ? _lpEnd : undefined}
-        onContextMenu={_isOwner ? (e) => { e.preventDefault(); _lpEnd(); _lpFire(h); } : undefined}>
-        <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
-          icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
-          name={h.name} faces={facesH}
-          on={done} inert={!_live}
-          onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
-          onOpen={() => setOpenHabit(opened ? null : h.id)} />
-      </div>
+    const _hRow = (
+      <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
+        icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
+        name={h.name} faces={facesH}
+        on={done} inert={!_live}
+        onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
+        onOpen={() => setOpenHabit(opened ? null : h.id)} />
     );
+    // Свайп влево (владелец) → «Изменить · Удалить»; остальным — обычная строка.
+    dayList.push(_isOwner
+      ? <SwipeRow key={"h" + (h.id || i)} rowBg="var(--card)" dark={isDark} actionWidth={54} actionSize={32} actions={_habitSwipe(h)}>{_hRow}</SwipeRow>
+      : <div key={"h" + (h.id || i)}>{_hRow}</div>);
     // АККОРДЕОН (David 2026-07-16: «не на отдельную вкладку — привычка раскрывается вниз,
     // и видно всё, что в неё входит, как в макетах»): тап по строке → статистика тут же.
     if (opened) dayList.push(
@@ -941,26 +852,23 @@ function TeamDetailLive() {
         <HabitStandardSheetLive bare mode="circle" habit={h} team={t} members={members} meId={meId} levels={levels}
           rangeRows={rangeRows} dayRows={dayRows} done={done}
           onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
-          onEdit={_isOwner ? () => openEditTeamHabit(h) : null} onPerson={openPerson} isDark={isDark} />
+          onEdit={null} onPerson={openPerson} isDark={isDark} />
       </div>
     );
   });
   if (listTab === "tasks") _teamTasks.forEach((tk, i) => {
     const facesT = (Array.isArray(tk.doneUsers) ? tk.doneUsers : []).map((u) => rosterById[u]).filter(Boolean);
-    dayList.push(
-      // Обёртка-лонгтап (владелец): удержание → «Удалить» (David: «фото завтрака не удалить»).
-      // Метка «дело» убрана — вкладка «Дела» уже говорит, что это.
-      <div key={"t" + tk.id}
-        onPointerDown={_isOwner ? _lpDownTask(tk) : undefined} onPointerMove={_isOwner ? _lpMove : undefined}
-        onPointerUp={_isOwner ? _lpEnd : undefined} onPointerCancel={_isOwner ? _lpEnd : undefined}
-        onContextMenu={_isOwner ? (e) => { e.preventDefault(); _lpEnd(); _lpFireTask(tk); } : undefined}>
-        <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
-          icon={<I.Flag size={16} strokeWidth={2.2} color="var(--text-2)" />} name={tk.text}
-          faces={facesT}
-          on={!!tk.doneByMe} inert={!_live}
-          onToggle={() => toggleMyTeamTask(tk)} />
-      </div>
+    const _tRow = (
+      <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
+        icon={<I.Flag size={16} strokeWidth={2.2} color="var(--text-2)" />} name={tk.text}
+        faces={facesT}
+        on={!!tk.doneByMe} inert={!_live}
+        onToggle={() => toggleMyTeamTask(tk)} />
     );
+    // Свайп влево (владелец) → «Удалить» (David: «фото завтрака не удалить»); метки «дело» нет — вкладка сама говорит.
+    dayList.push(_isOwner
+      ? <SwipeRow key={"t" + tk.id} rowBg="var(--card)" dark={isDark} actionWidth={54} actionSize={32} actions={_taskSwipe(tk)}>{_tRow}</SwipeRow>
+      : <div key={"t" + tk.id}>{_tRow}</div>);
   });
 
   return (

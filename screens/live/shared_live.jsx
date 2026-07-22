@@ -4891,7 +4891,11 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
   const refs = React.useRef({});
   const g = React.useRef(null); // live gesture (avoids stale closures)
   const idsKey = (ids || []).join("|");
-  React.useEffect(() => { if (!g.current) setOrder(ids || []); }, [idsKey]);
+  // useLayoutEffect, НЕ useEffect (David 2026-07-22: «при переключении Привычки/Цели что-то
+  // проскакивает — наезжает на тумблер и падает вниз»): обычный effect синкает order ПОСЛЕ
+  // пейнта → один кадр рисуется СТАРАЯ вкладка (и пилюля-прослойка прыгает в хвост через
+  // tail-sep), потом второй кадр — правильная. Layout-effect синкает ДО пейнта — призрака нет.
+  React.useLayoutEffect(() => { if (!g.current) setOrder(ids || []); }, [idsKey]);
   // Let the parent flip us into reorder mode from the long-press menu («Переставить плитки»).
   React.useEffect(() => { if (ctlRef) ctlRef.current = { enterReorder: () => setMode(true), exit: () => setMode(false) }; }, [ctlRef]);
 

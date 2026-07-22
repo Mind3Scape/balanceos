@@ -127,7 +127,7 @@ function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthCel
       {/* bare (аккордеон в белой карточке): блок цвета ЗАДНЕГО ФОНА, не белый-на-белом,
           от которого читалась одна окантовка (David 2026-07-17). belowNode — продолжение
           ВНУТРИ карточки (панель выбранного дня): календарь и день = один рассказ, не два ящика. */}
-      <div style={{ background: bare ? (isDark ? "#151517" : "var(--bg, #f2f2f4)") : "var(--card)", borderRadius: 18, boxShadow: bare ? "none" : "var(--card-shadow)", padding: "13px 14px" }}>
+      <div style={{ background: bare ? (isDark ? "rgba(255,255,255,0.035)" : "rgba(10,10,10,0.028)") : "var(--card)", borderRadius: 18, boxShadow: bare ? "none" : "var(--card-shadow)", padding: "13px 14px" }}>
         {body}
         {belowNode ? <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.06)") }}>{belowNode}</div> : null}
       </div>
@@ -147,8 +147,10 @@ function BosHabitStandardBodyLive({ model, isDark }) {
   const m = model;
   // В bare-аккордеоне внутренние блоки — цвета заднего фона страницы (серые), иначе они
   // белые внутри белой карточки и видна только окантовка (David 2026-07-17).
+  // bare-аккордеон (David 2026-07-22: «серый слишком серее фона — помягче, ненавязчиво»):
+  // еле-заметная полупрозрачная заливка вместо плотного var(--bg), которое читалось темнее.
   const blockCard = m.bare
-    ? { background: isDark ? "#151517" : "var(--bg, #f2f2f4)", borderRadius: 18, boxShadow: "none" }
+    ? { background: isDark ? "rgba(255,255,255,0.035)" : "rgba(10,10,10,0.028)", borderRadius: 18, boxShadow: "none" }
     : { background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)" };
   const h2 = (txt, extra) => (
     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 4px 8px" }}>
