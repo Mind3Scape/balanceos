@@ -1442,15 +1442,21 @@ function CirclePersonSheetLive({ team, person, meId, habits, rangeRows, dayRows,
         )) : <div style={{ fontSize: 12, color: "var(--text-4)", padding: "10px 2px" }}>В круге пока нет общих привычек</div>}
       </div>
 
-      <BosRoomH2 extra={<span style={{ fontSize: 10.5, color: "var(--text-4)" }}>кольцо = доля дел дня</span>}>{monthName}</BosRoomH2>
+      <BosRoomH2 extra={<span style={{ fontSize: 10.5, color: "var(--text-4)" }}>золото = доля дел дня</span>}>{monthName}</BosRoomH2>
       <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "13px 14px" }}>
+        {/* СТАНДАРТ календаря (David 2026-07-22): золото = наполненность, «сегодня» — серая заливка. */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, justifyItems: "center" }}>
-          {Array.from({ length: dim }).map((_, i) => (
-            <span key={i} style={{ position: "relative", width: 26, height: 26, display: "grid", placeItems: "center" }}>
-              <span style={{ position: "absolute", inset: 0 }}>{bosDayRing(dayPct(i + 1), BOS_ROOM_GOLD, isDark, { sw: 3.4 })}</span>
-              <span style={{ fontSize: 8, fontWeight: 700, color: "var(--text-4)", position: "relative" }}>{i + 1}</span>
-            </span>
-          ))}
+          {Array.from({ length: dim }).map((_, i) => {
+            const _tdy = i + 1 === now.getDate();
+            const _fut = i + 1 > now.getDate();
+            const _pct = _fut ? 0 : dayPct(i + 1);
+            return (
+              <span key={i} style={{ position: "relative", width: 26, height: 26, display: "grid", placeItems: "center", opacity: _fut ? 0.35 : 1 }}>
+                <span style={{ position: "absolute", inset: 0 }}>{bosDayRing(_pct, BOS_ROOM_GOLD, isDark, { sw: 3.4, gold: true, today: _tdy })}</span>
+                <span style={{ fontSize: 8, fontWeight: _tdy ? 800 : 700, color: _pct >= 1 ? "#6b4e00" : (_tdy ? "var(--text)" : "var(--text-4)"), position: "relative" }}>{i + 1}</span>
+              </span>
+            );
+          })}
         </div>
       </div>
 

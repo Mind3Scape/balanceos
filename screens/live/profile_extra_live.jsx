@@ -914,19 +914,11 @@ function HistoryLive() {
   };
 
   const [selDay, setSelDay] = useP(today);
-  // «Компактно» (minimalist, default) ↔ «Подробно» — the SAME eye toggle as the habit-detail
-  // calendar (David: «минималистичный вид + переключение как в привычках»).
-  const [compact, setCompact] = useP(true);
 
   const blanks = Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i }));
   const days = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }));
   const cells = [...blanks, ...days];
   const weekday = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
-  // Heat-cell tokens for the squircle calendar — graphite fill by completion, grey glass rings,
-  // no gold (David: золото на дне не подходит → серое стекло; единый язык с деталью привычки).
-  const cellFut    = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)";
-  const todayRingC = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)";
-  const selRingC   = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
 
   // The live user's REAL habits + whether each was logged on the selected date.
   const liveDayHabits = (d) => liveHabits.map((h) => ({ e: h.emoji || "✨", n: h.name || "Привычка", on: !!(h && h.log && h.log[iso(d)]) }));
@@ -966,85 +958,47 @@ function HistoryLive() {
         { l: "Отметок", v: Math.round(totalDone), suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
       ]} />
 
-      {/* Month calendar — minimalist by default («Компактно»): just a glanceable squircle heat-grid,
-          no numbers / nav / legend. The eye toggle flips to «Подробно» (numbers + month nav + legend +
-          the day breakdown below) — the SAME toggle as the habit-detail calendar (David: «как в
-          привычках»). No mood pip on the dates anymore (David: «ор сверху на датах не нравится»). */}
+      {/* Month calendar — СТАНДАРТ календаря приложения (David 2026-07-22, канон v808):
+          золотые кольца-заполнения bosDayRing (золото = наполненность дня), «сегодня» — серая
+          заливка, тап по дню — телепорт в панель дня ниже (состояние · журнал · привычки =
+          «история в один день»). Глазик и легенда убраны — один подробный вид. */}
       <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22, transform: "translateZ(0)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          {compact
-            ? <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
-            : <span />}
-          <button onClick={() => setCompact(c => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: TH.chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-            <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Компактно"}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={() => setMIdx(m => Math.max(0, m - 1))} disabled={mIdx === 0} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
+            <I.ChevronLeft size={16}/>
+          </button>
+          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
+          <button onClick={() => setMIdx(m => Math.min(11, m + 1))} disabled={mIdx === 11} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
+            <I.ChevronRight size={16}/>
           </button>
         </div>
 
-        {!compact && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <button onClick={() => setMIdx(m => Math.max(0, m - 1))} disabled={mIdx === 0} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
-              <I.ChevronLeft size={16}/>
-            </button>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
-            <button onClick={() => setMIdx(m => Math.min(11, m + 1))} disabled={mIdx === 11} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
-              <I.ChevronRight size={16}/>
-            </button>
-          </div>
-        )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "14px auto 0" }}>
+          {weekday.map((w, i) => (
+            <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6 }}>{w}</div>
+          ))}
+        </div>
 
-        {!compact && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "14px auto 0" }}>
-            {weekday.map((w, i) => (
-              <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6 }}>{w}</div>
-            ))}
-          </div>
-        )}
-
-        {/* Day cells — SQUIRCLE heat-tiles filled in graphite by the day's completion share. Compact =
-            glanceable (no numbers, not tappable); detailed = numbered + tap to inspect below. Today
-            keeps a grey glass ring in both modes; the picked day gets a grey ring in detailed. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "6px auto 0" }}>
           {cells.map(c => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }}/>;
             const pct = completion(c.d);
             const fut = pct == null;
             const isSelected = selDay === c.d;
             const isToday = isCurMonth && c.d === today;
-            const filled = !fut && pct > 0;
-            const bg = fut ? cellFut : (pct <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", pct));
-            const ink = fut ? TH.cellMuted : (pct <= 0 ? TH.cellText : bosCellInk("#0a0a0a", pct, isDark));
-            const ring = isToday ? todayRingC : ((!compact && isSelected) ? selRingC : null);
-            const sh = [filled ? bosCellGlass(isDark) : "", ring ? ("0 0 0 1.6px " + ring) : ""].filter(Boolean).join(", ") || "none";
             return (
-              <button key={c.key} onClick={compact ? undefined : () => setSelDay(c.d)} className="tap"
-                style={{
-                  aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0,
-                  display: "grid", placeItems: "center", position: "relative",
-                  fontSize: 12.5, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
-                  background: bg, boxShadow: sh, color: ink,
-                }}>
-                {!compact && !fut && <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>}
+              <button key={c.key} onClick={fut ? undefined : () => setSelDay(c.d)} className="tap" data-haptic="selection"
+                style={{ aspectRatio: "1/1", border: 0, background: "transparent", padding: 0, position: "relative", display: "grid", placeItems: "center", cursor: fut ? "default" : "pointer", opacity: fut ? 0.35 : 1 }}>
+                <span aria-hidden style={{ position: "absolute", inset: 0 }}>{bosDayRing(fut ? 0 : pct, null, isDark, { sw: 3.6, gold: true, today: isToday, sel: isSelected && !isToday })}</span>
+                <span style={{ position: "relative", fontSize: 11, fontWeight: isToday ? 800 : 600, color: (!fut && pct >= 1) ? "#6b4e00" : (isToday ? "var(--text)" : "var(--text-4)") }}>{c.d}</span>
               </button>
             );
           })}
         </div>
-
-        {!compact && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
-            <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Меньше</span>
-            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-              {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
-                <span key={i} style={{ width: 15, height: 15, borderRadius: "50%", background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p), boxShadow: p > 0 ? bosCellGlass(isDark) : "none" }} />
-              ))}
-            </div>
-            <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Больше</span>
-          </div>
-        )}
       </SysCard>
 
-      {/* Day detail — only in «Подробно»; tap a day above to inspect it. */}
-      {!compact && (<>
+      {/* Панель дня — «история в один день»: % · состояние · журнал · привычки. Всегда видна
+          (по умолчанию сегодня), тап по дню календаря телепортирует сюда. */}
       <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>
         {monthName} {selDay} · {selPct == null ? "Будущее" : selPct === 1 ? "Идеальный день ✨" : selPct === 0 ? "Пропущен" : `${Math.round(selPct * 100)}%`}
       </div>
@@ -1119,7 +1073,6 @@ function HistoryLive() {
           </>
         )}
       </SysCard>
-      </>)}
       </>)}
     </div>
   );

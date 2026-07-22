@@ -673,9 +673,11 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const selPerson = selProp !== undefined ? selProp : selInner;
   const setSelPerson = (v) => { if (onSelPerson) onSelPerson(v); else setSelInner(v); };
   const [selDay, setSelDay] = React.useState(today);
-  const [compact, setCompact] = React.useState(true); // «красиво» (default, just cells) ↔ «подробно» по глазику
-  const [view, setView] = React.useState(defaultView); // Неделя · Месяц · Год — один кружок-день в трёх масштабах (David). defaultView — проп на экран (детальная привычка = «year»), у целей/личного остаётся «month» → соседи не задеты.
-  const [scopeOpen, setScopeOpen] = React.useState(false); // Пилюля срока: свёрнута → «текущий срок ⌄», тап раскрывает Неделя|Месяц|Год, выбор сворачивает.
+  // СТАНДАРТ КАЛЕНДАРЯ (David 2026-07-22): один МЕСЯЦ (неделя/год убраны «пока»), подробный
+  // вид всегда (числа + тап по дню), золото = наполненность. Глазик и пилюля срока убраны.
+  const [compact, setCompact] = React.useState(false);
+  const [view, setView] = React.useState("month");
+  const [scopeOpen, setScopeOpen] = React.useState(false);
   const daysInMonth = new Date(year, mIdx + 1, 0).getDate();
   const startWeekday = new Date(year, mIdx, 1).getDay();
   const isCurMonth = mIdx === CUR_M;
@@ -801,42 +803,8 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   return (
     <>
       <div style={bare ? { padding: 0 } : { background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: label ? 12 : 0 }}>
-        {/* Без заголовка (David: «„Календарь привычки“ убрать — и так понятно»). Переключатель Месяц·Год
-            (неделя живёт на карточке) + глазик «Компактно/Подробно» — РАБОТАЕТ В ОБОИХ режимах:
-            по умолчанию минимализм (без подписей/чисел), по глазику — месяцы/числа. */}
-        {/* Компактный переключатель масштаба (David): сегменты + глазик-кнопка (только иконка,
-            залита когда «Подробно»). Чипы людей переехали ВНИЗ, под календарь. */}
-        <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 12 }}>
-          {!scopeOpen && (
-            /* Период СЛЕВА — как в макете («Декабрь 2025» / «2025 год»), контролы справа. */
-            <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px", color: lblCol, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {view === "year" ? (year + " год") : (view === "week" ? "Эта неделя" : (MONTHS[mIdx] + " " + year))}
-            </div>
-          )}
-          {!scopeOpen ? (
-            /* Тихая пилюля СПРАВА (David: «год должен быть справа, как в макете»): срок + галка ⌄. Тап
-               раскрывает сегмент. Это НЕ «глазик» (глаз = плотность, отдельная ось). */
-            <button onClick={() => setScopeOpen(true)} className="tap" data-no-haptic aria-label="Сменить срок"
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, border: 0, cursor: "pointer", background: chip2, color: tintInk || "var(--text-2)", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px", flexShrink: 0 }}>
-              {({ week: "Неделя", month: "Месяц", year: "Год" })[view]}
-              <span style={{ fontSize: 11, opacity: 0.55, transform: "translateY(-1px)" }}>⌄</span>
-            </button>
-          ) : (
-            /* Раскрытый сегмент занимает строку; выбор срока сворачивает обратно. Пружинный pop (WAAPI). */
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div ref={(el) => { if (el) { try { el.animate([{ opacity: 0, transform: "scale(0.75)" }, { opacity: 1, transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(0.2,1.3,0.4,1)" }); } catch (_) {} } }}
-                style={{ display: "flex", gap: 2, background: chip2, borderRadius: 11, padding: 2.5 }}>
-                {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
-                  <button key={v} onClick={() => { setView(v); setScopeOpen(false); }} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "5px 0", fontSize: 12.5, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : (tintInk || "var(--text-2)"), transition: "background 0.15s" }}>{l}</button>
-                ))}
-              </div>
-            </div>
-          )}
-          <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
-            style={{ display: "grid", placeItems: "center", background: compact ? chip2 : (isDark ? "#fff" : "#0a0a0a"), border: 0, borderRadius: 999, width: 32, height: 32, cursor: "pointer", flexShrink: 0, transition: "background 0.15s" }}>
-            <I.Eye size={15} filled={!compact} color={compact ? (tintInk || "var(--text-3)") : (isDark ? "#0a0a0a" : "#fff")} />
-          </button>
-        </div>
+        {/* СТАНДАРТ (David 2026-07-22): пилюля Неделя·Месяц·Год и глазик убраны — один месяц,
+            подробный вид всегда; заголовок-месяц живёт в строке навигации ниже (стрелки ‹ ›). */}
 
         {view === "week" && (
           <div ref={weekGridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 7, width: "100%", maxWidth: 300, margin: "0 auto" }}>
@@ -918,10 +886,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                 aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center",
                 fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: (itx || !compact) ? "pointer" : "default",
                 background: "transparent", color: ringInk, position: "relative" }}>
-                <span aria-hidden style={{ position: "absolute", inset: 0, opacity: mOff ? 0.38 : 1 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { today: isToday, sel: (!compact && isSel && !isToday) })}</span>
+                <span aria-hidden style={{ position: "absolute", inset: 0, opacity: mOff ? 0.38 : 1 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { gold: true, today: isToday, sel: (!compact && isSel && !isToday) })}</span>
                 {(itx && done)
-                  ? <span style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}><I.Check size={14} strokeWidth={3} color={mchk} /></span>
-                  : (!compact && !fut && <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>)}
+                  ? <span style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}><I.Check size={14} strokeWidth={3} color="#6b4e00" /></span>
+                  : (!compact && !fut && <span style={{ position: "relative", zIndex: 1, color: done ? "#6b4e00" : undefined }}>{c.d}</span>)}
               </button>
             );
           })}
@@ -8241,7 +8209,8 @@ function HomeWeekStripLive(props) {
         return (
           <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 7px 6px", borderRadius: 18, background: isToday ? todayCap : "transparent" }}>
-              <div style={{ width: 28, height: 28 }}>{bosDayRing(pct, "#0a0a0a", isDark, { sw: 4.9 })}</div>
+              {/* СТАНДАРТ (David 2026-07-22): золото = наполненность дня — и на виджете главной. */}
+              <div style={{ width: 28, height: 28 }}>{bosDayRing(pct, "#0a0a0a", isDark, { sw: 4.9, gold: true })}</div>
               <span style={{ fontSize: 10, fontWeight: 600, color: isToday ? "var(--text-2)" : "var(--text-4)", letterSpacing: "0.2px" }}>{WD[i]}</span>
             </div>
           </div>

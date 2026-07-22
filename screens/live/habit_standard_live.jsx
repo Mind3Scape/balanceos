@@ -321,39 +321,40 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
   React.useEffect(() => { setSelU((s) => (s == null ? meId : s)); }, [meId]);
   const selName = selU === meId ? "ты" : ((rosterById[selU] && rosterById[selU].name) || "");
   const todayK = bosRoomDayKey(0);
-  const wkKeys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : bosStdWeek().map((c) => c.k);
   const selDays = {}; (rangeRows || []).forEach((r) => { if (r.h === h.id && r.u === selU) selDays[r.day] = true; });
   if (selU === meId) { if (isDone) selDays[todayK] = true; else delete selDays[todayK]; } // сегодня — за оптимистичным тапом
-  const weekCells = wkKeys.map((k, i) => ({ pct: selDays[k] ? 1 : 0, l: ["П", "В", "С", "Ч", "П", "С", "В"][i], dim: k > todayK, today: k === todayK }));
-  // Месяц выбранного человека (rangeRows несёт 31 день — текущий месяц покрыт целиком).
+  // СТАНДАРТ КАЛЕНДАРЯ (David 2026-07-22): один месяц (неделя/год убраны «пока»), золото =
+  // наполненность, тап по дню — телепорт в панель дня НИЖЕ (кто из круга отметился в тот день).
+  const [selDayK, setSelDayK] = React.useState(todayK);
   const nowD = new Date();
   const dimM = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
   const monthCells = Array.from({ length: dimM }).map((_, i) => {
     const k = nowD.getFullYear() + "-" + String(nowD.getMonth() + 1).padStart(2, "0") + "-" + String(i + 1).padStart(2, "0");
-    return { pct: selDays[k] ? 1 : 0, dim: k > todayK, today: k === todayK };
+    return { pct: selDays[k] ? 1 : 0, dim: k > todayK, today: k === todayK, k, canTap: k <= todayK, sel: k === selDayK && k !== todayK };
   });
-  // Год выбранного человека — лениво при открытии вкладки «Год», кэш по человеку.
-  const [yearOpened, setYearOpened] = React.useState(false);
-  const [yearMap, setYearMap] = React.useState({});
-  React.useEffect(() => {
-    if (!yearOpened || !selU || !h.id || yearMap[selU]) return;
-    if (!(window.bosCloud && window.bosCloud.teamHabitYearOf)) return;
-    let on = true;
-    window.bosCloud.teamHabitYearOf(h.id, selU).then((d) => { if (on) setYearMap((m) => ({ ...m, [selU]: d || {} })); }).catch(() => {});
-    return () => { on = false; };
-  }, [yearOpened, selU, h.id]);
-  const selYear = yearMap[selU] || null;
-  const yearMonths = Array.from({ length: 12 }).map((_, mi) => {
-    const future = mi > nowD.getMonth();
-    if (future) return { frac: 0, future: true };
-    const dimY = new Date(nowD.getFullYear(), mi + 1, 0).getDate();
-    const den = mi === nowD.getMonth() ? nowD.getDate() : dimY;
-    let cnt = 0;
-    if (selYear) for (let d = 1; d <= dimY; d++) { const k = nowD.getFullYear() + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); if (selYear[k]) cnt++; }
-    return { frac: den ? Math.min(1, cnt / den) : 0, future: false };
-  });
+  // Панель дня круга: кто отметился в выбранный день (rangeRows несёт весь круг за 31 день).
+  const _dayUsers = {}; (rangeRows || []).forEach((r) => { if (r.h === h.id && r.day === selDayK) _dayUsers[r.u] = 1; });
+  if (selDayK === todayK) doneUsers.forEach((u) => { _dayUsers[u] = 1; });
+  const _dayFaces = Object.keys(_dayUsers).map((u) => rosterById[u]).filter(Boolean);
+  const _selDate = new Date(+selDayK.slice(0, 4), +selDayK.slice(5, 7) - 1, +selDayK.slice(8, 10));
+  const _selLbl = BOS_DOW_RU[_selDate.getDay()] + ", " + _selDate.getDate() + " " + BOS_MON_GEN[_selDate.getMonth()];
+  const dayNode = selDayK === todayK ? null : (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{_selLbl}</span>
+        <button onClick={() => setSelDayK(todayK)} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11, fontWeight: 700, color: "var(--text-4)", cursor: "pointer" }}>сегодня</button>
+      </div>
+      {_dayFaces.length ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 8, flexWrap: "wrap" }}>
+          {_dayFaces.slice(0, 10).map((p) => <BosRoomFaceLive key={p.id} p={p} size={28} active isDark={isDark} />)}
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>{_dayFaces.length + " из " + membersN}</span>
+        </div>
+      ) : <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 7 }}>в этот день отметок не было</div>}
+    </div>
+  );
   // Порядок людей = живой лидерборд, как в «Людях» комнаты (David 2026-07-16): сегодняшние
   // слева, внутри — по дням ЭТОЙ привычки за неделю, молчащие серые — в хвост.
+  const wkKeys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : bosStdWeek().map((c) => c.k);
   const _wkH = {};
   { const wkSet = {}; wkKeys.forEach((k) => { wkSet[k] = 1; }); (rangeRows || []).forEach((r) => { if (r.h === h.id && wkSet[r.day]) _wkH[r.u] = (_wkH[r.u] || 0) + 1; }); }
   const _activeOf = (p) => (p.id === meId ? (isDone || !!byUserAt[p.id]) : !!byUserAt[p.id]);
@@ -402,7 +403,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
     // Нить «Сегодня» — И в аккордеоне (David 2026-07-16: «не хватает таймлайна активности,
     // как выше, но локально под эту привычку»): лица в свой час / волна на толпе.
     thread: thread,
-    rhythm: { title: "Ритм · " + (selName || "ты"), weekCells, monthCells, monthHint: "дни: " + (selName || "ты"), yearMonths, yearHint: (selName || "ты") + " · кольцо месяца = доля дней", onYearOpen: () => setYearOpened(true), accent: h.color && h.color !== "#0a0a0a" ? h.color : null },
+    rhythm: { title: "Календарь · " + (selName || "ты"), single: true, gold: true, monthCells, onDayTap: (k) => setSelDayK(k), belowNode: dayNode },
     peopleTitle: "Люди",
     peopleExtra: doneUsers.length + " из " + membersN + " сегодня",
     people: peopleGrid,
