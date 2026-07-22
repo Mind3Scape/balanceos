@@ -3751,11 +3751,13 @@ function BosBalanceWheelLive(props) {
   var _h2r = function (h) { h = h.replace("#", ""); return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; };
   var _r2h = function (a) { return "#" + a.map(function (x) { var s = Math.round(x).toString(16); return s.length < 2 ? "0" + s : s; }).join(""); };
   var _onScale = function (v, SC) { v = Math.max(SC[0][0], Math.min(1, v)); for (var i = 1; i < SC.length; i++) { if (v <= SC[i][0]) { var t = (v - SC[i - 1][0]) / (SC[i][0] - SC[i - 1][0]); var a = _h2r(SC[i - 1][1]), b = _h2r(SC[i][1]); return _r2h([_lerp(a[0], b[0], t), _lerp(a[1], b[1], t), _lerp(a[2], b[2], t)]); } } return SC[SC.length - 1][1]; };
-  var segCol = function (v) { return _onScale(v, [[0.3, "#F0EDE4"], [0.6, "#FAE39B"], [1, "#F6BC3C"]]); };
-  var edgeColW = function (v) { return _onScale(v, [[0.3, "#CFC9BB"], [0.5, "#E6C476"], [0.7, "#F5B62A"], [1, "#FBBF13"]]); };
-  var fillA = function (v) { return _onScale(v, [[0.3, "#E3DCCA"], [0.6, "#F6DC7E"], [1, "#FBBF13"]]); };
-  var fillB = function (v) { return _onScale(v, [[0.3, "#D6CDB8"], [0.6, "#EFC24A"], [1, "#EF9F14"]]); };
-  var opaFor = function (v) { return (0.10 + 0.26 * Math.max(0, Math.min(1, (v - 0.3) / 0.7))).toFixed(2); };
+  // Шкалы КРУЧЕ макета (David 2026-07-22: «на телефоне всё супер бледно»): реальные значения
+  // живут в середине шкалы, поэтому золото должно вспыхивать уже с ~0.55, а не только на пике.
+  var segCol = function (v) { return _onScale(v, [[0.3, "#EFE9DB"], [0.55, "#F9DC82"], [0.78, "#F6BC3C"], [1, "#F2A82A"]]); };
+  var edgeColW = function (v) { return _onScale(v, [[0.3, "#CFC9BB"], [0.45, "#E6C476"], [0.65, "#F5B62A"], [1, "#FBBF13"]]); };
+  var fillA = function (v) { return _onScale(v, [[0.3, "#E3DCCA"], [0.55, "#F6DC7E"], [1, "#FBBF13"]]); };
+  var fillB = function (v) { return _onScale(v, [[0.3, "#D6CDB8"], [0.55, "#EFC24A"], [1, "#EF9F14"]]); };
+  var opaFor = function (v) { return (0.14 + 0.34 * Math.max(0, Math.min(1, (v - 0.3) / 0.7))).toFixed(2); };
   var goldInk = dark ? "#F0C838" : "#C8930A";
   var iconCol = dark ? "#e8e8ea" : "#101828";
   var rowIcCol = dark ? "#c8c8cd" : "#57585f";
@@ -3820,7 +3822,7 @@ function BosBalanceWheelLive(props) {
       defs.push(<linearGradient key={"eg" + i} id={uid + "eg" + i} gradientUnits="userSpaceOnUse" x1={P1[0]} y1={P1[1]} x2={P2[0]} y2={P2[1]}>
         <stop offset="0" stopColor={edgeColW(SPH[i].v)} /><stop offset="1" stopColor={edgeColW(SPH[j].v)} /></linearGradient>);
       segs.push(<path key={"s" + i} d={"M0 0 L" + P1[0].toFixed(1) + " " + P1[1].toFixed(1) + " L" + P2[0].toFixed(1) + " " + P2[1].toFixed(1) + " Z"} fill={"url(#" + uid + "sg" + i + ")"} />);
-      edges.push(<path key={"e" + i} d={"M" + P1[0].toFixed(1) + " " + P1[1].toFixed(1) + " L" + P2[0].toFixed(1) + " " + P2[1].toFixed(1)} fill="none" stroke={"url(#" + uid + "eg" + i + ")"} strokeWidth="2.2" strokeLinecap="round" style={{ vectorEffect: "non-scaling-stroke" }} />);
+      edges.push(<path key={"e" + i} d={"M" + P1[0].toFixed(1) + " " + P1[1].toFixed(1) + " L" + P2[0].toFixed(1) + " " + P2[1].toFixed(1)} fill="none" stroke={"url(#" + uid + "eg" + i + ")"} strokeWidth="2.6" strokeLinecap="round" style={{ vectorEffect: "non-scaling-stroke" }} />);
     }
     var dotCol = dark ? "rgba(255,255,255,0.14)" : "rgba(20,20,30,0.10)";
     var dotCol2 = dark ? "rgba(255,255,255,0.08)" : "rgba(20,20,30,0.06)";
@@ -3830,7 +3832,7 @@ function BosBalanceWheelLive(props) {
     for (var d = 0; d < N * 6; d++) { var a2 = d * Math.PI / (N * 3); ideal.push(<circle key={"i" + d} cx={(Math.sin(a2) * OUT * TARGET).toFixed(1)} cy={(-Math.cos(a2) * OUT * TARGET).toFixed(1)} r="0.9" fill={idealCol} />); }
     SPH.forEach(function (s, i) {
       var p = pt2(i, OUT * Math.max(s.v, 0.06));
-      verts.push(<g key={"v" + i}><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="3.6" fill={dark ? "#1c1c20" : "#fff"} style={{ filter: "drop-shadow(0 1px 2px rgba(30,30,40,0.25))" }} /><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="2.1" fill={edgeColW(s.v)} /></g>);
+      verts.push(<g key={"v" + i}><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4" fill={dark ? "#1c1c20" : "#fff"} /><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="2.4" fill={edgeColW(s.v)} /></g>);
     });
     // Подписи: все сферы тихо; ЦИФРЫ — только у сильнейшей и слабейшей (лаконичность макета).
     SPH.forEach(function (s, i) {
@@ -3852,22 +3854,29 @@ function BosBalanceWheelLive(props) {
           {defs}
           <linearGradient id={uid + "gl"} x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stopColor="#ffffff" stopOpacity="0.75" /><stop offset="0.35" stopColor="#ffffff" stopOpacity="0.08" /><stop offset="1" stopColor="#ffffff" stopOpacity="0" /></linearGradient>
           <filter id={uid + "sf"} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="9" /></filter>
+          {/* Свечение контура — SVG-фильтром (CSS drop-shadow на <g> внутри svg на телефонах
+              часто игнорируется → контур без глоу и выглядел бледнее макета). */}
+          <filter id={uid + "eglow"} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         </defs>
         <g className="bw-field">{dots}{ideal}</g>
-        <polygon className="bw-shadow" points={dataPts} fill="rgba(214,150,20,0.16)" filter={"url(#" + uid + "sf)"} transform="translate(0 5) scale(0.985)" />
+        <polygon className="bw-shadow" points={dataPts} fill="rgba(214,150,20,0.18)" filter={"url(#" + uid + "sf)"} transform="translate(0 5) scale(0.985)" />
         {segs}
         <polygon className="bw-gloss" points={dataPts} fill={"url(#" + uid + "gl)"} opacity="0.35" />
-        <g style={{ filter: "drop-shadow(0 1px 3px rgba(200,140,20,0.35))" }}>{edges}</g>
+        <g filter={"url(#" + uid + "eglow)"}>{edges}</g>
         <g className="bw-verts">{verts}</g>
         <g className="bw-labels">{labs}</g>
       </svg>
     );
   })();
 
-  // Стекло-карта (макет: жидкое стекло с бликом; bare — без собственной карты)
+  // Стекло-карта (макет: жидкое стекло с бликом; bare — без собственной карты). Тёплые
+  // радиальные пятна — В СОСТАВЕ фона карты: в макете они жили на странице и просвечивали
+  // сквозь стекло, у приложения фон плоский серый → без них всё выглядело выцветшим (David).
   var glassCard = bare ? { padding: 0 } : {
     borderRadius: 28, padding: "18px 18px 20px", position: "relative",
-    background: dark ? "linear-gradient(165deg, rgba(46,47,54,0.78), rgba(28,29,34,0.66))" : "linear-gradient(165deg, rgba(255,255,255,0.78), rgba(255,255,255,0.5) 55%, rgba(255,255,255,0.64))",
+    background: dark
+      ? "linear-gradient(165deg, rgba(46,47,54,0.78), rgba(28,29,34,0.66)), radial-gradient(340px 240px at 18% 8%, rgba(254,222,52,0.10), transparent 70%), radial-gradient(420px 300px at 88% 30%, rgba(239,159,20,0.08), transparent 70%), #1c1d22"
+      : "linear-gradient(165deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42) 55%, rgba(255,255,255,0.58)), radial-gradient(340px 240px at 18% 8%, rgba(254,222,52,0.26), transparent 70%), radial-gradient(420px 300px at 88% 30%, rgba(239,159,20,0.18), transparent 72%), radial-gradient(360px 280px at 50% 100%, rgba(160,170,200,0.14), transparent 70%), #f4f5f8",
     WebkitBackdropFilter: "blur(24px) saturate(1.3)", backdropFilter: "blur(24px) saturate(1.3)",
     boxShadow: dark ? "0 22px 46px rgba(0,0,0,0.38), inset 0 1px 0.5px rgba(255,255,255,0.09)" : "0 22px 46px rgba(30,34,50,0.12), 0 2px 8px rgba(30,34,50,0.05), inset 0 1.5px 1px rgba(255,255,255,0.95), inset 0 0 0 0.6px rgba(255,255,255,0.6)"
   };
