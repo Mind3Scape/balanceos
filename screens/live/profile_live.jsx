@@ -97,11 +97,11 @@ function ProfileLive() {
     try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, lvlPct: lvlPct, habits: _pubHabits, goals: (app?.goals || []).length, people: orbitPeople.length, faces: _pubFaces }); } catch (e) {}
   }, [_pubSig]);
 
-  // Achievements badge — REAL earned set + emojis.
+  // Achievement preview — real earned orbital relics, never generic emoji.
   const _liveAch = bosEarnedAchievementsLive(app).filter((a) => a.earned);
   const _achTotal = BOS_ACHIEVEMENTS_LIVE.length;
   const _achEarnedN = _liveAch.length;
-  const _achEmojis = _liveAch.slice(0, 3).map((a) => a.i);
+  const _achPreview = _liveAch.slice(-3).reverse();
   const _achCircles = livePeople.length;
   const isDark = app?.themeOverride === "dark";
   const [universeOpen, setUniverseOpen] = React.useState(false); // зум-аут в «Вселенную»
@@ -184,7 +184,7 @@ function ProfileLive() {
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{_achEarnedN + " из " + _achTotal + (_achEarnedN === 0 ? " · открой первую" : "")}</div>
           </div>
           <div style={{ display: "flex", marginRight: 4 }}>
-            {_achEmojis.map((e, i) => <span key={i} style={{ width: 24, height: 24, borderRadius: 7, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 12, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{e}</span>)}
+            {_achPreview.map((a, i) => <AchievementArtworkLive key={a.id} ach={a} size={27} style={{ marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)", background: "var(--card)", boxShadow: "0 2px 7px rgba(0,0,0,.10)" }} />)}
           </div>
           <I.ChevronRight size={18} className="bos-sys-text-2" />
         </button>

@@ -357,6 +357,161 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
 /* Achievement emblem spring-in (used by AchievementSheetLive). */
 @keyframes achEmblem { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
 
+/* ── Achievement collection v2 — orbital relics ─────────────────────────── */
+.bos-ach-art {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  transform: translateZ(0);
+}
+.bos-ach-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 5px 8px rgba(9,10,14,0.18));
+}
+.bos-ach-art.is-locked img {
+  filter: grayscale(.68) saturate(.42) brightness(.76) contrast(.92);
+  opacity: .7;
+}
+.bos-ach-page { --ach-gold: #d69a24; }
+.bos-ach-hero {
+  position: relative;
+  min-height: 186px;
+  overflow: hidden;
+  border-radius: 26px;
+  margin-top: 4px;
+  padding: 23px 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 82% 42%, rgba(193,190,244,.18), rgba(193,190,244,0) 37%),
+    radial-gradient(circle at 11% 115%, rgba(214,154,36,.14), rgba(214,154,36,0) 42%),
+    linear-gradient(145deg,#25282f 0%,#121419 62%,#090a0d 100%);
+  box-shadow: inset 0 0 0 .7px rgba(255,255,255,.10), 0 14px 34px rgba(15,16,20,.14);
+}
+.bos-ach-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .3;
+  background: repeating-radial-gradient(circle at 82% 48%, transparent 0 25px, rgba(255,255,255,.075) 26px 26.8px, transparent 27px 43px);
+}
+.bos-ach-hero-copy { position: relative; z-index: 2; flex: 1 1 54%; min-width: 0; }
+.bos-ach-kicker { color: #e0aa42; font-size: 9.5px; line-height: 1; font-weight: 800; letter-spacing: 1.5px; }
+.bos-ach-count { display: flex; align-items: baseline; gap: 7px; margin-top: 8px; letter-spacing: -.8px; }
+.bos-ach-count b { font: 800 38px/1 var(--bos-title-font); }
+.bos-ach-count span { color: rgba(255,255,255,.58); font-size: 14px; font-weight: 650; letter-spacing: -.1px; }
+.bos-ach-hero-text { max-width: 198px; color: rgba(255,255,255,.68); font-size: 12.5px; line-height: 1.42; margin-top: 9px; text-wrap: balance; }
+.bos-ach-hero-xp { display: inline-flex; margin-top: 13px; padding: 6px 10px; border-radius: 999px; background: rgba(214,154,36,.14); color: #efc774; box-shadow: inset 0 0 0 .7px rgba(225,177,76,.22); font-size: 10.5px; font-weight: 750; }
+.bos-ach-hero-orbit {
+  position: relative;
+  z-index: 1;
+  width: 132px;
+  height: 132px;
+  flex: 0 0 132px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.bos-ach-hero-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, #e7b34d 0 var(--ach-pct), rgba(255,255,255,.10) var(--ach-pct) 100%);
+  -webkit-mask: radial-gradient(circle, transparent 0 48px, #000 49px 53px, transparent 54px);
+  mask: radial-gradient(circle, transparent 0 48px, #000 49px 53px, transparent 54px);
+}
+.bos-ach-hero-core {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 34% 28%, #eeeefe 0%, #aba8dc 37%, #4d5061 100%);
+  color: #171820;
+  box-shadow: inset -5px -7px 14px rgba(24,25,37,.34), inset 3px 4px 10px rgba(255,255,255,.64), 0 8px 20px rgba(0,0,0,.24);
+  font-size: 17px;
+  font-weight: 850;
+}
+.bos-ach-hero-orbit .bos-ach-art { position: absolute; z-index: 3; }
+.bos-ach-hero-orbit .relic-1 { right: -3px; top: 42px; }
+.bos-ach-hero-orbit .relic-2 { left: 13px; top: -4px; }
+.bos-ach-hero-orbit .relic-3 { left: 3px; bottom: -1px; }
+.bos-ach-section-head { padding: 0 4px; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.bos-ach-section-head > span { min-width: 0; display: block; }
+.bos-ach-section-head b { display: block; color: var(--text); font-size: 15px; letter-spacing: -.15px; text-transform: none; }
+.bos-ach-section-head small { display: block; margin-top: 3px; color: var(--text-4); font-size: 11.5px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.bos-ach-section-head em { color: var(--text-4); font-size: 11.5px; font-style: normal; font-weight: 700; }
+.bos-ach-next {
+  width: 100%;
+  margin-top: 8px;
+  padding: 13px 12px 13px 8px;
+  border: 0;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+  color: var(--text);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--ach) 13%, var(--card)) 0%, var(--card) 56%);
+  box-shadow: var(--card-shadow), inset 0 0 0 .7px color-mix(in srgb, var(--ach) 28%, transparent);
+  cursor: pointer;
+}
+.bos-ach-next-copy { display: block; flex: 1; min-width: 0; }
+.bos-ach-next-copy > span { display: block; }
+.bos-ach-next-kicker { color: color-mix(in srgb, var(--ach) 82%, var(--text)); font-size: 8.5px; line-height: 1.25; font-weight: 850; letter-spacing: 1px; }
+.bos-ach-next-title { margin-top: 4px; font-size: 17px; font-weight: 780; letter-spacing: -.3px; }
+.bos-ach-next-body { margin-top: 4px; color: var(--text-3); font-size: 11.5px; line-height: 1.38; }
+.bos-ach-next-progress { margin-top: 10px; display: flex !important; align-items: center; gap: 8px; }
+.bos-ach-next-progress i { display: block; flex: 1; height: 4px; overflow: hidden; border-radius: 99px; background: var(--surface-3); }
+.bos-ach-next-progress b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--ach),#e5bd69); }
+.bos-ach-next-progress em { color: var(--text-4); font-size: 9.5px; line-height: 1; font-style: normal; font-weight: 650; white-space: nowrap; }
+.bos-ach-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 10px; }
+.bos-ach-card {
+  position: relative;
+  min-height: 178px;
+  overflow: hidden;
+  padding: 11px 11px 12px;
+  border: 0;
+  border-radius: 22px;
+  text-align: left;
+  color: var(--text);
+  background: var(--card);
+  box-shadow: var(--card-shadow), inset 0 0 0 .65px var(--line);
+  cursor: pointer;
+}
+.bos-ach-card.is-earned { background: linear-gradient(150deg,color-mix(in srgb,var(--ach) 10%,var(--card)),var(--card) 55%); box-shadow: var(--card-shadow), inset 0 0 0 .7px color-mix(in srgb,var(--ach) 30%,transparent); }
+.bos-ach-card-art { position: relative; min-height: 87px; display: flex; align-items: flex-start; justify-content: center; }
+.bos-ach-card .bos-ach-art { margin-top: -2px; }
+.bos-ach-card.is-earned .bos-ach-art img { filter: drop-shadow(0 7px 10px rgba(9,10,14,.22)); }
+.bos-ach-xp { position: absolute; top: 0; right: 0; padding: 4px 6px; border-radius: 999px; color: var(--text-4); background: var(--surface-3); font-size: 8.5px; line-height: 1; font-weight: 750; letter-spacing: .1px; }
+.bos-ach-card.is-earned .bos-ach-xp { color: #70500c; background: color-mix(in srgb,var(--ach) 25%,#fff); }
+.bos-ach-lock { position: absolute; left: 0; bottom: 5px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; color: var(--text-4); background: var(--card); box-shadow: 0 2px 8px rgba(0,0,0,.14), inset 0 0 0 .7px var(--line); }
+.bos-ach-card-title { min-height: 34px; margin-top: 4px; font-size: 13.5px; line-height: 1.22; font-weight: 740; letter-spacing: -.15px; text-wrap: balance; }
+.bos-ach-card-progress { margin-top: 9px; }
+.bos-ach-card-progress > span { display: block; }
+.bos-ach-card-track { width: 100%; height: 3px; overflow: hidden; border-radius: 999px; background: var(--surface-3); }
+.bos-ach-card-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--ach),#e3b758); transition: width .4s ease; }
+.bos-ach-card-progress > span:last-child { margin-top: 6px; color: var(--text-4); font-size: 9.5px; line-height: 1.1; font-weight: 600; }
+
+@media (max-width: 370px) {
+  .bos-ach-hero { padding-inline: 15px; }
+  .bos-ach-hero-orbit { width: 116px; height: 116px; flex-basis: 116px; transform: scale(.94); transform-origin: right center; }
+  .bos-ach-hero-text { font-size: 11.8px; }
+  .bos-ach-next .bos-ach-art { width: 84px !important; height: 84px !important; }
+}
+
 /* page enter animation */
 @keyframes pageIn {
   from { opacity: 0; transform: translateY(6px); }

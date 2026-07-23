@@ -3045,13 +3045,15 @@ function AchievementSheetLive({ ach, onClose }) {
   };
   return (
     <BottomSheet open={open} onClose={close} dark={isDark}>
-      {/* ЗОЛОТОЙ квадрат-тайл БЕЗ свечения (David: «сам квадратик золотым, свечения не нужно»);
-          текст с воздухом — кикер → крупный титул → описание (узкая колонка, balance) → XP → кнопка. */}
+      {/* The relic itself is now the reward object; chrome stays quiet so the art has the moment. */}
       <div style={{ padding: "8px 24px 26px", textAlign: "center", color: "var(--text)" }}>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div style={{ width: 90, height: 90, borderRadius: 24, background: "linear-gradient(158deg, #FFDC4A 0%, #F4A81E 100%)", display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 2px 1px rgba(255,255,255,0.65), inset 0 0 0 0.7px rgba(180,120,0,0.28), 0 8px 18px rgba(0,0,0,0.13)", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both" }}>{bosIcon(ach.i, 46, null)}</div>
+          <div style={{ position: "relative", width: 134, height: 134, display: "grid", placeItems: "center", animation: "achEmblem 0.58s cubic-bezier(0.34,1.56,0.64,1) 0.08s both" }}>
+            <span aria-hidden style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "radial-gradient(circle, " + (ach.accent || "#D6A03C") + "30 0%, transparent 68%)" }} />
+            <AchievementArtworkLive ach={ach} size={124} />
+          </div>
         </div>
-        <div style={{ fontSize: 11.5, color: "#C98A00", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 20 }}>Достижение открыто</div>
+        <div style={{ fontSize: 11.5, color: "#C98A00", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 12 }}>Новая реликвия пути</div>
         <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.6px", color: "var(--text)", marginTop: 6, lineHeight: 1.1 }}>{ach.t}</div>
         {ach.d && <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, maxWidth: 270, margin: "10px auto 0", textWrap: "balance" }}>{ach.d}</div>}
         {ach.xp ? <div style={{ display: "inline-block", marginTop: 20, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 800, fontSize: 14.5, borderRadius: 999, padding: "8px 18px" }}>+{ach.xp} XP</div> : null}
@@ -3186,29 +3188,35 @@ function CircleStrikeSheetLive({ info, onClose, navigate }) {
   );
 }
 
-/* Деталь достижения из СПИСКА (тап по медали) — тот же стиль, что у шторки-открытия: ЗОЛОТОЙ
-   квадрат-тайл (или серый-замок, если ещё закрыто), БЕЗ свечения, аккуратный текст. Рендерится
-   через openSheet (шторка-чрома снаружи). Заменяет прежний текстовый InfoSheet. LIVE. */
+/* Detail for an earned or future orbital relic. Future awards remain fully visible and expose
+   their honest current/target distance; locking is a material treatment, not hidden content. */
 function AchievementDetailSheetLive({ ach, dark }) {
   const sheet = (typeof useSheet === "function") ? useSheet() : null;
   const close = () => { try { if (sheet && sheet.close) sheet.close(); } catch (e) {} };
   if (!ach) return null;
   const earned = !!ach.earned;
+  const value = Math.min(ach.value || 0, ach.target || 1);
+  const ratio = Math.max(0, Math.min(1, ach.ratio || 0));
   return (
     <div style={{ padding: "8px 24px 22px", textAlign: "center", color: "var(--text)" }}>
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <div style={{ width: 84, height: 84, borderRadius: 22, position: "relative", display: "grid", placeItems: "center", fontSize: 42,
-          background: earned ? "linear-gradient(158deg, #FFDC4A 0%, #F4A81E 100%)" : "var(--card-2)",
-          boxShadow: earned ? "inset 0 2px 1px rgba(255,255,255,0.65), inset 0 0 0 0.7px rgba(180,120,0,0.28), 0 8px 18px rgba(0,0,0,0.13)" : "inset 0 0 0 1px var(--line)",
-          filter: earned ? "none" : "grayscale(1)", opacity: earned ? 1 : 0.55 }}>
-          {bosIcon(ach.i, 42, null)}
-          {!earned && <span style={{ position: "absolute", right: -3, bottom: -3, width: 24, height: 24, borderRadius: "50%", background: "var(--card)", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", display: "grid", placeItems: "center", fontSize: 12 }}>🔒</span>}
-        </div>
+      <div style={{ position: "relative", width: 142, height: 142, margin: "0 auto", display: "grid", placeItems: "center" }}>
+        <span aria-hidden style={{ position: "absolute", inset: 8, borderRadius: "50%", background: "radial-gradient(circle, " + (ach.accent || "#D6A03C") + (earned ? "32" : "17") + " 0%, transparent 70%)" }} />
+        <AchievementArtworkLive ach={ach} size={132} locked={!earned} />
+        {!earned && <span style={{ position: "absolute", right: 10, bottom: 12, width: 28, height: 28, borderRadius: "50%", background: "var(--card)", color: "var(--text-4)", boxShadow: "0 3px 10px rgba(0,0,0,0.16), inset 0 0 0 .7px var(--line)", display: "grid", placeItems: "center" }}><I.Lock size={12} /></span>}
       </div>
-      <div style={{ fontSize: 11.5, color: earned ? "#C98A00" : "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 18 }}>{earned ? "Достижение открыто" : "Ещё закрыто"}</div>
+      <div style={{ fontSize: 11.5, color: earned ? "#C98A00" : "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 8 }}>{earned ? "Реликвия открыта" : "Будущая реликвия"}</div>
       <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", marginTop: 6, lineHeight: 1.1, color: "var(--text)" }}>{ach.t}</div>
       {ach.d && <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, maxWidth: 280, margin: "10px auto 0", textWrap: "balance" }}>{ach.d}</div>}
-      {!earned && ach.how && <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 280, margin: "9px auto 0", textWrap: "balance" }}>Как открыть: {ach.how}</div>}
+      {!earned && (
+        <div style={{ maxWidth: 286, margin: "17px auto 0", padding: "12px 13px", borderRadius: 16, background: "var(--card-2)", textAlign: "left" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontSize: 11, color: "var(--text-4)", fontWeight: 750, letterSpacing: .2 }}>ДО ОТКРЫТИЯ</span>
+            <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{value} из {ach.target} {ach.unit || ""}</span>
+          </div>
+          <div style={{ height: 5, borderRadius: 99, overflow: "hidden", background: "var(--surface-3)", marginTop: 8 }}><span style={{ display: "block", width: Math.round(ratio * 100) + "%", height: "100%", borderRadius: 99, background: "linear-gradient(90deg," + (ach.accent || "#D6A03C") + ",#e5bd69)" }} /></div>
+          {ach.how && <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.42, marginTop: 9 }}>{ach.how}</div>}
+        </div>
+      )}
       {ach.xp ? <div style={{ display: "inline-block", marginTop: 18, background: earned ? "linear-gradient(180deg,#FEDE34,#EF9F14)" : "var(--card-2)", color: earned ? "#4a3800" : "var(--text-3)", fontWeight: 800, fontSize: 14, borderRadius: 999, padding: "7px 16px" }}>+{ach.xp} XP</div> : null}
       <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>Готово</button>
     </div>

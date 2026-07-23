@@ -6,7 +6,7 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v815";
+const CACHE = "balanceos-v816";
 const PRECACHE = [
   "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js", "store.js", "supabase.js", "cloud.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js",
@@ -15,34 +15,42 @@ const PRECACHE = [
   // FILES on every build — do not edit between the markers (a file move would otherwise
   // silently break the offline precache).
   /* BUILD_PRECACHE_START */
-  "build/components/icons.js?v=v815",
-  "build/components/shell.js?v=v815",
-  "build/core/aliases.js?v=v815",
-  "build/core/confetti.js?v=v815",
-  "build/core/home-kit.js?v=v815",
-  "build/core/habits-kit.js?v=v815",
-  "build/core/profile-kit.js?v=v815",
-  "build/core/community-kit.js?v=v815",
-  "build/core/extra-kit.js?v=v815",
-  "build/screens/demo/profile.js?v=v815",
-  "build/screens/demo/extra.js?v=v815",
-  "build/screens/intro.js?v=v815",
-  "build/screens/live/economy_live.js?v=v815",
-  "build/screens/live/shared_live.js?v=v815",
-  "build/screens/live/home_live.js?v=v815",
-  "build/screens/live/habits_live.js?v=v815",
-  "build/screens/live/profile_live.js?v=v815",
-  "build/screens/live/community_live.js?v=v815",
-  "build/screens/live/circle_room_live.js?v=v815",
-  "build/screens/live/habit_standard_live.js?v=v815",
-  "build/screens/live/home_extra_live.js?v=v815",
-  "build/screens/live/habits_extra_live.js?v=v815",
-  "build/screens/live/profile_extra_live.js?v=v815",
-  "build/screens/live/community_extra_live.js?v=v815",
-  "build/screens/live/extra_live.js?v=v815",
-  "build/app.js?v=v815",
+  "build/components/icons.js?v=v816",
+  "build/components/shell.js?v=v816",
+  "build/core/aliases.js?v=v816",
+  "build/core/confetti.js?v=v816",
+  "build/core/home-kit.js?v=v816",
+  "build/core/habits-kit.js?v=v816",
+  "build/core/profile-kit.js?v=v816",
+  "build/core/community-kit.js?v=v816",
+  "build/core/extra-kit.js?v=v816",
+  "build/screens/demo/profile.js?v=v816",
+  "build/screens/demo/extra.js?v=v816",
+  "build/screens/intro.js?v=v816",
+  "build/screens/live/economy_live.js?v=v816",
+  "build/screens/live/shared_live.js?v=v816",
+  "build/screens/live/home_live.js?v=v816",
+  "build/screens/live/habits_live.js?v=v816",
+  "build/screens/live/profile_live.js?v=v816",
+  "build/screens/live/community_live.js?v=v816",
+  "build/screens/live/circle_room_live.js?v=v816",
+  "build/screens/live/habit_standard_live.js?v=v816",
+  "build/screens/live/home_extra_live.js?v=v816",
+  "build/screens/live/habits_extra_live.js?v=v816",
+  "build/screens/live/profile_extra_live.js?v=v816",
+  "build/screens/live/community_extra_live.js?v=v816",
+  "build/screens/live/extra_live.js?v=v816",
+  "build/app.js?v=v816",
   /* BUILD_PRECACHE_END */
   "assets/sphere.png",
+  // Achievement collection v2: all relics are available offline on first open of the page.
+  "assets/achievements/first_state.png", "assets/achievements/first_note.png", "assets/achievements/first_habit.png", "assets/achievements/first_move.png", "assets/achievements/first_goal.png",
+  "assets/achievements/active7.png", "assets/achievements/habit21.png", "assets/achievements/active30.png", "assets/achievements/habit60.png",
+  "assets/achievements/return1.png", "assets/achievements/return3.png", "assets/achievements/return10.png",
+  "assets/achievements/week_state.png", "assets/achievements/care30.png", "assets/achievements/care100.png", "assets/achievements/care180.png", "assets/achievements/year.png",
+  "assets/achievements/goal.png", "assets/achievements/goals5.png",
+  "assets/achievements/team.png", "assets/achievements/shared_first.png", "assets/achievements/friends3.png",
+  "assets/achievements/lvl5.png", "assets/achievements/lvl10.png", "assets/achievements/lvl15.png", "assets/achievements/lvl20.png", "assets/achievements/lvl25.png",
   // Лица-мемоджи в precache («секунда на лицах»): activate стирает старый кэш целиком, и без этого
   // списка после КАЖДОГО релиза аватарки ехали по сети заново на «Я»/Друзьях/Вселенной.
   "assets/people/m1.png", "assets/people/m2.png", "assets/people/m3.png", "assets/people/m4.png", "assets/people/m5.png", "assets/people/m6.png",

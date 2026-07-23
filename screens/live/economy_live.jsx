@@ -159,48 +159,135 @@ function bosDayCloseInsightLive(app) {
    pays bonus XP, and a freshly-unlocked one pops a celebration. Conditions use BASE
    xp (bosBaseXPLive), so a badge's XP can never cascade-unlock the next "reach level N".
    Paced against the real XP→time curve so there's always a next thing, never too often. */
-function bosCareDaysLive(app) {
-  var days = {}, k;
-  var dm = (app && app.dayMoods) || {};
-  for (k in dm) { if (dm[k] != null && /^\d{4}-\d{2}-\d{2}$/.test(k)) days[k] = 1; }
-  var dn = (app && app.dayNotes) || {};
-  for (k in dn) { var e = dn[k]; if (/^\d{4}-\d{2}-\d{2}$/.test(k) && e && (((e.note != null) && ("" + e.note).trim()) || (e.tags && e.tags.length))) days[k] = 1; }
-  return Object.keys(days).length;
+function bosIsAchDateLive(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k || ""); }
+function bosHasNoteLive(e) {
+  if (!e) return false;
+  if (typeof e === "string") return !!e.trim();
+  return !!(((e.note != null) && ("" + e.note).trim()) || (e.tags && e.tags.length));
 }
-var BOS_ACHIEVEMENTS_LIVE = [
-  { id: "first_habit", i: "🌱", t: "Первый шаг",        d: "Создал первую привычку",                       xp: 30,   accent: "#7FB37F", how: "Создай первую привычку",                  test: function (c) { return c.habits >= 1; } },
-  { id: "week_state",  i: "🔥", t: "Неделя с собой",     d: "7 дней подряд отмечал состояние",               xp: 60,   accent: "#FF8A5B", how: "Отмечай состояние 7 дней подряд",         test: function (c) { return c.moodStreak >= 7; } },
-  { id: "lvl5",        i: "⚡", t: "Разогрев",           d: "Достиг 5 уровня",                              xp: 75,   accent: "#FEDE34", how: "Дойди до 5 уровня",                       test: function (c) { return c.level >= 5; } },
-  { id: "habit21",     i: "📿", t: "Привычка прижилась", d: "Держал привычку 21 день подряд",               xp: 120,  accent: "#9BCBA0", how: "Держи привычку 21 день подряд",           test: function (c) { return c.habitStreak >= 21; } },
-  { id: "care30",      i: "🧠", t: "Месяц с собой",      d: "30 дней наблюдал состояние или вёл дневник",    xp: 120,  accent: "#7FB5FF", how: "30 дней отмечай состояние или пиши дневник", test: function (c) { return c.careDays >= 30; } },
-  { id: "team",        i: "🤝", t: "Не один",            d: "Собрал своих или позвал друга",              xp: 100,  accent: "#5FA8FF", how: "Создай совместную цель или пригласи друга",       test: function (c) { return c.teams >= 1 || c.friends >= 1; } },
-  { id: "lvl10",       i: "🏅", t: "Уверенный",          d: "Достиг 10 уровня",                             xp: 150,  accent: "#FEDE34", how: "Дойди до 10 уровня",                      test: function (c) { return c.level >= 10; } },
-  { id: "care100",     i: "🗓️", t: "100 дней пути",      d: "100 дней заботы о себе",                       xp: 250,  accent: "#7FB5FF", how: "100 дней отмечай состояние или дневник",  test: function (c) { return c.careDays >= 100; } },
-  { id: "habit60",     i: "💎", t: "Несгибаемый",        d: "Держал привычку 60 дней подряд",               xp: 300,  accent: "#9BD0FF", how: "Держи привычку 60 дней подряд",           test: function (c) { return c.habitStreak >= 60; } },
-  { id: "goal",        i: "🎯", t: "Цель достигнута",    d: "Довёл цель до конца",                          xp: 200,  accent: "#FF8A5B", how: "Заверши хотя бы одну цель",               test: function (c) { return c.goalsDone >= 1; } },
-  { id: "lvl15",       i: "🌟", t: "Глубже",             d: "Достиг 15 уровня",                             xp: 350,  accent: "#FEDE34", how: "Дойди до 15 уровня",                      test: function (c) { return c.level >= 15; } },
-  { id: "care180",     i: "🏔️", t: "Полгода роста",      d: "180 дней заботы о себе",                       xp: 450,  accent: "#A8E0E8", how: "Полгода отмечай состояние или дневник",   test: function (c) { return c.careDays >= 180; } },
-  { id: "lvl20",       i: "🌍", t: "Вершина",            d: "Достиг 20 уровня",                             xp: 600,  accent: "#FEDE34", how: "Дойди до 20 уровня",                      test: function (c) { return c.level >= 20; } },
-  { id: "year",        i: "👑", t: "Год пути",           d: "365 дней заботы о себе",                       xp: 800,  accent: "#E8C86A", how: "Год отмечай состояние или дневник",       test: function (c) { return c.careDays >= 365; } },
-  { id: "lvl25",       i: "⭐", t: "Только начало",      d: "Достиг 25 уровня — для кого-то это лишь старт", xp: 1000, accent: "#C9B8FF", how: "Дойди до 25 уровня",                      test: function (c) { return c.level >= 25; } },
-];
-function bosAchContextLive(app) {
-  var habits = (app && app.habits) || [];
-  var teams = ((app && app.teams) || []).filter(function (t) { return t && (t.joined || t.cloudId); }).length;
-  var goalsDone = ((app && app.goals) || []).filter(function (g) { return g && g.target && (g.current || 0) >= g.target; }).length;
-  var friends = 0; try { friends = (app && (app.invitedCount || app.friendsCount)) || 0; } catch (e) {}
+function bosAchievementTraceStatsLive(app) {
+  var care = {}, active = {}, state = {}, notes = {}, marks = 0, k;
+  var dm = (app && app.dayMoods) || {};
+  for (k in dm) if (dm[k] != null && bosIsAchDateLive(k)) { state[k] = care[k] = active[k] = 1; }
+  var dn = (app && app.dayNotes) || {};
+  for (k in dn) if (bosIsAchDateLive(k) && bosHasNoteLive(dn[k])) { notes[k] = care[k] = active[k] = 1; }
+  ((app && app.habits) || []).forEach(function (h) {
+    var log = (h && h.log) || {};
+    for (var d in log) if (log[d] && bosIsAchDateLive(d)) { marks++; active[d] = 1; }
+  });
+  var dates = Object.keys(active).sort(), returns = 0;
+  function ordinal(s) { var p = s.split("-"); return Date.UTC(+p[0], (+p[1]) - 1, +p[2]) / 86400000; }
+  for (var i = 1; i < dates.length; i++) if (ordinal(dates[i]) - ordinal(dates[i - 1]) >= 3) returns++;
   return {
-    level: bosLevelInfoLive(bosBaseXPLive(app)).level,
-    careDays: bosCareDaysLive(app),
-    moodStreak: bosMoodStreak(app && app.dayMoods),
-    habitStreak: bosMaxStreak(habits),
-    habits: habits.length, teams: teams, friends: friends, goalsDone: goalsDone,
+    careDays: Object.keys(care).length,
+    activeDays: dates.length,
+    stateDays: Object.keys(state).length,
+    journalDays: Object.keys(notes).length,
+    totalMarks: marks,
+    returns: returns,
   };
 }
-// Full ladder with each badge's .earned for the current live profile.
+function bosCareDaysLive(app) { return bosAchievementTraceStatsLive(app).careDays; }
+
+/* Achievement collection v2 — "orbital relics".
+   The old IDs stay intact so an existing user's history and bonus economy do not reset.
+   New branches reward beginnings, returns, reflection and togetherness — not only streaks.
+   `metric + target` is also the single source of truth for the locked-card progress UI. */
+var BOS_ACHIEVEMENT_SCHEMA_LIVE = "orbital-relics-v2";
+var BOS_ACHIEVEMENTS_LIVE = [
+  // Начало
+  { id: "first_state", cat: "start", metric: "stateDays", target: 1, unit: "отметки", t: "Точка отсчёта", d: "Впервые честно отметил своё состояние", how: "Отметь, как ты сейчас", xp: 20, accent: "#B8B7EA" },
+  { id: "first_note", cat: "start", metric: "journalDays", target: 1, unit: "записи", t: "Сказано честно", d: "Оставил первую личную запись", how: "Добавь пару слов о сегодняшнем состоянии", xp: 25, accent: "#B8B7EA" },
+  { id: "first_habit", cat: "start", metric: "habits", target: 1, unit: "практики", t: "Первый шаг", d: "Создал первую практику", how: "Создай первую практику", xp: 30, accent: "#B8B7EA" },
+  { id: "first_move", cat: "start", metric: "totalMarks", target: 1, unit: "хода", t: "Первый ход", d: "Сделал первую реальную отметку", how: "Выполни любую практику", xp: 25, accent: "#B8B7EA" },
+  { id: "first_goal", cat: "start", metric: "goalsCreated", target: 1, unit: "цели", t: "Выбран курс", d: "Сформулировал первую цель", how: "Создай цель, к которой хочешь прийти", xp: 30, accent: "#B8B7EA" },
+
+  // Ритм
+  { id: "active7", cat: "rhythm", metric: "activeDays", target: 7, unit: "дней", t: "Семь следов", d: "Оставил реальные следы в семи разных днях", how: "Отмечай состояние, записи или действия в разные дни", xp: 40, accent: "#D9A13A" },
+  { id: "habit21", cat: "rhythm", metric: "habitStreak", target: 21, unit: "дня", t: "Ритм прижился", d: "Удерживал одну практику 21 день подряд", how: "Продолжай одну практику 21 день", xp: 120, accent: "#D9A13A" },
+  { id: "active30", cat: "rhythm", metric: "activeDays", target: 30, unit: "дней", t: "Собственный ритм", d: "Прожил 30 дней с заметным следом", how: "Оставь след в 30 разных днях", xp: 90, accent: "#D9A13A" },
+  { id: "habit60", cat: "rhythm", metric: "habitStreak", target: 60, unit: "дней", t: "Глубокий корень", d: "Удерживал одну практику 60 дней подряд", how: "Продолжай одну практику 60 дней", xp: 300, accent: "#D9A13A" },
+
+  // Возвращения
+  { id: "return1", cat: "returns", metric: "returns", target: 1, unit: "возвращения", t: "Снова здесь", d: "Вернулся к пути после паузы", how: "После паузы снова сделай любой честный ход", xp: 40, accent: "#DEA334" },
+  { id: "return3", cat: "returns", metric: "returns", target: 3, unit: "возвращений", t: "Умею возвращаться", d: "Трижды продолжил путь после паузы", how: "Возвращайся без чувства, что всё обнулилось", xp: 90, accent: "#DEA334" },
+  { id: "return10", cat: "returns", metric: "returns", target: 10, unit: "возвращений", t: "Не теряю нить", d: "Десять раз восстановил свой ритм", how: "Продолжай возвращаться после пауз", xp: 220, accent: "#DEA334" },
+
+  // Внимание к себе
+  { id: "week_state", cat: "attention", metric: "moodStreak", target: 7, unit: "дней", t: "Неделя с собой", d: "Семь дней подряд замечал своё состояние", how: "Отмечай состояние 7 дней подряд", xp: 60, accent: "#AAA9DF" },
+  { id: "care30", cat: "attention", metric: "careDays", target: 30, unit: "дней", t: "Месяц внимания", d: "30 дней наблюдал состояние или вёл дневник", how: "Замечай состояние или пиши в дневник 30 дней", xp: 120, accent: "#AAA9DF" },
+  { id: "care100", cat: "attention", metric: "careDays", target: 100, unit: "дней", t: "Сто встреч с собой", d: "Сто дней честного самонаблюдения", how: "Набери 100 дней состояния или записей", xp: 250, accent: "#AAA9DF" },
+  { id: "care180", cat: "attention", metric: "careDays", target: 180, unit: "дней", t: "Полгода глубины", d: "Полгода возвращался вниманием к себе", how: "Набери 180 дней состояния или записей", xp: 450, accent: "#AAA9DF" },
+  { id: "year", cat: "attention", metric: "careDays", target: 365, unit: "дней", t: "Год внутри", d: "Год наблюдал свой путь изнутри", how: "Набери 365 дней состояния или записей", xp: 800, accent: "#AAA9DF" },
+
+  // Замыслы
+  { id: "goal", cat: "goals", metric: "goalsDone", target: 1, unit: "цели", t: "Доведено", d: "Довёл первую цель до результата", how: "Заверши хотя бы одну цель", xp: 200, accent: "#D4A040" },
+  { id: "goals5", cat: "goals", metric: "goalsDone", target: 5, unit: "целей", t: "Пять замыслов", d: "Довёл до результата пять целей", how: "Заверши пять целей", xp: 350, accent: "#D4A040" },
+
+  // Вместе
+  { id: "team", cat: "together", metric: function (c) { return Math.max(c.teams, c.friends > 0 ? 1 : 0); }, target: 1, unit: "круга", t: "Свои рядом", d: "Создал или нашёл свой первый круг", how: "Создай совместную цель или пригласи друга", xp: 100, accent: "#93A8C9" },
+  { id: "shared_first", cat: "together", metric: "shared", target: 1, unit: "связи", t: "Общий ритм", d: "Начал первую практику вместе", how: "Веди практику с другом или кругом", xp: 60, accent: "#93A8C9" },
+  { id: "friends3", cat: "together", metric: "friends", target: 3, unit: "человек", t: "Первый круг", d: "Три человека пришли по твоему приглашению", how: "Позови трёх людей в BalanceOS", xp: 150, accent: "#93A8C9" },
+
+  // Горизонты
+  { id: "lvl5", cat: "horizons", metric: "level", target: 5, unit: "уровней", t: "Разогрев", d: "Достиг 5 уровня", how: "Дойди до 5 уровня", xp: 75, accent: "#D6A03C" },
+  { id: "lvl10", cat: "horizons", metric: "level", target: 10, unit: "уровней", t: "Уверенный", d: "Достиг 10 уровня", how: "Дойди до 10 уровня", xp: 150, accent: "#D6A03C" },
+  { id: "lvl15", cat: "horizons", metric: "level", target: 15, unit: "уровней", t: "Глубже", d: "Достиг 15 уровня", how: "Дойди до 15 уровня", xp: 350, accent: "#D6A03C" },
+  { id: "lvl20", cat: "horizons", metric: "level", target: 20, unit: "уровней", t: "Горизонт", d: "Достиг 20 уровня", how: "Дойди до 20 уровня", xp: 600, accent: "#D6A03C" },
+  { id: "lvl25", cat: "horizons", metric: "level", target: 25, unit: "уровней", t: "Только начало", d: "Достиг 25 уровня — и открыл путь дальше", how: "Дойди до 25 уровня", xp: 1000, accent: "#D6A03C" },
+];
+BOS_ACHIEVEMENTS_LIVE.forEach(function (a) {
+  a.art = "./assets/achievements/" + a.id + ".png";
+  a.test = function (c) { return bosAchievementValueLive(a, c) >= a.target; };
+});
+function bosAchievementValueLive(a, c) {
+  var v = (typeof a.metric === "function") ? a.metric(c) : c[a.metric];
+  v = Number(v) || 0;
+  return Math.max(0, Math.floor(v));
+}
+function bosAchContextLive(app) {
+  var habits = (app && app.habits) || [];
+  var goals = (app && app.goals) || [];
+  var traces = bosAchievementTraceStatsLive(app);
+  var teams = ((app && app.teams) || []).filter(function (t) { return t && (t.joined || t.cloudId || t.owner); }).length;
+  var goalsDone = goals.filter(function (g) {
+    if (!g) return false;
+    if (g.done || g.status === "done") return true;
+    // A linked goal is filled by habit marks and can legitimately finish while its legacy
+    // `current` field stays at zero. Use the same engine as the goal screens so the relic
+    // never disagrees with the progress ring the person actually sees.
+    if (typeof bosGoalProgress === "function") return !!bosGoalProgress(g, habits).done;
+    return !!(g.target && (g.current || 0) >= g.target);
+  }).length;
+  var shared = habits.filter(function (h) { return h && (h.shareCode || h.teamHabitId || h.sharedId); }).length;
+  var friends = 0; try { friends = (app && (app.invitedCount || app.friendsCount)) || 0; } catch (e) {}
+  return Object.assign({}, traces, {
+    level: bosLevelInfoLive(bosBaseXPLive(app)).level,
+    moodStreak: bosMoodStreak(app && app.dayMoods),
+    habitStreak: bosMaxStreak(habits),
+    habits: habits.length,
+    goalsCreated: goals.length,
+    goalsDone: goalsDone,
+    teams: teams,
+    shared: shared,
+    friends: friends,
+  });
+}
+// Full collection with honest current/target progress for every locked relic.
 function bosEarnedAchievementsLive(app) {
   var c = bosAchContextLive(app);
-  return BOS_ACHIEVEMENTS_LIVE.map(function (a) { return Object.assign({}, a, { earned: !!a.test(c) }); });
+  return BOS_ACHIEVEMENTS_LIVE.map(function (a) {
+    var value = bosAchievementValueLive(a, c), target = Math.max(1, a.target || 1);
+    return Object.assign({}, a, { earned: value >= target, value: value, target: target, ratio: Math.min(1, value / target) });
+  });
+}
+function AchievementArtworkLive({ ach, size = 72, locked = false, className = "", style = {} }) {
+  if (!ach) return null;
+  return (
+    <span className={("bos-ach-art " + (locked ? "is-locked " : "") + className).trim()} style={Object.assign({ width: size, height: size }, style)} aria-hidden>
+      <img src={ach.art || ("./assets/achievements/" + ach.id + ".png")} alt="" draggable="false" />
+    </span>
+  );
 }
 // Total bonus XP from unlocked achievements — added on top of base XP for the shown level.
 function bosAchievementBonusXPLive(app) {

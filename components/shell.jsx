@@ -2221,11 +2221,24 @@ function AppProvider({ children }) {
   useEffect(() => {
     if (mode !== "live" || !persistId || typeof bosEarnedAchIdsLive !== "function") return;
     var KEY = "bos:ach:" + persistId;
+    var SCHEMA_KEY = "bos:achschema:" + persistId;
     var earned = bosEarnedAchIdsLive({ habits: habits, goals: goals, dayMoods: dayMoods, dayNotes: dayNotes, teams: teams, invitedCount: invitedCount });
     var store = achSeenRef.current;
     if (store.pid !== persistId) {
       var saved = null; try { var raw = localStorage.getItem(KEY); if (raw) saved = JSON.parse(raw); } catch (e) {}
       store = achSeenRef.current = { pid: persistId, ids: Array.isArray(saved) ? saved.slice() : null };
+    }
+    // Collection v2 adds new branches. Existing users must see them immediately, but must NOT
+    // receive a burst of retroactive unlock sheets merely because the catalog changed. Absorb the
+    // current earned set once per schema; only achievements earned after this baseline celebrate.
+    var currentSchema = (typeof BOS_ACHIEVEMENT_SCHEMA_LIVE !== "undefined") ? BOS_ACHIEVEMENT_SCHEMA_LIVE : "legacy";
+    var savedSchema = null; try { savedSchema = localStorage.getItem(SCHEMA_KEY); } catch (e0) {}
+    if (savedSchema !== currentSchema) {
+      var migrated = (store.ids || []).slice();
+      earned.forEach(function (id) { if (migrated.indexOf(id) < 0) migrated.push(id); });
+      achSeenRef.current = { pid: persistId, ids: migrated };
+      try { localStorage.setItem(KEY, JSON.stringify(migrated)); localStorage.setItem(SCHEMA_KEY, currentSchema); } catch (e1) {}
+      return;
     }
     // No baseline yet, or still hydrating cloud data → ABSORB current as "seen", never pop
     // (so existing badges don't fire retroactively on login / a fresh device).

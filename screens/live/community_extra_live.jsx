@@ -703,13 +703,15 @@ function LevelsLive() {
 
       {/* Достижения — подпись убрана (карточка названа «Ачивки»). */}
       <SysCard className="tap" onClick={() => navigate("achievements", { from: "levels" })} style={{ padding: 14, marginTop: 22, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span className="bos-sys-chip-bg" style={{ width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
+        {achEarned.length
+          ? <AchievementArtworkLive ach={achEarned[achEarned.length - 1]} size={44} />
+          : <AchievementArtworkLive ach={ach[0]} size={44} locked />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Ачивки</div>
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>{achEarned.length} из {ach.length} · открывают круги контактов</div>
         </div>
         <div style={{ display: "flex", marginRight: 4 }}>
-          {achEarned.slice(0, 3).map((a, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{a.i}</span>)}
+          {achEarned.slice(-3).reverse().map((a, i) => <AchievementArtworkLive key={a.id} ach={a} size={28} style={{ marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)", background: "var(--card)" }} />)}
         </div>
         <I.ChevronRight size={18} className="bos-sys-text-2"/>
       </SysCard>

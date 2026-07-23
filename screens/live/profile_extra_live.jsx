@@ -1138,55 +1138,85 @@ function AchievementsLive() {
   const { open: openSheet } = useSheet();
   const dark = app?.themeOverride === "dark";
   const back = params?.from || "profile";
-  // LIVE: achievements earned by real signals — the real bosEarnedAchievementsLive ladder.
+  // LIVE: every relic is driven by a real signal and carries honest current/target progress.
   const LIST = bosEarnedAchievementsLive(app);
-  const byId = {}; LIST.forEach((a) => { byId[a.id] = a; });
   const earnedN = LIST.filter((a) => a.earned).length;
   const _achXP = LIST.filter((a) => a.earned).reduce((s, a) => s + (a.xp || 0), 0);
-  // Category ladders — each badge grows within its branch (Apple-Fitness-style award grid).
-  // Emoji art for now (David: native custom art later); grouped by what earns it.
   const CATS = [
-    { t: "Старт", ids: ["first_habit"] },
-    { t: "Уровни", ids: ["lvl5", "lvl10", "lvl15", "lvl20", "lvl25"] },
-    { t: "Серии привычек", ids: ["habit21", "habit60"] },
-    { t: "Забота о себе", ids: ["week_state", "care30", "care100", "care180", "year"] },
-    { t: "Цели и вместе", ids: ["goal", "team"] },
+    { id: "start", t: "Начало", d: "Первые честные точки" },
+    { id: "rhythm", t: "Ритм", d: "Следы, которые складываются" },
+    { id: "returns", t: "Возвращения", d: "Пауза не обнуляет путь" },
+    { id: "attention", t: "Внимание к себе", d: "Замечать, что происходит внутри" },
+    { id: "goals", t: "Замыслы", d: "От направления к результату" },
+    { id: "together", t: "Вместе", d: "Связь и общий ритм" },
+    { id: "horizons", t: "Горизонты", d: "Новые уровни масштаба" },
   ];
+  const locked = LIST.filter((a) => !a.earned);
+  const next = locked.slice().sort((a, b) => (b.ratio - a.ratio) || (a.target - b.target))[0] || null;
+  const heroRelics = (LIST.filter((a) => a.earned).slice(-3).reverse().concat(LIST.filter((a) => !a.earned).slice(0, 3))).slice(0, 3);
+  const progressText = (a) => a.earned ? "Открыто" : (Math.min(a.value || 0, a.target || 1) + " из " + (a.target || 1) + " " + (a.unit || ""));
   const showDetail = (a) => openSheet(typeof AchievementDetailSheetLive === "function"
     ? <AchievementDetailSheetLive ach={a} dark={dark} />
     : <InfoSheet dark={dark} title={a.t} body={(a.earned ? "Открыто ✓\n\n" : "Как открыть: " + (a.how || "") + "\n\n") + a.d + (a.xp ? "  ·  +" + a.xp + " XP" : "")} cta="Готово" />);
-  const tile = (a) => (
-    <button key={a.id} onClick={() => showDetail(a)} className="tap" aria-label={a.t}
-      style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", display: "grid", placeItems: "center" }}>
-      <span style={{ width: "100%", maxWidth: 58, aspectRatio: "1", borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, position: "relative",
-        background: a.earned ? a.accent + "26" : "var(--card-2)",
-        boxShadow: a.earned ? "inset 0 0 0 1.5px " + a.accent + "55" : "none",
-        filter: a.earned ? "none" : "grayscale(1)", opacity: a.earned ? 1 : 0.5 }}>
-        {a.i}
-        {!a.earned && <span style={{ position: "absolute", right: -2, bottom: -2, width: 18, height: 18, borderRadius: "50%", background: "var(--card)", display: "grid", placeItems: "center", fontSize: 9 }}>🔒</span>}
-      </span>
+  const card = (a) => (
+    <button key={a.id} onClick={() => showDetail(a)} className={("tap bos-ach-card " + (a.earned ? "is-earned" : "is-locked")).trim()} aria-label={a.t}
+      style={{ "--ach": a.accent }}>
+      <div className="bos-ach-card-art">
+        <AchievementArtworkLive ach={a} size={82} locked={!a.earned} />
+        <span className="bos-ach-xp">+{a.xp} XP</span>
+        {!a.earned && <span className="bos-ach-lock"><I.Lock size={10} /></span>}
+      </div>
+      <div className="bos-ach-card-title">{a.t}</div>
+      <div className="bos-ach-card-progress">
+        <span className="bos-ach-card-track"><i style={{ width: Math.round((a.ratio || 0) * 100) + "%" }} /></span>
+        <span>{progressText(a)}</span>
+      </div>
     </button>
   );
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+    <div className="page-in bos-ach-page" style={{ padding: "0 16px 34px" }}>
       <PageHeader title="Достижения" onBack={() => navigate(back)} />
 
-      {/* Category ladders — straight to the badges (David: no «Твои награды» banner) */}
+      <section className="bos-ach-hero" aria-label="Прогресс коллекции">
+        <div className="bos-ach-hero-copy">
+          <div className="bos-ach-kicker">КОЛЛЕКЦИЯ ПУТИ</div>
+          <div className="bos-ach-count"><b>{earnedN}</b><span>из {LIST.length}</span></div>
+          <div className="bos-ach-hero-text">Не за идеальность. За движение, внимание, связь и возвращения.</div>
+          {_achXP > 0 && <div className="bos-ach-hero-xp">+{_achXP} XP собрано</div>}
+        </div>
+        <div className="bos-ach-hero-orbit" style={{ "--ach-pct": Math.max(2, Math.round(earnedN / Math.max(1, LIST.length) * 100)) + "%" }}>
+          <div className="bos-ach-hero-core">{earnedN}</div>
+          {heroRelics.map((a, i) => <AchievementArtworkLive key={a.id} ach={a} size={i === 0 ? 48 : 38} locked={!a.earned} className={"relic-" + (i + 1)} />)}
+        </div>
+      </section>
+
+      {next && (
+        <React.Fragment>
+          <div className="section-label bos-ach-section-head" style={{ marginTop: 24 }}><span>Ближе всего</span></div>
+          <button onClick={() => showDetail(next)} className="tap bos-ach-next" style={{ "--ach": next.accent }}>
+            <AchievementArtworkLive ach={next} size={98} locked />
+            <span className="bos-ach-next-copy">
+              <span className="bos-ach-next-kicker">СЛЕДУЮЩАЯ ВЕХА · +{next.xp} XP</span>
+              <span className="bos-ach-next-title">{next.t}</span>
+              <span className="bos-ach-next-body">{next.how}</span>
+              <span className="bos-ach-next-progress"><i><b style={{ width: Math.round((next.ratio || 0) * 100) + "%" }} /></i><em>{progressText(next)}</em></span>
+            </span>
+            <I.ChevronRight size={18} color="var(--text-4)" />
+          </button>
+        </React.Fragment>
+      )}
+
       {CATS.map((cat) => {
-        const items = cat.ids.map((id) => byId[id]).filter(Boolean);
+        const items = LIST.filter((a) => a.cat === cat.id);
         if (!items.length) return null;
         const got = items.filter((a) => a.earned).length;
         return (
-          <React.Fragment key={cat.t}>
-            <div className="section-label" style={{ marginTop: 22, padding: "0 4px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span>{cat.t}</span>
-              <span className="bos-sys-text-3" style={{ fontWeight: 600, fontSize: 12 }}>{got}/{items.length}</span>
+          <React.Fragment key={cat.id}>
+            <div className="section-label bos-ach-section-head" style={{ marginTop: 28 }}>
+              <span><b>{cat.t}</b><small>{cat.d}</small></span>
+              <em>{got}/{items.length}</em>
             </div>
-            <SysCard style={{ padding: "16px 14px", marginTop: 8 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
-                {items.map(tile)}
-              </div>
-            </SysCard>
+            <div className="bos-ach-grid">{items.map(card)}</div>
           </React.Fragment>
         );
       })}
