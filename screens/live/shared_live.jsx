@@ -246,8 +246,27 @@ function bosCleanBriefLine(raw) {
   var s = ("" + raw).trim();
   s = (s.split(/\r?\n/).map(function (x) { return x.trim(); }).filter(Boolean)[0]) || "";
   s = s.replace(/^["'«»•\*\-\d\.\)\s]+/, "").replace(/["'«»\s]+$/, "").trim();
-  if (s.length > 140) s = s.slice(0, 138).trim() + "…";
+  // Длинный ответ режем ПО ПРЕДЛОЖЕНИЮ, а не по символу: обрубок с «…» посреди слова
+  // читался как сбой. Целого предложения не нашлось — тогда уже многоточие.
+  if (s.length > 140) {
+    var cut = s.slice(0, 140), dot = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
+    s = (dot >= 40) ? cut.slice(0, dot + 1).trim() : cut.slice(0, 138).trim() + "…";
+  }
   return s;
+}
+// СТРАЖ ЖИВОЙ ФРАЗЫ (David 2026-07-29: «вместо совета показался служебный текст»). Модель
+// изредка вместо тёплой строки пересказывает служебный контекст — и по-английски («The user
+// David hasn't marked any habits today (0/5)…»). Такое наружу не пускаем: пусть лучше
+// покажется наша заготовка AI_BRIEF, чем машинный отчёт о самом себе.
+function bosBriefLooksHuman(s) {
+  if (!s || s.length < 8) return false;
+  var letters = s.replace(/[^A-Za-zА-Яа-яЁё]/g, "");
+  if (letters.length < 6) return false;
+  var cyr = (letters.match(/[А-Яа-яЁё]/g) || []).length;
+  if (cyr / letters.length < 0.6) return false;              // ответ не по-русски → это не фраза человеку
+  if (/@@ACTION|Контекст пользователя|^\s*[{[]/.test(s)) return false; // служебное/JSON
+  if (/\bXP\b.*\bуровень\b|\bуровень \d+\b.*\bXP\b/i.test(s)) return false; // пересказ статистики
+  return true;
 }
 async function bosAiBriefLive(app) {
   try {
@@ -256,7 +275,8 @@ async function bosAiBriefLive(app) {
     if (!ctx) return null;
     var raw = await aiRaw([{ role: "system", content: BRIEF_SYSTEM_LIVE }, { role: "user", content: ctx }]);
     var summary = bosCleanBriefLine(raw);
-    if (!summary) return null; // ИИ недоступен/пусто → главная возьмёт заготовку AI_BRIEF
+    // Пусто ИЛИ не похоже на живую фразу → главная возьмёт заготовку AI_BRIEF (она всегда уместна).
+    if (!summary || !bosBriefLooksHuman(summary)) return null;
     return { summary: summary };
   } catch (e) { return null; }
 }

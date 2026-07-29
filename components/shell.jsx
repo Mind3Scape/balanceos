@@ -1625,7 +1625,18 @@ function AppProvider({ children }) {
     if (mode !== "live") { setAiBrief(null); return; }
     const cacheKey = "bos:brief:" + (persistId || "live");
     let cached = null;
-    try { const raw = localStorage.getItem(cacheKey); if (raw) { cached = JSON.parse(raw); setAiBrief(cached); } } catch (e) {}
+    // Кэш проверяем тем же стражем, что и свежий ответ (bosBriefLooksHuman): один машинный
+    // ответ модели иначе застревал бы на главной до следующего игрового события.
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) {
+        cached = JSON.parse(raw);
+        if (cached && cached.summary && typeof bosBriefLooksHuman === "function" && !bosBriefLooksHuman(cached.summary)) {
+          cached = null; try { localStorage.removeItem(cacheKey); } catch (e2) {}
+        }
+        if (cached) setAiBrief(cached);
+      }
+    } catch (e) {}
     if (typeof bosAiBriefLive !== "function") return;
     // Nothing material moved since the last line → keep the cached line, spend NO call.
     if (cached && cached.signal === _briefSignal) return;
