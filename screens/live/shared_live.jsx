@@ -4898,8 +4898,9 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
 // groupOf(id) → строковый ключ ГРУППЫ или null (David 2026-07-29: «привычки не по отдельности с
 // расстоянием, а всегда единым блоком»). Соседи с одинаковым ключом СКЛЕИВАЮТСЯ: зазор между ними
 // съедается отрицательным нижним отступом, а плитка получает ctx.group = {first,last} и сама рисует
-// скруглённые только внешние углы + разделитель-волосок. В режиме перестановки склейка отключается —
-// карточки снова расходятся, чтобы их было видно и можно было тащить поодиночке.
+// скруглённые только внешние углы + разделитель-волосок. Блок ЦЕЛЬНЫЙ ВСЕГДА, включая режим
+// перестановки (David 2026-07-29: «пусть всегда будет цельно в блоке») — расходится только та
+// карточка, которую прямо сейчас тащат: она приподнимается и получает свои полные углы.
 function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel, onGear, sepBeforeId, sepNode, groupOf }) {
   const [mode, setMode] = React.useState(false);
   const [order, setOrder] = React.useState(ids);
@@ -5047,11 +5048,14 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
           const sep = (sepNode && sepBeforeId != null && id === sepBeforeId) ? <div key="__bos-sep" style={{ gridColumn: "1 / -1", minWidth: 0 }}>{sepNode}</div> : null;
           // Склейка соседей одной группы (см. groupOf выше). Прослойка sepNode рвёт группу —
           // она встаёт между карточками, склеивать через неё нечего.
-          const grp = (!mode && groupOf) ? (function () { try { return groupOf(id); } catch (e2) { return null; } })() : null;
+          // ВАЖНО: склейка РАСКЛАДКИ (marginBottom) считается БЕЗ оглядки на isDrag — иначе
+          // подъём карточки менял бы высоту строки прямо посреди перетаскивания и снимок
+          // rect'ов (shiftOf) уезжал бы на gap. Драг влияет только на ВИД самой поднятой плитки.
+          const grp = groupOf ? (function () { try { return groupOf(id); } catch (e2) { return null; } })() : null;
           const grpAt = (i) => { if (grp == null || i < 0 || i >= order.length) return null; try { return groupOf(order[i]); } catch (e2) { return null; } };
           const prevSame = grp != null && grpAt(idx - 1) === grp && !sep;
           const nextSame = grp != null && grpAt(idx + 1) === grp && !(sepNode && sepBeforeId != null && order[idx + 1] === sepBeforeId);
-          const cellCtx = { mode, dragging: isDrag, group: grp != null && (prevSame || nextSame) ? { first: !prevSame, last: !nextSame } : null };
+          const cellCtx = { mode, dragging: isDrag, group: (!isDrag && grp != null && (prevSame || nextSame)) ? { first: !prevSame, last: !nextSame } : null };
           const cell = (
             <div ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
               style={{ position: "relative", touchAction: mode ? "none" : "auto",
@@ -5065,7 +5069,11 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
                 transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
                 transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
                 zIndex: isDrag ? 40 : 1, willChange: mode ? "transform" : "auto" }}>
-              <div className={mode && !isDrag ? "bos-jiggle" : ""} style={{ animationDelay: (-(idx % 5) * 0.045) + "s", borderRadius: 22, boxShadow: isDrag ? "0 16px 34px rgba(20,30,60,0.22)" : "none" }}>
+              {/* Дрожь — только у ОТДЕЛЬНЫХ карточек. Строку внутри склеенного блока не трясём:
+                  каждая крутилась бы вокруг своей оси и цельный блок распадался бы на веер
+                  (David: «пусть всегда будет цельно»). Что мы в режиме правки, и так видно —
+                  по дрожащим виджетам и плавающему «Готово». */}
+              <div className={(mode && !isDrag && !(grp != null && (prevSame || nextSame))) ? "bos-jiggle" : ""} style={{ animationDelay: (-(idx % 5) * 0.045) + "s", borderRadius: 22, boxShadow: isDrag ? "0 16px 34px rgba(20,30,60,0.22)" : "none" }}>
                 {renderItem(id, cellCtx)}
               </div>
             </div>

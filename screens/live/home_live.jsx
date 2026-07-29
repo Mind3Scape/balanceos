@@ -306,9 +306,15 @@ function TasksWidgetLive({ isDark, openSheet }) {
    блок «Доска» (Добавить виджет · Оформление). «Переставить» уже запускает тряску (enterReorder).
    Заякорено по rect карточки (приходит из BosReorderGrid.onLongPress). Тема/стекло сюда НЕ входят —
    они уехали в Я → Настройки (§14). Портал, как CreateMenuLive/CardStyleMenuLive. */
-function HomeCardMenuLive({ state, onClose, isDark, preview, kind, onShare, onReorder, onRemove, onAddWidget, onStyle }) {
+function HomeCardMenuLive({ state, onClose, isDark, preview, kind, onShare, onReorder, onRemove, removal, onAddWidget, onStyle }) {
   const menuRef = React.useRef(null);
   const [pos, setPos] = React.useState(null);
+  // Подтверждение удаления живёт ВНУТРИ этого же меню (David 2026-07-29: «удаление долговато и
+  // некрасиво»). Было: меню → шторка «Архивировать/Удалить» → ЕЩЁ шторка-подтверждение = три
+  // выезда снизу на один жест. Стало: «Удалить» перекладывает то же самое стеклянное меню в
+  // короткий вопрос — карточка так и висит над ним, ничего не прыгает.
+  const [ask, setAsk] = React.useState(false);
+  React.useEffect(() => { setAsk(false); }, [state && state.k]);
   React.useLayoutEffect(() => {
     if (!state || !state.rect) { setPos(null); return; }
     const r = state.rect;
@@ -326,7 +332,9 @@ function HomeCardMenuLive({ state, onClose, isDark, preview, kind, onShare, onRe
     if (menuLeft + menuW > vw - pad) menuLeft = vw - pad - menuW;
     if (menuLeft < pad) menuLeft = pad;
     setPos({ previewTop, previewLeft: r.left, previewW: r.width, menuTop, menuLeft });
-  }, [state]);
+    // ask в зависимостях: вопрос-подтверждение другой высоты — меню переизмеряется и не
+    // вылезает за нижний край, если карточка была у самого низа экрана.
+  }, [state, ask]);
   if (!state) return null;
   const ink = isDark ? "#f2f2f5" : "#0a0a0a";
   const act = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } onClose(); if (fn) setTimeout(fn, 0); };
@@ -344,18 +352,43 @@ function HomeCardMenuLive({ state, onClose, isDark, preview, kind, onShare, onRe
   // Корзина (удаление) у всего, кроме виджетов — привычка/цель/круг удаляются по-настоящему
   // (David: «со всем кроме виджетов логика удаления как у привычки»); виджет — просто минус (с доски).
   const hardDelete = (kind !== "widget");
+  const archIcon = (<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" /><path d="M10 12h4" /></svg>);
+  // ВОПРОС вместо списка: тот же стеклянный прямоугольник, только внутри — короткая правда о
+  // последствии и две кнопки. Ничего не выезжает, карточка над меню на месте.
+  const askView = (removal && (
+    <React.Fragment>
+      <div style={{ padding: "15px 16px 12px" }}>
+        <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px", color: ink, lineHeight: 1.3 }}>{removal.askTitle}</div>
+        <div style={{ fontSize: 12.5, color: isDark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.5)", marginTop: 5, lineHeight: 1.4 }}>{removal.askHint}</div>
+      </div>
+      <Row first={false} label={removal.deleteLabel || "Удалить"} icon={<I.Trash size={18} />} danger
+        onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("warning"); } catch (e) {} } onClose(); setTimeout(removal.del, 0); }} />
+      <Row label="Оставить" icon={<I.X size={18} />} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } setAsk(false); }} />
+    </React.Fragment>
+  ));
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8200, background: "rgba(18,22,38,0.30)", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)", animation: "dimIn 0.18s ease both" }}>
       {/* Превью карточки на её месте — iOS «карточка приподнялась» (визуально, без событий). */}
       <div aria-hidden style={{ position: "fixed", left: pos ? pos.previewLeft : state.rect.left, top: pos ? pos.previewTop : state.rect.top, width: pos ? pos.previewW : state.rect.width, pointerEvents: "none", transform: "scale(1.03)", transformOrigin: "center", filter: "drop-shadow(0 20px 44px rgba(20,20,40,0.30))", visibility: pos ? "visible" : "hidden" }}>{preview}</div>
       {/* Само меню */}
       <div ref={menuRef} role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", left: pos ? pos.menuLeft : state.rect.left, top: pos ? pos.menuTop : (state.rect.bottom + 10), width: 246, visibility: pos ? "visible" : "hidden", background: frost, WebkitBackdropFilter: "blur(34px) saturate(190%)", backdropFilter: "blur(34px) saturate(190%)", borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 50px rgba(20,20,40,0.30), inset 0 0 0 0.5px " + (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.7)"), transformOrigin: "top left", animation: "bosMenuPop 0.30s cubic-bezier(0.34,1.5,0.4,1) both" }}>
+        {ask ? askView : (
+        <React.Fragment>
         {onShare && <Row first label="Поделиться" icon={<I.Share size={19} />} onClick={act(onShare)} />}
         <Row first={!onShare} label="Переставить" icon={reorderIcon} onClick={act(onReorder)} />
-        <Row label="Убрать" icon={hardDelete ? <I.Trash size={18} /> : <I.Minus size={19} />} danger onClick={act(onRemove)} />
+        {/* «В архив» отдельной строкой (David 2026-07-29): раньше архив прятался за «Убрать» +
+            шторкой. Спрятать — самое частое и БЕЗОПАСНОЕ действие, ему место в меню, одним тапом. */}
+        {removal && removal.archive && <Row label="В архив" icon={archIcon} onClick={act(removal.archive)} />}
+        <Row label={removal ? (removal.deleteLabel || "Удалить") : "Убрать"} icon={hardDelete ? <I.Trash size={18} /> : <I.Minus size={19} />} danger
+          onClick={removal ? (removal.ask === false
+            ? act(removal.del)                                    // круг спрашивает по-своему (там люди)
+            : () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } setAsk(true); })
+            : act(onRemove)} />
         <div style={{ padding: "9px 16px 3px", fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: isDark ? "rgba(255,255,255,0.4)" : "rgba(10,10,10,0.38)", borderTop: "6px solid " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.045)") }}>Доска</div>
         <Row first label="Добавить виджет" icon={gridIcon} onClick={act(onAddWidget)} />
         <Row label="Оформление" icon={slidersIcon} onClick={act(onStyle)} />
+        </React.Fragment>
+        )}
       </div>
     </div>,
     document.body
@@ -869,6 +902,36 @@ function HomeLive() {
     // Виджеты — просто убрать с доски (это не сущность, а блок; вернуть — в галерее «+»).
     hideKey(k);
   };
+  // РАЗБОРКА КАРТОЧКИ для меню по долгому нажатию (David 2026-07-29: «удаление некрасиво и
+  // долговато»). Один объект на все виды: «В архив» — отдельной строкой меню, «Удалить» —
+  // коротким вопросом ВНУТРИ того же меню. Шторки ArchiveOrDeleteSheetLive + подтверждение
+  // остались только на пути «−» из режима перестановки (у привычек его больше нет).
+  // ask:false = вид спрашивает сам (круг: там люди, у bosConfirmExitTeam своё предупреждение).
+  const removalOf = (k) => {
+    if (!k) return null;
+    if (k.indexOf("h:") === 0) {
+      const h = habits.find((x) => _khHome(x) === k); if (!h) return null;
+      return { archive: () => bosSetArchived(bosArchKey("h", h), true),
+        deleteLabel: "Удалить", askTitle: "Удалить «" + h.name + "»?",
+        askHint: "Привычка и вся история отметок сотрутся. Навсегда. Чтобы просто спрятать — «В архив».",
+        del: () => (app?.removeHabit || (() => {}))(h.id) };
+    }
+    if (k.indexOf("g:") === 0) {
+      const g = goals.find((x) => _kgHome(x) === k); if (!g) return null;
+      return { archive: () => bosSetArchived(bosArchKey("g", g), true),
+        deleteLabel: "Удалить", askTitle: "Удалить «" + g.name + "»?",
+        askHint: "Цель и её прогресс сотрутся. Навсегда. Чтобы просто спрятать — «В архив».",
+        del: () => (app?.removeGoal || (() => {}))(g.id) };
+    }
+    if (k.indexOf("t:") === 0) {
+      const t = teams.find((x) => teamKey(x) === k); if (!t) return null;
+      const iAmOwner = !t.joined; // создатель ещё не «joined» → он владелец
+      return { archive: () => bosSetArchived(bosArchKey("t", t), true), ask: false,
+        deleteLabel: iAmOwner ? "Удалить круг" : "Покинуть круг",
+        del: () => bosConfirmExitTeam({ app, team: t, isOwner: iAmOwner, navigate, openSheet, returnTo: "home" }) };
+    }
+    return null; // виджет — обычный «Убрать» с доски
+  };
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -940,6 +1003,7 @@ function HomeLive() {
           })()}
           onReorder={() => { if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder(); }}
           onRemove={() => onMinus(cardMenu.k)}
+          removal={removalOf(cardMenu.k)}
           onAddWidget={openAddSheet}
           onStyle={() => { setStyleBottom(false); setStyleLow(true); setStyleOpen(true); }}
         />
@@ -975,7 +1039,10 @@ function HomeLive() {
             // особенно когда превью сдвигалось, чтобы меню влезло в экран.
             <div style={{ position: "relative", height: "100%", visibility: (cardMenu && cardMenu.k === k) ? "hidden" : "visible" }}>
               <div style={{ pointerEvents: cellCtx.mode ? "none" : "auto", height: "100%" }}>{tileFor(k, cellCtx)}</div>
-              {cellCtx.mode && <WidgetMinusLive onRemove={() => onMinus(k)} />}
+              {/* «−» ТОЛЬКО у виджетов/целей/кругов. У привычек его нет (David 2026-07-29): блок
+                  цельный, кружок в углу наезжал бы на соседнюю строку, а удаление и так живёт
+                  в меню по долгому нажатию. */}
+              {cellCtx.mode && k.indexOf("h:") !== 0 && <WidgetMinusLive onRemove={() => onMinus(k)} />}
             </div>
           )}
         />
