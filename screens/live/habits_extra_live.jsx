@@ -15,12 +15,6 @@
    const INFO_TOPICS_LIVE, function HabitFormSheetLive, function GoalFormSheetLive,
    function HabitSettingsLive, function GoalSettingsLive, function InfoLive. */
 
-// 18 ЧАСТЫХ эмодзи — сетка значков прямо в форме создания привычки (David 2026-07-29).
-// Полная лента остаётся за «Ещё» (EmojiPickerLive). Значки — ИМЕННО эмодзи, не свои SVG:
-// орбиты «Вселенной» рисуют значок как SVG-текст, витрина в облаке режет его до 8 символов,
-// а пуш из бота собирает строку на сервере — свой набор ломается во всех трёх местах (см. bosDeSF).
-var BOS_HABIT_EMOJI_QUICK = ["🚶", "🏃", "🏋️", "🧘", "💊", "💧", "🍎", "🥗", "🛏️", "⏰", "📖", "✏️", "🧠", "🎵", "🧹", "💻", "🌿", "☀️"];
-
 function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goalFor: goalForProp = null, teamFor = null, navigate }) {
   const { open: openSheet, close } = useSheet();
   const app = useApp();
@@ -35,7 +29,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   const [challengeC, setChallengeC] = useHS(null); // выбранный челлендж для вью «challenge» (возврат к форме)
   const [goalOnly, setGoalOnly] = useHS(editing ? !!params.habit.goalOnly : false);
   const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
-  const [iconPick, setIconPick] = useHS(editing ? (typeof bosDeSF === "function" ? bosDeSF(params.habit.emoji) : params.habit.emoji) : (preset?.i || "👟")); // старые sf:-символы → эмодзи по смыслу
+  // Дефолт 🚶 (а не 👟): его НЕТ в общей ленте эмодзи, и лента открывалась бы на смайликах,
+  // ничего не подсветив. 🚶 в списке есть — лента сразу подъезжает к «людям в движении».
+  const [iconPick, setIconPick] = useHS(editing ? (typeof bosDeSF === "function" ? bosDeSF(params.habit.emoji) : params.habit.emoji) : (preset?.i || "🚶")); // старые sf:-символы → эмодзи по смыслу
   // Icon = the EmojiPickerLive panel (opens straight on emojis). The iOS keyboard can't be
   // forced into emoji mode — it opened on ABC, «непонятно что делать» (David) — so we use
   // our own emoji sheet, opened by tapping the tile below.
@@ -139,14 +135,29 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   //    в эмодзи-пикер просто не вызывались — и экран падал в «Что-то сбилось».
   // Какая строка блока «Ещё» раскрыта (сфера / тип) — раскрывается ВНУТРИ своей карточки.
   const [more, setMore] = useHS(null);
-  // 18 частых эмодзи прямо в форме (David 29.07: значки остаются ЭМОДЗИ — свой набор SVG ломает
-  // орбиты «Вселенной», витрину в облаке и пуш из бота, см. bosDeSF). Выбранный всегда в сетке,
-  // даже если он взят из полной ленты: иначе выбор не виден.
-  const _quickEmoji = React.useMemo(function () {
-    var q = BOS_HABIT_EMOJI_QUICK.slice();
-    if (iconPick && q.indexOf(iconPick) < 0) { q.pop(); q.unshift(iconPick); }
-    return q;
+  // ЗНАЧОК — ОДНА ЛЕНТА всех стандартных эмодзи, прокрутка вправо (David 2026-07-29). Было:
+  // сетка из 18 «частых», которая ПЕРЕСТРАИВАЛАСЬ на каждый выбор («это тупо»), плюс «Ещё» с
+  // отдельной шторкой («вообще неприкольно»). Теперь порядок ФИКСИРОВАННЫЙ (BOS_EMOJI_ALL, тот же
+  // список, что был в шторке-пикере), при выборе ничего не двигается, второй шторки нет.
+  // Значки остаются эмодзи: свой набор SVG рисуется текстом на орбитах «Вселенной», режется до
+  // 8 символов в витрине облака и не читается сервером пуша (см. bosDeSF).
+  const _emojiBase = (typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🚶", "🏃", "💧", "📖", "🧘", "☀️"];
+  // Значок старой привычки может быть ВНЕ общего списка (легаси, «sf:*»→эмодзи, чужой набор) —
+  // тогда в ленте не подсветилось бы ничего и человек не видел бы свой текущий значок. Такой
+  // ставим первым. Порядок ленты от этого не «пляшет»: выбор ИЗ ленты всегда уже в списке.
+  const _emojiAll = React.useMemo(function () {
+    return (iconPick && _emojiBase.indexOf(iconPick) < 0) ? [iconPick].concat(_emojiBase) : _emojiBase;
   }, [iconPick]);
+  const _stripRef = React.useRef(null);
+  // Подвести ленту к выбранному значку — но ТОЛЬКО при открытии/возврате в форму, не на каждый
+  // тап: иначе лента дёргалась бы под пальцем (ровно та беда, что была у перестраивающейся сетки).
+  React.useEffect(function () {
+    if (view !== "form") return;
+    var el = _stripRef.current; if (!el) return;
+    var sel = el.querySelector('[data-sel="1"]'); if (!sel) return;
+    var want = sel.offsetLeft - el.clientWidth / 2 + sel.offsetWidth / 2;
+    if (want > 8) el.scrollLeft = want;
+  }, [view]);
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
   // вверху, чтобы не листать до низа»).
@@ -215,16 +226,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     close();
   };
 
-  // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (как в TeamQuickEditSheetLive) —
-  // вложенный openSheet заменил бы форму и потерял ввод.
-  if (view === "picker") {
-    return (
-      <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
-        <EmojiPickerLive embedded current={iconPick} accent={color} onPick={(e) => { setIconPick(e); setView("form"); }} />
-        <button onClick={() => setView("form")} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Назад</button>
-      </div>
-    );
-  }
+  // ВЬЮ «picker» УБРАН (David 2026-07-29: «на „Ещё" вылетает ещё одна шторка — неприкольно»).
+  // Все эмодзи теперь живут ЛЕНТОЙ прямо в форме (секция ЗНАЧОК ниже). EmojiPickerLive жив и
+  // работает у цели, круга и аватара — это только про форму привычки.
   // ВТОРОЙ ВЬЮ: «Пригласить» — реальный шаринг, с возвратом к форме.
   if (view === "share") {
     return (
@@ -320,7 +324,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
 
       {/* ── ШАПКА: значок + имя. Первое дело — назвать привычку, поэтому оно первой строкой. ── */}
       <div style={{ ..._CARD, marginTop: 6, display: "flex", alignItems: "center", gap: 12 }}>
-        <button type="button" data-haptic="selection" className="tap" onClick={() => setView("picker")} aria-label="Выбрать значок"
+        <button type="button" data-haptic="selection" className="tap" aria-label="Показать значок в ленте"
+          onClick={() => { try { var el = _stripRef.current, sel = el && el.querySelector('[data-sel="1"]'); if (sel) el.scrollTo({ left: Math.max(0, sel.offsetLeft - el.clientWidth / 2 + sel.offsetWidth / 2), behavior: "smooth" }); } catch (e) {} }}
           style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s",
             background: _accent ? _accent + "26" : "var(--surface-3)" }}>
           {bosIcon(iconPick, 27, color)}
@@ -329,16 +334,17 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
       </div>
 
-      {/* ── ЗНАЧОК: частые эмодзи ПРЯМО в форме; «Ещё» — та же сплошная лента, что была. ── */}
-      <Lab action="Ещё" onAction={() => setView("picker")}>ЗНАЧОК</Lab>
-      <div style={_CARD}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 9 }}>
-          {_quickEmoji.map((e, i) => {
+      {/* ── ЗНАЧОК: одна лента всех эмодзи, скролл вправо. Без «Ещё» и второй шторки. ── */}
+      <Lab>ЗНАЧОК</Lab>
+      <div style={{ ..._CARD, padding: "11px 0" }}>
+        <div ref={_stripRef} className="bos-hscroll"
+          style={{ display: "flex", gap: 7, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "0 12px" }}>
+          {_emojiAll.map((e, i) => {
             const on = e === iconPick;
             return (
-              <button key={e + i} type="button" className="tap" data-no-haptic aria-pressed={on}
+              <button key={e + i} type="button" className="tap" data-no-haptic data-sel={on ? "1" : null} aria-pressed={on}
                 onClick={() => { setIconPick(e); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e2) {} } }}
-                style={{ aspectRatio: "1 / 1", borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 19, lineHeight: 1, padding: 0,
+                style={{ width: 42, height: 42, flexShrink: 0, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 21, lineHeight: 1, padding: 0,
                   background: on ? (_accent ? _accent + "2b" : (isDark ? "rgba(255,255,255,0.16)" : "#e7e7ec")) : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
                   boxShadow: on ? "inset 0 0 0 2px " + (_accent || "var(--text)") : "none",
                   transition: "background .15s, box-shadow .15s" }}>{e}</button>
