@@ -15,6 +15,12 @@
    const INFO_TOPICS_LIVE, function HabitFormSheetLive, function GoalFormSheetLive,
    function HabitSettingsLive, function GoalSettingsLive, function InfoLive. */
 
+// 18 ЧАСТЫХ эмодзи — сетка значков прямо в форме создания привычки (David 2026-07-29).
+// Полная лента остаётся за «Ещё» (EmojiPickerLive). Значки — ИМЕННО эмодзи, не свои SVG:
+// орбиты «Вселенной» рисуют значок как SVG-текст, витрина в облаке режет его до 8 символов,
+// а пуш из бота собирает строку на сервере — свой набор ломается во всех трёх местах (см. bosDeSF).
+var BOS_HABIT_EMOJI_QUICK = ["🚶", "🏃", "🏋️", "🧘", "💊", "💧", "🍎", "🥗", "🛏️", "⏰", "📖", "✏️", "🧠", "🎵", "🧹", "💻", "🌿", "☀️"];
+
 function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goalFor: goalForProp = null, teamFor = null, navigate }) {
   const { open: openSheet, close } = useSheet();
   const app = useApp();
@@ -128,6 +134,19 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // Якорь общей цели — только для командной привычки (teamFor). При правке берём из привычки, при
   // создании — подсказку teamFor.suggestMain (первую привычку круга делаем якорем).
   const [isMain, setIsMain] = useHS(teamFor && editing ? !!params.habit.isMain : (teamFor ? !!teamFor.suggestMain : false));
+  // ⚠️ ХУКИ ТОЛЬКО ЗДЕСЬ, ДО ранних return'ов (view === picker/share/challenge). Один раз уже
+  //    поймали React #300 «rendered fewer hooks»: useState/useMemo, объявленные ниже, при уходе
+  //    в эмодзи-пикер просто не вызывались — и экран падал в «Что-то сбилось».
+  // Какая строка блока «Ещё» раскрыта (сфера / тип) — раскрывается ВНУТРИ своей карточки.
+  const [more, setMore] = useHS(null);
+  // 18 частых эмодзи прямо в форме (David 29.07: значки остаются ЭМОДЗИ — свой набор SVG ломает
+  // орбиты «Вселенной», витрину в облаке и пуш из бота, см. bosDeSF). Выбранный всегда в сетке,
+  // даже если он взят из полной ленты: иначе выбор не виден.
+  const _quickEmoji = React.useMemo(function () {
+    var q = BOS_HABIT_EMOJI_QUICK.slice();
+    if (iconPick && q.indexOf(iconPick) < 0) { q.pop(); q.unshift(iconPick); }
+    return q;
+  }, [iconPick]);
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
   // вверху, чтобы не листать до низа»).
@@ -226,6 +245,71 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     );
   }
 
+  // ── МЕЛКИЕ КИРПИЧИ ФОРМЫ (редизайн 2026-07-29, David: «шторка переусложнённая, хочется проще,
+  //    но не потерять функционал»). Было: 8 одинаковых белых карточек «иконка + заголовок + абзац +
+  //    тумблер» — всё весит одинаково, глаз не находит главного. Стало: заголовок секции = мелкая
+  //    серая СТРОЧКА, выбор из вариантов = СЕГМЕНТ (а не тумблер, за которым прячется второй
+  //    вариант), редкое = строки со значением в блоке «Ещё». Макет: design-mockups/2026-07-29-создание-привычки.html
+  const _CARD = { background: "var(--card, #fff)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: "13px 14px" };
+  const _CARD_TIGHT = { background: "var(--card, #fff)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: "2px 14px" };
+  const _hair = "1px solid var(--line-2, rgba(0,0,0,0.06))";
+  const _accent = (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color : null;
+  const Lab = ({ children, action, onAction }) => (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "16px 6px 8px" }}>
+      <span style={{ flex: 1, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.3, color: "var(--text-4)" }}>{children}</span>
+      {action && (
+        <button type="button" onClick={onAction} className="tap" data-haptic="selection"
+          style={{ border: 0, background: "transparent", padding: 0, fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", cursor: "pointer", fontFamily: "inherit" }}>{action} ›</button>
+      )}
+    </div>
+  );
+  // Сегмент в языке iOS — тот же материал, что пилюля круга: серый жёлоб + светлый бегунок.
+  const Seg = ({ items, value, onPick }) => (
+    <div style={{ display: "flex", gap: 3, borderRadius: 13, padding: 3, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.055)" }}>
+      {items.map(([v, l]) => {
+        const on = value === v;
+        return (
+          <button key={v} type="button" className="tap" data-haptic="selection" onClick={() => onPick(v)} aria-pressed={on}
+            style={{ flex: 1, border: 0, cursor: "pointer", borderRadius: 10, padding: "9px 0", fontSize: 13, fontFamily: "inherit",
+              fontWeight: on ? 700 : 600, color: on ? "var(--text)" : "var(--text-3)",
+              background: on ? (isDark ? "rgba(255,255,255,0.16)" : "#fff") : "transparent",
+              boxShadow: on ? (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.11), 0 0 0 0.5px rgba(0,0,0,0.03)") : "none",
+              transition: "background .15s, box-shadow .15s" }}>{l}</button>
+        );
+      })}
+    </div>
+  );
+  // Строка списка: имя слева, ЗНАЧЕНИЕ справа (его видно не открывая) + шеврон или тумблер.
+  const Row = ({ label, sub, value, onTap, right, first }) => {
+    const inner = (
+      <React.Fragment>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+          <span style={{ display: "block", fontSize: 15, fontWeight: 500, color: "var(--text)" }}>{label}</span>
+          {sub ? <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35 }}>{sub}</span> : null}
+        </span>
+        {value != null ? <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-3)", flexShrink: 0 }}>{value}</span> : null}
+        {onTap ? <I.ChevronRight size={15} color="var(--text-4)" /> : null}
+        {right || null}
+      </React.Fragment>
+    );
+    const st = { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 0", border: 0, borderTop: first ? 0 : _hair, background: "transparent" };
+    return onTap
+      ? <button type="button" className="tap" data-haptic="selection" onClick={onTap} style={{ ...st, cursor: "pointer", fontFamily: "inherit" }}>{inner}</button>
+      : <div style={st}>{inner}</div>;
+  };
+  // КАК ОТМЕЧАТЬ = один сегмент вместо тумблера «Считать количество» + строки «раз/минут».
+  // Внутри живут те же countOn/countUnit — контракт сохранения не тронут.
+  const markMode = !countOn ? "check" : (countUnit === "min" ? "min" : "times");
+  const pickMark = (m) => {
+    if (m === "check") { setCountOn(false); return; }
+    if (!countOn) enableCount(true);
+    pickUnit(m === "min" ? "min" : "times");
+  };
+  const _sphereAuto = (function () {
+    try { var g = bosSphereFor({ name: name, emoji: iconPick }); var s2 = (BOS_SPHERES || []).find(function (x) { return x.id === g; }); return s2 ? s2.l : "Разум"; } catch (e) { return "Разум"; }
+  })();
+  const _sphereVal = sphere ? ((((BOS_SPHERES || []).find(function (x) { return x.id === sphere; })) || {}).l || "Своя") : ("Авто: " + _sphereAuto);
+
   return (
     <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
       {/* Серый фон шторки + белые карточки — как страницы приложения (David). */}
@@ -234,245 +318,190 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         ? <SheetFormHeadLive title={teamFor ? (editing ? "Изменить общую привычку" : "Общая привычка") : (editing ? "Изменить привычку" : "Новая привычка")} onClose={close} onDone={saveHabit} />
         : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{teamFor ? (editing ? "Изменить общую привычку" : "Общая привычка") : (editing ? "Изменить привычку" : "Новая привычка")}</div>}
 
-      {/* ── ОБЛИК: значок (тап → эмодзи) · имя · цвет. Всё в одной карточке.
-          Тумблера «Тонированный фон» больше нет (David 2026-07-29) — карточка привычки всегда
-          белая, цвет живёт на значке, днях и чекбоксе. ── */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
-            {bosIcon(iconPick, 28, color)}
-          </button>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
-            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
-        </div>
-        <BosColorPickerLive value={color} onChange={setColor} />
+      {/* ── ШАПКА: значок + имя. Первое дело — назвать привычку, поэтому оно первой строкой. ── */}
+      <div style={{ ..._CARD, marginTop: 6, display: "flex", alignItems: "center", gap: 12 }}>
+        <button type="button" data-haptic="selection" className="tap" onClick={() => setView("picker")} aria-label="Выбрать значок"
+          style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s",
+            background: _accent ? _accent + "26" : "var(--surface-3)" }}>
+          {bosIcon(iconPick, 27, color)}
+        </button>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
+          style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
       </div>
 
-      {/* ── ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА — строка-скролл под обликом. Чипы В ТОМ ЖЕ СТИЛЕ, что на главной
-          (bosQuickChipEl: стекло + SVG-глиф + матовая XP-пилюля — David: «уже разработали, перенеси»).
-          Тап → правила ВНУТРИ формы (view «challenge»); «может позже» вернёт сюда. Только при создании
-          ЛИЧНОЙ привычки. «Готовый челлендж» в меню «+» НЕ возвращаем. ── */}
-      {!editing && !teamFor && !goalFor && typeof CHALLENGE_STARTERS !== "undefined" && typeof bosQuickChipEl === "function" && (
-      <React.Fragment>
-        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.3, color: "var(--text-4)", padding: "16px 4px 8px" }}>ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА</div>
-        <div className="bos-hscroll" style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px 4px" }}>
-          {CHALLENGE_STARTERS.map((c, i) => bosQuickChipEl(c, isDark, () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } setChallengeC(c); setView("challenge"); }, i))}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--text-4)", padding: "7px 4px 0", lineHeight: 1.4 }}>Челлендж — та же привычка, но с призом за серию. Тап → правила → старт.</div>
-      </React.Fragment>
-      )}
-
-      {/* ── РАЗВИВАТЬ / БРОСИТЬ — тумблер (по умолч. Развивать). У общей привычки скрыт (не применимо). ── */}
-      {!teamFor && (
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flame size={20} color="var(--text-3)" /></span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{type === "build" ? "Развивать" : "Бросить"}</div>
-          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{type === "build" ? "Отмечаю день, когда сделал." : "Отмечаю день без срыва."}</div>
-        </div>
-        <Switch small on={type === "build"} onChange={(v) => setType(v ? "build" : "quit")} />
-      </div>
-      )}
-
-      {/* ── СЧИТАТЬ КОЛИЧЕСТВО — один тумблер вместо галочки/счётчика/таймера. On → число + раз/минут. ── */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Hash size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Считать количество</div>
-            {!countOn && <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Обычно — просто галочка. Включи, если считаешь разы или минуты.</div>}
-          </div>
-          <Switch small on={countOn} onChange={enableCount} />
-        </div>
-        {countOn && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 600 }}>{countUnit === "min" ? duration : goal} <span style={{ fontSize: 15, fontWeight: 500, color: "var(--text-3)" }}>{countUnit === "min" ? "мин" : "раз"}</span></div>
-                <div style={{ fontSize: 13, color: "var(--text-4)" }}>{countUnit === "min" ? "отсчёт времени за день" : "или больше в день"}</div>
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(2, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4} /></button>
-                <button onClick={() => countUnit === "min" ? setDuration(duration + 5) : setGoal(goal + 1)} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4} /></button>
-              </div>
-            </div>
-            {/* раз (счётчик) / минут (таймер) — сюда спрятался таймер. */}
-            <div style={{ display: "flex", gap: 6, marginTop: 13 }}>
-              {[{ v: "times", l: "раз" }, { v: "min", l: "минут" }].map(({ v, l }) => {
-                const on = countUnit === v;
-                return (
-                  <button key={v} onClick={() => pickUnit(v)} className="tap" data-no-haptic aria-pressed={on}
-                    style={{ flex: 1, borderRadius: 10, padding: "8px 0", fontSize: 13, fontWeight: 600, border: 0, cursor: "pointer",
-                      background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{l}</button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── ЯКОРЬ ЦЕЛИ — только у общей привычки: главная привычка круга, по ней идёт прогресс цели. ── */}
-      {teamFor && (
-        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Target size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Якорь цели</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Главная привычка круга — по ней считается прогресс общей цели.</div>
-          </div>
-          <Switch small on={isMain} onChange={setIsMain} />
-        </div>
-      )}
-
-      {/* ── СФЕРА БАЛАНСА — куда привычка идёт в колесе. «Авто» показывает, что угадало
-            приложение, поэтому человек видит ошибку ДО сохранения и может поправить. ── */}
-      {!teamFor && (
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Сфера баланса</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>
-              {sphere ? "Выбрано вручную" : ("Авто: " + (function () {
-                try { var g = bosSphereFor({ name: name, emoji: iconPick }); var s = (BOS_SPHERES || []).find(function (x) { return x.id === g; }); return s ? s.l : "Разум"; } catch (e) { return "Разум"; }
-              })())}
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {[{ id: null, l: "Авто" }].concat(BOS_SPHERES || []).map(function (s) {
-            var on = sphere === s.id;
+      {/* ── ЗНАЧОК: частые эмодзи ПРЯМО в форме; «Ещё» — та же сплошная лента, что была. ── */}
+      <Lab action="Ещё" onAction={() => setView("picker")}>ЗНАЧОК</Lab>
+      <div style={_CARD}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 9 }}>
+          {_quickEmoji.map((e, i) => {
+            const on = e === iconPick;
             return (
-              <button key={s.id || "auto"} type="button" className="tap tap-pill"
-                onClick={() => { setSphere(s.id); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }}
-                style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 700, fontFamily: "inherit",
-                  background: on ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
-                  color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>
-                {s.id ? (s.e + " " + s.l) : s.l}
-              </button>
+              <button key={e + i} type="button" className="tap" data-no-haptic aria-pressed={on}
+                onClick={() => { setIconPick(e); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e2) {} } }}
+                style={{ aspectRatio: "1 / 1", borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 19, lineHeight: 1, padding: 0,
+                  background: on ? (_accent ? _accent + "2b" : (isDark ? "rgba(255,255,255,0.16)" : "#e7e7ec")) : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
+                  boxShadow: on ? "inset 0 0 0 2px " + (_accent || "var(--text)") : "none",
+                  transition: "background .15s, box-shadow .15s" }}>{e}</button>
             );
           })}
         </div>
       </div>
-      )}
 
-      {/* ── ДНИ НЕДЕЛИ — базовый тогл расписания (David, небо-нить-финал): по умолчанию каждый
-            день; включил → выбрал свои дни. Пишет ту же маску days, что и раньше жила только
-            внутри «Напоминания» — напоминание автоматически ходит по дням привычки. Пропуск
-            чужого дня не рвёт серию (bosStreak), календарь гасит чужие клетки. ── */}
-      {!teamFor && (
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Calendar size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Дни недели</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{daysOn ? daysSummary(days) : "Каждый день. Включи и выбери свои."}</div>
-          </div>
-          <Switch small on={daysOn} onChange={(v) => { setDaysOn(v); if (!v) setDays([1, 1, 1, 1, 1, 1, 1]); }} />
-        </div>
-        {daysOn && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", gap: 6, justifyContent: "space-between" }}>
-            {WEEKDAY_LABELS.map((w, i) => {
-              const on = !!days[i];
-              return (
-                <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
-                  style={{ flex: 1, aspectRatio: "1/1", maxWidth: 34, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 11.5, fontWeight: 600, letterSpacing: "-0.2px",
-                    background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
-                    boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none", transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>{w}</button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      )}
+      {/* ── ЦВЕТ ── */}
+      <Lab>ЦВЕТ</Lab>
+      <div style={{ ..._CARD, padding: "1px 6px" }}><BosColorPickerLive value={color} onChange={setColor} /></div>
 
-      {/* ── НАПОМИНАНИЕ — тумблер → время. Дни переехали в свой ряд «Дни недели» выше — пуш
-            ходит по дням привычки. У общей привычки скрыто (у каждого своё). ── */}
-      {!teamFor && (
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Bell size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Напоминание</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{reminderOn ? (daysSummary(days) + " · напомним в " + reminderTime) : "Без напоминаний. Пуш придёт по дням привычки."}</div>
-          </div>
-          <Switch small on={reminderOn} onChange={setReminderOn} />
-        </div>
-        {reminderOn && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 14, color: "var(--text-2)" }}><I.Clock size={16} color="var(--text-3)" /> Время</span>
-              <input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value || "09:00")}
-                style={{ border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "0 12px", height: 30, lineHeight: "30px", display: "inline-flex", alignItems: "center", fontSize: 14.5, fontWeight: 500, color: "var(--text)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.2px", WebkitAppearance: "none", appearance: "none", textAlign: "center" }} />
+      {/* ── КАК ОТМЕЧАТЬ — сегмент вместо тумблера: второй вариант видно заранее, на тап короче.
+            Число со «−/+» раскрывается ВНУТРИ этой же карточки. ── */}
+      <Lab>КАК ОТМЕЧАТЬ</Lab>
+      <div style={_CARD}>
+        <Seg value={markMode} onPick={pickMark} items={[["check", "Галочка"], ["times", "Счётчик"], ["min", "Таймер"]]} />
+        {markMode !== "check" && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: _hair, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.4px" }}>{markMode === "min" ? duration : goal} <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-3)" }}>{markMode === "min" ? "мин" : "раз"}</span></div>
+              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{markMode === "min" ? "отсчёт времени за день" : "или больше в день"}</div>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button type="button" onClick={() => markMode === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(2, goal - 1))} className="tap hit44" aria-label="Меньше"
+                style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)", cursor: "pointer" }}><I.Minus size={16} strokeWidth={2.4} /></button>
+              <button type="button" onClick={() => markMode === "min" ? setDuration(duration + 5) : setGoal(goal + 1)} className="tap hit44" aria-label="Больше"
+                style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)", cursor: "pointer" }}><I.Plus size={16} strokeWidth={2.4} /></button>
             </div>
           </div>
         )}
       </div>
-      )}
 
-      {/* ── ДЕЛАТЬ ВМЕСТЕ — тумблер → XP + друзья (opt-in). У общей привычки скрыто (это уже круг). ── */}
-      {!goalFor && !teamFor && (
-        <div data-tour="invite-friend" style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color="var(--text-3)" /></span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Делать вместе</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Позови друга — новый друг по ссылке даёт тебе +150 XP.</div>
-            </div>
-            <Switch small on={shareOn} onChange={setShareOn} />
-          </div>
-          {shareOn && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-              <div style={{ borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(52,199,89,0.13)" : "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(52,199,89,0.2)" : "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
-                <div style={{ fontSize: 12.5, color: isDark ? "#7dd89b" : "#1a7a3a", lineHeight: 1.4 }}>Новый друг по твоей ссылке = <b>+150 XP</b>. А ведёте привычку вместе — каждая отметка <b>+15 XP</b> вместо +10.</div>
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-                {shareFriends.length === 0 && (
-                  <span style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Пока некого выбрать — пригласи друга по ссылке.</span>
-                )}
-                {shareFriends.map((p, i) => (
-                  <button key={i} onClick={() => setShareFriends(fs => fs.map((x, j) => j === i ? { ...x, on: !x.on } : x))} className="tap" style={{
-                    display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999,
-                    background: p.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: p.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)", border: 0, fontSize: 12, fontWeight: 500 }}>
-                    <BuddyFaceLive avatar={p.avatar} name={p.name} size={22} />{p.name}{p.on && <I.Check size={12} strokeWidth={3} />}
-                  </button>
-                ))}
-                <button onClick={() => inviteFriend()} className="tap" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 999,
-                  background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-3)", fontSize: 12, fontWeight: 500 }}><I.Plus size={12} /> Пригласить</button>
-              </div>
-              {inviteNote && (
-                <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, padding: "0 2px" }}>{inviteNote}</div>
-              )}
+      {/* ── КОГДА — сегмент вместо тумблера «Дни недели». Пишет ту же маску days. ── */}
+      {!teamFor && (
+      <React.Fragment>
+        <Lab>КОГДА</Lab>
+        <div style={_CARD}>
+          <Seg value={daysOn ? "own" : "every"} onPick={(v) => { const on = v === "own"; setDaysOn(on); if (!on) setDays([1, 1, 1, 1, 1, 1, 1]); }}
+            items={[["every", "Каждый день"], ["own", "Свои дни"]]} />
+          {daysOn && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: _hair, display: "flex", gap: 6, justifyContent: "space-between" }}>
+              {WEEKDAY_LABELS.map((w, i) => {
+                const on = !!days[i];
+                return (
+                  <button key={i} type="button" className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
+                    style={{ flex: 1, aspectRatio: "1/1", maxWidth: 34, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 11.5, fontWeight: 600, letterSpacing: "-0.2px",
+                      background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
+                      boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none", transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>{w}</button>
+                );
+              })}
             </div>
           )}
         </div>
+      </React.Fragment>
       )}
 
-      {/* ── ТАЙМЛАЙН — базовый тогл (David: «называй его везде таймлайн»): кто когда отметился,
-            лица на линии дня. По умолчанию ВКЛ — включается сам, как только привычка совместная. ── */}
+      {/* ── НАПОМИНАНИЕ — строка-тумблер, под ней строка «Время» (пуш ходит по дням привычки). ── */}
       {!teamFor && (
-        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sun size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Таймлайн</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Кто когда отметился — лица на линии дня. Живёт, когда ведёте вместе.</div>
-          </div>
-          <Switch small on={threadOn} onChange={setThreadOn} />
+      <React.Fragment>
+        <Lab>НАПОМИНАНИЕ</Lab>
+        <div style={_CARD_TIGHT}>
+          <Row first label="Напомнить" right={<Switch small on={reminderOn} onChange={setReminderOn} />} />
+          {reminderOn && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: _hair }}>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: "var(--text)" }}>Время</span>
+              <input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value || "09:00")} aria-label="Время напоминания"
+                style={{ border: 0, outline: 0, background: _accent ? _accent + "22" : "var(--surface-3)", color: _accent || "var(--text)", borderRadius: 999, padding: "0 12px", height: 32, lineHeight: "32px", display: "inline-flex", alignItems: "center", fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.2px", WebkitAppearance: "none", appearance: "none", textAlign: "center" }} />
+            </div>
+          )}
         </div>
+        {reminderOn && <div style={{ fontSize: 11.5, color: "var(--text-4)", padding: "7px 8px 0", lineHeight: 1.4 }}>{daysSummary(days) + " · напомним в " + reminderTime}</div>}
+      </React.Fragment>
       )}
 
-      {/* Привычка ДЛЯ цели — «вести только внутри цели» (скрыть из общего списка). David: рояль. */}
-      {goalFor && (
-        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Target size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Вести только внутри цели</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Не в общем списке — привычка живёт внутри «{goalFor.name}».</div>
+      {/* ── ЕЩЁ — редкое: строки со ЗНАЧЕНИЕМ (проверить можно не открывая). Сфера и тип
+            раскрываются внутри этой же карточки, тумблеры стоят прямо в строке. ── */}
+      <Lab>ЕЩЁ</Lab>
+      <div style={_CARD_TIGHT}>
+        {!teamFor && (
+        <React.Fragment>
+          <Row first label="Сфера баланса" value={_sphereVal} onTap={() => setMore(more === "sphere" ? null : "sphere")} />
+          {more === "sphere" && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 0 12px" }}>
+              {[{ id: null, l: "Авто" }].concat(BOS_SPHERES || []).map(function (sp) {
+                var on = sphere === sp.id;
+                return (
+                  <button key={sp.id || "auto"} type="button" className="tap tap-pill"
+                    onClick={() => { setSphere(sp.id); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }}
+                    style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 700, fontFamily: "inherit",
+                      background: on ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+                      color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>
+                    {sp.id ? (sp.e + " " + sp.l) : sp.l}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <Row label="Тип привычки" value={type === "build" ? "Развивать" : "Бросить"} onTap={() => setMore(more === "type" ? null : "type")} />
+          {more === "type" && (
+            <div style={{ padding: "0 0 12px" }}>
+              <Seg value={type} onPick={setType} items={[["build", "Развивать"], ["quit", "Бросить"]]} />
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 8, lineHeight: 1.4 }}>{type === "build" ? "Отмечаю день, когда сделал." : "Отмечаю день без срыва."}</div>
+            </div>
+          )}
+        </React.Fragment>
+        )}
+
+        {/* Якорь цели — только у общей привычки круга: по ней идёт прогресс общей цели. */}
+        {teamFor && (
+          <Row first label="Якорь цели" sub="Главная привычка круга — по ней считается прогресс общей цели." right={<Switch small on={isMain} onChange={setIsMain} />} />
+        )}
+
+        {/* Делать вместе — тот же opt-in и тот же экран приглашения. */}
+        {!goalFor && !teamFor && (
+          <div data-tour="invite-friend">
+            <Row label="Делать вместе" sub="Друг по ссылке — тебе +150 XP" right={<Switch small on={shareOn} onChange={setShareOn} />} />
+            {shareOn && (
+              <div style={{ padding: "0 0 12px" }}>
+                <div style={{ borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(52,199,89,0.13)" : "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(52,199,89,0.2)" : "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
+                  <div style={{ fontSize: 12.5, color: isDark ? "#7dd89b" : "#1a7a3a", lineHeight: 1.4 }}>Новый друг по твоей ссылке = <b>+150 XP</b>. А ведёте привычку вместе — каждая отметка <b>+15 XP</b> вместо +10.</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+                  {shareFriends.length === 0 && (
+                    <span style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Пока некого выбрать — пригласи друга по ссылке.</span>
+                  )}
+                  {shareFriends.map((pp, i) => (
+                    <button key={i} type="button" onClick={() => setShareFriends(fs => fs.map((x, j) => j === i ? { ...x, on: !x.on } : x))} className="tap" style={{
+                      display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999,
+                      background: pp.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: pp.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)", border: 0, fontSize: 12, fontWeight: 500 }}>
+                      <BuddyFaceLive avatar={pp.avatar} name={pp.name} size={22} />{pp.name}{pp.on && <I.Check size={12} strokeWidth={3} />}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => inviteFriend()} className="tap" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 999,
+                    background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-3)", fontSize: 12, fontWeight: 500 }}><I.Plus size={12} /> Пригласить</button>
+                </div>
+                {inviteNote && (
+                  <div style={{ marginTop: 10, fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, padding: "0 2px" }}>{inviteNote}</div>
+                )}
+              </div>
+            )}
           </div>
-          <Switch small on={goalOnly} onChange={setGoalOnly} />
+        )}
+
+        {/* Таймлайн — «нить дня» (по умолчанию ВКЛ, оживает, когда ведёте вместе). */}
+        {!teamFor && <Row label="Таймлайн" sub="Кто когда отметился — лица на линии дня" right={<Switch small on={threadOn} onChange={setThreadOn} />} />}
+
+        {/* Привычка ДЛЯ цели — «вести только внутри цели» (David: рояль). */}
+        {goalFor && <Row label="Вести только внутри цели" sub={"Не в общем списке — живёт внутри «" + goalFor.name + "»"} right={<Switch small on={goalOnly} onChange={setGoalOnly} />} />}
+      </div>
+
+      {/* ── ЧЕЛЛЕНДЖИ — уехали ВНИЗ (David 29.07): раньше лента врезалась между названием и
+            настройками и перебивала главное дело. Функция та же: тап → правила → старт. ── */}
+      {!editing && !teamFor && !goalFor && typeof CHALLENGE_STARTERS !== "undefined" && typeof bosQuickChipEl === "function" && (
+      <React.Fragment>
+        <Lab>ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА</Lab>
+        <div className="bos-hscroll" style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px 4px" }}>
+          {CHALLENGE_STARTERS.map((c, i) => bosQuickChipEl(c, isDark, () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } setChallengeC(c); setView("challenge"); }, i))}
         </div>
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", padding: "7px 8px 0", lineHeight: 1.4 }}>Челлендж — та же привычка, но с призом за серию.</div>
+      </React.Fragment>
       )}
 
       {/* Общая привычка круга (правка) → «Удалить общую»; личная копия круга → «Убрать»; обычная → «Удалить». */}
