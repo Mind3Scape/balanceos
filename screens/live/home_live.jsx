@@ -793,44 +793,21 @@ function HomeLive() {
     try { const n = nodeOf(id); if (n != null) nodes[id] = n; } catch (e) {}
   });
   const keyVisible = (k) => (k.indexOf("w:") === 0 ? nodes[k.slice(2)] != null : true);
-  // ПИЛЮЛЯ «Все · Привычки · Цели» — воскрешение демо-переключателя (David 2026-07-20: «не будет
-  // длинного скролла вниз, быстро переключаюсь с привычек на цели»). Фильтрует ТОЛЬКО плитки
-  // практик; виджеты (w:) видны всегда. Выбор запоминается между входами.
-  // Двух вкладок достаточно (David 2026-07-20: «Все не нужна») — как демо-пилюля.
-  // Старое сохранённое "all" честно падает в дефолт «Привычки».
-  const [boardTab, setBoardTab] = React.useState(() => { try { return localStorage.getItem("bos:boardTab") === "goals" ? "goals" : "habits"; } catch (e) { return "habits"; } });
-  const pickBoardTab = (t) => { setBoardTab(t); try { localStorage.setItem("bos:boardTab", t); } catch (e) {} };
-  const keyOnTab = (k) => {
-    if (!k || k.indexOf("w:") === 0) return true;
-    if (boardTab === "habits") return k.indexOf("h:") === 0;
-    return k.indexOf("g:") === 0 || k.indexOf("t:") === 0; // «Цели» = цели + круги (круг — совместная цель)
+  // ПЕРЕКЛЮЧАТЕЛЬ «Привычки · Цели» УБРАН (David 2026-07-29). Доска снова показывает ВСЁ сразу:
+  // виджеты, привычки, цели и круги — одним потоком, в сохранённом порядке. Тело пилюли и фильтр
+  // keyOnTab — в git до v816 (ключ bos:boardTab в localStorage остаётся, никого не трогает).
+  const keyShown = (k) => keyVisible(k);
+  // ПРИВЫЧКИ — ВСЕГДА ЕДИНЫМ БЛОКОМ (David 2026-07-29: «не по отдельности с расстоянием, а одним
+  // блоком»). Все ключи h: стягиваются подряд на место ПЕРВОЙ привычки; порядок ВНУТРИ блока —
+  // как перетащил человек. Иначе после старого перемешивания блок рвался бы целями посередине.
+  const _blockHabits = (keys) => {
+    const at = keys.findIndex((k) => k && k.indexOf("h:") === 0);
+    if (at < 0) return keys;
+    return keys.slice(0, at).concat(keys.filter((k) => k.indexOf("h:") === 0), keys.slice(at).filter((k) => k.indexOf("h:") !== 0));
   };
-  const keyShown = (k) => keyVisible(k) && keyOnTab(k);
-  const visibleKeys = effLayout.order.filter(keyShown);
-  // Пилюля живёт НЕ над доской, а ПРЯМО НАД первой плиткой практик (David 2026-07-20:
-  // «виджеты остаются, а привычки/цели меняются — переключатель должен быть над ними»).
-  const _firstTileKey = visibleKeys.find((k) => k && k.indexOf("w:") !== 0) || null;
-  // Пилюля-сегмент в языке iOS (David 2026-07-22: «чёрное грубовато — выделение как раньше,
-  // серенькое; и закругление не в тему главной»): видимый серый ЖЁЛОБ (заметнее прежнего
-  // surface-3, чтобы читался) + мягкий СВЕТЛЫЙ бегунок с тенью, скруглённый прямоугольник
-  // 16/12 (семья карточек главной), не капсула-999.
-  const _tabsPill = (
-    <div className="tab-pill" style={{ margin: "2px 0 0", padding: 4, borderRadius: 16,
-      background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)",
-      boxShadow: "inset 0 0 0 0.5px " + (isDark ? "rgba(255,255,255,0.04)" : "rgba(10,10,10,0.04)") }}>
-      {[["habits", "Привычки"], ["goals", "Цели"]].map(([id, label]) => {
-        const on = boardTab === id;
-        return (
-          <button key={id} className="tap" data-haptic="selection" onClick={() => pickBoardTab(id)}
-            style={{ padding: "9px 14px", fontWeight: on ? 700 : 600, fontSize: 14, borderRadius: 12,
-              background: on ? (isDark ? "rgba(255,255,255,0.16)" : "#fff") : "transparent",
-              color: on ? "var(--text)" : "var(--text-4)",
-              boxShadow: on ? (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.11), 0 0 0 0.5px rgba(0,0,0,0.03)") : "none",
-              transition: "background .15s, box-shadow .15s" }}>{label}</button>
-        );
-      })}
-    </div>
-  );
+  const visibleKeys = _blockHabits(effLayout.order.filter(keyShown));
+  // Склейка для сетки: соседние привычки — одна группа (строчная форма; квадраты не склеиваются).
+  const groupOfKey = (k) => (k && k.indexOf("h:") === 0 && cardStyle.form === "rect") ? "h" : null;
   const onReorderKeys = (newVisible) => {
     // Виден лишь срез доски (вкладка) → сливаем его новый порядок в ОБЩИЙ, скрытые ключи
     // остаются на своих местах — порядок другой вкладки не теряется.
@@ -843,9 +820,10 @@ function HomeLive() {
     onStyle={() => { closeSheet(); setStyleBottom(false); setStyleOpen(true); }} />);
   // Плитка/виджет по ключу. Плитки — ГОЛЫЕ (те же HabitTileLive/GoalTileLive, что на
   // «Привычках»); long-press ловит сетка → меню (Поделиться / Переставить / Убрать с главной).
-  const tileFor = (k) => {
+  const tileFor = (k, ctx) => {
     if (k.indexOf("w:") === 0) { const id = k.slice(2); return nodes[id] ? <WidgetBoundaryLive wid={id}>{nodes[id]}</WidgetBoundaryLive> : null; }
-    if (k.indexOf("h:") === 0) { const h = habits.find((x) => _khHome(x) === k); return h ? <HabitTileLive habit={h} from="home" /> : null; }
+    // ctx несёт склейку блока привычек (group:{first,last}) — плитка сама рисует углы и волосок.
+    if (k.indexOf("h:") === 0) { const h = habits.find((x) => _khHome(x) === k); return h ? <HabitTileLive habit={h} ctx={ctx || { mode: false }} from="home" /> : null; }
     if (k.indexOf("g:") === 0) { const g = goals.find((x) => _kgHome(x) === k); return g ? <GoalTileLive goal={g} from="home" /> : null; }
     if (k.indexOf("t:") === 0) { const t = teams.find((x) => teamKey(x) === k); return t && typeof TeamTileLive === "function" ? <TeamTileLive team={t} from="home" /> : null; }
     return null;
@@ -984,20 +962,20 @@ function HomeLive() {
           onAdd={openAddSheet}
           onGear={() => { setStyleLow(false); setStyleBottom(true); setStyleOpen(true); }}
           addLabel="Добавить на главную"
-          sepBeforeId={_firstTileKey} sepNode={_tabsPill}
+          groupOf={groupOfKey}
           spanFull={(k) => {
             // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).
             if (!k || k.indexOf("w:") === 0) return true;
             if (k.indexOf("g:") === 0 || k.indexOf("t:") === 0) return goalStyle.size === "compact" ? false : goalStyle.form === "banner";
             return cardStyle.form === "rect";
           }}
-          renderItem={(k, { mode }) => (
+          renderItem={(k, cellCtx) => (
             // Пока открыто long-tap-меню, ОРИГИНАЛ карточки прячем: её превью живёт в меню,
             // и вдвоём они читались как «дубль со странной подсветкой» (David 2026-07-17) —
             // особенно когда превью сдвигалось, чтобы меню влезло в экран.
             <div style={{ position: "relative", height: "100%", visibility: (cardMenu && cardMenu.k === k) ? "hidden" : "visible" }}>
-              <div style={{ pointerEvents: mode ? "none" : "auto", height: "100%" }}>{tileFor(k)}</div>
-              {mode && <WidgetMinusLive onRemove={() => onMinus(k)} />}
+              <div style={{ pointerEvents: cellCtx.mode ? "none" : "auto", height: "100%" }}>{tileFor(k, cellCtx)}</div>
+              {cellCtx.mode && <WidgetMinusLive onRemove={() => onMinus(k)} />}
             </div>
           )}
         />

@@ -4895,7 +4895,12 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
 // (пилюля «Все·Привычки·Цели» на главной: она должна стоять над первой плиткой практик,
 // а не над виджетами). Не тащится и не участвует в порядке; если sepBeforeId в сетке нет
 // (вкладка пуста) — прослойка рисуется в конце, чтобы переключатель не исчезал.
-function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel, onGear, sepBeforeId, sepNode }) {
+// groupOf(id) → строковый ключ ГРУППЫ или null (David 2026-07-29: «привычки не по отдельности с
+// расстоянием, а всегда единым блоком»). Соседи с одинаковым ключом СКЛЕИВАЮТСЯ: зазор между ними
+// съедается отрицательным нижним отступом, а плитка получает ctx.group = {first,last} и сама рисует
+// скруглённые только внешние углы + разделитель-волосок. В режиме перестановки склейка отключается —
+// карточки снова расходятся, чтобы их было видно и можно было тащить поодиночке.
+function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel, onGear, sepBeforeId, sepNode, groupOf }) {
   const [mode, setMode] = React.useState(false);
   const [order, setOrder] = React.useState(ids);
   const [drag, setDrag] = React.useState({ id: null, from: -1, to: -1, dx: 0, dy: 0 });
@@ -5040,37 +5045,33 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
           const isDrag = drag.id === id;
           const sh = isDrag ? { x: 0, y: 0 } : shiftOf(idx);
           const sep = (sepNode && sepBeforeId != null && id === sepBeforeId) ? <div key="__bos-sep" style={{ gridColumn: "1 / -1", minWidth: 0 }}>{sepNode}</div> : null;
-          if (sep) return (
-            <React.Fragment key={"f" + id}>
-              {sep}
-              <div ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
-                style={{ position: "relative", touchAction: mode ? "none" : "auto",
-                  minWidth: 0,
-                  gridColumn: (spanFull && spanFull(id)) ? "1 / -1" : undefined,
-                  transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
-                  transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
-                  zIndex: isDrag ? 40 : 1, willChange: mode ? "transform" : "auto" }}>
-                <div className={mode && !isDrag ? "bos-jiggle" : ""} style={{ animationDelay: (-(idx % 5) * 0.045) + "s", borderRadius: 22, boxShadow: isDrag ? "0 16px 34px rgba(20,30,60,0.22)" : "none" }}>
-                  {renderItem(id, { mode, dragging: isDrag })}
-                </div>
-              </div>
-            </React.Fragment>
-          );
-          return (
-            <div key={id} ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
+          // Склейка соседей одной группы (см. groupOf выше). Прослойка sepNode рвёт группу —
+          // она встаёт между карточками, склеивать через неё нечего.
+          const grp = (!mode && groupOf) ? (function () { try { return groupOf(id); } catch (e2) { return null; } })() : null;
+          const grpAt = (i) => { if (grp == null || i < 0 || i >= order.length) return null; try { return groupOf(order[i]); } catch (e2) { return null; } };
+          const prevSame = grp != null && grpAt(idx - 1) === grp && !sep;
+          const nextSame = grp != null && grpAt(idx + 1) === grp && !(sepNode && sepBeforeId != null && order[idx + 1] === sepBeforeId);
+          const cellCtx = { mode, dragging: isDrag, group: grp != null && (prevSame || nextSame) ? { first: !prevSame, last: !nextSame } : null };
+          const cell = (
+            <div ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
               style={{ position: "relative", touchAction: mode ? "none" : "auto",
                 // minWidth:0 — иначе min-content плитки (nowrap-имя компакт-карточки)
                 // распирает 1fr-колонку → ВСЯ доска шире экрана и уезжает за край.
                 minWidth: 0,
+                // Отрицательный отступ съедает gap до следующей строки → соседи по группе
+                // стоят вплотную и читаются одним блоком (grid считает поля в высоте трека).
+                marginBottom: nextSame ? -gap : undefined,
                 gridColumn: (spanFull && spanFull(id)) ? "1 / -1" : undefined,
                 transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
                 transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
                 zIndex: isDrag ? 40 : 1, willChange: mode ? "transform" : "auto" }}>
               <div className={mode && !isDrag ? "bos-jiggle" : ""} style={{ animationDelay: (-(idx % 5) * 0.045) + "s", borderRadius: 22, boxShadow: isDrag ? "0 16px 34px rgba(20,30,60,0.22)" : "none" }}>
-                {renderItem(id, { mode, dragging: isDrag })}
+                {renderItem(id, cellCtx)}
               </div>
             </div>
           );
+          if (sep) return <React.Fragment key={"f" + id}>{sep}{cell}</React.Fragment>;
+          return <React.Fragment key={id}>{cell}</React.Fragment>;
         })}
         {/* Вкладка без плиток (sepBeforeId не нашёлся) → прослойка в конце: переключатель не исчезает. */}
         {sepNode && (sepBeforeId == null || order.indexOf(sepBeforeId) < 0) && <div key="__bos-sep-tail" style={{ gridColumn: "1 / -1", minWidth: 0 }}>{sepNode}</div>}
@@ -5606,14 +5607,22 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const hc = (typeof bosCanonColor === "function") ? bosCanonColor(h.color) : h.color;
   const hcNeutral = !hc || hc === "#0a0a0a" || ("" + hc).toLowerCase() === "#8e8e93";
   const rect = cardStyle.form === "rect";
-  // Тумблер «Тонировать фон» (cardTint) = весь фон карточки в цвете (как у цели); выкл (по умолч.) → белая.
-  // Плитка/дни/чекбокс цветные ВСЕГДА. Нейтраль (Стандарт) не тонируется. Существующие привычки без
-  // cardTint → белая карточка (спокойная главная не меняется).
-  const _tinted = h.cardTint === true && !hcNeutral && typeof bosGoalSkin === "function";
-  const _sk = _tinted ? bosGoalSkin(hc, isDark, true) : null;
-  const _cardBg = _tinted ? _sk.bg : rowBg;
-  const _cardSh = _tinted ? _sk.shadow : cardShadow;
-  const _nameCol = _tinted ? _sk.txt : "var(--text)";
+  // «Тонированный фон» (cardTint) УБРАН (David 2026-07-29): карточка привычки ВСЕГДА белая/тёмная,
+  // цвет живёт только в значке, днях и чекбоксе. Поле h.cardTint в данных не трогаем — если тумблер
+  // когда-нибудь вернётся, старый выбор человека на месте (форма создания: habits_extra_live).
+  const _cardBg = rowBg;
+  const _cardSh = cardShadow;
+  const _nameCol = "var(--text)";
+  // ЕДИНЫЙ БЛОК: соседние привычки склеены сеткой (BosReorderGrid.groupOf) → внешние углы
+  // скруглены, внутренние прямые, между строками — волосок-разделитель с отступом под текст.
+  const grp = ctx && ctx.group;
+  const _R = 18;
+  const _radius = grp
+    ? (grp.first ? _R + "px " + _R + "px " : "0px 0px ") + (grp.last ? _R + "px " + _R + "px" : "0px 0px")
+    : _R;
+  const _hair = grp && !grp.last
+    ? <span style={{ position: "absolute", left: 65, right: 0, bottom: 0, height: 1, background: isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.07)", pointerEvents: "none" }} />
+    : null;
   const onOpen = ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: from });
   const control = h.duration > 0 && !(h.goalPerDay > 1)
     ? <HabitTimerCheck habit={h} app={app} xp={10} />
@@ -5623,11 +5632,11 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
   const sq = cardStyle.cells === "square";
   const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
-  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: _tinted ? _sk.iconBg : (BOS_TILE_SHEEN + ", " + ((hc && !hcNeutral) ? hc + "26" : th.iconBg)), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, hc)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + ((hc && !hcNeutral) ? hc + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, hc)}</span>;
   const chip = (typeof ChallengeProgressChip === "function") ? <ChallengeProgressChip habit={h} /> : null;
   if (rect) {
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: _cardBg, borderRadius: 18, boxShadow: _cardSh, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ position: "relative", background: _cardBg, borderRadius: _radius, boxShadow: _cardSh, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {icon}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600, color: _nameCol, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
@@ -5635,6 +5644,7 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
           {marks && <div style={{ marginTop: 8 }}>{marks}</div>}
         </div>
         {faces}{ctrl}
+        {_hair}
       </div>
     );
   }

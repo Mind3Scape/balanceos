@@ -498,13 +498,18 @@ function HabitsLive() {
       // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).
       .concat(teams.map((t) => ({ k: "t" + (t._id != null ? t._id : t.id), type: "t", item: t })));
     const saved = bosLoadPracticeOrder();
+    let list = all;
     if (saved && saved.length) {
       const pos = {}; saved.forEach((k, i) => { pos[k] = i; });
-      return all.map((e, i) => ({ e: e, i: i }))
+      list = all.map((e, i) => ({ e: e, i: i }))
         .sort((a, b) => (pos[a.e.k] != null ? pos[a.e.k] : 1000 + a.i) - (pos[b.e.k] != null ? pos[b.e.k] : 1000 + b.i))
         .map((x) => x.e);
     }
-    return all;
+    // ПРИВЫЧКИ — ВСЕГДА ЕДИНЫМ БЛОКОМ (David 2026-07-29): стягиваем их подряд на место ПЕРВОЙ,
+    // порядок внутри блока сохраняем. Зеркало _blockHabits на главной.
+    const at = list.findIndex((e) => e.type === "h");
+    if (at < 0) return list;
+    return list.slice(0, at).concat(list.filter((e) => e.type === "h"), list.slice(at).filter((e) => e.type !== "h"));
   }, [habits, goals, teams, orderTick, _arch]);
 
   // ПЛИТКА ПРИВЫЧКИ — вынесена в ОБЩИЙ HabitTileLive (shared_live), чтобы страница «Привычки» и виджет
@@ -581,6 +586,7 @@ function HabitsLive() {
       ) : (
         <BosReorderGrid ids={entries.map((e) => e.k)} onReorder={(keys) => { bosSavePracticeOrder(keys); setOrderTick((t) => t + 1); }}
           onLongPress={onTileLongPress} ctlRef={gridCtl} cols={2} gap={12}
+          groupOf={(k) => (k && k[0] === "h" && cardStyle.form === "rect") ? "h" : null}
           spanFull={(k) => {
             // Сетка ВСЕГДА 2-колоночная; КАЖДАЯ плитка сама решает ширину по СВОЕЙ форме (David: «квадрат
             // цели должен стать квадратом, даже если привычки строкой»). Строка-привычка и баннер-цель =

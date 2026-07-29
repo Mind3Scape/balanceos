@@ -50,13 +50,10 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   const [countUnit, setCountUnit] = useHS(editing ? (params.habit.duration > 0 ? "min" : "times") : "times");
   const enableCount = (on) => { setCountOn(on); if (on) { if (countUnit === "min") { if (duration < 5) setDuration(15); } else if (goal < 2) setGoal(2); } };
   const pickUnit = (u) => { setCountUnit(u); if (u === "min") { if (duration < 5) setDuration(15); } else if (goal < 2) setGoal(2); };
-  // «Тонированный фон» — плитка залита цветом привычки (по умолч.) или чистая, только значок.
-  // Реально читается в HabitTileLive (не бутафория).
-  const [cardTint, setCardTint] = useHS(editing ? (params.habit.cardTint === true) : false); // тон ВСЕЙ карточки; деф ВЫКЛ (David: обе белые по умолчанию)
-  // Живое превью: карточка «Облик» в форме сама тонируется при cardTint (David: «сама карточка прямо там меняет тон»).
-  const _pc = (typeof bosCanonColor === "function") ? bosCanonColor(color) : color;
-  const _pTint = cardTint && _pc && _pc !== "#0a0a0a" && ("" + _pc).toLowerCase() !== "#8e8e93" && typeof bosGoalSkin === "function";
-  const _pSk = _pTint ? bosGoalSkin(_pc, isDark, true) : null;
+  // Тумблер «Тонированный фон» УБРАН (David 2026-07-29): привычки живут единым белым блоком,
+  // цвет — только на значке, днях и чекбоксе. Существующее поле привычки сохраняем как есть
+  // (не стираем чужой выбор), но новые/правленые пишутся без тона. Тело тумблера — в git до v816.
+  const cardTint = editing ? (params.habit.cardTint === true) : false;
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
     ? params.habit.days.slice()
@@ -237,27 +234,19 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         ? <SheetFormHeadLive title={teamFor ? (editing ? "Изменить общую привычку" : "Общая привычка") : (editing ? "Изменить привычку" : "Новая привычка")} onClose={close} onDone={saveHabit} />
         : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{teamFor ? (editing ? "Изменить общую привычку" : "Общая привычка") : (editing ? "Изменить привычку" : "Новая привычка")}</div>}
 
-      {/* ── ОБЛИК: значок (тап → эмодзи) · имя · цвет · тонированный фон. Всё в одной карточке. ── */}
-      <div style={{ background: _pTint ? _pSk.bg : "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: _pTint ? _pSk.shadow : "var(--card-shadow)", marginTop: 6, transition: "background 0.25s" }}>
+      {/* ── ОБЛИК: значок (тап → эмодзи) · имя · цвет. Всё в одной карточке.
+          Тумблера «Тонированный фон» больше нет (David 2026-07-29) — карточка привычки всегда
+          белая, цвет живёт на значке, днях и чекбоксе. ── */}
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 56, height: 56, borderRadius: 16, background: _pTint ? _pSk.iconBg : ((color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
-            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: _pTint ? _pSk.txt : "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
+            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
         <BosColorPickerLive value={color} onChange={setColor} />
-        {/* Тонированный фон — сразу под цветом (David: «понравился тогл тонированный фон, под цветом»).
-            У ОБЩЕЙ привычки скрыт: её плитка тоном не заливается, тумблер ни на что не влиял. */}
-        {!teamFor && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + (_pTint ? (isDark ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.5)") : "var(--line-2, rgba(0,0,0,0.06))"), display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: _pTint ? _pSk.txt : "var(--text-2)" }}>Тонированный фон
-            <div style={{ fontSize: 12, color: _pTint ? _pSk.sub : "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Вся карточка в цвете. Выключишь — карточка белая, цвет на значке и днях.</div>
-          </div>
-          <Switch small on={cardTint} onChange={setCardTint} />
-        </div>
-        )}
       </div>
 
       {/* ── ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА — строка-скролл под обликом. Чипы В ТОМ ЖЕ СТИЛЕ, что на главной
