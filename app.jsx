@@ -215,7 +215,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v827";
+const APP_VERSION = "v828";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -513,31 +513,31 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
    on the first home screen; then, when the user opens a tab THEMSELVES for the
    first time, a one-line intro sheet rises to orient them — never a forced march. */
 const WELCOME_SHEETS = [
-  { hero: "🚀", eyebrow: "Добро пожаловать", title: "Это не трекер. Это платформа.",
+  { hero: "🚀", g: "rocket", eyebrow: "Добро пожаловать", title: "Это не трекер. Это платформа.",
     body: "Привычки, люди и рост — в одном месте. Маленькие шаги каждый день складываются в большое.",
-    pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "👥", label: "Команды" }, { emoji: "🎓", label: "Тренинги" } ] },
-  { hero: "🤗", eyebrow: "Вместе", title: "Привычки — с близкими",
+    pills: [ { emoji: "⚡", g: "lightning", label: "Привычки" }, { emoji: "👥", g: "users", label: "Команды" }, { emoji: "🎓", g: "gradcap", label: "Тренинги" } ] },
+  { hero: "🤗", g: "handheart", eyebrow: "Вместе", title: "Привычки — с близкими",
     body: "Делай привычки вдвоём, собирай команды, проходи тренинги с наставниками. Вместе — крепче.",
-    pills: [ { emoji: "👥", label: "Команды" }, { emoji: "🤝", label: "Вдвоём" }, { emoji: "💬", label: "Чат" } ] },
-  { hero: "🌱", eyebrow: "Твой темп", title: "Расти, как тебе удобно",
+    pills: [ { emoji: "👥", g: "users", label: "Команды" }, { emoji: "🤝", g: "handshake", label: "Вдвоём" }, { emoji: "💬", g: "chat", label: "Чат" } ] },
+  { hero: "🌱", g: "plant", eyebrow: "Твой темп", title: "Расти, как тебе удобно",
     body: "Выполняй привычки — уровень растёт, открываются люди и возможности. Гид «Что дальше?» ждёт внизу.",
-    pills: [ { emoji: "🏆", label: "Уровни" }, { emoji: "🧭", label: "Наставники" }, { emoji: "🎁", label: "Награды" } ] },
+    pills: [ { emoji: "🏆", g: "trophy", label: "Уровни" }, { emoji: "🧭", g: "compass", label: "Наставники" }, { emoji: "🎁", g: "gift", label: "Награды" } ] },
 ];
 
 const TAB_INTROS = {
-  habits: { hero: "🎯", eyebrow: "Практика", title: "Тут ты всё создаёшь",
+  habits: { hero: "🎯", g: "target", eyebrow: "Практика", title: "Тут ты всё создаёшь",
     body: "Привычки и цели живут здесь. Делай их один или вместе с близкими, держа общую серию.",
-    pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },
-  community: { hero: "💛", eyebrow: "Сообщество", title: "Сердце приложения",
+    pills: [ { emoji: "⚡", g: "lightning", label: "Привычки" }, { emoji: "🎯", g: "target", label: "Цели" }, { emoji: "👥", g: "users", label: "Вместе" } ] },
+  community: { hero: "💛", g: "heart", eyebrow: "Сообщество", title: "Сердце приложения",
     body: "Слева — круги с близкими. Дальше — люди, партнёры и тренинги. Вместе держим ритм сильнее.",
     pills: [
-      { emoji: "👥", label: "Круги", view: { section: "discover", discTab: "teams" } },
-      { emoji: "🧭", label: "Люди", view: { section: "community", commTab: "network" } },
-      { emoji: "🎓", label: "Тренинги", view: { section: "community", commTab: "courses" } },
+      { emoji: "👥", g: "users", label: "Круги", view: { section: "discover", discTab: "teams" } },
+      { emoji: "🧭", g: "compass", label: "Люди", view: { section: "community", commTab: "network" } },
+      { emoji: "🎓", g: "gradcap", label: "Тренинги", view: { section: "community", commTab: "courses" } },
     ] },
-  ai: { eyebrow: "Помощник", title: "ИИ всегда рядом",
+  ai: { g: "sparkle", eyebrow: "Помощник", title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",
-    pills: [ { emoji: "💡", label: "Совет дня" }, { emoji: "📊", label: "Разбор" }, { emoji: "🗓️", label: "План" } ] },
+    pills: [ { emoji: "💡", g: "lightbulb", label: "Совет дня" }, { emoji: "📊", g: "chartbar", label: "Разбор" }, { emoji: "🗓️", g: "calendar", label: "План" } ] },
 };
 
 /* Demo intros — richer per-screen sheets shown when the demo user opens each tab.
@@ -562,12 +562,12 @@ const DEMO_INTROS = {
    tint on every step, so it reads as ONE persistent orb while only the text
    changes (orb-continuity). Pills below carry the per-screen meaning via colourful
    iOS emoji. (Richer bespoke imagery is a later design pass, together with David.) */
-function OnbHero({ emoji, dark }) {
+function OnbHero({ emoji, glyph, dark }) {
   // A bright, topical emoji per sheet (replacing the brand orb) — it floats in the
   // SAME soft glow the orb sat in, so the hero still reads as one designed object,
   // just expressive of what THIS screen is about. Falls back to the orb if a sheet
   // doesn't name an emoji.
-  if (!emoji) {
+  if (!emoji && !glyph) {
     return (
       <div style={{ height: 92, display: "grid", placeItems: "center", margin: "0 auto" }}>
         <StaticOrb size={88} tint={tintFromMood("#5FA8FF")} seed={2.0} intensity={0.5} />
@@ -576,7 +576,9 @@ function OnbHero({ emoji, dark }) {
   }
   return (
     <div style={{ height: 92, display: "grid", placeItems: "center", margin: "0 auto" }}>
-      <span key={emoji} className="onb-emoji" style={{ fontSize: 64, lineHeight: 1 }}>{emoji}</span>
+      {glyph && typeof BosGlyph !== "undefined"
+        ? <BosGlyph key={glyph} id={glyph} size={62} color={dark ? "#fff" : "#0a0a0a"} className="onb-emoji" />
+        : <span key={emoji} className="onb-emoji" style={{ fontSize: 64, lineHeight: 1 }}>{emoji}</span>}
     </div>
   );
 }
@@ -585,7 +587,7 @@ function OnbHero({ emoji, dark }) {
    top-anchored hero + reserved body height → every sheet is the SAME size, so
    nothing jumps between steps. `pills` (always shown) surface the key things on
    the screen; a pill with onClick jumps there. */
-function OnbSheet({ hero, eyebrow, title, body, pills, cta, onCta, onSkip, skipLabel = "Я разберусь сам", total, index, dark }) {
+function OnbSheet({ hero, heroGlyph, eyebrow, title, body, pills, cta, onCta, onSkip, skipLabel = "Я разберусь сам", total, index, dark }) {
   const titleC = dark ? "#fff" : "#0a0a0a";
   const bodyC = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.56)";
   const ghostC = dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)";
@@ -593,7 +595,7 @@ function OnbSheet({ hero, eyebrow, title, body, pills, cta, onCta, onSkip, skipL
   return (
     <div style={{ padding: "4px 22px 8px", textAlign: "center", minHeight: 454, display: "flex", flexDirection: "column" }}>
       <div style={{ marginTop: 4, marginBottom: 14 }}>
-        <OnbHero emoji={hero} dark={dark} />
+        <OnbHero emoji={hero} glyph={heroGlyph} dark={dark} />
       </div>
       {eyebrow && <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{eyebrow}</div>}
       {/* Title + body heights are RESERVED (2 lines / 3 lines) so a 1-line title or
@@ -607,7 +609,9 @@ function OnbSheet({ hero, eyebrow, title, body, pills, cta, onCta, onSkip, skipL
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 16 }}>
           {pills.map((p, i) => {
             const st = { background: pillBg, border: 0, borderRadius: 999, padding: "8px 13px 8px 11px", fontSize: 13.5, fontWeight: 600, color: titleC, display: "inline-flex", alignItems: "center", gap: 6 };
-            const inner = <><span style={{ fontSize: 14.5, lineHeight: 1 }}>{p.emoji}</span> {p.label}</>;
+            const inner = <>{p.g && typeof BosGlyph !== "undefined"
+              ? <BosGlyph id={p.g} size={15} color={titleC} />
+              : <span style={{ fontSize: 14.5, lineHeight: 1 }}>{p.emoji}</span>} {p.label}</>;
             return p.onClick
               ? <button key={i} onClick={p.onClick} className="tap" style={st}>{inner}</button>
               : <span key={i} style={st}>{inner}</span>;
@@ -655,19 +659,19 @@ function FreshOnboarding({ app, dark }) {
   return (
     <React.Fragment>
       <BottomSheet open={welcome} onClose={closeWelcome} dark={dark}>
-        <OnbSheet hero={ws.hero} eyebrow={ws.eyebrow} title={ws.title} body={ws.body} pills={ws.pills} dark={dark}
+        <OnbSheet hero={ws.hero} heroGlyph={ws.g} eyebrow={ws.eyebrow} title={ws.title} body={ws.body} pills={ws.pills} dark={dark}
           total={WELCOME_SHEETS.length} index={wStep}
           cta={lastW ? "Начать" : "Дальше"}
           onCta={() => { if (lastW) closeWelcome(); else setWStep(wStep + 1); }}
           onSkip={lastW ? null : closeWelcome} />
       </BottomSheet>
       <BottomSheet open={!!tab} onClose={() => app.finishGuide()} dark={dark}>
-        {tabView && <OnbSheet hero={tabView.hero} eyebrow={tabView.eyebrow} title={tabView.title} body={tabView.body} dark={dark}
+        {tabView && <OnbSheet hero={tabView.hero} heroGlyph={tabView.g} eyebrow={tabView.eyebrow} title={tabView.title} body={tabView.body} dark={dark}
           cta={tabView.detail ? "Показать детально" : "Понятно"}
           onCta={tabView.detail ? () => { app.startScreenTour(tabKey); closeTab(); } : () => app.finishGuide()}
           onSkip={tabView.detail ? () => app.finishGuide() : undefined}
           skipLabel="Сам разберусь"
-          pills={tabView.pills && tabView.pills.map(p => ({ emoji: p.emoji, label: p.label, onClick: p.view ? () => { app.setCommunityView(p.view); app.finishGuide(); } : undefined }))} />}
+          pills={tabView.pills && tabView.pills.map(p => ({ emoji: p.emoji, g: p.g, label: p.label, onClick: p.view ? () => { app.setCommunityView(p.view); app.finishGuide(); } : undefined }))} />}
       </BottomSheet>
     </React.Fragment>
   );

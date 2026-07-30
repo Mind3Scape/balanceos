@@ -252,7 +252,7 @@ function HabitDetailLive() {
         : <HabitCheck done={!!h.done} color={accent} dark={isDark} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} />;
 
   const model = {
-    emoji: h.emoji, color: accent, name: h.name,
+    emoji: h.emoji, icon: h.icon || null, color: accent, name: h.name,
     // Подпись = контекст привычки СЕГОДНЯ, а на прошлом дне — сама дата (телепорт: «ты в этом дне»).
     ctx: _selPast
       ? _dayLbl(selDay)
@@ -433,7 +433,7 @@ function GoalDetailPersonalLive() {
         <div style={{ textAlign: "center", marginTop: 4 }}>
           {orbitsHero ? (
             <div style={{ width: 172, height: 172, margin: "0 auto", display: "grid", placeItems: "center" }}>
-              <GoalOrbitMini centerEmoji={g.emoji} centerColor={g.color} habits={linked.map((h) => ({ emoji: h.emoji, color: h.color, done: !!h.done }))} people={orbitPeople} size={172} dark={isDark} progress={pct} />
+              <GoalOrbitMini centerEmoji={g.emoji} centerColor={g.color} habits={linked.map((h) => ({ emoji: h.emoji, icon: h.icon || null, color: h.color, done: !!h.done }))} people={orbitPeople} size={172} dark={isDark} progress={pct} />
             </div>
           ) : (
             <div style={{ position: "relative", width: 150, height: 150, margin: "0 auto" }}>
@@ -441,7 +441,7 @@ function GoalDetailPersonalLive() {
                 <circle cx="70" cy="70" r={R} fill="none" stroke={ringTrack} strokeWidth="13" />
                 {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke={goalColor} strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px " + goalColor + "80)" } : {}) }} />}
               </svg>
-              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(g.emoji, 34, g.color)}</div>
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIconOf(g, 34, g.color)}</div>
             </div>
           )}
           <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: H.ink }}><Count value={Math.round(pct * 100)} />%</div>
@@ -486,7 +486,7 @@ function GoalDetailPersonalLive() {
             </button>
             )}
             <button className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "goal-detail" })} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, padding: 0, background: "transparent", border: 0, textAlign: "left", color: "var(--text)" }}>
-              <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
+              <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIconOf(h, 18, h.color)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{h.goalOnly && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· в цели</span>}</div>
                 <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(typeof bosStreak === "function") ? bosStreak(h.log, h.days) : (h.streak || 0)}д серия</div>

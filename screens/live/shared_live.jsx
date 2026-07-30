@@ -2412,13 +2412,13 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
               <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_THREAD_GOLD} strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset={(100.5 * (1 - lvl.frac)).toFixed(1)} />
             </svg>
             <span style={Object.assign({ position: "absolute", inset: 4, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 18 }, disc)}>
-              {typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 19, null) : (t.emblem || "👥")}
+              {typeof bosIcon === "function" ? bosIconOf(t, 19, null, "👥") : (t.emblem || "👥")}
             </span>
             <span style={{ position: "absolute", right: -4, bottom: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#B4820A", lineHeight: 1, zIndex: 2 }}>{lvl.level}</span>
           </span>
         ) : (
         <span style={Object.assign({ width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }, disc)}>
-          {typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 22, null) : (t.emblem || "👥")}
+          {typeof bosIcon === "function" ? bosIconOf(t, 22, null, "👥") : (t.emblem || "👥")}
         </span>
         )}
         <div style={{ flex: 1, minWidth: 0, paddingRight: unread > 0 ? 40 : 0 }}>
@@ -2928,7 +2928,7 @@ function JoinWelcomeLive({ info, onClose }) {
   // corner — one «вы вдвоём на привычке» scene, not an avatar-stacked-over-a-square.
   const tileInk = isDark ? "#e8e8ea" : "#3a3a3e";
   const tileBg = isDark ? "linear-gradient(165deg,#3a3a3e,#2a2a2e)" : "linear-gradient(165deg,#f1f1f4,#e1e1e6)";
-  const glyph = (typeof bosIcon === "function") ? bosIcon(info.emoji || (isTeam ? "✨" : "🌿"), 38, tileInk) : (info.emoji || "✨");
+  const glyph = (typeof bosIcon === "function") ? bosIconOf(info, 38, tileInk, isTeam ? "✨" : "🌿") : (info.emoji || "✨");
 
   return (
     <BottomSheet open={open} onClose={close} dark={isDark}>
@@ -3186,7 +3186,7 @@ function CircleStrikeSheetLive({ info, onClose, navigate }) {
       <div style={{ padding: "8px 24px 26px", textAlign: "center", color: "var(--text)" }}>
         <div style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 12px", display: "grid", placeItems: "center", fontSize: 30,
           background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-          boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{(typeof bosIcon === "function") ? bosIcon(info.emblem || "👥", 30, null) : (info.emblem || "👥")}</div>
+          boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{(typeof bosIcon === "function") ? bosIconOf(info, 30, null, "👥") : (info.emblem || "👥")}</div>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.4px" }}>{out ? "Круг отпустил тебя" : "Ещё один пропуск — и круг отпустит"}</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, maxWidth: 292, marginInline: "auto", lineHeight: 1.5 }}>
           {out
@@ -3470,12 +3470,12 @@ function bosWheelData(app) {
   var strengths = {}, items = {}, hbySph = {}; BOS_SPHERES.forEach(function (s) { strengths[s.id] = []; items[s.id] = []; hbySph[s.id] = []; });
   // hid/gid + manual едут в item, чтобы прямо из аккордеона сферы можно было сказать «нет, это
   // другая категория» — человек видит ошибку именно здесь, здесь же её и чинит (David).
-  habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h, now)); hbySph[id].push(h); items[id].push({ emoji: h.emoji || "•", name: h.name || "Привычка", kind: "habit", hid: h.id, manual: !!h.sphere }); });
+  habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h, now)); hbySph[id].push(h); items[id].push({ emoji: h.emoji || "•", icon: h.icon || null, name: h.name || "Привычка", kind: "habit", hid: h.id, manual: !!h.sphere }); });
   goals.forEach(function (g) {
     var prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, (app && app.habits) || []) : { pct: 0, done: false };
     var id = bosSphereFor(g);
     strengths[id].push(Math.max(0.30, Math.min(1, 0.30 + (prog.pct || 0) * 0.62 + (prog.done ? 0.08 : 0))));
-    items[id].push({ emoji: g.emoji || "🎯", name: g.name || "Цель", kind: "goal", gid: g.id, manual: !!g.sphere });
+    items[id].push({ emoji: g.emoji || "🎯", icon: g.icon || null, name: g.name || "Цель", kind: "goal", gid: g.id, manual: !!g.sphere });
   });
   var total = 0, filled = 0;
   var spheres = BOS_SPHERES.map(function (s) {
@@ -3593,7 +3593,7 @@ function BosSphereMoveSheetLive({ item, cur, app }) {
   return (
     <div style={{ padding: "2px 22px 16px", color: "var(--text)" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 34, lineHeight: 1, display: "flex", justifyContent: "center" }}>{bosIcon(item.emoji, 34, null)}</div>
+        <div style={{ fontSize: 34, lineHeight: 1, display: "flex", justifyContent: "center" }}>{bosIconOf(item, 34, null)}</div>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 8 }}>{item.name}</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, lineHeight: 1.45, textWrap: "balance" }}>
           {item.manual ? "Сфера выбрана вручную." : "Сферу подобрало приложение по названию."} Переложи, если не туда.
@@ -3979,7 +3979,7 @@ function BosBalanceWheelLive(props) {
                     <button className="lr-item tap" key={j} type="button"
                       onClick={function () { if (openSheet) openSheet(<BosSphereMoveSheetLive item={it} cur={s.id} app={app} />); }}
                       style={{ width: "100%", border: 0, background: "transparent", font: "inherit", color: "inherit", textAlign: "left", cursor: "pointer" }}>
-                      <span className="ico">{bosIcon(it.emoji, 19, null)}</span><span className="nm">{it.name}</span>
+                      <span className="ico">{bosIconOf(it, 19, null)}</span><span className="nm">{it.name}</span>
                       <span className="tag">{it.manual ? "вручную" : (it.kind === "goal" ? "цель" : "привычка")}</span>
                     </button>
                   ); })}
@@ -4018,7 +4018,7 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
     goal: (goalLike.target || 0) + " " + (goalLike.unit || ""), type: type,
     target: goalLike.target || 0, current: 0, unit: goalLike.unit || "", stake: stake, circleBalanceOn: circleBalanceOn,
     date: goalLike.deadline || "Этот месяц", progress: 0, members: [],
-    habits: linked.map(function (h, i) { return { name: h.name, emoji: h.emoji, isMain: i === 0 }; }),
+    habits: linked.map(function (h, i) { return { name: h.name, emoji: h.emoji, icon: h.icon || null, isMain: i === 0 }; }),
   };
   if (goalLike.challenge) teamObj.challenge = goalLike.challenge;
   var nt = app.addTeam(teamObj);
@@ -4188,7 +4188,7 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
             var lit = !!it.done && !!hc;
             var bg = lit ? (sheen + (dark ? bosMixHex(hc, "#101014", 0.2) : bosLightenHex(hc, 0.28))) : hDiscBg;
             var glow = lit ? (discShadow + ", 0 0 10px " + hc + (dark ? "59" : "59")) : discShadow;
-            return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: bg, boxShadow: glow, transition: "background 0.45s ease, box-shadow 0.45s ease", display: "grid", placeItems: "center", fontSize: iconSz, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(it.emoji, iconSz, null) : (it.emoji || "✨")}</span>;
+            return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: bg, boxShadow: glow, transition: "background 0.45s ease, box-shadow 0.45s ease", display: "grid", placeItems: "center", fontSize: iconSz, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIconOf(it, iconSz, null) : (it.emoji || "✨")}</span>;
           }, rev + " " + dur + " linear infinite")}
         </div>
       </React.Fragment>
@@ -5260,9 +5260,9 @@ function ArchiveSheetLive({ navigate }) {
   const arch = useBosArchived();
   const rows = [];
   // v594: сверка по СТАБИЛЬНОМУ ключу (cloudId) с фолбэком на локальный — bosIsArch смотрит оба.
-  (app && app.habits || []).forEach((h) => { if (bosIsArch(arch, "h", h)) rows.push({ k: bosArchKey("h", h), it: h, kd: "h", name: h.name, emoji: h.emoji || "🌿", color: h.color, kind: "Привычка" }); });
-  (app && app.goals || []).forEach((g) => { if (bosIsArch(arch, "g", g)) rows.push({ k: bosArchKey("g", g), it: g, kd: "g", name: g.name, emoji: g.emoji || "🎯", color: g.color, kind: "Цель" }); });
-  (app && app.teams || []).forEach((t) => { if (bosIsArch(arch, "t", t)) rows.push({ k: bosArchKey("t", t), it: t, kd: "t", name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color, kind: "Совместная цель" }); });
+  (app && app.habits || []).forEach((h) => { if (bosIsArch(arch, "h", h)) rows.push({ k: bosArchKey("h", h), it: h, kd: "h", name: h.name, emoji: h.emoji || "🌿", icon: h.icon || null, color: h.color, kind: "Привычка" }); });
+  (app && app.goals || []).forEach((g) => { if (bosIsArch(arch, "g", g)) rows.push({ k: bosArchKey("g", g), it: g, kd: "g", name: g.name, emoji: g.emoji || "🎯", icon: g.icon || null, color: g.color, kind: "Цель" }); });
+  (app && app.teams || []).forEach((t) => { if (bosIsArch(arch, "t", t)) rows.push({ k: bosArchKey("t", t), it: t, kd: "t", name: t.name, emoji: t.emblem || "👥", icon: t.icon || null, color: t.accent || t.color, kind: "Совместная цель" }); });
   return (
     <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
       <div style={{ textAlign: "center", marginBottom: 14 }}>
@@ -5279,7 +5279,7 @@ function ArchiveSheetLive({ navigate }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {rows.map((r) => (
             <div key={r.k} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 16, padding: "10px 12px", boxShadow: "var(--card-shadow)" }}>
-              <span style={{ width: 38, height: 38, borderRadius: 12, background: BOS_TILE_SHEEN + (r.color ? ", " + bosCanonColor(r.color) + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0, opacity: 0.85 }}>{bosIcon(r.emoji, 20, bosCanonColor(r.color))}</span>
+              <span style={{ width: 38, height: 38, borderRadius: 12, background: BOS_TILE_SHEEN + (r.color ? ", " + bosCanonColor(r.color) + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0, opacity: 0.85 }}>{bosIconOf(r, 20, bosCanonColor(r.color))}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
                 <div style={{ fontSize: 11.5, color: "var(--text-4)" }}>{r.kind}</div>
@@ -5660,7 +5660,7 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
   const sq = cardStyle.cells === "square";
   const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
-  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + ((hc && !hcNeutral) ? hc + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, hc)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + ((hc && !hcNeutral) ? hc + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIconOf(h, 21, hc)}</span>;
   const chip = (typeof ChallengeProgressChip === "function") ? <ChallengeProgressChip habit={h} /> : null;
   if (rect) {
     return (
@@ -5745,7 +5745,7 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
     <span style={{ position: "absolute", top: 10, left: 11, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 3, maxWidth: "72%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: isDark ? "rgba(0,0,0,0.24)" : "rgba(255,255,255,0.66)", color: sk.hasColor ? sk.txt : sk.accent, fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", pointerEvents: "none" }}>{_goalChipTxt}</span>
   ) : null;
   const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
-  const icon = <span className="bos-ticon" style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIconOf(g, 22, sk.hasColor ? sk.iconInk : g.color, "🎯")}</span>;
   const progBar = goalStyle.progress ? (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
@@ -5763,7 +5763,7 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
     return (
       <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 18, boxShadow: sk.shadow, padding: "12px 13px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 9, minHeight: 74, boxSizing: "border-box", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <span className="bos-ticon" style={{ width: 30, height: 30, borderRadius: 10, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 16, sk.hasColor ? sk.iconInk : g.color)}</span>
+          <span className="bos-ticon" style={{ width: 30, height: 30, borderRadius: 10, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{bosIconOf(g, 16, sk.hasColor ? sk.iconInk : g.color, "🎯")}</span>
           <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: sk.txt, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
           <span style={{ fontSize: 11.5, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
         </div>
@@ -6334,13 +6334,13 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
             </svg>
             <span style={{ position: "absolute", inset: 4, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 13,
               background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,var(--disc-a,#eef1f6),var(--disc-b,#dadfe7))"),
-              boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIcon(t.emblem || "👥", 13, null)}</span>
+              boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIconOf(t, 13, null, "👥")}</span>
             <span style={{ position: "absolute", right: -5, bottom: -3, minWidth: 15, height: 15, padding: "0 3px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 800, color: "#B4820A", lineHeight: 1 }}>{lvl.level}</span>
           </span>
         ) : (
           <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
             background: (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : "") + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,var(--disc-a,#eef1f6),var(--disc-b,#dadfe7))"),
-            boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIcon(t.emblem || "👥", 15, null)}</span>
+            boxShadow: (typeof bosOrbGlass === "function" ? bosOrbGlass(isDark) : "none") }}>{bosIconOf(t, 15, null, "👥")}</span>
         )}
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</span>
       </div>
@@ -6593,7 +6593,7 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
           const joined = (app?.teams || []).some((t) => t.seedId === s.id);
           return (
             <div key={s.id} className="tap" onClick={() => start(s)} style={{ flex: "0 0 auto", width: 162, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
-              <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIcon(s.emblem, 23, null)}</span>
+              <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIconOf(s, 23, null)}</span>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
               <div style={{ flex: 1, minHeight: 10 }} />
@@ -7239,7 +7239,7 @@ function LivingCircleCardLive({ circle: s, onTap, w = null, variant = "chips" })
   // СТЕКЛЯННЫЙ чип «большое общее» — что круг наработал вместе (David: «большие общие вещи»).
   const togetherChip = s.together ? (
     <span style={{ ...chipBase, ...glass, color: "var(--text-2)" }}>
-      <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIcon(s.together.emoji, 12, null) : s.together.emoji}</span>{s.together.text}
+      <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIconOf(s.together, 12, null) : s.together.emoji}</span>{s.together.text}
     </span>
   ) : null;
   const habitChips = (
@@ -7247,7 +7247,7 @@ function LivingCircleCardLive({ circle: s, onTap, w = null, variant = "chips" })
       {(s.habits || []).slice(0, variant === "orbit" ? 2 : 3).map(function (h, i) {
         return (
           <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, ...glass, padding: "4px 9px 4px 6px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
-            <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, 12, null) : h.emoji}</span>{h.name}
+            <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIconOf(h, 12, null) : h.emoji}</span>{h.name}
           </span>
         );
       })}
@@ -7302,7 +7302,7 @@ function ChallengeStartSheetLive({ seed: s, onStart, openCircle }) {
   return (
     <div style={{ padding: "2px 22px 26px", textAlign: "center", color: "var(--text)" }}>
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <div style={{ width: 76, height: 76, borderRadius: 21, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 37 }}>{typeof bosIcon === "function" ? bosIcon(s.emblem, 37, null) : s.emblem}</div>
+        <div style={{ width: 76, height: 76, borderRadius: 21, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 37 }}>{typeof bosIcon === "function" ? bosIconOf(s, 37, null) : s.emblem}</div>
       </div>
       <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>{openCircle ? "Открытый круг" : "Челлендж"} · {s.goalText}</div>
       <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", marginTop: 3 }}>{s.name}</div>
@@ -7358,7 +7358,7 @@ function LivingCircleSheetLive({ circle: s, navigate }) {
         {(s.habits || []).map(function (h, i) {
           return (
             <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, ...bosChipGlass(isDark), padding: "6px 12px 6px 8px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)" }}>
-              <span style={{ fontSize: 14 }}>{bosIcon(h.emoji, 14, null)}</span>{h.name}
+              <span style={{ fontSize: 14 }}>{bosIconOf(h, 14, null)}</span>{h.name}
             </span>
           );
         })}
@@ -7947,7 +7947,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // Твоя система — с РЕАЛЬНЫМИ привычками/людьми/уровнем; стоит в центре поля (fx=fy=0). Мемоизируем,
   // чтобы ссылки на habits/people/sp были СТАБИЛЬНЫ между кадрами → мемо-обёртка не перерисовывает.
   var _bs = (typeof bosStreak === "function") ? bosStreak : function () { return 0; };
-  var youHabits = React.useMemo(function () { return ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", color: h.color, streak: _bs(h.log), id: h.id }; }); }, [app]);
+  var youHabits = React.useMemo(function () { return ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", icon: h.icon || null, color: h.color, streak: _bs(h.log), id: h.id }; }); }, [app]);
   var youPeople = React.useMemo(function () { return Array.isArray(people) ? people.slice(0, 10) : []; }, [people]);
   var youSp = React.useMemo(function () { return { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople }; }, [app, lvlNum, lvlPct, youHabits, youPeople]);
   var allNodes = React.useMemo(function () {
@@ -8414,61 +8414,134 @@ function bosDeSF(val) {
   return "✨";
 }
 /* ЕДИНСТВЕННАЯ ВОРОНКА ПОКАЗА значка привычки/цели/круга — через неё проходят ВСЕ ~56 мест
-   в приложении. Поэтому кастомные иконки включаются ровно здесь, одной правкой.
+   в приложении.
 
-   Возвращает либо React-элемент <svg> (если у эмодзи есть кастомная иконка), либо саму
-   строку-эмодзи (как было раньше). В ДАННЫХ при этом всегда лежит эмодзи — см. core/glyphs.jsx.
-   Никогда не показывает сырой текст "sf:…" (легаси-мост bosDeSF).
+   ЭМОДЗИ — БАЗА (David 2026-07-30: «разноцветные стандартные эмодзи смотрятся чуточку
+   красивее»). Кастомная иконка рисуется ТОЛЬКО если человек СОЗНАТЕЛЬНО её выбрал —
+   переключателем «Эмодзи · Иконки» в пикере. Никакого автоматического переодевания:
+   был короткий заход (v827), когда иконка подставлялась по смыслу эмодзи — отменён.
 
-   ВАЖНО для вызывающих: результат идёт в РАЗМЕТКУ ({...} как ребёнок). Если понадобится
-   значок В СТРОКЕ (склейка текста, пуш, share) — берите bosDeSF(val), а не bosIcon. */
-function bosIcon(val, size, color) {
-  var e = bosDeSF(val) || "";
-  if (typeof bosGlyphIdFor === "function" && typeof BosGlyph !== "undefined") {
-    var id = bosGlyphIdFor(e);
-    if (id) return React.createElement(BosGlyph, { id: id, size: size || 20, color: color || undefined });
+   Пара хранится ДВУМЯ полями: `emoji` (всегда настоящий эмодзи) + `icon` (id иконки или
+   пусто). Поэтому пуш из бота, витрина облака и любой чужой читатель всегда получают
+   эмодзи, а иконку показываем только мы. Подробности контракта — в core/glyphs.jsx.
+
+   ВАЖНО для вызывающих: результат идёт в РАЗМЕТКУ ({...} как ребёнок). Если нужен значок
+   В СТРОКЕ (склейка текста, пуш, share) — берите bosDeSF(val), а не bosIcon. */
+function bosIcon(val, size, color, glyph) {
+  if (glyph && typeof BOS_GLYPHS !== "undefined" && BOS_GLYPHS[glyph] && typeof BosGlyph !== "undefined") {
+    return React.createElement(BosGlyph, { id: glyph, size: size || 20, color: color || undefined });
   }
-  return e;
+  return bosDeSF(val) || "";   // легаси-мост: сохранённое когда-то "sf:<Name>" → эмодзи
 }
 
-/* То же самое, но для значка ВНУТРИ СТРОКИ ТЕКСТА («🏃 Пробежка — лучшая серия»).
-   Блочный <svg> в предложении съезжает вниз, поэтому тут inline-block + подсадка на базовую
-   линию. Цвет по умолчанию наследуется, т.е. значок становится частью фразы. */
-function bosIconInline(val, size, color) {
-  var r = bosIcon(val, size, color);
-  if (typeof r === "string") return r;
+/* Удобная обёртка: берёт пару значок+иконка прямо из объекта привычки / цели / круга.
+   Так вызывающему не нужно помнить, что полей ДВА и что у круга значок зовётся emblem. */
+function bosIconOf(o, size, color, fallback) {
+  var v = (o && (o.emoji || o.emblem)) || fallback || "";
+  return bosIcon(v, size, color, o && o.icon);
+}
+
+/* То же для значка ВНУТРИ СТРОКИ ТЕКСТА («🏃 Пробежка — лучшая серия»): блочный <svg>
+   в предложении съезжает вниз, поэтому inline-block + подсадка на базовую линию. */
+function bosIconInline(o, size, color) {
+  var glyph = o && o.icon;
+  if (!glyph || typeof BOS_GLYPHS === "undefined" || !BOS_GLYPHS[glyph]) return bosIconOf(o, size, color);
   return React.createElement(BosGlyph, {
-    id: bosGlyphIdFor(bosDeSF(val) || ""), size: size || 15, color: color || undefined,
+    id: glyph, size: size || 15, color: color || undefined,
     style: { display: "inline-block", verticalAlign: "-0.17em" },
   });
 }
 
 // Все эмодзи ОДНОЙ лентой (David: категории не нравятся — сплошной поток). Дедупим, сохраняя порядок.
 const BOS_EMOJI_ALL = (function () { var seen = {}, out = []; BOS_EMOJI_CATS.forEach(function (c) { c.list.forEach(function (e) { if (!seen[e]) { seen[e] = 1; out.push(e); } }); }); return out; })();
-function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, embedded = false }) {
-  const { close } = useSheet();
-  // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
-  // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
-  const pick = (e) => { if (onPick) onPick(e); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } if (!embedded) close(); };
-  // David: одна СПЛОШНАЯ сетка — без категорий. Список — ЭМОДЗИ (их и сохраняем), а рисуются
-  // они кастомными иконками через bosIcon; см. контракт в core/glyphs.jsx.
-  const list = (typeof BOS_GLYPH_ORDER !== "undefined" && BOS_GLYPH_ORDER.length)
-    ? BOS_GLYPH_ORDER.map(bosGlyphEmoji) : BOS_EMOJI_ALL;
+/* ══ ВЫБОР ЗНАЧКА — один блок на всё приложение ═══════════════════════════════════════════
+   David 2026-07-30: «дефолт эмодзи, а выбрать можно себе СВГ-иконки… просто сделай наверху
+   переключатель бумс. Как в привычках, так и в целях, в кругах, везде».
+
+   Сегмент «Эмодзи · Иконки» + лента в три ряда, которая едет вправо целиком. Вкладка
+   открывается на той, чем значок выбран сейчас (иконка → «Иконки», иначе «Эмодзи»).
+
+   Наверх отдаётся ПАРА: onPick(эмодзи, idИконки|null).
+     • выбрал эмодзи  → (эмодзи, null)
+     • выбрал иконку  → (парный эмодзи иконки, id)
+   Парный эмодзи нужен, чтобы пуш из бота и любой чужой читатель всегда получали настоящий
+   эмодзи, даже когда мы рисуем иконку. Контракт целиком — в core/glyphs.jsx.               */
+function BosIconPickerLive({ emoji, glyph, onPick, accent, isDark = false, resetKey }) {
+  const [tab, setTab] = React.useState(glyph ? "glyph" : "emoji");
+  const stripRef = React.useRef(null);
+  const EMOJI = (typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🚶", "🏃", "💧", "📖", "🧘", "☀️"];
+  const GLYPHS = (typeof BOS_GLYPH_ORDER !== "undefined") ? BOS_GLYPH_ORDER : [];
+  // Значок старой привычки может быть ВНЕ общего списка (легаси «sf:*»→эмодзи, чужой набор) —
+  // тогда в ленте не подсветилось бы ничего и человек не видел бы свой текущий значок.
+  // Такой ставим первым; порядок от этого не «пляшет» — выбор ИЗ ленты всегда уже в списке.
+  const list = React.useMemo(function () {
+    if (tab === "glyph") return GLYPHS;
+    return (emoji && EMOJI.indexOf(emoji) < 0) ? [emoji].concat(EMOJI) : EMOJI;
+  }, [tab, emoji]);
+  // Подвести ленту к выбранному — ТОЛЬКО при открытии и смене вкладки, не на каждый тап:
+  // иначе лента дёргалась бы под пальцем (та самая беда перестраивавшейся сетки).
+  React.useEffect(function () {
+    var el = stripRef.current; if (!el) return;
+    var sel = el.querySelector('[data-sel="1"]');
+    if (!sel) { el.scrollLeft = 0; return; }
+    var want = sel.offsetLeft - el.clientWidth / 2 + sel.offsetWidth / 2;
+    el.scrollLeft = want > 8 ? want : 0;
+  }, [tab, resetKey]);
+
+  const ink = accent || "var(--text)";
+  const cell = (key, on, node, onClick) => (
+    <button key={key} type="button" className="tap" data-no-haptic data-sel={on ? "1" : null} aria-pressed={on}
+      onClick={() => { onClick(); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }}
+      style={{ width: 42, height: 42, flexShrink: 0, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 21, lineHeight: 1, padding: 0,
+        display: "grid", placeItems: "center", color: on ? ink : "var(--text)",
+        background: on ? (accent ? accent + "2b" : (isDark ? "rgba(255,255,255,0.16)" : "#e7e7ec")) : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
+        boxShadow: on ? "inset 0 0 0 2px " + ink : "none",
+        transition: "background .15s, box-shadow .15s" }}>{node}</button>
+  );
+
   return (
-    <div style={{ padding: "2px 10px 6px", color: "#0a0a0a" }}>
-      <div style={{ textAlign: "center", fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Выбери иконку</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, maxHeight: 344, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-        {list.map((e, i) => {
-          const on = e === current;
+    <div>
+      {/* сегмент — ровно та же механика, что у «Галочка·Счётчик·Таймер» ниже по форме */}
+      <div style={{ display: "flex", gap: 3, padding: 3, margin: "0 12px 10px", borderRadius: 13,
+        background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)" }}>
+        {[["emoji", "Эмодзи"], ["glyph", "Иконки"]].map(([k, label]) => {
+          const on = tab === k;
           return (
-            <button key={i} className="tap" data-no-haptic onClick={() => pick(e)} aria-pressed={on}
-              style={{ aspectRatio: "1 / 1", borderRadius: 13, border: 0, cursor: "pointer", padding: 0, fontSize: 25,
-                display: "grid", placeItems: "center", color: on ? accent : "#0a0a0a",
-                background: on ? accent + "26" : "rgba(10,10,10,0.045)",
-                boxShadow: on ? "inset 0 0 0 2px " + accent : "none" }}>{bosIcon(e, 24, null)}</button>
+            <button key={k} type="button" className="tap" data-haptic="selection" onClick={() => setTab(k)} aria-pressed={on}
+              style={{ flex: 1, border: 0, cursor: "pointer", borderRadius: 10, padding: "7px 0", fontSize: 13.5,
+                fontWeight: on ? 700 : 600, letterSpacing: "-0.1px",
+                color: on ? "var(--text)" : "var(--text-3)",
+                background: on ? (isDark ? "rgba(255,255,255,0.14)" : "#fff") : "transparent",
+                boxShadow: on ? "0 1px 2px rgba(0,0,0,0.09)" : "none", transition: "background .15s" }}>{label}</button>
           );
         })}
       </div>
+      <div ref={stripRef} className="bos-hscroll"
+        style={{ position: "relative", display: "grid", gridTemplateRows: "repeat(3, auto)", gridAutoFlow: "column", gridAutoColumns: "max-content", gap: 7, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "0 12px" }}>
+        {tab === "glyph"
+          ? list.map((id) => cell(id, glyph === id, <BosGlyph id={id} size={21} />, () => onPick(bosGlyphEmoji(id), id)))
+          : list.map((e, i) => cell(e + i, !glyph && e === emoji, e, () => onPick(e, null)))}
+      </div>
+    </div>
+  );
+}
+
+
+/* Шторка выбора значка — для круга (эмблема) и общей привычки круга. Внутри тот же
+   BosIconPickerLive, поэтому переключатель «Эмодзи · Иконки» одинаковый во всём приложении. */
+function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, currentGlyph, embedded = false }) {
+  const { close } = useSheet();
+  // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
+  // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
+  const pick = (e, g) => {
+    if (onPick) onPick(e, g);
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} }
+    if (!embedded) close();
+  };
+  return (
+    <div style={{ padding: "2px 4px 10px", color: "var(--text)" }}>
+      <div style={{ textAlign: "center", fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Выбери значок</div>
+      <BosIconPickerLive emoji={current} glyph={currentGlyph} accent={accent === "#0a0a0a" ? null : accent} onPick={pick} />
     </div>
   );
 }

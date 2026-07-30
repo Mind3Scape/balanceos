@@ -97,12 +97,13 @@ function AvatarPickerSheet({ dark = false }) {
 /* Значок привычки НА ОРБИТЕ Вселенной. Здесь мы уже ВНУТРИ <svg>, поэтому эмодзи рисуется
    как <text> — и именно тут в прошлый раз вылезли надписи «sf:Run» вместо иконок.
 
-   Теперь: есть кастомная иконка → вставляем её <path> (она нарисована на сетке 256, вписываем
-   в квадрат 18×18 по центру стеклянного диска r=16). Нет иконки → как раньше, <text> с эмодзи.
-   Сырой id в <text> попасть не может: в данных лежит только эмодзи, а id мы получаем поиском. */
-function bosOrbGlyph(emoji, ink) {
+   По умолчанию — эмодзи. Кастомную иконку рисуем ТОЛЬКО когда человек её выбрал (node.icon):
+   вставляем её <path> (иконка на сетке 256 → квадрат 18×18 по центру стеклянного диска r=16).
+   Сырой id в <text> попасть не может: в текст идёт поле emoji, а id живёт отдельным полем. */
+function bosOrbGlyph(node, ink) {
+  var emoji = node && (typeof node === "string" ? node : node.emoji);
+  var gid = node && node.icon;
   var e = (typeof bosDeSF === "function") ? bosDeSF(emoji) : emoji;
-  var gid = (typeof bosGlyphIdFor === "function") ? bosGlyphIdFor(e) : null;
   if (gid && typeof BOS_GLYPHS !== "undefined" && BOS_GLYPHS[gid]) {
     return (
       <g transform="translate(-9 -9) scale(0.0703)" fill={ink} style={{ pointerEvents: "none" }}>
@@ -160,7 +161,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
       if (ring > MAXR) { overflow++; return; }
       mk(ring); slot++;
     };
-    hb.forEach((h, i) => place((r) => nodes.push({ ring: r, kind: "h", emoji: h.emoji || "✨", streak: h.streak || 0, key: "h" + (h.id != null ? h.id : i) })));
+    hb.forEach((h, i) => place((r) => nodes.push({ ring: r, kind: "h", emoji: h.emoji || "✨", icon: h.icon || null, streak: h.streak || 0, key: "h" + (h.id != null ? h.id : i) })));
     if (slot > 0) { ring++; slot = 0; } // people start their own belt, just outside your habits
     pp.forEach((p, j) => place((r) => nodes.push({ ring: r, kind: "p", avatar: p && p.avatar, lit: (p && typeof p === "object") ? p.lit : undefined, key: "p" + j })));
     if (overflow > 0) nodes.push({ ring: MAXR, kind: "more", count: overflow, key: "more" });
@@ -286,7 +287,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
               <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
               <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
               <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
-              {bosOrbGlyph(n.emoji, dark ? "#dbe6f7" : "#4a5261")}
+              {bosOrbGlyph(n, dark ? "#dbe6f7" : "#4a5261")}
             </g>
           );
         }

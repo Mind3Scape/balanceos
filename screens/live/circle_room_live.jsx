@@ -835,7 +835,7 @@ function TeamDetailLive() {
     const opened = openHabit === h.id;
     const _hRow = (
       <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
-        icon={bosIcon(h.emoji, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
+        icon={bosIconOf(h, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
         name={h.name} faces={facesH}
         on={done} inert={!_live}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
@@ -950,13 +950,13 @@ function TeamDetailLive() {
               </svg>
               <span style={{ position: "absolute", inset: 5, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 19,
                 background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-                boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 19, null)}</span>
+                boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 19, null, "👥")}</span>
               <span style={{ position: "absolute", right: -4, bottom: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.22)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: BOS_ROOM_GOLD_INK, lineHeight: 1, zIndex: 2 }}>{circleLvl.level}</span>
             </button>
           ) : (
             <span style={{ width: 46, height: 46, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
               background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-              boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 20, null)}</span>
+              boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 20, null, "👥")}</span>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
@@ -1135,7 +1135,7 @@ function TeamDetailLive() {
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 2px 0" }}>
         <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
           background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-          boxShadow: bosOrbGlass(isDark) }}>{bosIcon(t.emblem || "👥", 15, null)}</span>
+          boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 15, null, "👥")}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
         {membersN > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)", flexShrink: 0 }}>{membersN + " " + bosRoomPeopleWord(membersN)}</span>}
       </div>
@@ -1183,7 +1183,7 @@ function TeamDetailLive() {
         }
         if (f.k === "pack") return (
           <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 9, background: isDark ? "rgba(255,255,255,0.05)" : "var(--surface-3)", borderRadius: 14, padding: "8px 11px" }}>
-            <span style={{ fontSize: 15, lineHeight: 1 }}>{bosIcon(f.hb.emoji, 15, f.hb.color)}</span>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{bosIconOf(f.hb, 15, f.hb.color)}</span>
             <div style={{ flex: 1, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{"+" + f.n + " закрыли «" + f.hb.name + "» к " + f.hourEnd + ":00"}</div>
             <span style={{ display: "flex" }}>
               {f.faces.map((p, k) => <span key={k} style={{ marginLeft: k ? -6 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px " + (isDark ? "#1c1c20" : "#fff"), lineHeight: 0 }}><BuddyFaceLive avatar={p.avatar} name={p.name} size={18} /></span>)}
@@ -1293,7 +1293,7 @@ function CirclePersonSheetLive({ team, person, meId, habits, rangeRows, dayRows,
   };
   const chips = todayMine.slice().sort((a, b) => (a.at < b.at ? -1 : 1)).map((r) => {
     const hb = (habits || []).find((h) => h.id === r.h);
-    return hb ? { icon: bosIcon(hb.emoji, 12, hb.color), at: bosRoomHHMM(r.at) } : null;
+    return hb ? { icon: bosIconOf(hb, 12, hb.color), at: bosRoomHHMM(r.at) } : null;
   }).filter(Boolean);
 
   return (
@@ -1341,7 +1341,7 @@ function CirclePersonSheetLive({ team, person, meId, habits, rangeRows, dayRows,
       <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "9px 14px" }}>
         {(habits || []).length ? (habits || []).map((h, i) => (
           <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(10,10,10,0.04)") : 0 }}>
-            <span style={{ fontSize: 13, width: 22, textAlign: "center", flexShrink: 0 }}>{bosIcon(h.emoji, 15, h.color)}</span>
+            <span style={{ fontSize: 13, width: 22, textAlign: "center", flexShrink: 0 }}>{bosIconOf(h, 15, h.color)}</span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
             <span style={{ display: "inline-flex", gap: 3, flexShrink: 0 }}>
               {weekKeys.map((k, j) => <span key={j} style={{ width: 5.5, height: 5.5, borderRadius: "50%", background: (mineDays[k] && mineDays[k][h.id]) ? BOS_ROOM_GOLD : (isDark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.12)") }} />)}
@@ -1504,7 +1504,7 @@ function CircleCabinetLive() {
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)") }}>
             {(habits || []).map((h, i) => (
               <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 12, width: 20, textAlign: "center" }}>{bosIcon(h.emoji, 14, h.color)}</span>
+                <span style={{ fontSize: 12, width: 20, textAlign: "center" }}>{bosIconOf(h, 14, h.color)}</span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
                 <span style={{ display: "inline-flex", gap: 2.5 }}>
                   {weekKeys.map((k, j) => <span key={j} style={{ width: 4.5, height: 4.5, borderRadius: "50%", background: (dd[k] && dd[k][h.id]) ? BOS_ROOM_GOLD : (isDark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.12)") }} />)}
@@ -1583,7 +1583,7 @@ function CircleCabinetLive() {
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: "var(--text-4)", marginBottom: 8 }}>Здоровье программы · неделя к неделе</div>
           {health.map((r, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: i < health.length - 1 ? 9 : 0 }}>
-              <span style={{ fontSize: 14, width: 22, textAlign: "center", flexShrink: 0 }}>{bosIcon(r.h.emoji, 15, r.h.color)}</span>
+              <span style={{ fontSize: 14, width: 22, textAlign: "center", flexShrink: 0 }}>{bosIconOf(r.h, 15, r.h.color)}</span>
               <span style={{ width: 100, fontSize: 11.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}>{r.h.name}</span>
               <span style={{ flex: 1, height: 6, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.07)", overflow: "hidden" }}>
                 <span style={{ display: "block", height: "100%", width: r.pct + "%", borderRadius: 999, background: r.delta >= 0 ? ("linear-gradient(90deg," + BOS_ROOM_GOLD_L + "," + BOS_ROOM_GOLD + ")") : "linear-gradient(90deg,#f0a08e,#E0362B)" }} />

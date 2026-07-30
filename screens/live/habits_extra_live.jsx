@@ -32,6 +32,10 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // Дефолт 🚶 (а не 👟): его НЕТ в общей ленте эмодзи, и лента открывалась бы на смайликах,
   // ничего не подсветив. 🚶 в списке есть — лента сразу подъезжает к «людям в движении».
   const [iconPick, setIconPick] = useHS(editing ? (typeof bosDeSF === "function" ? bosDeSF(params.habit.emoji) : params.habit.emoji) : (preset?.i || "🚶")); // старые sf:-символы → эмодзи по смыслу
+  // ЗНАЧОК ХРАНИТСЯ ПАРОЙ: iconPick = эмодзи (всегда настоящий, его видят пуш и облако),
+  // glyphPick = id кастомной иконки или null. Эмодзи — база; иконка только по сознательному
+  // выбору через переключатель. Выбрал эмодзи → glyphPick гасим.
+  const [glyphPick, setGlyphPick] = useHS(editing ? (params.habit.icon || null) : null);
   // Icon = the EmojiPickerLive panel (opens straight on emojis). The iOS keyboard can't be
   // forced into emoji mode — it opened on ABC, «непонятно что делать» (David) — so we use
   // our own emoji sheet, opened by tapping the tile below.
@@ -84,12 +88,12 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       return null;
     }
     try {
-      const team = await window.bosCloud.createTeam({ name: nm, emblem: iconPick, vis: "private" });
+      const team = await window.bosCloud.createTeam({ name: nm, emblem: iconPick, icon: glyphPick || null, vis: "private" });
       if (!team || !team.id) {
         setInviteNote("Не удалось создать общую привычку — попробуй ещё раз.");
         return null;
       }
-      try { await window.bosCloud.addTeamHabit(team.id, { name: nm, emoji: iconPick, isMain: true }); } catch (e) {}
+      try { await window.bosCloud.addTeamHabit(team.id, { name: nm, emoji: iconPick, icon: glyphPick || null, isMain: true }); } catch (e) {}
       let ref = "";
       try { ref = (await window.bosCloud.uid()) || ""; } catch (e) {}
       const link = location.origin + location.pathname + "?team=" + team.id + (ref ? "&ref=" + ref : "");
@@ -135,32 +139,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   //    в эмодзи-пикер просто не вызывались — и экран падал в «Что-то сбилось».
   // Какая строка блока «Ещё» раскрыта (сфера / тип) — раскрывается ВНУТРИ своей карточки.
   const [more, setMore] = useHS(null);
-  // ЗНАЧОК — ОДНА ЛЕНТА, прокрутка вправо (David 2026-07-29). Было: сетка из 18 «частых», которая
-  // ПЕРЕСТРАИВАЛАСЬ на каждый выбор («это тупо»), плюс «Ещё» с отдельной шторкой («вообще
-  // неприкольно»). Теперь порядок ФИКСИРОВАННЫЙ, при выборе ничего не двигается, второй шторки нет.
-  //
-  // ВНИМАНИЕ, ключевое: лента — это список ЭМОДЗИ, а рисуется он кастомными иконками (bosIcon).
-  // Так и сохранение, и облако, и сервер пушей продолжают получать ровно эмодзи, как всегда
-  // (см. контракт в core/glyphs.jsx). Тут НЕЛЬЗЯ подставить id иконки — сломается всё разом.
-  const _emojiBase = (typeof BOS_GLYPH_ORDER !== "undefined" && BOS_GLYPH_ORDER.length)
-    ? BOS_GLYPH_ORDER.map(bosGlyphEmoji)
-    : ((typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🚶", "🏃", "💧", "📖", "🧘", "☀️"]);
-  // Значок старой привычки может быть ВНЕ общего списка (легаси, «sf:*»→эмодзи, чужой набор) —
-  // тогда в ленте не подсветилось бы ничего и человек не видел бы свой текущий значок. Такой
-  // ставим первым. Порядок ленты от этого не «пляшет»: выбор ИЗ ленты всегда уже в списке.
-  const _emojiAll = React.useMemo(function () {
-    return (iconPick && _emojiBase.indexOf(iconPick) < 0) ? [iconPick].concat(_emojiBase) : _emojiBase;
-  }, [iconPick]);
-  const _stripRef = React.useRef(null);
-  // Подвести ленту к выбранному значку — но ТОЛЬКО при открытии/возврате в форму, не на каждый
-  // тап: иначе лента дёргалась бы под пальцем (ровно та беда, что была у перестраивающейся сетки).
-  React.useEffect(function () {
-    if (view !== "form") return;
-    var el = _stripRef.current; if (!el) return;
-    var sel = el.querySelector('[data-sel="1"]'); if (!sel) return;
-    var want = sel.offsetLeft - el.clientWidth / 2 + sel.offsetWidth / 2;
-    if (want > 8) el.scrollLeft = want;
-  }, [view]);
+  // ЗНАЧОК — сегмент «Эмодзи · Иконки» + лента в три ряда: общий блок BosIconPickerLive
+  // (shared_live.jsx), один на привычки, цели, круги и общие привычки. Порядок в ленте
+  // ФИКСИРОВАННЫЙ — при выборе ничего не перестраивается, второй шторки нет.
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
   // вверху, чтобы не листать до низа»).
@@ -170,7 +151,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     // Личные поля (напоминание/дни/тип/«вместе») для общего определения не пишем — они у каждого свои.
     if (teamFor) {
       const _gpdT = (countOn && countUnit === "times") ? Math.max(2, goal) : 1;
-      if (teamFor.onSave) teamFor.onSave({ name: nm, emoji: iconPick, color, cardTint, goalPerDay: _gpdT, isMain: isMain }, editing ? params.habit.id : null);
+      if (teamFor.onSave) teamFor.onSave({ name: nm, emoji: iconPick, icon: glyphPick || null, color, cardTint, goalPerDay: _gpdT, isMain: isMain }, editing ? params.habit.id : null);
       close();
       return;
     }
@@ -179,7 +160,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     const countTimes = countOn && countUnit === "times";
     const countMin = countOn && countUnit === "min";
     const base = {
-      emoji: iconPick, name: nm, color, cardTint, type,        // cardTint = тон всей карточки; type = развивать/бросить
+      emoji: iconPick, icon: glyphPick || null, name: nm, color, cardTint, type,   // emoji ВСЕГДА настоящий эмодзи; icon = id кастомной иконки или null
+                                                           // (null, а не пропуск поля: при «иконка → эмодзи» старый выбор должен ЗАТЕРЕТЬСЯ)
       days: days.slice(),                                  // 7-long Пн..Вс mask
       goalPerDay: countTimes ? Math.max(2, goal) : 1,      // счётчик: ≥2 раза (1 раз = обычная галочка); без верхнего потолка
       duration: countMin ? Math.max(5, duration) : 0,      // таймер: минуты
@@ -327,37 +309,20 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
 
       {/* ── ШАПКА: значок + имя. Первое дело — назвать привычку, поэтому оно первой строкой. ── */}
       <div style={{ ..._CARD, marginTop: 6, display: "flex", alignItems: "center", gap: 12 }}>
-        <button type="button" data-haptic="selection" className="tap" aria-label="Показать значок в ленте"
-          onClick={() => { try { var el = _stripRef.current, sel = el && el.querySelector('[data-sel="1"]'); if (sel) el.scrollTo({ left: Math.max(0, sel.offsetLeft - el.clientWidth / 2 + sel.offsetWidth / 2), behavior: "smooth" }); } catch (e) {} }}
-          style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s",
+        <span aria-hidden
+          style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, flexShrink: 0,
             background: _accent ? _accent + "26" : "var(--surface-3)" }}>
-          {bosIcon(iconPick, 27, color)}
-        </button>
+          {bosIcon(iconPick, 27, color, glyphPick)}
+        </span>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
       </div>
 
-      {/* ── ЗНАЧОК: одна лента всех эмодзи, скролл вправо. Без «Ещё» и второй шторки. ── */}
+      {/* ── ЗНАЧОК: сегмент «Эмодзи · Иконки» + лента в три ряда (общий блок) ── */}
       <Lab>ЗНАЧОК</Lab>
       <div style={{ ..._CARD, padding: "11px 0" }}>
-        {/* ТРИ РЯДА, которые едут вправо ЦЕЛИКОМ (David 2026-07-29: «в один ряд очень долгий скролл»).
-            grid-auto-flow: column — значки идут сверху вниз, потом следующая колонка, поэтому порядок
-            остаётся сплошным, а длина прокрутки втрое короче. */}
-        <div ref={_stripRef} className="bos-hscroll"
-          style={{ position: "relative", display: "grid", gridTemplateRows: "repeat(3, auto)", gridAutoFlow: "column", gridAutoColumns: "max-content", gap: 7, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "0 12px" }}>
-          {_emojiAll.map((e, i) => {
-            const on = e === iconPick;
-            return (
-              <button key={e + i} type="button" className="tap" data-no-haptic data-sel={on ? "1" : null} aria-pressed={on}
-                onClick={() => { setIconPick(e); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e2) {} } }}
-                style={{ width: 42, height: 42, flexShrink: 0, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 21, lineHeight: 1, padding: 0,
-                  display: "grid", placeItems: "center", color: on ? (_accent || "var(--text)") : "var(--text)",
-                  background: on ? (_accent ? _accent + "2b" : (isDark ? "rgba(255,255,255,0.16)" : "#e7e7ec")) : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
-                  boxShadow: on ? "inset 0 0 0 2px " + (_accent || "var(--text)") : "none",
-                  transition: "background .15s, box-shadow .15s" }}>{bosIcon(e, 21, null)}</button>
-            );
-          })}
-        </div>
+        <BosIconPickerLive emoji={iconPick} glyph={glyphPick} accent={_accent} isDark={isDark}
+          onPick={(e, g) => { setIconPick(e); setGlyphPick(g); }} />
       </div>
 
       {/* ── ЦВЕТ ── */}
@@ -576,6 +541,9 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   const preset = (!editing && presetProp) ? presetProp : null;
   const [name, setName] = useHS(g0?.name || preset?.t || "Пробежать марафон");
   const [iconPick, setIconPick] = useHS((typeof bosDeSF === "function" ? bosDeSF(g0?.emoji) : g0?.emoji) || preset?.i || "🎯"); // старые sf:-символы → эмодзи по смыслу
+  // Пара: iconPick = эмодзи (его видят чужие клиенты и облако), glyphPick = id иконки или null.
+  // У круга значок зовётся emblem, поэтому читаем оба поля.
+  const [glyphPick, setGlyphPick] = useHS((g0 && g0.icon) || null);
   // Goals carry a colour exactly like habits — default BLACK (the app's b&w base); the
   // chosen colour fills the goal's progress bar + detail ring (David: «всё один в один»).
   // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
@@ -630,22 +598,8 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // ⚠️ ХУКИ ТОЛЬКО ЗДЕСЬ, ДО ранних return'ов (вью picker) — иначе React #300, см. форму привычки.
   // Какая строка блока «Ещё» раскрыта: desc | habit | null.
   const [gMore, setGMore] = useHS(null);
-  // ЗНАЧОК — та же лента, что в форме привычки: порядок неподвижный, три ряда едут вправо целиком,
-  // второй шторки-пикера нет. Список — ЭМОДЗИ, рисуется иконками (контракт в core/glyphs.jsx).
-  const _gEmojiBase = (typeof BOS_GLYPH_ORDER !== "undefined" && BOS_GLYPH_ORDER.length)
-    ? BOS_GLYPH_ORDER.map(bosGlyphEmoji)
-    : ((typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🎯", "🏆", "🚩", "⭐", "🌱", "📊"]);
-  const _gEmojiAll = React.useMemo(function () {
-    return (iconPick && _gEmojiBase.indexOf(iconPick) < 0) ? [iconPick].concat(_gEmojiBase) : _gEmojiBase;
-  }, [iconPick]);
-  const _gStripRef = React.useRef(null);
-  React.useEffect(function () {
-    if (view !== "form") return;
-    var el = _gStripRef.current; if (!el) return;
-    var sel = el.querySelector('[data-sel="1"]'); if (!sel) return;
-    var want = sel.offsetLeft - el.clientWidth / 2 + sel.offsetWidth / 2;
-    if (want > 8) el.scrollLeft = want;
-  }, [view]);
+  // ЗНАЧОК — общий блок BosIconPickerLive (сегмент «Эмодзи · Иконки» + лента в три ряда),
+  // тот же, что в форме привычки.
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки.
   const saveGoal = () => {
@@ -672,17 +626,17 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           || (_gRaw && typeof _gRaw === "object" ? _san(_gRaw.title) : null)
           || (tgt + (unit ? " " + unit : ""));
         const _desc = (desc || "").trim();
-        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc, circleBalanceOn, threadOff: !threadOn };
+        const patch = { name: nm, emblem: iconPick, icon: glyphPick || null, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc, circleBalanceOn, threadOff: !threadOn };
         app?.updateTeam(g0._id, patch);
         try {
           if (g0.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
-            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, accent: color, vis: circleVis, goalKind: goalText, goalTarget: tgt, circleBalanceOn, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc, accent: color, threadOff: !threadOn } });
+            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, icon: glyphPick || null, accent: color, vis: circleVis, goalKind: goalText, goalTarget: tgt, circleBalanceOn, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc, accent: color, threadOff: !threadOn } });
           }
         } catch (e) {}
         close();
         return;
       }
-      const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, tint, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
+      const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, icon: glyphPick || null, color, tint, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
       if (preset && preset.challenge) goalLike.challenge = preset.challenge;
       close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
       if (typeof bosPromoteGoalToCircle === "function") {
@@ -694,7 +648,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
     // связи (локальные id умирают при восстановлении из облака, cloudId — нет).
     const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
     const habitCloudIds = linkHabit ? linkedHabits.filter((h) => h.on && h.cloudId).map((h) => h.cloudId) : [];
-    const data = { emoji: iconPick, color, tint, name: nm, target: tgt, unit, deadline, circle: false, habitIds, habitCloudIds, desc: (desc || "").trim() };
+    const data = { emoji: iconPick, icon: glyphPick || null, color, tint, name: nm, target: tgt, unit, deadline, circle: false, habitIds, habitCloudIds, desc: (desc || "").trim() };
     if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     if (editing) app?.updateGoal(g0.id, data);
     else app?.addGoal(data);
@@ -762,34 +716,20 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
 
       {/* ── ШАПКА: значок + имя ── */}
       <div style={{ ..._CARD, marginTop: 6, display: "flex", alignItems: "center", gap: 12 }}>
-        <button type="button" data-haptic="selection" className="tap" aria-label="Показать значок в ленте"
-          onClick={() => { try { var el = _gStripRef.current, sel = el && el.querySelector('[data-sel="1"]'); if (sel) el.scrollTo({ left: Math.max(0, sel.offsetLeft - el.clientWidth / 2 + sel.offsetWidth / 2), behavior: "smooth" }); } catch (e) {} }}
-          style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s",
+        <span aria-hidden
+          style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, flexShrink: 0,
             background: _accent ? _accent + "26" : "var(--surface-3)" }}>
-          {bosIcon(iconPick, 27, color)}
-        </button>
+          {bosIcon(iconPick, 27, color, glyphPick)}
+        </span>
         <input value={name} onChange={e => setName(e.target.value)} placeholder={circleOn ? "Название круга" : "Название цели"} aria-label="Название"
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
       </div>
 
-      {/* ── ЗНАЧОК: та же лента, что у привычки — три ряда, едут вправо целиком ── */}
+      {/* ── ЗНАЧОК: сегмент «Эмодзи · Иконки» + лента в три ряда (общий блок) ── */}
       <Lab>ЗНАЧОК</Lab>
       <div style={{ ..._CARD, padding: "11px 0" }}>
-        <div ref={_gStripRef} className="bos-hscroll"
-          style={{ position: "relative", display: "grid", gridTemplateRows: "repeat(3, auto)", gridAutoFlow: "column", gridAutoColumns: "max-content", gap: 7, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "0 12px" }}>
-          {_gEmojiAll.map((e, i) => {
-            const on = e === iconPick;
-            return (
-              <button key={e + i} type="button" className="tap" data-no-haptic data-sel={on ? "1" : null} aria-pressed={on}
-                onClick={() => { setIconPick(e); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e2) {} } }}
-                style={{ width: 42, height: 42, flexShrink: 0, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 21, lineHeight: 1, padding: 0,
-                  display: "grid", placeItems: "center", color: on ? (_accent || "var(--text)") : "var(--text)",
-                  background: on ? (_accent ? _accent + "2b" : (isDark ? "rgba(255,255,255,0.16)" : "#e7e7ec")) : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
-                  boxShadow: on ? "inset 0 0 0 2px " + (_accent || "var(--text)") : "none",
-                  transition: "background .15s, box-shadow .15s" }}>{bosIcon(e, 21, null)}</button>
-            );
-          })}
-        </div>
+        <BosIconPickerLive emoji={iconPick} glyph={glyphPick} accent={_accent} isDark={isDark}
+          onPick={(e, g) => { setIconPick(e); setGlyphPick(g); }} />
       </div>
 
       {/* ── ЦВЕТ ── */}

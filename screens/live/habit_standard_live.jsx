@@ -164,7 +164,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
     <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
       <span style={{ width: 42, height: 42, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
         background: m.color ? m.color + "26" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)")),
-        boxShadow: m.color ? "none" : bosTileGlass(isDark) }}>{bosIcon(m.emoji, 20, m.color)}</span>
+        boxShadow: m.color ? "none" : bosTileGlass(isDark) }}>{bosIconOf(m, 20, m.color)}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{m.name}</div>
         {m.ctx && <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.ctx}</div>}
@@ -222,7 +222,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
       {!m.bare && <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
         <span style={{ width: 42, height: 42, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
           background: m.color ? m.color + "26" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)")),
-          boxShadow: m.color ? "none" : bosTileGlass(isDark) }}>{bosIcon(m.emoji, 20, m.color)}</span>
+          boxShadow: m.color ? "none" : bosTileGlass(isDark) }}>{bosIconOf(m, 20, m.color)}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{m.name}</div>
           {m.ctx && <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.ctx}</div>}

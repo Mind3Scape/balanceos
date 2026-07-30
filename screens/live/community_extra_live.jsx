@@ -42,6 +42,8 @@ function TeamCreateLive() {
   const preset = params?.preset || null;
   const [name, setName] = useCS(preset?.t || "");
   const [emblem, setEmblem] = useCS(preset?.i || "✨");
+  // Пара: emblem = эмодзи (его видят все), emblemIcon = id кастомной иконки или null.
+  const [emblemIcon, setEmblemIcon] = useCS(null);
   const [accent, setAccent] = useCS(preset?.accent || "#0a0a0a");   // «Стандарт» (графит-нейтраль) по умолчанию; чип-пресет перекрывает
   const [duration, setDuration] = useCS("month");
   const [vis, setVis] = useCS("private");
@@ -98,8 +100,8 @@ function TeamCreateLive() {
           Дефолт-серый/чёрный → нейтральная плитка; выбрал Apple-цвет → плитка заливается им. */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
-            style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={(e, g) => { setEmblem(e); setEmblemIcon(g); }} current={emblem} currentGlyph={emblemIcon} accent={accent} />)} className="tap" aria-label="Сменить значок"
+            style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent, emblemIcon)}</button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
@@ -262,7 +264,7 @@ function TeamCreateLive() {
         const dur = { week: "Эта неделя", month: "Этот месяц", quarter: "3 месяца", year: "Год" }[duration] || "Этот месяц";
         const nt = app?.addTeam({
           name: name.trim() || "Совместная цель",
-          emblem, accent, vis, // private / public — preserved from the toggle above
+          emblem, icon: emblemIcon || null, accent, vis, // private / public — preserved from the toggle above
           goal: goalTitle || (target + " " + unit),
           type: goalType, // collective | streak | race — store the MODE locally too (was cloud-only → detail couldn't show it)
           target: Number(target) || 0, current: 0, unit,
@@ -277,7 +279,7 @@ function TeamCreateLive() {
         // keeps working even if the cloud is off.
         try {
           if (nt && window.bosCloud && window.bosCloud.enabled()) {
-            window.bosCloud.createTeam({ name: nt.name, emblem, vis, goalKind: nt.goal, goalTarget: Number(target) || 0, goal: { type: goalType, target: Number(target) || 0, unit: unit, title: goalTitle || (target + " " + unit), stake: stakes ? (Number(stakeAmount) || 0) : 0 } })
+            window.bosCloud.createTeam({ name: nt.name, emblem, icon: emblemIcon || null, vis, goalKind: nt.goal, goalTarget: Number(target) || 0, goal: { type: goalType, target: Number(target) || 0, unit: unit, title: goalTitle || (target + " " + unit), stake: stakes ? (Number(stakeAmount) || 0) : 0 } })
               .then((row) => { if (row && row.id && app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id }); });
           }
         } catch (e) {}
@@ -299,6 +301,7 @@ function TeamSettingsLive() {
   const backFrom = params?.from || "habits";
   const [name, setName] = useCS(team.name || "");
   const [emblem, setEmblem] = useCS(team.emblem || "✨");
+  const [emblemIcon, setEmblemIcon] = useCS(team.icon || null);
   const [accent, setAccent] = useCS(team.accent || "#0a0a0a");
   const [goal, setGoal] = useCS(team.goal || "");
   const [priv, setPriv] = useCS(team.vis !== "public");
@@ -332,13 +335,13 @@ function TeamSettingsLive() {
     const stakeVal = stakes ? (Number(stakeAmount) || 0) : 0;
     const tgt = Number(target) || 0;
     const goalText = goal.trim() || team.goal;
-    const patch = { name: name.trim() || team.name, emblem, accent, goal: goalText, vis: priv ? "private" : "public", notify, members, type: goalType, target: tgt, unit, stake: stakeVal };
+    const patch = { name: name.trim() || team.name, emblem, icon: emblemIcon || null, accent, goal: goalText, vis: priv ? "private" : "public", notify, members, type: goalType, target: tgt, unit, stake: stakeVal };
     app?.updateTeam(team._id, patch);
     // Persist the goal CONFIG + meta to the cloud (new updateTeam) so the mode/target/ставка
     // survive a reload and feed teamGoalProgress for everyone — was local-only («бутафорски»).
     try {
       if (team.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
-        window.bosCloud.updateTeam(team.cloudId, { name: patch.name, emblem, accent, vis: patch.vis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: stakeVal, accent } });
+        window.bosCloud.updateTeam(team.cloudId, { name: patch.name, emblem, icon: emblemIcon || null, accent, vis: patch.vis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: stakeVal, accent } });
       }
     } catch (e) {}
     setTimeout(() => navigate("team-detail", { team: { ...team, ...patch }, from: backFrom }), 300);
@@ -362,8 +365,8 @@ function TeamSettingsLive() {
           + единый цвет-пикер (David: создание и редактирование = одна логика; «как в привычках»). */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
-            style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={(e, g) => { setEmblem(e); setEmblemIcon(g); }} current={emblem} currentGlyph={emblemIcon} accent={accent} />)} className="tap" aria-label="Сменить значок"
+            style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent, emblemIcon)}</button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
@@ -504,6 +507,7 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
   const { close } = useSheet();
   const [view, setView] = useCS("form");
   const [emoji, setEmoji] = useCS("🙏");
+  const [emojiIcon, setEmojiIcon] = useCS(null);
   const [name, setName] = useCS("");
   const [movesGoal, setMovesGoal] = useCS(true);
   const [isMain, setIsMain] = useCS(false);
@@ -512,13 +516,13 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
   const toggleMember = (i) => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
   const participants = members.filter((_, i) => picked.includes(i)).map(m => ({ name: m.name, initials: m.initials, color: m.color, avatar: m.avatar }));
   const save = () => {
-    onAdd && onAdd({ emoji, name: name.trim() || "Новая привычка", isMain, movesGoal, goalPerDay: Math.max(1, count), participants, total: Math.max(1, participants.length || members.length || 1) });
+    onAdd && onAdd({ emoji, icon: emojiIcon || null, name: name.trim() || "Новая привычка", isMain, movesGoal, goalPerDay: Math.max(1, count), participants, total: Math.max(1, participants.length || members.length || 1) });
     close();
   };
   if (view === "picker") {
     return (
       <div style={{ padding: "2px 8px 8px", color: "var(--text)" }}>
-        <EmojiPickerLive embedded current={emoji} onPick={(e) => { setEmoji(e); setView("form"); }} />
+        <EmojiPickerLive embedded current={emoji} currentGlyph={emojiIcon} onPick={(e, g) => { setEmoji(e); setEmojiIcon(g); setView("form"); }} />
         <button className="tap" onClick={() => setView("form")} style={{ width: "100%", marginTop: 4, background: "transparent", border: 0, color: "var(--text-3)", padding: 12, fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Назад</button>
       </div>
     );
@@ -534,7 +538,7 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
           название ниже»), как карточка создания личной привычки. */}
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12, background: "var(--surface-3)", borderRadius: 16, padding: 10 }}>
         <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap"
-          style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", var(--card)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0, border: 0, cursor: "pointer" }}>{bosIcon(emoji, 24, null)}</button>
+          style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", var(--card)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0, border: 0, cursor: "pointer" }}>{bosIcon(emoji, 24, null, emojiIcon)}</button>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
       </div>

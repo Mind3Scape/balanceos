@@ -565,8 +565,11 @@
       if (own.error) own = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,goal,created_at").eq("owner_id", id);
       if (own.error) return null;
       var out = [], seen = {};
-      (m.data || []).forEach(function (r) { var t = r && r.teams; if (t && t.id && !seen[t.id]) { seen[t.id] = 1; t.circleBalanceOn = t.circle_balance_on; t.createdAt = t.created_at; out.push({ role: r.role || "member", team: t }); } });
-      (own.data || []).forEach(function (t) { if (t && t.id && !seen[t.id]) { seen[t.id] = 1; t.circleBalanceOn = t.circle_balance_on; t.createdAt = t.created_at; out.push({ role: "owner", team: t }); } });
+      // icon лежит ВНУТРИ jsonb goal (см. updateTeam) — поднимаем наверх, чтобы показ шёл
+      // через общий bosIconOf(круг), как у привычек и целей.
+      var _lift = function (t) { try { t.icon = (t.goal && t.goal.icon) || null; } catch (e) { t.icon = null; } t.circleBalanceOn = t.circle_balance_on; t.createdAt = t.created_at; return t; };
+      (m.data || []).forEach(function (r) { var t = r && r.teams; if (t && t.id && !seen[t.id]) { seen[t.id] = 1; out.push({ role: r.role || "member", team: _lift(t) }); } });
+      (own.data || []).forEach(function (t) { if (t && t.id && !seen[t.id]) { seen[t.id] = 1; out.push({ role: "owner", team: _lift(t) }); } });
       return out;
     } catch (e) { return null; }
   }
@@ -589,7 +592,9 @@
     // Store the GOAL CONFIG ({type,target,unit,title}) so team-goal progress can be COMPUTED
     // from the habit marks per mode (collective/streak/race). No-op until patch_team_goal.sql
     // adds the column — the team still works without it.
-    if (row && row.id && t && t.goal) { try { await c.from("teams").update({ goal: t.goal }).eq("id", row.id); } catch (e) {} }
+    if (row && row.id && t && (t.goal || t.icon)) {
+      try { await c.from("teams").update({ goal: Object.assign({}, t.goal || {}, t.icon ? { icon: t.icon } : {}) }).eq("id", row.id); } catch (e) {}
+    }
     return row;
   }
   // Public teams you're NOT in yet (with member counts) — the discovery list.
@@ -803,6 +808,10 @@
     // accent писался только локально, в облако не уходил → у других не синхронизировался). Отдельной
     // колонки нет — прячем в уже синхронизируемый goal, без правки схемы БД.
     if (patch.accent != null) upd.goal = Object.assign({}, upd.goal || (patch.goal || {}), { accent: patch.accent });
+    // Кастомная ИКОНКА круга — тем же приёмом внутрь jsonb goal (David 2026-07-30: эмодзи по
+    // умолчанию, иконка по выбору). Отдельной колонки не заводим. null = «вернуть эмодзи»,
+    // поэтому проверяем на undefined, а не на null — иначе снять иконку было бы нельзя.
+    if (patch.icon !== undefined) upd.goal = Object.assign({}, upd.goal || (patch.goal || {}), { icon: patch.icon || null });
     if (patch.circleBalanceOn != null) upd.circle_balance_on = !!patch.circleBalanceOn; // тумблер «Баланс круга» (опт-аут владельцем)
     try {
       var r = await c.from("teams").update(upd).eq("id", teamId).eq("owner_id", id);
@@ -825,7 +834,8 @@
   async function teamHabitsFull(teamId) {
     var c = client(); var me = await uid(); if (!c || !teamId) return [];
     try {
-      var hs = await c.from("team_habits").select("id,name,emoji,is_main,goal_per_day,color").eq("team_id", teamId).order("created_at", { ascending: true });
+      var hs = await c.from("team_habits").select("id,name,emoji,is_main,goal_per_day,color,icon").eq("team_id", teamId).order("created_at", { ascending: true });
+      if (hs.error) hs = await c.from("team_habits").select("id,name,emoji,is_main,goal_per_day,color").eq("team_id", teamId).order("created_at", { ascending: true }); // pre-SQL: нет колонки icon
       if (hs.error) hs = await c.from("team_habits").select("id,name,emoji,is_main,goal_per_day").eq("team_id", teamId).order("created_at", { ascending: true }); // pre-SQL: нет колонки color
       if (hs.error) hs = await c.from("team_habits").select("id,name,emoji,is_main").eq("team_id", teamId).order("created_at", { ascending: true }); // pre-SQL: нет и goal_per_day → graceful fallback
       var habits = (hs.data) || []; if (!habits.length) return [];
@@ -846,7 +856,7 @@
         }
         // todayUsers как СПИСОК id — клиент строит «пульс» каждого участника (доля закрытых
         // им сегодня привычек круга) без единого лишнего запроса: логи уже пришли выше.
-        return { id: h.id, name: h.name, emoji: h.emoji || "✨", isMain: !!h.is_main, goalPerDay: (h.goal_per_day || 1), color: h.color || null, doneToday: Object.keys(todayUsers).length, total: total, doneByMe: !!(me && todayUsers[me]), todayUsers: Object.keys(todayUsers), weekPct: weekSum / 7 };
+        return { id: h.id, name: h.name, emoji: h.emoji || "✨", icon: h.icon || null, isMain: !!h.is_main, goalPerDay: (h.goal_per_day || 1), color: h.color || null, doneToday: Object.keys(todayUsers).length, total: total, doneByMe: !!(me && todayUsers[me]), todayUsers: Object.keys(todayUsers), weekPct: weekSum / 7 };
       });
     } catch (e) { return []; }
   }
@@ -856,7 +866,9 @@
     var _gpd = (h && h.goalPerDay) ? Math.max(1, h.goalPerDay) : null;
     var _col = (h && typeof h.color === "string" && h.color[0] === "#") ? h.color : null;
     // Слоями от полного к базовому — колонок goal_per_day/color может ещё не быть (pre-SQL) → graceful.
+    var _ico = (h && typeof h.icon === "string" && h.icon) ? h.icon : null;
     var attempts = [];
+    if (_gpd != null && _col != null && _ico != null) attempts.push(Object.assign({}, _base, { goal_per_day: _gpd, color: _col, icon: _ico }));
     if (_gpd != null && _col != null) attempts.push(Object.assign({}, _base, { goal_per_day: _gpd, color: _col }));
     if (_gpd != null) attempts.push(Object.assign({}, _base, { goal_per_day: _gpd }));
     attempts.push(_base);
@@ -876,6 +888,7 @@
     if (patch.isMain != null) full.is_main = !!patch.isMain;
     if (patch.goalPerDay != null) full.goal_per_day = Math.max(1, patch.goalPerDay);
     if (typeof patch.color === "string" && patch.color[0] === "#") full.color = patch.color;
+    if (patch.icon !== undefined) full.icon = patch.icon || null;   // колонки может ещё не быть → откат ниже
     if (!Object.keys(full).length) return false;
     var base = {}; ["name", "emoji", "is_main"].forEach(function (k) { if (full[k] != null) base[k] = full[k]; });
     var attempts = [full]; if (Object.keys(base).length && Object.keys(base).length < Object.keys(full).length) attempts.push(base);

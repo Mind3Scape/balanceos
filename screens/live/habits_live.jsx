@@ -283,7 +283,7 @@ function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, deleteLa
   return (
     <div style={{ padding: "2px 16px 0", color: "var(--text)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 4px 14px" }}>
-        <span style={{ width: 40, height: 40, borderRadius: 13, background: sheen + (habit.color ? habit.color + "26" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(habit.emoji, 22, habit.color)}</span>
+        <span style={{ width: 40, height: 40, borderRadius: 13, background: sheen + (habit.color ? habit.color + "26" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIconOf(habit, 22, habit.color)}</span>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{habit.name}</div>
           <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{kindLabel}</div>
@@ -627,7 +627,7 @@ function HabitsLive() {
             ].map((c, i) => (
               <button key={i} onClick={() => navigate("info", { topic: c.topic })} className="tap"
                 style={{ width: "100%", background: "transparent", border: 0, borderTop: i ? "1px solid " + TH.divider : "0", padding: "12px 4px", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
-                <span style={{ width: 36, height: 36, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{bosIcon(c.emoji, 19, null)}</span>
+                <span style={{ width: 36, height: 36, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{bosIconOf(c, 19, null)}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{c.t}</div>
                   <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{c.b}</div>

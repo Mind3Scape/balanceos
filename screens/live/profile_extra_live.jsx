@@ -406,7 +406,7 @@ function FriendsLive() {
                 <div style={{ display: "flex", marginRight: 2, flexShrink: 0 }}>
                   {hb.map((hx, j) => <span key={j} style={{ width: 24, height: 24, borderRadius: 8, background: (hx && hx.c) ? hx.c + "26" : "var(--card-2)", display: "grid", placeItems: "center", fontSize: 12, marginLeft: j ? -6 : 0, border: "1.5px solid var(--card)" }}>{(hx && hx.e) || "✨"}</span>)}
                 </div>
-              ) : (f.teams.length > 0 && <span style={{ fontSize: 15, marginRight: 2 }}>{bosIcon(f.teams[0].emblem || "✨", 15, null)}</span>)}
+              ) : (f.teams.length > 0 && <span style={{ fontSize: 15, marginRight: 2 }}>{bosIconOf(f.teams[0], 15, null, "✨")}</span>)}
               {/* Сердечко «близкий» (David 11.07) — золотое залитое, если отмечен; иначе тихий контур.
                   role=button + stopPropagation: тап по сердцу не открывает карточку друга. */}
               {(() => { const close = closeH.isClose(f.id); return (
@@ -507,7 +507,7 @@ function FriendPreviewSheetLive({ friend, pub, navigate }) {
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "flex-start" }}>
             {friend.teams.map((t) => (
               <button key={t._id} onClick={() => goTeam(t)} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), padding: "7px 13px 7px 9px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", border: 0, cursor: "pointer" }}>
-                <span style={{ fontSize: 14 }}>{bosIcon(t.emblem || "✨", 14, null)}</span>{t.name}
+                <span style={{ fontSize: 14 }}>{bosIconOf(t, 14, null, "✨")}</span>{t.name}
               </button>
             ))}
           </div>
@@ -669,7 +669,7 @@ function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat
       {/* НАПОМИНАНИЯ ПРИВЫЧЕК — вверху: самое личное и срочное. Тап → страница привычки. */}
       {(data.reminders || []).length > 0 && secHead("Напоминания")}
       {(data.reminders || []).map((r, i) => row("rem-" + i,
-        <span style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, background: (r.habit && r.habit.color) ? (r.habit.color + "26") : "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", display: "grid", placeItems: "center", fontSize: 20 }}>{typeof bosIcon === "function" ? bosIcon((r.habit && r.habit.emoji) || "⏰", 20, r.habit && r.habit.color) : ((r.habit && r.habit.emoji) || "⏰")}</span>,
+        <span style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, background: (r.habit && r.habit.color) ? (r.habit.color + "26") : "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", display: "grid", placeItems: "center", fontSize: 20 }}>{typeof bosIcon === "function" ? bosIconOf(r.habit, 20, r.habit && r.habit.color, "⏰") : ((r.habit && r.habit.emoji) || "⏰")}</span>,
         "Пора: " + ((r.habit && r.habit.name) || "привычка"),
         "Ты просил напомнить в " + r.time + " · ещё не отмечено",
         <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }} />,

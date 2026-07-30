@@ -120,7 +120,7 @@ function LiveTeamCard({ t, navigate, rhythm }) {
   const _unitLabel = (typeof t.unit === "string") ? t.unit : "";
   return (
     <div className="tap" onClick={() => navigate("team-detail", { team: t })} style={{ background: "var(--card)", boxShadow: "var(--card-shadow)", borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
-      <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, null)}</div>
+      <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIconOf(t, 88, null)}</div>
       {unreadN > 0 && (
         <span aria-label={"новых сообщений: " + unreadN} style={{ position: "absolute", top: 12, right: 12, zIndex: 2, display: "inline-flex", alignItems: "center", gap: 4, background: "#FF3B30", color: "#fff", borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 800, boxShadow: "0 2px 8px rgba(255,59,48,0.4)" }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z"/></svg>
@@ -3225,7 +3225,7 @@ function CommunitySuggestLive({ app, navigate, isDark, onOpen }) {
       <CommSectionHeadLive title="✨ Подходит сейчас" onAll={null} />
       <div style={{ marginTop: 10, background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0, boxShadow: "0 4px 12px rgba(239,159,20,0.28)" }}>{bosIcon(cand.emblem || "🌙", 21, "#0a0a0a")}</span>
+          <span style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0, boxShadow: "0 4px 12px rgba(239,159,20,0.28)" }}>{bosIconOf(cand, 21, "#0a0a0a", "🌙")}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cand.name}</div>
             <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>Открытый круг · {cand.members || 0} участ.</div>
@@ -4080,7 +4080,7 @@ function CommunityLive() {
                 {pHits.map((p) => (
                   <button key={p.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: "community" }); }} className="tap"
                     style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
-                    <span style={{ width: 44, height: 44, borderRadius: 14, background: (typeof bosMixHex === "function" && isDark) ? bosMixHex(p.accent, "#101014", 0.48) : p.accent, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(p.emblem, 24, null)}</span>
+                    <span style={{ width: 44, height: 44, borderRadius: 14, background: (typeof bosMixHex === "function" && isDark) ? bosMixHex(p.accent, "#101014", 0.48) : p.accent, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIconOf(p, 24, null)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15.5, fontWeight: 600 }}>{p.name}</div>
                       <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.what} · {p.cost} XP</div>

@@ -532,12 +532,12 @@ function AILive() {
             </svg>
             <b style={{ fontSize: 10.5, fontWeight: 800 }}>{rec.cur}/{rec.best}</b>
           </span>
-          <span style={{ fontSize: 10.5, color: "var(--text-4)", lineHeight: 1.4, minWidth: 0 }}>{bosIconInline(rec.h.emoji, 13)} {rec.h.name}<br /><b style={{ color: "var(--text)", fontSize: 12 }}>{rec.left} дн.</b> до рекорда</span>
+          <span style={{ fontSize: 10.5, color: "var(--text-4)", lineHeight: 1.4, minWidth: 0 }}>{bosIconInline(rec.h, 13)} {rec.h.name}<br /><b style={{ color: "var(--text)", fontSize: 12 }}>{rec.left} дн.</b> до рекорда</span>
         </div>
       ) : recNow ? (
         <React.Fragment>
           <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", marginTop: 4 }}>{recNow.cur} дн. <span style={{ fontSize: 10.5, color: goldInk, verticalAlign: 3 }}>рекорд!</span></div>
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3 }}>{bosIconInline(recNow.h.emoji, 13)} {recNow.h.name} — сейчас твоя лучшая серия</div>
+          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3 }}>{bosIconInline(recNow.h, 13)} {recNow.h.name} — сейчас твоя лучшая серия</div>
         </React.Fragment>
       ) : (
         <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, lineHeight: 1.45 }}>Держи серию от 5 дней — здесь появится счёт до рекорда.</div>
@@ -564,7 +564,7 @@ function AILive() {
         <React.Fragment>
           <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", marginTop: 4 }}>{(sIns.delta >= 0 ? "+" : "−") + bosAiNumRuLive(Math.abs(sIns.delta))}</div>
           {moodLine && <svg viewBox="0 0 120 34" style={{ width: "100%", height: 26, marginTop: 4 }}><polyline points={moodLine} fill="none" stroke="#EF9F14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3 }}>в дни с {bosIconInline(sIns.h.emoji, 13)} — {sIns.delta >= 0 ? "заметно выше" : "ниже"}</div>
+          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3 }}>в дни с {bosIconInline(sIns.h, 13)} — {sIns.delta >= 0 ? "заметно выше" : "ниже"}</div>
         </React.Fragment>
       ) : (
         <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, lineHeight: 1.45 }}>Отмечай состояние на главной — увижу, какие привычки его поднимают.</div>
@@ -582,7 +582,7 @@ function AILive() {
       <div style={kStyle}>Связка</div>
       {lk ? (
         <React.Fragment>
-          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 5 }}>{bosIconInline(lk.a.emoji, 18)} → {bosIconInline(lk.b.emoji, 18)}</div>
+          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 5 }}>{bosIconInline(lk.a, 18)} → {bosIconInline(lk.b, 18)}</div>
           <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>после «{lk.a.name}» — «{lk.b.name}» <b style={{ color: "var(--text)" }}>×{bosAiNumRuLive(lk.lift)}</b> чаще</div>
           <div style={{ height: 4, borderRadius: 99, background: loBar, marginTop: 8, overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.min(100, Math.round(lk.lift / 3 * 100)) + "%", borderRadius: 99, background: "linear-gradient(90deg,#FEDE34,#EF9F14)" }} /></div>
         </React.Fragment>
