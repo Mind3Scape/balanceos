@@ -135,13 +135,16 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   //    в эмодзи-пикер просто не вызывались — и экран падал в «Что-то сбилось».
   // Какая строка блока «Ещё» раскрыта (сфера / тип) — раскрывается ВНУТРИ своей карточки.
   const [more, setMore] = useHS(null);
-  // ЗНАЧОК — ОДНА ЛЕНТА всех стандартных эмодзи, прокрутка вправо (David 2026-07-29). Было:
-  // сетка из 18 «частых», которая ПЕРЕСТРАИВАЛАСЬ на каждый выбор («это тупо»), плюс «Ещё» с
-  // отдельной шторкой («вообще неприкольно»). Теперь порядок ФИКСИРОВАННЫЙ (BOS_EMOJI_ALL, тот же
-  // список, что был в шторке-пикере), при выборе ничего не двигается, второй шторки нет.
-  // Значки остаются эмодзи: свой набор SVG рисуется текстом на орбитах «Вселенной», режется до
-  // 8 символов в витрине облака и не читается сервером пуша (см. bosDeSF).
-  const _emojiBase = (typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🚶", "🏃", "💧", "📖", "🧘", "☀️"];
+  // ЗНАЧОК — ОДНА ЛЕНТА, прокрутка вправо (David 2026-07-29). Было: сетка из 18 «частых», которая
+  // ПЕРЕСТРАИВАЛАСЬ на каждый выбор («это тупо»), плюс «Ещё» с отдельной шторкой («вообще
+  // неприкольно»). Теперь порядок ФИКСИРОВАННЫЙ, при выборе ничего не двигается, второй шторки нет.
+  //
+  // ВНИМАНИЕ, ключевое: лента — это список ЭМОДЗИ, а рисуется он кастомными иконками (bosIcon).
+  // Так и сохранение, и облако, и сервер пушей продолжают получать ровно эмодзи, как всегда
+  // (см. контракт в core/glyphs.jsx). Тут НЕЛЬЗЯ подставить id иконки — сломается всё разом.
+  const _emojiBase = (typeof BOS_GLYPH_ORDER !== "undefined" && BOS_GLYPH_ORDER.length)
+    ? BOS_GLYPH_ORDER.map(bosGlyphEmoji)
+    : ((typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🚶", "🏃", "💧", "📖", "🧘", "☀️"]);
   // Значок старой привычки может быть ВНЕ общего списка (легаси, «sf:*»→эмодзи, чужой набор) —
   // тогда в ленте не подсветилось бы ничего и человек не видел бы свой текущий значок. Такой
   // ставим первым. Порядок ленты от этого не «пляшет»: выбор ИЗ ленты всегда уже в списке.
@@ -348,9 +351,10 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
               <button key={e + i} type="button" className="tap" data-no-haptic data-sel={on ? "1" : null} aria-pressed={on}
                 onClick={() => { setIconPick(e); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e2) {} } }}
                 style={{ width: 42, height: 42, flexShrink: 0, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 21, lineHeight: 1, padding: 0,
+                  display: "grid", placeItems: "center", color: on ? (_accent || "var(--text)") : "var(--text)",
                   background: on ? (_accent ? _accent + "2b" : (isDark ? "rgba(255,255,255,0.16)" : "#e7e7ec")) : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
                   boxShadow: on ? "inset 0 0 0 2px " + (_accent || "var(--text)") : "none",
-                  transition: "background .15s, box-shadow .15s" }}>{e}</button>
+                  transition: "background .15s, box-shadow .15s" }}>{bosIcon(e, 21, null)}</button>
             );
           })}
         </div>
@@ -626,9 +630,11 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // ⚠️ ХУКИ ТОЛЬКО ЗДЕСЬ, ДО ранних return'ов (вью picker) — иначе React #300, см. форму привычки.
   // Какая строка блока «Ещё» раскрыта: desc | habit | null.
   const [gMore, setGMore] = useHS(null);
-  // ЗНАЧОК — та же лента, что в форме привычки (v824): все стандартные эмодзи, порядок неподвижный,
-  // три ряда едут вправо целиком. Второй шторки-пикера нет.
-  const _gEmojiBase = (typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🎯", "🏆", "🚩", "⭐", "🌱", "📊"];
+  // ЗНАЧОК — та же лента, что в форме привычки: порядок неподвижный, три ряда едут вправо целиком,
+  // второй шторки-пикера нет. Список — ЭМОДЗИ, рисуется иконками (контракт в core/glyphs.jsx).
+  const _gEmojiBase = (typeof BOS_GLYPH_ORDER !== "undefined" && BOS_GLYPH_ORDER.length)
+    ? BOS_GLYPH_ORDER.map(bosGlyphEmoji)
+    : ((typeof BOS_EMOJI_ALL !== "undefined" && BOS_EMOJI_ALL.length) ? BOS_EMOJI_ALL : ["🎯", "🏆", "🚩", "⭐", "🌱", "📊"]);
   const _gEmojiAll = React.useMemo(function () {
     return (iconPick && _gEmojiBase.indexOf(iconPick) < 0) ? [iconPick].concat(_gEmojiBase) : _gEmojiBase;
   }, [iconPick]);
@@ -777,9 +783,10 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
               <button key={e + i} type="button" className="tap" data-no-haptic data-sel={on ? "1" : null} aria-pressed={on}
                 onClick={() => { setIconPick(e); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e2) {} } }}
                 style={{ width: 42, height: 42, flexShrink: 0, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 21, lineHeight: 1, padding: 0,
+                  display: "grid", placeItems: "center", color: on ? (_accent || "var(--text)") : "var(--text)",
                   background: on ? (_accent ? _accent + "2b" : (isDark ? "rgba(255,255,255,0.16)" : "#e7e7ec")) : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
                   boxShadow: on ? "inset 0 0 0 2px " + (_accent || "var(--text)") : "none",
-                  transition: "background .15s, box-shadow .15s" }}>{e}</button>
+                  transition: "background .15s, box-shadow .15s" }}>{bosIcon(e, 21, null)}</button>
             );
           })}
         </div>

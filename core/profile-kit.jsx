@@ -94,6 +94,25 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
+/* Значок привычки НА ОРБИТЕ Вселенной. Здесь мы уже ВНУТРИ <svg>, поэтому эмодзи рисуется
+   как <text> — и именно тут в прошлый раз вылезли надписи «sf:Run» вместо иконок.
+
+   Теперь: есть кастомная иконка → вставляем её <path> (она нарисована на сетке 256, вписываем
+   в квадрат 18×18 по центру стеклянного диска r=16). Нет иконки → как раньше, <text> с эмодзи.
+   Сырой id в <text> попасть не может: в данных лежит только эмодзи, а id мы получаем поиском. */
+function bosOrbGlyph(emoji, ink) {
+  var e = (typeof bosDeSF === "function") ? bosDeSF(emoji) : emoji;
+  var gid = (typeof bosGlyphIdFor === "function") ? bosGlyphIdFor(e) : null;
+  if (gid && typeof BOS_GLYPHS !== "undefined" && BOS_GLYPHS[gid]) {
+    return (
+      <g transform="translate(-9 -9) scale(0.0703)" fill={ink} style={{ pointerEvents: "none" }}>
+        {BOS_GLYPHS[gid].s}
+      </g>
+    );
+  }
+  return <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{e}</text>;
+}
+
 function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open, minimal = false, spinT, hideLevelRing = false, centerMood }) {
   // hideLevelRing (Вселенная): скрыть золотое КОЛЬЦО-прогресс вокруг центра (David: «перегружает»),
   // цифра уровня остаётся. Геометрия (inset под кольцо) не меняется → стык диск↔орбита не плывёт.
@@ -267,7 +286,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
               <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
               <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
               <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
-              <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{typeof bosDeSF === "function" ? bosDeSF(n.emoji) : n.emoji}</text>
+              {bosOrbGlyph(n.emoji, dark ? "#dbe6f7" : "#4a5261")}
             </g>
           );
         }

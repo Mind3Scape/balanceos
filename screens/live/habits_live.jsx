@@ -555,7 +555,7 @@ function HabitsLive() {
                 display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
                 animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.03) + "s",
               }}>
-                <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>
+                <span style={{ fontSize: 15, lineHeight: 1, display: "flex" }}>{bosIcon(c.i, 16, null)}</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: TH.chipText }}>{c.t}</span>
                 {c.kind === "together" && <I.Users size={12} color={TH.chipText} style={{ opacity: 0.55, marginLeft: -2 }} />}
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9a6800", background: "rgba(245,180,30,0.18)", borderRadius: 999, padding: "2px 6px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>+{xp} XP</span>
@@ -627,7 +627,7 @@ function HabitsLive() {
             ].map((c, i) => (
               <button key={i} onClick={() => navigate("info", { topic: c.topic })} className="tap"
                 style={{ width: "100%", background: "transparent", border: 0, borderTop: i ? "1px solid " + TH.divider : "0", padding: "12px 4px", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
-                <span style={{ width: 36, height: 36, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{c.emoji}</span>
+                <span style={{ width: 36, height: 36, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{bosIcon(c.emoji, 19, null)}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{c.t}</div>
                   <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{c.b}</div>

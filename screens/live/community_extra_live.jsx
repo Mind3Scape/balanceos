@@ -177,7 +177,7 @@ function TeamCreateLive() {
                 color: on ? "#fff" : "var(--text-3)",
                 border: 0, fontSize: 12, fontWeight: 500,
               }}>
-                <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--card)", display: "grid", placeItems: "center", fontSize: 13 }}>{h.e}</span>
+                <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--card)", display: "grid", placeItems: "center", fontSize: 13 }}>{bosIcon(h.e, 13, null)}</span>
                 {h.t}
                 {on && <I.Check size={12} strokeWidth={3}/>}
               </button>

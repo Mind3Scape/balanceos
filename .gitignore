@@ -10,3 +10,5 @@ scripts/render_worldview_pdf.py
 .hermes/
 .claude/
 _dev*.html
+# заглушка для _devlive.html — тоже генерируется сборкой, в публичный репо не нужна
+_devlive-stub.js

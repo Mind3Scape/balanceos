@@ -21,7 +21,7 @@ const FILES = [
   "components/icons.jsx", "components/shell.jsx",
   // core/ — the NEUTRAL shared toolkit (no demo/live branching). Loads after the
   // framework, before any screen that uses it, so both demos AND the live app share ONE copy.
-  "core/aliases.jsx", "core/confetti.jsx",
+  "core/aliases.jsx", "core/confetti.jsx", "core/glyphs.jsx",
   "core/home-kit.jsx", "core/habits-kit.jsx", "core/profile-kit.jsx",
   "core/community-kit.jsx", "core/extra-kit.jsx",
   "screens/demo/home.jsx", "screens/demo/habits.jsx", "screens/demo/community.jsx",
@@ -80,6 +80,75 @@ for (const f of ROOT_STAMPED) {
 }
 fs.writeFileSync(path.join(root, "index.html"), html);
 console.log("stamped index.html build + root URLs with", ver);
+
+/* ── ДЕВ-СТЕНД «живой режим в браузере» ────────────────────────────────────────────────
+   Живой режим включается ТОЛЬКО внутри Telegram: app.jsx ждёт window.__TG и профиль,
+   сохранённый под "tg:<id>". В обычном браузере до него не добраться, поэтому каждая
+   сборка выкладывает рядом _devlive.html — копию index.html с заглушкой Telegram.
+
+   Генерируем, а не храним в репо: и стенд, и заглушка в .gitignore (репо и Pages
+   публичны, дев-костылям там не место), зато в любом клоне они появляются после сборки
+   и НИКОГДА не отстают от версии — иначе проверяешь вчерашний код, думая, что смотришь
+   сегодняшний. Открывать: /_devlive.html   Сбросить данные: /_devlive.html?fresh=1     */
+{
+  // Значки в семечке НАРОЧНО старые эмодзи + легаси-обрубок "sf:Bicyc" из облака:
+  // так сразу видно, что существующие привычки переодеваются в иконки, а не ломаются.
+  const seed = {
+    name: "Дэвид", avatar: "m3", dialSeen: 1, level: 7, xp: 640,
+    habits: [
+      { id: 1, cloudId: "c1", name: "Пробежка", emoji: "🏃", color: "#E8574C", streak: 12, days: {}, log: [] },
+      { id: 2, cloudId: "c2", name: "Вода", emoji: "💧", color: "#3D7EF2", streak: 5, days: {}, log: [] },
+      { id: 3, cloudId: "c3", name: "Чтение", emoji: "📖", color: "#3FA96B", streak: 31, days: {}, log: [] },
+      { id: 4, cloudId: "c4", name: "Медитация", emoji: "🧘", color: "#8B5CF6", streak: 3, days: {}, log: [] },
+      { id: 5, cloudId: "c5", name: "Велозаезд", emoji: "sf:Bicyc", color: "#F2A33C", streak: 2, days: {}, log: [] },
+      { id: 6, cloudId: "c6", name: "Без сахара", emoji: "🍬", color: "", streak: 8, days: {}, log: [] },
+      { id: 7, cloudId: "c7", name: "Гантели", emoji: "🏋️‍♀️", color: "#D9457F", streak: 1, days: {}, log: [] },
+      { id: 8, cloudId: "c8", name: "Барабаны", emoji: "🪘", color: "", streak: 0, days: {}, log: [] },
+    ],
+    goals: [{ id: 100, cloudId: "g1", name: "Марафон", emoji: "🎯", target: 42, unit: "км", color: "#0a0a0a", habitIds: [1] }],
+    teams: [],
+  };
+  // Порядок важен: заглушка ОТЛОЖЕННАЯ и стоит ПОСЛЕ telegram.js. Настоящий
+  // telegram-web-app.js перетирает window.Telegram своим объектом с platform "unknown",
+  // после чего telegram.js обнуляет __TG — поэтому ставим свой объект и зовём __tgInit заново.
+  const stubJs = `/* СГЕНЕРИРОВАНО scripts/build.js — дев-стенд живого режима, в продукт не входит.
+   Грузится только из _devlive.html. Правки вносить в build.js, не тут. */
+(function () {
+  var UID = 777001, noop = function () {};
+  var TG = {
+    initDataUnsafe: { user: { id: UID, first_name: "Дэвид", username: "dev" } },
+    initData: "", version: "7.0", platform: "ios", colorScheme: "light", themeParams: {},
+    isExpanded: true, viewportHeight: 812, viewportStableHeight: 812,
+    ready: noop, expand: noop, close: noop, onEvent: noop, offEvent: noop, sendData: noop,
+    openLink: function (u) { window.open(u, "_blank"); }, openTelegramLink: noop,
+    setHeaderColor: noop, setBackgroundColor: noop,
+    enableClosingConfirmation: noop, disableVerticalSwipes: noop,
+    HapticFeedback: { impactOccurred: noop, notificationOccurred: noop, selectionChanged: noop },
+    BackButton: { show: noop, hide: noop, onClick: noop, offClick: noop },
+    MainButton: { show: noop, hide: noop, setText: noop, onClick: noop, offClick: noop },
+    CloudStorage: { getItem: function (k, cb) { cb && cb(null, null); }, setItem: function (k, v, cb) { cb && cb(null, true); } }
+  };
+  window.Telegram = { WebApp: TG };
+  window.__TG = TG;
+  try { if (typeof window.__tgInit === "function") window.__tgInit(); } catch (e) {}
+  var KEY = "bos:profile:tg:" + UID;
+  try {
+    if (new URLSearchParams(location.search).get("fresh") === "1") localStorage.removeItem(KEY);
+    if (!localStorage.getItem(KEY)) localStorage.setItem(KEY, ${JSON.stringify(JSON.stringify(seed))});
+    localStorage.setItem("bos:dialSeen", "1");
+  } catch (e) {}
+})();
+`;
+  fs.writeFileSync(path.join(root, "_devlive-stub.js"), stubJs);
+  const stubTag = '<script src="_devlive-stub.js" defer></script>';
+  let dev = html
+    .replace(/<script src="telegram\.js\?v=[^"]*"><\/script>|(<script src="telegram\.js\?v=[^"]*" defer><\/script>)/,
+      `$1\n<!-- ДЕВ-СТЕНД: заглушка Telegram, чтобы живой режим открывался в браузере. Только тут. -->\n${stubTag}`)
+    .replace('if ("serviceWorker" in navigator) {', "if (false) {   // дев-стенд: без service worker, иначе путает кэшем")
+    .replace("<title>BalanceOS</title>", "<title>BalanceOS — дев-стенд живого режима</title>");
+  fs.writeFileSync(path.join(root, "_devlive.html"), dev);
+  console.log("regenerated _devlive.html + _devlive-stub.js (дев-стенд живого режима)");
+}
 
 // Same cache-bust for the service worker. Its CACHE name is the version it purges on
 // activate — if it never moves, the install/activate re-precache never fires and a bad
