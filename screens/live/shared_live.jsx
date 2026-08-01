@@ -606,17 +606,18 @@ function BosFieldCalendarLive(props) {
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var todayK = bosFieldKey(today);
 
-  // Начало грядки: с 1 января, но не меньше 14 недель истории (у новой привычки иначе видно
-  // одну колонку) и не раньше, чем объект вообще появился (sinceKey — дата создания/первой отметки).
+  // Начало грядки: с 1 января, но не меньше 10 недель (у новой привычки иначе видно одну колонку)
+  // и не раньше, чем объект вообще появился (sinceKey — дата создания/первой отметки): рисовать
+  // пустой январь там, где данных физически нет, — обман.
   var start = React.useMemo(function () {
     var jan = new Date(today.getFullYear(), 0, 1);
-    var min14 = new Date(today); min14.setDate(today.getDate() - 14 * 7);
+    var minW = new Date(today); minW.setDate(today.getDate() - 10 * 7);
     var s = jan;
     if (props.sinceKey) {
       var since = bosFieldDate(props.sinceKey);
       if (since > jan) s = since;
     }
-    if (s > min14) s = min14;
+    if (s > minW) s = minW;
     s.setDate(s.getDate() - ((s.getDay() + 6) % 7));   // ровно на понедельник
     return s;
   }, [props.sinceKey, todayK]);
@@ -678,7 +679,7 @@ function BosFieldCalendarLive(props) {
                     var off = props.offOf ? !!props.offOf(dd.k) : false;   // не по расписанию — тише
                     var can = true;
                     var ring = isToday ? ("0 0 0 1.6px " + (isDark ? "#fff" : "#0a0a0a"))
-                             : (isSel ? ("0 0 0 1.4px " + (isDark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.42)")) : "none");
+                             : (isSel ? ("0 0 0 1.6px " + (isDark ? "rgba(255,255,255,0.7)" : "rgba(10,10,10,0.55)")) : "none");
                     return (
                       <button key={ri} className="tap" data-no-haptic
                         onClick={function () { if (firedRef.current) { firedRef.current = false; return; } if (onDayTap) onDayTap(dd.k); }}
@@ -701,7 +702,7 @@ function BosFieldCalendarLive(props) {
       {props.hint !== false && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 9, paddingLeft: 2 }}>
           <span style={{ fontSize: 9.5, color: "var(--text-4)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {props.hint || (onDayMark ? "тап — открыть день · долгий тап — отметить" : "клетка = день")}
+            {props.hint || (onDayMark ? "тап — день · долгий тап — отметить" : "клетка = день")}
           </span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
             <span style={{ fontSize: 9, color: "var(--text-4)" }}>меньше</span>
@@ -1025,7 +1026,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             selKey={_fieldSelK}
             onDayTap={(k) => { _setFieldSelK(k); setSelDay(+k.slice(8, 10)); setMIdx(+k.slice(5, 7) - 1); }}
             onDayMark={todayTap && todayTap.onTap ? ((k) => { if (k === _fieldTodayK) { setSelDay(today); todayTap.onTap(); } }) : null}
-            hint={hidePicker || !todayTap ? "клетка = день · тап открывает его" : "тап — открыть день · долгий тап — отметить сегодня"} />
+            hint={hidePicker || !todayTap ? "тап — открыть день" : "долгий тап по сегодня — отметить"} />
         )}
 
         {/* Год — «грядка» с начала года до сегодня: столбцы = недели, строки = дни недели (Пн↑Вс),

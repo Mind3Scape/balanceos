@@ -4507,54 +4507,8 @@ function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, team
     );
   };
 
-  // ── тепло-карта года (26 недель × 7) ──
-  var weekdayMon = (today.getDay() + 6) % 7;
-  var start = new Date(today); start.setDate(start.getDate() - (25 * 7 + weekdayMon));
-  var cols = [];
-  for (var c = 0; c < 26; c++) {
-    var colCells = [];
-    for (var r = 0; r < 7; r++) {
-      var d = new Date(start); d.setDate(start.getDate() + c * 7 + r);
-      var k = dayKey(d);
-      var future = d > today;
-      var frac = selKey === "all" ? (allFrac[k] || 0) : (selDays[k] ? 1 : 0);
-      var cls = future ? "future" : (frac >= 0.99 ? "l4" : frac >= 0.66 ? "l3" : frac >= 0.34 ? "l2" : frac > 0 ? "l1" : "");
-      colCells.push({ k: k, cls: cls, today: k === todayK });
-    }
-    cols.push(colCells);
-  }
-  var hmColor = { "": (isDark ? "rgba(255,255,255,0.07)" : "#ececec"), l1: "#c9c9c9", l2: "#8f8f8f", l3: "#4a4a4a", l4: "#111", future: "transparent" };
-
-  // ── месяц (squircle) ──
-  var mToday = today, mY = mToday.getFullYear(), mM = mToday.getMonth();
-  var first = new Date(mY, mM, 1);
-  var lead = (first.getDay() + 6) % 7; // пн-первый
-  var daysInMonth = new Date(mY, mM + 1, 0).getDate();
-  var monthCells = [];
-  for (var g = 0; g < lead; g++) monthCells.push(null);
-  for (var dd = 1; dd <= daysInMonth; dd++) {
-    var dk = mY + "-" + String(mM + 1).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
-    var dDate = new Date(mY, mM, dd);
-    var fut = dDate > today;
-    var f = selKey === "all" ? (allFrac[dk] || 0) : (selDays[dk] ? 1 : 0);
-    monthCells.push({ d: dd, k: dk, frac: f, future: fut, today: dk === todayK });
-  }
-  var monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-  var cdFill = function (frac, isToday, future) {
-    if (future) return { background: "transparent", boxShadow: "inset 0 0 0 0.7px var(--line)", color: "var(--text-5)" };
-    var bg = frac >= 0.99 ? "#0a0a0a" : frac >= 0.5 ? "#9a9aa2" : frac > 0 ? "#d9d9de" : (isDark ? "rgba(255,255,255,0.06)" : "#eef0f4");
-    var col = frac >= 0.5 ? "#fff" : "var(--text-3)";
-    var s = { background: bg, color: col };
-    if (isToday) s.boxShadow = "inset 0 0 0 2px #FEDE34";
-    return s;
-  };
-
-  var seg = function (label, val) {
-    var on = calMode === val;
-    return <button onClick={function () { setCalMode(val); }} className="tap" data-no-haptic
-      style={{ border: 0, borderRadius: 999, padding: "5px 12px", fontSize: 12, fontWeight: on ? 700 : 600, cursor: "pointer",
-        background: on ? "var(--card)" : "transparent", color: on ? "var(--text)" : "var(--text-4)", boxShadow: on ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{label}</button>;
-  };
+  // Год для заголовка — сама грядка строит дни сама (BosFieldCalendarLive).
+  var mY = today.getFullYear();
 
   return (
     <>
@@ -4588,7 +4542,8 @@ function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, team
           isDark={isDark}
           accent={(accent && accent[0] === "#" && ("" + accent).toLowerCase() !== "#0a0a0a" && accent !== "#8E8E93") ? accent : null}
           pctOf={function (k) { return selKey === "all" ? (allFrac[k] || 0) : (selDays[k] ? 1 : 0); }}
-          hint={selKey === "all" ? "клетка = день · плотность = доля круга" : "клетка = день"} />
+          sinceKey={(function () { var d = new Date(today); d.setDate(d.getDate() - 26 * 7); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })()}
+          hint={selKey === "all" ? "плотность = доля круга в дне" : "клетка = день"} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", marginTop: 14, borderTop: "1px solid var(--line)" }}>
           {[["серия", stats.streak, "д"], ["лучшая", stats.best, "д"], ["всего", stats.total, ""]].map(function (s, i) {

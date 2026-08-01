@@ -181,9 +181,11 @@ function HabitDetailLive() {
     <button onClick={() => { if (app && app.toggleHabitDay) app.toggleHabitDay(h.id, selDay); }} className="tap" data-haptic="selection"
       aria-label={_selMarked ? "Снять отметку за этот день" : "Отметить этот день"}
       style={{ width: 30, height: 30, borderRadius: "50%", border: 0, cursor: "pointer", flexShrink: 0, display: "grid", placeItems: "center",
-        background: _selMarked ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "transparent",
+        // Цвет = цвет привычки (David 2026-08-01: грядка красится в него, значит и отметка дня тоже);
+        // у привычки без своего цвета остаётся золото — канон наполненности.
+        background: _selMarked ? (accent ? bosCellFill(accent, 1, isDark) : "linear-gradient(135deg,#FEDE34,#EF9F14)") : "transparent",
         boxShadow: _selMarked ? "none" : "inset 0 0 0 2px " + (isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.18)") }}>
-      {_selMarked ? <I.Check size={15} strokeWidth={3} color="#4a3400" /> : null}
+      {_selMarked ? <I.Check size={15} strokeWidth={3} color={accent ? "#fff" : "#4a3400"} /> : null}
     </button>
   );
   // «Сегодня» — тихий возврат из прошлого дня (headExtra в шапке).
@@ -274,7 +276,7 @@ function HabitDetailLive() {
     rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, accent,
       field: { pctOf: _fieldPct, selKey: selDay, onDayTap: (k) => setSelDay(k), onDayMark: _markDay,
         lateOf: (k) => !!(h.lateDays && h.lateDays[k]), offOf: _offKey, sinceKey: _sinceKey,
-        hint: _shared ? "тап — открыть день · долгий тап — отметить · плотность = доля друзей" : undefined } },
+        hint: _shared ? "долгий тап — отметить · плотность = доля друзей" : undefined } },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 

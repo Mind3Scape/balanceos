@@ -70,7 +70,9 @@ function BosStdHist({ dist, me, isDark }) {
 
 /* «РИТМ» — один блок времени. Пилюля-переключатель в заголовке СПРАВА (компактная, v3):
    свёрнута — один таймфрейм «Неделя ⌄»; тап — три пилюли на месте; выбор схлопывает. */
-function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, single, gold, onDayTap, belowNode, field }) {
+/* month = ГРЯДКА (field). Прежняя месячная сетка колец удалена вместе с monthCells (David
+   2026-08-01: календарь в приложении один). Остались «Неделя» (страйп) и «Год» (кольца месяцев). */
+function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, single, gold, onDayTap, belowNode, field }) {
   // single (David 2026-07-22): «уберём неделю и год пока» — один месяц, пилюли нет.
   const [tab, setTab] = React.useState(single ? "month" : (initialTab || "week"));
   const [open, setOpen] = React.useState(false);
@@ -99,21 +101,6 @@ function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthCel
     body = (
       <BosFieldCalendarLive {...field} isDark={isDark} accent={field.accent !== undefined ? field.accent : accent}
         hint={field.hint !== undefined ? field.hint : (monthHint || undefined)} />
-    );
-  } else if (tab === "month") {
-    // Телепорт в день (David 2026-07-22): тап по ЛЮБОМУ прожитому дню (c.canTap) — не шторка,
-    // а возврат в этот день (панель дня и история под календарём). single — клетки крупнее.
-    const sz = single ? 31 : 24;
-    const cell = (c, i) => <BosStdRingCell pct={c.pct} size={sz} label={i + 1} accent={accent} isDark={isDark} dim={c.dim} today={c.today} late={c.late} gold={gold} sel={c.sel} />;
-    body = (
-      <div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: single ? 6 : 4, justifyItems: "center" }}>
-          {(monthCells || []).map((c, i) => (onDayTap && c.canTap)
-            ? <button key={i} onClick={() => onDayTap(c.k)} className="tap" data-haptic="selection" aria-label={"Открыть день " + (i + 1)} style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", lineHeight: 0 }}>{cell(c, i)}</button>
-            : <React.Fragment key={i}>{cell(c, i)}</React.Fragment>)}
-        </div>
-        {monthHint && <div style={{ fontSize: 9, color: "var(--text-4)", textAlign: "right", marginTop: 5 }}>{monthHint}</div>}
-      </div>
     );
   } else {
     body = (
@@ -413,7 +400,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
     // как выше, но локально под эту привычку»): лица в свой час / волна на толпе.
     thread: thread,
     rhythm: { title: "Календарь · " + (selName || "ты"), single: true, accent: (h.color && h.color !== "#0a0a0a" && h.color !== "#8E8E93") ? h.color : null,
-      field: { pctOf: _fieldPctStd, selKey: selDayK, onDayTap: (k) => setSelDayK(k), sinceKey: _fieldSince, hint: "клетка = день · тап показывает, кто отметился" },
+      field: { pctOf: _fieldPctStd, selKey: selDayK, onDayTap: (k) => setSelDayK(k), sinceKey: _fieldSince, hint: "тап — кто отметился в этот день" },
       belowNode: dayNode },
     peopleTitle: "Люди",
     peopleExtra: doneUsers.length + " из " + membersN + " сегодня",

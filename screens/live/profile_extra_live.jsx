@@ -985,7 +985,7 @@ function HistoryLive() {
           pctOf={fieldPctK}
           selKey={fieldSelK}
           onDayTap={(k) => { setMIdx(+k.slice(5, 7) - 1); setSelDay(+k.slice(8, 10)); }}
-          hint="клетка = день · тап открывает его историю" />
+          hint="тап — открыть день" />
       </SysCard>
 
       {/* Панель дня — «история в один день»: % · состояние · журнал · привычки. Всегда видна
