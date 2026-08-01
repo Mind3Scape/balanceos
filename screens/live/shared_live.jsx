@@ -689,16 +689,15 @@ function BosFieldCalendarLive(props) {
   /* ПЕРЕКЛЮЧАТЕЛЬ «МЕСЯЦ · ГОД» (David 2026-08-01: «давай ещё тоггл на календаре для тех, кто
      хочет смотреть не год грядки, а только месяц текущей грядки»). Состояния честно отвечают на
      РАЗНЫЕ вопросы: «Месяц» — сетка с числами, сюда приходят за конкретным днём (ткнуть в 14-е и
-     отметить задним числом); «Год» — грядка, сюда приходят за характером. Выбор общий на всё
-     приложение, поэтому лежит в localStorage, а не в состоянии экрана. */
-  var VKEY = "bos:calview";
-  var viewState = React.useState(function () {
-    try { return localStorage.getItem(VKEY) === "month" ? "month" : "year"; } catch (e) { return "year"; }
-  });
+     отметить задним числом); «Год» — грядка, сюда приходят за характером.
+     ГОД — ВИД ПО УМОЛЧАНИЮ (David 2026-08-01): календарь всегда открывается грядкой, месяц —
+     осознанный заход за конкретным днём. Выбор НЕ запоминается: иначе один тап по «Месяцу»
+     навсегда менял бы то, с чего начинается экран. */
+  var viewState = React.useState("year");
   var view = viewState[0], setView = viewState[1];
   var setViewSaved = function (v) {
     setView(v);
-    try { localStorage.setItem(VKEY, v); } catch (e) {}
+    if (v === "year") setMOff(0);            // вернулись к году — месяц снова текущий
     try { if (window.bosHaptic) window.bosHaptic("select"); } catch (e) {}
   };
   var monOff = React.useState(0);            // 0 = текущий месяц, -1 = прошлый …
