@@ -48,15 +48,17 @@ function BosStdRingCell({ pct, size, label, below, accent, isDark, dim, today, l
 }
 
 /* Гистограмма недели круга: сколько людей сделали 0..7 раз + маркер «ты». */
-function BosStdHist({ dist, me, isDark }) {
+function BosStdHist({ dist, me, isDark, accent }) {
   var mx = Math.max.apply(null, dist.concat([1]));
+  // Столбик «ты» — в цвете привычки (David 2026-08-01: цвет объекта проникает всюду).
+  var P = (typeof bosAccentPaint === "function") ? bosAccentPaint(accent, isDark) : { solid: BOS_ROOM_GOLD, light: BOS_ROOM_GOLD_L, chipInk: BOS_ROOM_GOLD_INK };
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 46 }}>
         {dist.map((v, i) => (
           <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-            <span style={{ fontSize: 8, fontWeight: 800, color: BOS_ROOM_GOLD_INK, whiteSpace: "nowrap", visibility: i === me ? "visible" : "hidden" }}>ты</span>
-            <div style={{ width: "100%", borderRadius: 4, height: Math.max(3, v / mx * 34) + "px", background: i === me ? ("linear-gradient(180deg," + BOS_ROOM_GOLD_L + "," + BOS_ROOM_GOLD + ")") : (isDark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.10)") }} />
+            <span style={{ fontSize: 8, fontWeight: 800, color: P.chipInk, whiteSpace: "nowrap", visibility: i === me ? "visible" : "hidden" }}>ты</span>
+            <div style={{ width: "100%", borderRadius: 4, height: Math.max(3, v / mx * 34) + "px", background: i === me ? ("linear-gradient(180deg," + P.light + "," + P.solid + ")") : (isDark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.10)") }} />
           </div>
         ))}
       </div>
@@ -89,7 +91,7 @@ function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthHin
   let body = null;
   if (tab === "week") {
     body = (mode === "circle" && hist)
-      ? <BosStdHist dist={hist.dist} me={hist.me} isDark={isDark} />
+      ? <BosStdHist dist={hist.dist} me={hist.me} isDark={isDark} accent={accent} />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, justifyItems: "center" }}>
           {(weekCells || []).map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={26} below={c.l} accent={accent} isDark={isDark} dim={c.dim} today={c.today} />)}
@@ -139,6 +141,11 @@ var BOS_MON_GEN = ["января", "февраля", "марта", "апреля
              unified:bool (David: слить привычку+нить+кнопку в один блок), primary:<node> (кнопка-отметка) } */
 function BosHabitStandardBodyLive({ model, isDark }) {
   const m = model;
+  // ОДИН источник цвета на всю карточку (David 2026-08-01: «поменял цвет привычки — все цветные
+  // элементы стали этого цвета»): чипы «✓ в 09:41 / серия N», нить дня и календарь берут тон
+  // ОБЪЕКТА. Нейтральная привычка → прежнее золото. Золото остаётся только у опыта и наград.
+  const _paint = (typeof bosAccentPaint === "function") ? bosAccentPaint(m.color, isDark)
+    : { chipBg: "rgba(240,195,10,0.14)", chipInk: "#B4820A", glyph: "#EF9F14" };
   // В bare-аккордеоне внутренние блоки — цвета заднего фона страницы (серые), иначе они
   // белые внутри белой карточки и видна только окантовка (David 2026-07-17).
   // bare-аккордеон (David 2026-07-22: «серый слишком серее фона — помягче, ненавязчиво»):
@@ -170,7 +177,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
   const chipsNode = (m.chips && m.chips.length > 0) ? (
     <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: m.bare ? 2 : 10 }}>
       {m.chips.map((c, i) => c.gold ? (
-        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: BOS_ROOM_GOLD_INK, background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
+        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: _paint.chipInk, background: _paint.chipBg, borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
       ) : (
         <span key={i} style={{ ...bosChipGlass(isDark), display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
       ))}
@@ -191,7 +198,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
                 <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>Сегодня</span>
                 {m.threadHint && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span>}
               </div>
-              <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} />
+              <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} />
             </div>
           )}
           {m.primary && <div style={{ marginTop: 14 }}>{m.primary}</div>}
@@ -228,7 +235,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
       {m.chips && m.chips.length > 0 && (
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: m.bare ? 2 : 10 }}>
           {m.chips.map((c, i) => c.gold ? (
-            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: BOS_ROOM_GOLD_INK, background: "rgba(240,195,10,0.14)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
+            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: _paint.chipInk, background: _paint.chipBg, borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
           ) : (
             <span key={i} style={{ ...bosChipGlass(isDark), display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c.node}</span>
           ))}
@@ -239,7 +246,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
         <React.Fragment>
           {h2("Сегодня", m.threadHint ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span> : null)}
           <div style={{ ...blockCard, padding: "6px 8px" }}>
-            <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} />
+            <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} />
           </div>
         </React.Fragment>
       )}
@@ -260,6 +267,9 @@ function BosHabitStandardBodyLive({ model, isDark }) {
 /* ШТОРКА ПРИВЫЧКИ КРУГА — ступень 3 стандарта (кадр 2 финала И). Один код с личной деталью. */
 function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rangeRows, dayRows, done, onToggle, onEdit, onPerson, isDark, bare }) {
   const h = habit || {};
+  // Краска привычки круга — тот же источник, что у грядки и чипов (David 2026-08-01).
+  const _paintH = (typeof bosAccentPaint === "function") ? bosAccentPaint(h.color, isDark)
+    : { chipBg: "rgba(240,195,10,0.14)", chipInk: "#B4820A", glyph: "#EF9F14" };
   const membersN = (members || []).length || 1;
   const [isDone, setIsDone] = React.useState(!!done);
   const [markAt, setMarkAt] = React.useState(null); // «✓ в 07:12» после тапа прямо здесь
@@ -374,10 +384,10 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
   );
 
   const chips = [];
-  if (!bare && isDone && doneAt) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " в " + doneAt] });
-  else if (!bare && isDone) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={BOS_ROOM_GOLD_INK} />, " сделано"] });
-  if (myStreak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />, " серия " + (myStreak >= 31 ? "31+" : myStreak)] });
-  if (usualLbl) chips.push({ gold: true, node: [<I.Clock key="p" size={11} color={BOS_ROOM_GOLD} strokeWidth={2} />, " обычно в " + usualLbl] });
+  if (!bare && isDone && doneAt) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={_paintH.chipInk} />, " в " + doneAt] });
+  else if (!bare && isDone) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={_paintH.chipInk} />, " сделано"] });
+  if (myStreak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={_paintH.glyph} filled strokeWidth={1.6} />, " серия " + (myStreak >= 31 ? "31+" : myStreak)] });
+  if (usualLbl) chips.push({ gold: true, node: [<I.Clock key="p" size={11} color={_paintH.glyph} strokeWidth={2} />, " обычно в " + usualLbl] });
   chips.push({ node: doneUsers.length + " из " + membersN + " сегодня" });
 
   const model = {

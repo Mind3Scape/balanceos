@@ -90,6 +90,10 @@ function HabitDetailLive() {
   const _hc = (typeof bosCanonColor === "function") ? bosCanonColor(h.color) : h.color;
   const _hcNeutral = !_hc || _hc === "#0a0a0a" || ("" + _hc).toLowerCase() === "#8e8e93";
   const accent = _hcNeutral ? null : _hc;
+  // Краска объекта: чипы, иконки в них и нить дня берут ТОТ ЖЕ тон, что грядка (David 2026-08-01:
+  // «поменял цвет — все цветные элементы стали этого цвета»). Нейтральная привычка → золото.
+  const _paint = (typeof bosAccentPaint === "function") ? bosAccentPaint(accent, isDark)
+    : { chipBg: "rgba(240,195,10,0.14)", chipInk: "#B4820A", glyph: "#EF9F14" };
 
   // Совместная (с друзьями): живые дни каждого — как раньше (кэш, без миганий).
   const buddies = useBuddyMembersLive(h.shareCode);
@@ -206,11 +210,11 @@ function HabitDetailLive() {
   const chips = [];
   const _todayMinLbl = _fmtMin(_myMin(_todayK));
   if (_selPast) {
-    if (_selMarked) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color="#B4820A" />, _selLate ? " задним числом" : (_fmtMin(_myMin(selDay)) ? " в " + _fmtMin(_myMin(selDay)) : " отмечено")] });
+    if (_selMarked) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={_paint.chipInk} />, _selLate ? " задним числом" : (_fmtMin(_myMin(selDay)) ? " в " + _fmtMin(_myMin(selDay)) : " отмечено")] });
     else chips.push({ node: "не отмечено" });
   } else {
-    if (h.done || (_isQuant && _qCount >= _qGoal)) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color="#B4820A" />, _todayMinLbl ? " в " + _todayMinLbl : " сделано"] });
-    if (streak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />, " серия " + streak] });
+    if (h.done || (_isQuant && _qCount >= _qGoal)) chips.push({ gold: true, node: [<I.Check key="c" size={11} strokeWidth={3} color={_paint.chipInk} />, _todayMinLbl ? " в " + _todayMinLbl : " сделано"] });
+    if (streak > 0) chips.push({ gold: true, node: [<I.Flame key="f" size={10} color={_paint.glyph} filled strokeWidth={1.6} />, " серия " + streak] });
   }
   const calExtra = [best > 0 ? "лучшая " + best : null, total > 0 ? "всего " + total : null].filter(Boolean).join(" · ") || null;
 

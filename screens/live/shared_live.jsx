@@ -594,6 +594,34 @@ function bosFieldTint(accent, v, isDark) {
   var a = 0.34 + 0.66 * Math.max(0, Math.min(1, v));
   return "linear-gradient(135deg, rgba(254,222,52," + a.toFixed(2) + "), rgba(239,159,20," + a.toFixed(2) + "))";
 }
+/* ЕДИНЫЙ АКЦЕНТ ОБЪЕКТА (David 2026-08-01: «поменял цвет в привычке или цели — ВСЕ цветные
+   элементы стали этого цвета»). Одно место, из которого красятся календарь, нить дня, чипы
+   «✓ в 09:41 / серия N», маркеры — всё, что про САМ объект. Золото остаётся только там, где
+   речь про опыт и награды (XP, уровень, медали) — это валюта, а не свойство привычки.
+   accent пустой/нейтральный → золото, как раньше. */
+function bosAccentOf(accent) {
+  if (typeof bosCanonColor === "function") accent = bosCanonColor(accent);
+  var real = accent && accent[0] === "#" && accent.length === 7 &&
+             ("" + accent).toLowerCase() !== "#0a0a0a" && ("" + accent).toLowerCase() !== "#8e8e93";
+  return real ? accent : null;
+}
+function bosAccentPaint(accent, isDark) {
+  var a = bosAccentOf(accent);
+  // Литералы, а не BOS_ROOM_GOLD*: те живут в circle_room_live, а этот helper зовут и из мест,
+  // которые грузятся раньше.
+  if (!a) return {
+    solid: "#EF9F14", light: "#FEDE34", ink: isDark ? "#FEDE34" : "#B4820A",
+    chipBg: "rgba(240,195,10,0.14)", chipInk: isDark ? "#FEDE34" : "#B4820A", glyph: "#EF9F14",
+  };
+  // Чернила чипа: на светлой подложке нужен ТЁМНЫЙ тон цвета (иначе текст не читается),
+  // на тёмной — осветлённый. Заливка чипа — тот же цвет на низкой альфе.
+  var ink = isDark ? (typeof bosLightenHex === "function" ? bosLightenHex(a, 0.42) : a)
+                   : (typeof bosMixHex === "function" ? bosMixHex(a, "#14141a", 0.42) : a);
+  return {
+    solid: a, light: (typeof bosLightenHex === "function" ? bosLightenHex(a, 0.28) : a), ink: ink,
+    chipBg: a + (isDark ? "24" : "1f"), chipInk: ink, glyph: isDark ? (typeof bosLightenHex === "function" ? bosLightenHex(a, 0.2) : a) : a,
+  };
+}
 function BosFieldCalendarLive(props) {
   var pctOf = props.pctOf || function () { return 0; };
   var accent = (typeof bosCanonColor === "function") ? bosCanonColor(props.accent) : props.accent;
@@ -641,8 +669,12 @@ function BosFieldCalendarLive(props) {
     return out;
   }, [start, todayK]);
 
-  // Открывается у СЕГОДНЯ (правый край) — жизнь смотрят с конца, а не с января.
-  React.useEffect(function () { if (scRef.current) scRef.current.scrollLeft = scRef.current.scrollWidth; }, [cols.length]);
+  // Открывается у СЕГОДНЯ (правый край) — жизнь смотрят с конца, а не с января. Позиция
+  // ОКРУГЛЯЕТСЯ: дробный scrollLeft сдвигает всю сетку на полпикселя и мылит обводки.
+  React.useEffect(function () {
+    var el = scRef.current; if (!el) return;
+    el.scrollLeft = Math.round(el.scrollWidth - el.clientWidth);
+  }, [cols.length]);
 
   var startLong = function (k, can) {
     if (!onDayMark || !can) return;
@@ -692,8 +724,13 @@ function BosFieldCalendarLive(props) {
                     // разные вещи, и выдавать одно за другое нельзя.
                     var unknown = props.unknownBefore ? dd.k < props.unknownBefore : false;
                     var can = !unknown;
-                    var ring = isToday ? ("0 0 0 1.6px " + (isDark ? "#fff" : "#0a0a0a"))
-                             : (isSel ? ("0 0 0 1.6px " + (isDark ? "rgba(255,255,255,0.7)" : "rgba(10,10,10,0.55)")) : "none");
+                    // Обводка ВНУТРЕННЯЯ (inset), а не наружная (David 2026-08-01: «слева полосочка
+                    // тоньше»). Наружная тень рисуется ЗА границей элемента: клетка 12px в потоке с
+                    // дробным смещением (скролл, флексы) — и левый край обводки садится на полпикселя,
+                    // растрируется тоньше правого. Inset живёт внутри уже растрированного прямоугольника
+                    // → все четыре стороны одинаковой толщины при любом положении. Стекла тут нет.
+                    var ring = isToday ? ("inset 0 0 0 1.5px " + (isDark ? "#fff" : "#0a0a0a"))
+                             : (isSel ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.7)" : "rgba(10,10,10,0.5)")) : "none");
                     return (
                       <button key={ri} className="tap" data-no-haptic
                         onClick={function () { if (firedRef.current) { firedRef.current = false; return; } if (unknown) return; if (onDayTap) onDayTap(dd.k); }}
@@ -2646,7 +2683,16 @@ function BosThreadGlyph({ kind, left, dark }) {
 }
 /* faces — [{avatar,name,hr}] ИМЕНА (только свой круг: чужие отметки закрыты RLS).
    hours — [часы] БЕЗ имён (чужой открытый круг, из bos_circle_pulse). Одно из двух. */
-function BosDayThreadLive({ faces = [], hours = [], isDark = false }) {
+function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = null }) {
+  // Нить дня красится в цвет привычки/цели (David 2026-08-01: «нить дня остаётся золотой, а
+  // календарь меняет цвет»). Нейтральный объект → прежнее золото. Градиент волны получает
+  // УНИКАЛЬНЫЙ id на цвет: одинаковый id на всю страницу подменял бы цвет соседним нитям.
+  var P = (typeof bosAccentPaint === "function") ? bosAccentPaint(accent, isDark) : { solid: BOS_THREAD_GOLD, light: BOS_THREAD_GOLD_L };
+  var gid = "bosThreadWaveG_" + ("" + P.solid).replace(/[^0-9a-zA-Z]/g, "");
+  var glowRGB = (function () {
+    var hx = P.solid; if (!(hx && hx[0] === "#" && hx.length >= 7)) return "239,159,20";
+    return parseInt(hx.slice(1, 3), 16) + "," + parseInt(hx.slice(3, 5), 16) + "," + parseInt(hx.slice(5, 7), 16);
+  })();
   var fs = (faces || []).filter(Boolean).slice().sort(function (a, b) { return a.hr - b.hr; });
   var hrs = fs.length ? fs.map(function (f) { return f.hr; }) : (hours || []);
   var many = hrs.length > 6 || !fs.length;
@@ -2665,21 +2711,21 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false }) {
         {many && hrs.length > 0 && (
           <svg viewBox={"0 0 330 30"} preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, top: 4, width: "100%", height: 30 }}>
             <defs>
-              <linearGradient id="bosThreadWaveG" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={BOS_THREAD_GOLD_L} stopOpacity="0.85" />
-                <stop offset="100%" stopColor={BOS_THREAD_GOLD} stopOpacity="0.10" />
+              <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={P.light} stopOpacity="0.85" />
+                <stop offset="100%" stopColor={P.solid} stopOpacity="0.10" />
               </linearGradient>
             </defs>
-            <path d={bosThreadWave(hrs, 330, 30)} fill="url(#bosThreadWaveG)" />
+            <path d={bosThreadWave(hrs, 330, 30)} fill={"url(#" + gid + ")"} />
           </svg>
         )}
         <div style={{ position: "absolute", left: 0, right: 0, top: LINE, height: 2, borderRadius: 2, background: track }} />
-        <div style={{ position: "absolute", left: 0, top: LINE, height: 2, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + BOS_THREAD_GOLD_L + "," + BOS_THREAD_GOLD + ")" }} />
+        <div style={{ position: "absolute", left: 0, top: LINE, height: 2, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + P.light + "," + P.solid + ")" }} />
         {/* Лица сидят ПО ЦЕНТРУ линии (David: «иконки должны стоять на линии самой, а не над ней» —
             в макете они висели чуть выше, ровно то, за что он ругал прошлый вариант). */}
         {/* Точка «сейчас» — ПОД лицами (zIndex 2 < 3): только что отметился — твоя ава сверху,
             а не жёлтый кружок поверх лица (David 2026-07-16: «ава всегда должна ставиться поверх»). */}
-        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 2, width: 11, height: 11, borderRadius: "50%", background: BOS_THREAD_GOLD, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 0 7px rgba(239,159,20,0.5)" }} />
+        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 2, width: 11, height: 11, borderRadius: "50%", background: P.solid, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 0 7px rgba(" + glowRGB + ",0.5)" }} />
         {!many && fs.map(function (f, i) {
           return (
             <span key={i} style={{ position: "absolute", left: bosThreadPct(f.hr) + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 3, borderRadius: "50%", lineHeight: 0, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 1px 4px rgba(0,0,0,0.18)" }}>
@@ -3956,10 +4002,16 @@ function BosBalanceWheelLive(props) {
   var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
   var strong = null; SPH.forEach(function (s) { if (s.n && (!strong || s.v > strong.v)) strong = s; });
   var emptySph = SPH.filter(function (s) { return !s.n; });
+  // Заполнена ровно одна сфера: слабейшая = сильнейшая, и красить её сигнальной терракотой
+  // («ты просел») нечестно — сравнивать не с чем.
+  var lone = !!(weak && strong && weak.id === strong.id);
   var cap = function (t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
   function hintFor(s) {
     var q = "«" + s.l + "»";
     if (!s.n) return [q + " пока пустует", "Заведи первую привычку — сфера начнёт наполняться."];
+    // Единственная заполненная сфера НЕ «отстаёт сильнее всех» — сравнивать не с чем, а человека
+    // это била бы по рукам ровно там, где он единственный раз вложился.
+    if (weak && strong && weak.id === strong.id && s.id === weak.id) return [q + " — пока единственная живая сфера", "Остальные ждут первой привычки: с ними колесо станет ровнее."];
     if (weak && s.id === weak.id) return [q + " отстаёт сильнее всех", cap(BOS_SPHERE_NUDGE[s.id] || "небольшой ход уже поднимет сферу") + "."];
     if (s.v >= 0.7) return [q + " — твоя сильная сфера", "Здесь ты на подъёме. Оставь силы на остальные."];
     return [q + " в движении", cap(BOS_SPHERE_NUDGE[s.id] || "небольшой ход уже поднимет сферу") + "."];
@@ -3999,7 +4051,9 @@ function BosBalanceWheelLive(props) {
         { duration: 520, easing: EASE });
     } catch (e) {}
   }, [list]);
-  function tapRadar() { beginFlip(); if (list) setList(false); else { setSel(null); setList(true); } }
+  // Сворачивая колесо, ЗАКРЫВАЕМ и открытую сферу: иначе панель оставалась висеть под целым
+  // колесом — ровно то, чего David просил не делать («тап по сфере не должен открывать панель»).
+  function tapRadar() { beginFlip(); setSel(null); setList(!list); }
   // David 2026-08-01: тап по сфере в самом колесе больше НЕ открывает панель снизу — колесо
   // сначала раскладывается в столбики, и уже там тап по столбику открывает содержимое сферы.
   function tapNode(s) { if (list) setSel(s.id === selId ? null : s.id); else { beginFlip(); setSel(null); setList(true); } }
@@ -4121,7 +4175,9 @@ function BosBalanceWheelLive(props) {
                   <span className="bw-colv">{pct}</span>
                   <span className="bw-coltr">
                     <span className="bw-colfill" style={{ height: Math.max(pct, 8) + "%", background: "linear-gradient(180deg," + petLight(Math.max(s.v, 0.12)) + "," + petDeep(Math.max(s.v, 0.12)) + ")", animationDelay: (0.06 + i * 0.05) + "s" }} />
-                    <span className="bw-colic">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: "#fff" })) || s.e}</span>
+                    {/* Знак белый ТОЛЬКО если столбик дорос до него: на пустом (или бледном)
+                        столбике белое по светло-серому не читалось совсем. */}
+                    <span className="bw-colic">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: pct >= 24 ? "#fff" : (dark ? "rgba(255,255,255,0.38)" : "rgba(90,70,20,0.38)") })) || s.e}</span>
                   </span>
                   <span className="bw-colnm">{s.l}</span>
                 </button>
@@ -4135,8 +4191,8 @@ function BosBalanceWheelLive(props) {
         {!list && (weak || strong) && (
           <div className="bw-foot">
             {weak && (
-              <button className="bw-fitem tap" data-no-haptic onClick={function () { beginFlip(); setSel(weak.id); setList(true); }} style={{ color: dark ? "#E0A070" : "#b0663a" }}>
-                {((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[weak.id]) || "Sparkles", { size: 15, color: dark ? "#E0A070" : "#b0663a" })) || weak.e}
+              <button className="bw-fitem tap" data-no-haptic onClick={function () { beginFlip(); setSel(weak.id); setList(true); }} style={{ color: lone ? undefined : (dark ? "#E0A070" : "#b0663a") }}>
+                {((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[weak.id]) || "Sparkles", { size: 15, color: lone ? rowIcCol : (dark ? "#E0A070" : "#b0663a") })) || weak.e}
                 <b>{Math.round(weak.v * 100)}</b> {weak.l}
               </button>
             )}
