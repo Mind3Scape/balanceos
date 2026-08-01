@@ -4028,11 +4028,12 @@ function BosBalanceWidgetLive(props) {
   else if (!weak) sub = "Заведи первую привычку — колесо начнёт наполняться";
   else if (strong && weak.id === strong.id) sub = "Пока живёт только «" + weak.l + "» — остальные ждут";
   else sub = "Слабее всех — «" + weak.l + "» · " + Math.round(weak.v * 100) + "%";
-  var cardBg = dark ? "#1b1b1e" : "#fff";
+  // Фон и тень даёт ряд доски (SwipeRow), поэтому сама плитка прозрачная — иначе на краю
+  // «отъезда» под свайп появлялась бы вторая поверхность.
   return (
     <button className="tap" onClick={function () { navigate("ai"); }}
-      style={{ width: "100%", background: cardBg, border: 0, borderRadius: 22, padding: "13px 15px", textAlign: "left",
-        boxShadow: "var(--card-shadow)", color: "var(--text)", display: "flex", alignItems: "center", gap: 13 }}>
+      style={{ width: "100%", background: "transparent", border: 0, padding: "13px 15px", textAlign: "left",
+        color: "var(--text)", display: "flex", alignItems: "center", gap: 13, fontFamily: "inherit" }}>
       <BosWheelMiniLive spheres={SPH} size={72} dark={dark} score={locked ? null : total} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Баланс жизни</span>

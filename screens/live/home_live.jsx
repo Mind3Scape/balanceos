@@ -768,6 +768,19 @@ function HomeLive() {
       );
     }
 
+    if (id === "balance") {
+      // «Баланс жизни» — колесо сфер на главной. Свайп ряда → «Убрать» (как у остальных виджетов),
+      // включить обратно — из галереи «+».
+      const _hideBal = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:balance") }];
+      return (
+        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
+          <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideBal}>
+            <BosBalanceWidgetLive app={app} dark={isDark} navigate={navigate} />
+          </SwipeRow>
+        </div>
+      );
+    }
+
     // «Баланс окружения» (виджет "env") отложён 2026-07-13 — см. _parked/env-balance/.
 
     if (id === "tasks") {
