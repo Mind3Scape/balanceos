@@ -419,6 +419,208 @@ function bosAiMemoryPctLive(app, st) {
   return Math.max(5, Math.min(90, Math.round(raw / 5) * 5));
 }
 
+/* ═══════════ «ЧТО Я ЗАМЕТИЛ» — верхний блок вкладки ИИ ═══════════
+   David 2026-08-01: «„Чтение дня“ нелогично — это подсказки; „поставить 25 минут“ — что это
+   вообще; и не ограничивай ИИ заготовками — пусть сам смотрит контекст человека». Поэтому:
+   форму задаём мы (заголовок → на чём основано → что можно сделать → ответы), а СОДЕРЖАНИЕ
+   пишет модель по реальным фактам. Заготовки остаются только как честный запасной вариант,
+   когда ключа нет или модель молчит — тогда лучше сухая правда, чем пустая карточка. */
+var BOS_OBS_SYSTEM =
+  "Ты — Balance AI в приложении привычек. Пользователь открыл вкладку ИИ. Напиши 1–3 НАБЛЮДЕНИЯ о нём " +
+  "по фактам ниже. Верни СТРОГО JSON-массив без пояснений:\n" +
+  '[{"kick":"...","head":"...","body":"...","offer":"...","chips":["...","..."]}]\n' +
+  "kick — 1–3 слова, как называется этот разговор («Что я заметил», «Пока только факты», «Знакомимся»).\n" +
+  "head — короткая фраза-вывод, которую человек мог бы пересказать другу (до 60 знаков, без точки в конце).\n" +
+  "body — 1–2 предложения, ОБЯЗАТЕЛЬНО с цифрой и окном времени из фактов (до 180 знаков).\n" +
+  "offer — одно маленькое действие, которое реально умеет приложение: отметить привычку, поменять дни или " +
+  "напоминание, добавить привычку в сферу, снизить цель, позвать человека в совместную привычку, отметить " +
+  "состояние. Ничего другого приложение не умеет — не выдумывай таймеры, трекеры сна, экспорт и прочее. " +
+  "Если предложить нечего — пустая строка.\n" +
+  "chips — 2 коротких ответа человека (до 22 знаков), продолжающих разговор.\n" +
+  "Правила: по-русски, на «ты», тепло и без пафоса. Никаких выводов без числа — если данных мало, так и скажи. " +
+  "Не ставь диагнозов и не обещай результатов. Не повторяй факты дословно — говори по-человечески.";
+
+function bosObsFactsLive(app, st) {
+  var out = [];
+  try {
+    var name = ((app && app.userName) || "").trim(); if (name) out.push("Имя: " + name + ".");
+    out.push("Отмеченных дней всего: " + st.daysHist + ". Дней с отметкой состояния: " + st.moodDays + ".");
+    out.push("Привычек активных: " + st.habits.length + (st.habits.length ? " (" + st.habits.map(function (h) { return h.name; }).slice(0, 8).join(", ") + ")" : "") + ".");
+    out.push("Сегодня закрыто " + st.doneToday + " из " + st.schedToday + ".");
+    if (st.weekPct != null) out.push("Эта неделя: " + st.weekPct + "%" + (st.prevPct != null ? ", прошлая: " + st.prevPct + "%" : "") + ".");
+    if (st.weekday) out.push("Слабый день недели: " + BOS_AI_DOW_RU[st.weekday.dow] + " — " + st.weekday.rate + "% против " + st.weekday.restAvg + "% в остальные.");
+    if (st.record) out.push("До рекорда «" + st.record.h.name + "»: серия " + st.record.cur + ", рекорд " + st.record.best + ", осталось " + st.record.left + " дн.");
+    if (st.recordNow) out.push("Сейчас личный рекорд «" + st.recordNow.h.name + "»: " + st.recordNow.cur + " дн.");
+    if (st.state) out.push("В дни с «" + st.state.h.name + "» состояние " + (st.state.delta >= 0 ? "выше" : "ниже") + " на " + bosAiNumRuLive(Math.abs(st.state.delta)) + " балла (по " + (st.state.nWith + st.state.nWithout) + " дням).");
+    if (st.link) out.push("Связка: в дни с «" + st.link.a.name + "» привычка «" + st.link.b.name + "» закрыта в " + bosAiNumRuLive(st.link.lift) + " раза чаще (за " + st.link.n + " общих дней).");
+    var wd = (typeof bosWheelData === "function") ? bosWheelData(app) : null;
+    if (wd && wd.spheres) {
+      var f = wd.spheres.filter(function (s) { return s.n; });
+      if (f.length) {
+        var wk = f.reduce(function (a, s) { return s.v < a.v ? s : a; });
+        var sg = f.reduce(function (a, s) { return s.v > a.v ? s : a; });
+        out.push("Баланс жизни " + wd.overall + " из 100. Сильнее всего «" + sg.l + "» (" + Math.round(sg.v * 100) + "), слабее всех «" + wk.l + "» (" + Math.round(wk.v * 100) + "). Личная норма — 55.");
+      }
+      var emp = wd.spheres.filter(function (s) { return !s.n; }).map(function (s) { return s.l; });
+      if (emp.length) out.push("Пустые сферы (ни одной привычки): " + emp.join(", ") + ".");
+    }
+    var why = (typeof bosAiWhyPickLive === "function") ? bosAiWhyPickLive(app) : null;
+    if (why) out.push("Вчера была запланирована и не закрыта привычка «" + why.h.name + "».");
+  } catch (e) {}
+  return out.join("\n");
+}
+/* Запасные наблюдения — считаются локально, без ключа. Ровно та же анатомия. */
+function bosObsLocalLive(app, st) {
+  var out = [];
+  var wd = (typeof bosWheelData === "function") ? bosWheelData(app) : null;
+  var filled = wd ? wd.spheres.filter(function (s) { return s.n; }) : [];
+  if (st.daysHist < 1) {
+    out.push({ kick: "Знакомимся", head: "Пока я о тебе ничего не знаю",
+      body: "Наблюдения появятся из отмеченных дней — придумывать за тебя я не буду.",
+      offer: "Начни с одной маленькой привычки и отметь сегодняшний день.",
+      chips: ["С чего начать?", "Отметить состояние"] });
+    return out;
+  }
+  if (st.daysHist < 7) {
+    out.push({ kick: "Пока только факты", head: "Отмеченных дней — " + st.daysHist,
+      body: "Закономерности я ищу с седьмого дня: раньше это будет гадание, а не наблюдение. Сегодня закрыто " + st.doneToday + " из " + st.schedToday + ".",
+      offer: "", chips: ["Что ты уже видишь?", "Как это работает?"] });
+    return out;
+  }
+  if (st.weekday) out.push({ kick: "Что я заметил", head: bosAiCapLive(BOS_AI_DOW_RU[st.weekday.dow]) + " — твоё слабое звено",
+    body: "В этот день закрывается " + st.weekday.rate + "% привычек против " + st.weekday.restAvg + "% в остальные — за 4 недели.",
+    offer: "Оставь на этот день одну привычку вместо всех — так ритм не рвётся.",
+    chips: ["Почему так выходит?", "Что убрать?"] });
+  if (st.state) out.push({ kick: "Что я заметил", head: "«" + st.state.h.name + "» " + (st.state.delta >= 0 ? "поднимает твой день" : "совпадает с тяжёлыми днями"),
+    body: "В дни с этой привычкой состояние " + (st.state.delta >= 0 ? "выше" : "ниже") + " на " + bosAiNumRuLive(Math.abs(st.state.delta)) + " балла — по " + (st.state.nWith + st.state.nWithout) + " дням с отметкой.",
+    offer: st.state.delta >= 0 ? "Добавь её в те дни недели, где её сейчас нет." : "",
+    chips: ["Разобрать подробнее", "Совпадение?"] });
+  if (st.link) out.push({ kick: "Что я заметил", head: "«" + st.link.a.name + "» тянет за собой «" + st.link.b.name + "»",
+    body: "В дни с первой вторая закрыта в " + bosAiNumRuLive(st.link.lift) + " раза чаще — за " + st.link.n + " общих дней.",
+    offer: "Поставь их подряд: напоминание второй сразу после первой.",
+    chips: ["Как связать?", "Разобрать подробнее"] });
+  if (st.record) out.push({ kick: "Что я заметил", head: "До рекорда «" + st.record.h.name + "» — " + st.record.left + " дн.",
+    body: "Серия сейчас " + st.record.cur + " дней, личный рекорд " + st.record.best + ".",
+    offer: "Отметь её сегодня — до рекорда останется " + Math.max(0, st.record.left - 1) + ".",
+    chips: ["Как удержать серию?", "Что мешало раньше?"] });
+  if (!out.length && filled.length) {
+    var wk = filled.reduce(function (a, s) { return s.v < a.v ? s : a; });
+    out.push({ kick: "Что я заметил", head: "«" + wk.l + "» держится ниже твоей нормы",
+      body: "Сфера на " + Math.round(wk.v * 100) + " при норме 55 — по всем твоим отметкам за всё время.",
+      offer: "Добавь в неё одну маленькую привычку — сфера начнёт наливаться.",
+      chips: ["Что туда добавить?", "Почему просела?"] });
+  }
+  if (!out.length) out.push({ kick: "Что я заметил", head: "Сферы держатся ровно",
+    body: "Ни одна не проседает заметно ниже нормы — за всё время наблюдений это редкость.",
+    offer: "", chips: ["Что подтянуть?", "Разбери мою неделю"] });
+  return out.slice(0, 3);
+}
+function bosObsCleanLive(x) {
+  if (!x || typeof x !== "object") return null;
+  var s = function (v, max) { return ("" + (v == null ? "" : v)).replace(/\s+/g, " ").trim().slice(0, max); };
+  var head = s(x.head, 90), body = s(x.body, 260);
+  if (!head || !body) return null;
+  var letters = (head + body).replace(/[^A-Za-zА-Яа-яЁё]/g, "");
+  var cyr = (letters.match(/[А-Яа-яЁё]/g) || []).length;
+  if (!letters.length || cyr / letters.length < 0.6) return null;      // не по-русски → не показываем
+  var chips = (Array.isArray(x.chips) ? x.chips : []).map(function (c) { return s(typeof c === "string" ? c : c && c.t, 26); }).filter(Boolean).slice(0, 2);
+  return { kick: s(x.kick, 26) || "Что я заметил", head: head, body: body, offer: s(x.offer, 180), chips: chips.length ? chips : ["Разобрать подробнее"] };
+}
+async function bosObsFetchLive(app, st) {
+  try {
+    if (typeof aiRaw !== "function") return null;
+    var facts = bosObsFactsLive(app, st);
+    if (!facts) return null;
+    var raw = await aiRaw([{ role: "system", content: BOS_OBS_SYSTEM }, { role: "user", content: facts }]);
+    if (!raw) return null;
+    var m = ("" + raw).match(/\[[\s\S]*\]/);
+    if (!m) return null;
+    var arr = JSON.parse(m[0]);
+    if (!Array.isArray(arr)) return null;
+    var out = arr.map(bosObsCleanLive).filter(Boolean).slice(0, 3);
+    return out.length ? out : null;
+  } catch (e) { return null; }
+}
+
+/* Карточка наблюдения. Сразу показывает локальный (честный) вариант, а когда ответит модель —
+   молча подменяет его на живой. Ответ модели кэшируется на день: экран не должен просить
+   новый текст на каждом входе (и жечь ключ). */
+function BosObsCardLive(props) {
+  var app = props.app, st = props.st, navigate = props.navigate, dark = !!props.dark, pid = props.pid;
+  var dayKey = (typeof bosTodayKey === "function") ? bosTodayKey() : "day";
+  var cacheKey = "bos:obs:" + pid + ":" + dayKey, noKey = "bos:obs:no:" + pid;
+  var local = React.useMemo(function () { return bosObsLocalLive(app, st); }, [st]);
+  var stItems = React.useState(function () {
+    try { var c = JSON.parse(localStorage.getItem(cacheKey) || "null"); if (c && c.items && c.items.length) return c.items; } catch (e) {}
+    return local;
+  });
+  var items = stItems[0], setItems = stItems[1];
+  var stIdx = React.useState(0); var idx = stIdx[0], setIdx = stIdx[1];
+  var stNo = React.useState(function () { try { return JSON.parse(localStorage.getItem(noKey) || "[]"); } catch (e) { return []; } });
+  var no = stNo[0], setNo = stNo[1];
+
+  React.useEffect(function () {
+    var dead = false;
+    try { var c = JSON.parse(localStorage.getItem(cacheKey) || "null"); if (c && c.items && c.items.length) return; } catch (e) {}
+    if (st.daysHist < 1) return;                       // пустому дню нечего наблюдать — и модель не зовём
+    bosObsFetchLive(app, st).then(function (arr) {
+      if (dead || !arr || !arr.length) return;
+      try { localStorage.setItem(cacheKey, JSON.stringify({ v: 1, items: arr })); } catch (e) {}
+      setItems(arr); setIdx(0);
+    });
+    return function () { dead = true; };
+  }, [cacheKey, st.daysHist]);
+
+  var live = (items || []).filter(function (o) { return no.indexOf(o.head) < 0; });
+  if (!live.length) live = local;
+  var i = Math.min(idx, live.length - 1), o = live[i] || local[0];
+  if (!o) return null;
+
+  var srcBits = ["отмеченных дней " + st.daysHist];
+  if (st.habits.length) srcBits.push("привычек " + st.habits.length);
+  if (st.moodDays) srcBits.push("отметок состояния " + st.moodDays);
+
+  var ask = function (chip) { navigate("ai-chat", { prompt: "«" + o.head + "» — " + chip }); };
+  var skip = function () {
+    var nn = no.concat([o.head]);
+    try { localStorage.setItem(noKey, JSON.stringify(nn.slice(-40))); } catch (e) {}
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    setNo(nn); setIdx(0);
+  };
+
+  return (
+    <div className={"aiobs" + (dark ? " dk" : "")}>
+      <div className="aiobs-who">
+        <span className="aiobs-mark"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg></span>
+        <span className="aiobs-kick">{o.kick}</span>
+        {live.length > 1 && <span className="aiobs-cnt">· {i + 1} из {live.length}</span>}
+        <span className="aiobs-tm">сегодня</span>
+      </div>
+      <div className="aiobs-head">{o.head}</div>
+      <div className="aiobs-body">{o.body}</div>
+      {o.offer ? (
+        <div className="aiobs-offer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 1 }}><path d="M13 4.5 20.5 12 13 19.5v-4.3H4v-6.4h9z" /></svg>
+          <span>{o.offer}</span>
+        </div>
+      ) : null}
+      <div className="aiobs-src">Основание: {srcBits.join(" · ")} — только твои данные</div>
+      <div className="aiobs-chips">
+        {(o.chips || []).map(function (c, j) {
+          return <button key={j} className={"aiobs-chip tap" + (j === 0 ? " solid" : "")} data-no-haptic onClick={function () { ask(c); }}>{c}</button>;
+        })}
+        <button className="aiobs-chip ghost tap" data-no-haptic onClick={skip}>Мимо</button>
+      </div>
+      <div className="aiobs-after">
+        <span className="h">«Мимо» — уберу это наблюдение</span>
+        {live.length > 1 && (
+          <button className="n tap" data-no-haptic onClick={function () { setIdx((i + 1) % live.length); }}>Ещё наблюдение ›</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AILive() {
   const { navigate } = useNav();
   const app = useApp();
@@ -435,7 +637,6 @@ function AILive() {
 
   // Вся аналитика — один локальный проход; ИИ-ключ не нужен (Э1).
   const st = React.useMemo(() => bosAiStatsLive(app), [app.habits, app.dayMoods]);
-  const reading = bosAiReadingLive(st);
 
   // ЧЕСТНЫЙ НОЛЬ (канон Э1): «сейчас» берём из сегодняшней ОТМЕТКИ, а не из атома-по-умолчанию
   // (тот показывал «Хорошо», даже если человек ничего не отмечал). Не отмечено → серый орб
@@ -447,252 +648,27 @@ function AILive() {
   const liveTint = (moodC && typeof tintFromMood === "function") ? tintFromMood(moodC) : ["#d9dde4", "#9aa3b2", "#3d4553"];
   const moodName = _mToday ? _mToday.t : "не отмечено";
 
-  // «Что помешало?» — максимум один вопрос, и только если на него ещё не отвечали.
-  const why = React.useMemo(() => bosAiWhyPickLive(app), [app.habits]);
-  const whyKey = why ? why.yk + "|" + (why.h.cloudId || why.h.id) : null;
-  const [whyDone, setWhyDone] = React.useState(false);
-  const [whyPicked, setWhyPicked] = React.useState(null);
-  const whyAnswered = whyKey ? !!bosAiWhyStoreLive(pid)[whyKey] : false;
-  const showWhy = !isBlank && why && !whyAnswered && !whyDone;
-  const answerWhy = (rid) => {
-    try { var m = bosAiWhyStoreLive(pid); m[whyKey] = rid; localStorage.setItem("bos:why:" + pid, JSON.stringify(m)); } catch (e) {}
-    setWhyPicked(rid);
-    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
-    window.setTimeout(() => setWhyDone(true), 1500);
-  };
-
-  // «Что я уже понял о тебе» + «не про меня»
-  const [memTick, setMemTick] = React.useState(0);
-  const memory = React.useMemo(() => bosAiMemoryLive(app, st), [st, memTick]);
-  const memPct = bosAiMemoryPctLive(app, st);
-  const dismissMem = (id) => {
-    try { var d = JSON.parse(localStorage.getItem("bos:aime:no:" + pid) || "[]"); if (d.indexOf(id) < 0) d.push(id); localStorage.setItem("bos:aime:no:" + pid, JSON.stringify(d)); } catch (e) {}
-    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    setMemTick((x) => x + 1);
-  };
-
-  // Общие кирпичики оформления
-  const tileCard = { background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "12px 13px", textAlign: "left", border: 0, cursor: "pointer", color: "var(--text)", fontFamily: "inherit" };
-  const kStyle = { fontSize: 9.5, color: "var(--text-4)", fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase" };
-  const loBar = isDarkAI ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.10)";
-  const goldInk = isDarkAI ? "#F0C838" : "#C8930A";
-  const chipIcon = (name) => <span className="bos-sys-chip-bg" style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl(name, { size: 15, color: "var(--text-2)" })) || "✦"}</span>;
-  const tileSheet = (title, value, expl, prompt) => openSheet(
-    <div style={{ padding: "2px 20px 10px", color: "var(--text)" }}>
-      <div style={{ textAlign: "center", fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)" }}>{title}</div>
-      <div style={{ textAlign: "center", fontSize: 34, fontWeight: 800, letterSpacing: "-1px", marginTop: 8 }}>{value}</div>
-      <div style={{ fontSize: 13.5, color: "var(--text-3)", lineHeight: 1.55, marginTop: 10, textAlign: "center", textWrap: "balance" }}>{expl}</div>
-      <button className="tap" onClick={() => { try { closeSheet(); } catch (e) {} navigate("ai-chat", { prompt: prompt }); }}
-        style={{ display: "block", width: "100%", marginTop: 16, border: 0, cursor: "pointer", borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 700, fontFamily: "inherit", background: isDarkAI ? "#f2f2f5" : "#0a0a0a", color: isDarkAI ? "#0a0a0a" : "#fff" }}>Обсудить с ИИ</button>
-    </div>
-  );
-
-  // Плитка «Пульс недели»
-  const pulseTile = (
-    <button key="pulse" className="tap" data-no-haptic style={tileCard}
-      onClick={() => st.weekPct != null && tileSheet("Пульс недели", st.weekPct + "%",
-        "Доля закрытых привычек с понедельника. " + (st.prevPct != null ? "Прошлая неделя — " + st.prevPct + "%." : "Прошлой недели для сравнения пока нет."),
-        "Мой пульс недели " + st.weekPct + "%" + (st.prevPct != null ? " (прошлая " + st.prevPct + "%)" : "") + ". Что подтянуть в первую очередь?")}>
-      <div style={kStyle}>Пульс недели</div>
-      {st.weekPct != null ? (
-        <React.Fragment>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", marginTop: 4 }}>
-            {st.weekPct}%{st.prevPct != null && <span style={{ fontSize: 10.5, fontWeight: 800, color: goldInk, verticalAlign: 3, marginLeft: 4 }}>{st.weekPct >= st.prevPct ? "▲" : "▼"} {Math.abs(st.weekPct - st.prevPct)}</span>}
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 28, marginTop: 7 }}>
-            {st.bars.map((b, i) => (
-              <span key={i} style={{ flex: 1, borderRadius: 3, height: b == null ? 5 : Math.max(4, Math.round(b * 28)), background: b == null ? loBar : (b >= 0.5 ? "linear-gradient(180deg,#FEDE34,#EF9F14)" : loBar) }} />
-            ))}
-          </div>
-        </React.Fragment>
-      ) : (
-        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, lineHeight: 1.45 }}>Появится после первых отметок на этой неделе.</div>
-      )}
-    </button>
-  );
-
-  // Плитка «До рекорда»
-  const rec = st.record, recNow = st.recordNow;
-  const recPct = rec ? Math.max(0.06, Math.min(1, rec.cur / rec.best)) : (recNow ? 1 : 0);
-  const RING = 2 * Math.PI * 19;
-  const recordTile = (
-    <button key="rec" className="tap" data-no-haptic style={tileCard}
-      onClick={() => (rec || recNow) && tileSheet("Серия и рекорд",
-        rec ? rec.cur + " из " + rec.best : recNow.cur + " дн.",
-        rec ? "«" + rec.h.name + "»: серия " + rec.cur + " дн., личный рекорд — " + rec.best + ". До нового рекорда " + rec.left + " дн." : "«" + recNow.h.name + "»: " + recNow.cur + " дн. подряд — это твой личный рекорд прямо сейчас.",
-        rec ? "Моя серия «" + rec.h.name + "» " + rec.cur + " дн., рекорд " + rec.best + ". Помоги дотянуть до рекорда." : "У меня рекордная серия «" + recNow.h.name + "» — " + recNow.cur + " дн. Как её удержать?")}>
-      <div style={kStyle}>До рекорда</div>
-      {rec ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 6 }}>
-          <span style={{ position: "relative", width: 44, height: 44, flexShrink: 0, display: "grid", placeItems: "center" }}>
-            <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-              <circle cx="22" cy="22" r="19" fill="none" stroke={loBar} strokeWidth="4.5" />
-              <circle cx="22" cy="22" r="19" fill="none" stroke="url(#bosAiRecRing)" strokeWidth="4.5" strokeLinecap="round" strokeDasharray={RING} strokeDashoffset={RING * (1 - recPct)} />
-              <defs><linearGradient id="bosAiRecRing"><stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
-            </svg>
-            <b style={{ fontSize: 10.5, fontWeight: 800 }}>{rec.cur}/{rec.best}</b>
-          </span>
-          <span style={{ fontSize: 10.5, color: "var(--text-4)", lineHeight: 1.4, minWidth: 0 }}>{bosIconInline(rec.h, 13)} {rec.h.name}<br /><b style={{ color: "var(--text)", fontSize: 12 }}>{rec.left} дн.</b> до рекорда</span>
-        </div>
-      ) : recNow ? (
-        <React.Fragment>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", marginTop: 4 }}>{recNow.cur} дн. <span style={{ fontSize: 10.5, color: goldInk, verticalAlign: 3 }}>рекорд!</span></div>
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3 }}>{bosIconInline(recNow.h, 13)} {recNow.h.name} — сейчас твоя лучшая серия</div>
-        </React.Fragment>
-      ) : (
-        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, lineHeight: 1.45 }}>Держи серию от 5 дней — здесь появится счёт до рекорда.</div>
-      )}
-    </button>
-  );
-
-  // Плитка «Состояние ↔ привычки» (одна золотая линия, без второго пунктира)
-  const sIns = st.stateIns;
-  const moodLine = React.useMemo(() => {
-    var pts = [], dm = app.dayMoods || {};
-    for (var off = 13; off >= 0; off--) { var v = dm[bosDayKeyOffset(off)]; pts.push(v == null ? null : +v); }
-    var out = [], xstep = 120 / 13;
-    for (var i2 = 0; i2 < 14; i2++) if (pts[i2] != null) out.push((i2 * xstep).toFixed(1) + "," + (30 - pts[i2] / 6 * 26).toFixed(1));
-    return out.length >= 2 ? out.join(" ") : null;
-  }, [app.dayMoods]);
-  const stateTile = (
-    <button key="state" className="tap" data-no-haptic style={tileCard}
-      onClick={() => sIns && tileSheet("Состояние ↔ привычки", (sIns.delta >= 0 ? "+" : "−") + bosAiNumRuLive(Math.abs(sIns.delta)),
-        "В дни с «" + sIns.h.name + "» твоё состояние в среднем " + (sIns.delta >= 0 ? "выше" : "ниже") + " на " + bosAiNumRuLive(Math.abs(sIns.delta)) + " балла (по " + (sIns.nWith + sIns.nWithout) + " дням с отметкой состояния).",
-        "Заметил, что «" + sIns.h.name + "» связана с моим состоянием (" + (sIns.delta >= 0 ? "+" : "−") + bosAiNumRuLive(Math.abs(sIns.delta)) + " балла). Что с этим делать?")}>
-      <div style={kStyle}>Состояние ↔ привычки</div>
-      {sIns ? (
-        <React.Fragment>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", marginTop: 4 }}>{(sIns.delta >= 0 ? "+" : "−") + bosAiNumRuLive(Math.abs(sIns.delta))}</div>
-          {moodLine && <svg viewBox="0 0 120 34" style={{ width: "100%", height: 26, marginTop: 4 }}><polyline points={moodLine} fill="none" stroke="#EF9F14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3 }}>в дни с {bosIconInline(sIns.h, 13)} — {sIns.delta >= 0 ? "заметно выше" : "ниже"}</div>
-        </React.Fragment>
-      ) : (
-        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, lineHeight: 1.45 }}>Отмечай состояние на главной — увижу, какие привычки его поднимают.</div>
-      )}
-    </button>
-  );
-
-  // Плитка «Связка»
-  const lk = st.link;
-  const linkTile = (
-    <button key="link" className="tap" data-no-haptic style={tileCard}
-      onClick={() => lk && tileSheet("Связка привычек", "×" + bosAiNumRuLive(lk.lift),
-        "В дни с «" + lk.a.name + "» привычка «" + lk.b.name + "» закрыта в " + bosAiNumRuLive(lk.lift) + " раза чаще обычного (за " + lk.n + " общих дней).",
-        "У меня связка: «" + lk.a.name + "» тянет «" + lk.b.name + "» (×" + bosAiNumRuLive(lk.lift) + "). Как этим пользоваться?")}>
-      <div style={kStyle}>Связка</div>
-      {lk ? (
-        <React.Fragment>
-          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 5 }}>{bosIconInline(lk.a, 18)} → {bosIconInline(lk.b, 18)}</div>
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>после «{lk.a.name}» — «{lk.b.name}» <b style={{ color: "var(--text)" }}>×{bosAiNumRuLive(lk.lift)}</b> чаще</div>
-          <div style={{ height: 4, borderRadius: 99, background: loBar, marginTop: 8, overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.min(100, Math.round(lk.lift / 3 * 100)) + "%", borderRadius: 99, background: "linear-gradient(90deg,#FEDE34,#EF9F14)" }} /></div>
-        </React.Fragment>
-      ) : (
-        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, lineHeight: 1.45 }}>Ищу пары «одна привычка тянет другую» — нужно ещё немного общих дней.</div>
-      )}
-    </button>
-  );
-
   return (
     <div className="page-in" style={{ padding: "0 12px 24px" }}>
-      <div style={{ padding: "4px 4px 14px" }}>
-        <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
-      </div>
-
-      {/* «Чтение дня» — только факт с цифрой (или честный вопрос). Орб — в цвет состояния. */}
-      <div data-tour="ai-hero" style={{ background: "var(--card)", borderRadius: 22, padding: "15px 16px", boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "center" }}>
-        <div style={{ flexShrink: 0, width: 64, height: 64, display: "grid", placeItems: "center" }}>
-          <PlanetOrb size={64} tint={liveTint} live />
-
-        </div>
+      {/* Шапка: имя вкладки + орб в цвет сегодняшнего состояния (честный серый, если не отмечено). */}
+      <div style={{ padding: "4px 4px 12px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ flexShrink: 0, width: 46, height: 46 }}><PlanetOrb size={46} tint={liveTint} live /></div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>
-            {reading.kick}{moodName ? " · " + moodName : ""}
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", letterSpacing: 0.3 }}>
+            {(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}{moodName ? " · " + moodName : ""}
           </div>
-          <div style={{ ...BOS_AI_TEXT, marginTop: 5 }}>{reading.line}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 1 }}>Balance AI</div>
         </div>
       </div>
 
-      {/* БАЛАНС ЖИЗНИ — большое колесо, как было (David: «важный блок, не трогай»). */}
-      {typeof BosBalanceWheelLive === "function" && (
-        <div style={{ marginTop: 14 }}>
-          {!app?.baseline && typeof BosWheelLockedLive === "function"
-            ? <BosWheelLockedLive app={app} dark={isDarkAI} openSheet={openSheet} />
-            : (!isBlank && <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />)}
-        </div>
-      )}
+      {/* ═══ БЛОК 1 — ЧТО Я ЗАМЕТИЛ ═══ Здесь говорит сам ИИ: что увидел в твоих данных, что
+          предлагает, и чем можно ответить. Всё, что раньше лежало в плитках «Твой пульс»,
+          он теперь говорит предложениями (David 2026-08-01: «не пихать кучу мелких виджетов»). */}
+      <div data-tour="ai-hero">
+        <BosObsCardLive app={app} st={st} navigate={navigate} dark={isDarkAI} pid={pid} />
+      </div>
 
-      {/* ТВОЙ ПУЛЬС — 4 живые плитки, чистая математика по журналу (Э1). Тап → шторка с разбором. */}
-      {!isBlank && (
-        <React.Fragment>
-          <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span>Твой пульс</span><span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-4)", textTransform: "none", letterSpacing: 0 }}>обновляется с каждой отметкой</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-            {pulseTile}{recordTile}{stateTile}{linkTile}
-          </div>
-        </React.Fragment>
-      )}
-
-      {/* «Что помешало?» — один вопрос по поводу (вчерашний пропуск), ответ одним тапом (Э2). */}
-      {showWhy && (
-        <div style={{ background: "var(--card)", borderRadius: 22, padding: "14px 15px", marginTop: 10, boxShadow: "var(--card-shadow)" }}>
-          {whyPicked ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {chipIcon("Sparkles")}
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>Понял, учту. Спасибо, что рассказал.</span>
-            </div>
-          ) : (
-            <React.Fragment>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)", lineHeight: 1.4 }}>
-                Вчера <span style={{ color: goldInk }}>«{why.h.name}»</span> не закрылась — что помешало?
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-                {BOS_AI_WHY_REASONS.map((r) => (
-                  <button key={r.id} className="tap" data-no-haptic onClick={() => answerWhy(r.id)}
-                    style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", background: isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text)" }}>{r.t}</button>
-                ))}
-                <button className="tap" data-no-haptic onClick={() => navigate("ai-chat", { prompt: "Вчера не получилось закрыть «" + why.h.name + "» — расскажу, что помешало." })}
-                  style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", background: isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text)" }}>Своё…</button>
-              </div>
-              <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 9 }}>Один тап. Запомню и учту в подсказках.</div>
-            </React.Fragment>
-          )}
-        </div>
-      )}
-
-      {/* «Что я уже понял о тебе» — максимум 3 строки, цифра + источник, «не про меня» на каждой. */}
-      {!isBlank && (
-        <div style={{ background: "var(--card)", borderRadius: 22, padding: "14px 15px", marginTop: 10, boxShadow: "var(--card-shadow)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <b style={{ fontSize: 15.5, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>Что я уже понял о тебе</b>
-            <span style={{ fontSize: 10, fontWeight: 800, color: goldInk, background: isDarkAI ? "rgba(240,200,40,0.14)" : "rgba(240,195,10,0.13)", borderRadius: 999, padding: "3px 9px" }}>память {memPct}%</span>
-          </div>
-          {memory.length ? (
-            <React.Fragment>
-              {memory.map((m, i) => (
-                <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "11px 0 0", marginTop: i ? 10 : 2, borderTop: i ? "0.5px solid var(--line)" : "none" }}>
-                  {chipIcon(m.icon)}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", lineHeight: 1.3 }}>{m.t}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{m.s}</div>
-                  </div>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-4)", background: isDarkAI ? "rgba(255,255,255,0.07)" : "var(--surface-2)", borderRadius: 999, padding: "3px 8px", flexShrink: 0 }}>{m.src}</span>
-                  <button className="tap" data-no-haptic aria-label="Не про меня" onClick={() => dismissMem(m.id)}
-                    style={{ width: 22, height: 22, borderRadius: "50%", border: 0, cursor: "pointer", flexShrink: 0, display: "grid", placeItems: "center", background: "transparent", color: "var(--text-4)", fontSize: 11, fontWeight: 700 }}>✕</button>
-                </div>
-              ))}
-              <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 11, paddingTop: 10, borderTop: "0.5px solid var(--line)" }}>Не про тебя? Жми ✕ — уберу и пересмотрю. Твоё «нет» тоже меня учит.</div>
-            </React.Fragment>
-          ) : (
-            <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 8, lineHeight: 1.5 }}>
-              Пока знаю мало — и не буду выдумывать. Отмечай дни, состояние и отвечай на короткие вопросы: здесь появятся наблюдения о тебе, каждое — с цифрой и источником.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* «Спроси что угодно» — вход в разговор. */}
+      {/* Разговор — продолжение того же блока, поэтому сразу под ним. */}
       <div style={{ background: "var(--card)", borderRadius: 22, padding: 10, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 2px 0 8px" }}>
           <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
@@ -705,98 +681,16 @@ function AILive() {
         </div>
       </div>
 
-      {isBlank ? (
-        /* HONEST empty state for a brand-new live user — no fake recommendations. */
-        <>
-          <button onClick={() => navigate("mood")} className="tap"
-            style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
-            <span style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(135deg,#e9f1ff,#cfe1ff)", display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl("Smile", { size: 24, color: "#2f4258" })) || "🧭"}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 600 }}>Отметить состояние</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Пара секунд — и советы начнут подстраиваться под тебя.</div>
-            </div>
-            <I.ChevronRight size={18} color="var(--text-4)"/>
-          </button>
-          <button onClick={() => navigate("ai-chat", { prompt: "Расскажу немного о себе и своих целях" })} className="tap"
-            style={{ width: "100%", marginTop: 10, background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
-            <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl("MessageCircle", { size: 23, color: "var(--text-2)" })) || "💬"}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 600 }}>Рассказать о себе</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Пара минут — и ИИ узнает твои цели и ритм дня.</div>
-            </div>
-            <I.ChevronRight size={18} color="var(--text-4)"/>
-          </button>
-          <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-4)", marginTop: 18, padding: "0 24px", lineHeight: 1.5 }}>
-            Подсказки появятся здесь, как только наберётся немного твоих данных.
-          </div>
-        </>
-      ) : null}
-
-      {/* «Скоро в Balance AI» — оставлено КАК БЫЛО (David 2026-07-16: «пока не трогай, подумаем»). */}
-      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Скоро в Balance AI</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-        {[
-          { i: "📊", icon: "ChartBar", t: "Аналитика", need: 10, d: "Твои закономерности: что качает, а что мешает.", details: [
-            ["ChartBar", "Что качает энергию", "Какие привычки реально двигают серию и настроение — по твоим отметкам."],
-            ["Target", "Где проседает", "Дни и связки, на которых чаще всего рвётся ритм."],
-            ["Group", "Связки привычек", "Что с чем работает в паре — и что стоит переставить."],
-          ] },
-          { i: "🧠", icon: "Compass", t: "Наставник", need: 15, d: "Личная программа и разбор недели.", details: [
-            ["MapPin", "Программа под тебя", "Личный план на неделю из твоих целей и ритма."],
-            ["Search", "Разбор недели", "Что получилось, что нет и почему — раз в неделю, честно."],
-            ["Bolt", "Челленджи под ритм", "Персональные вызовы там, где тебе по силам расти."],
-          ] },
-        ].map((f) => {
-          const unlocked = lvl.level >= f.need;
-          const pct = Math.max(6, Math.min(100, Math.round((lvl.level / f.need) * 100)));
-          const chipBg = (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)");
-          const glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "none";
-          const openDetails = () => openSheet(
-            <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 14 }}>
-                <span style={{ width: 56, height: 56, borderRadius: 18, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center" }}>{(typeof bosIconEl === "function" && bosIconEl(f.icon, { size: 28, color: "var(--text-2)" })) || f.i}</span>
-                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 10 }}>{f.t}</div>
-                <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>{unlocked ? "Готовим к запуску — ты уже открыл" : "Откроется на " + f.need + " уровне · у тебя " + lvl.level + "-й"}</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {f.details.map((d, j) => (
-                  <div key={j} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: 13, borderRadius: 18, background: isDarkAI ? "rgba(255,255,255,0.06)" : "var(--surface-2)" }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 11, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl(d[0], { size: 17, color: "var(--text-2)" })) || d[0]}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14.5, fontWeight: 600 }}>{d[1]}</div>
-                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{d[2]}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {!unlocked && (
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ height: 6, borderRadius: 999, background: isDarkAI ? "rgba(255,255,255,0.10)" : "var(--surface-3)", overflow: "hidden" }}>
-                    <span style={{ display: "block", height: "100%", width: pct + "%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999 }} />
-                  </div>
-                  <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, fontWeight: 600, textAlign: "center" }}>Уровень {lvl.level} из {f.need} — каждая отметка приближает</div>
-                </div>
-              )}
-            </div>
-          );
-          return (
-            <button key={f.t} onClick={openDetails} className="tap" style={{ textAlign: "left", border: 0, cursor: "pointer", borderRadius: 22, padding: 15, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center" }}>{(typeof bosIconEl === "function" && bosIconEl(f.icon, { size: 22, color: "var(--text-2)" })) || f.i}</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)", borderRadius: 999, padding: "4px 9px" }}>{unlocked ? <><I.Sparkles size={10} filled strokeWidth={0} style={{ marginRight: 3, verticalAlign: "-1px" }}/>скоро</> : <><I.Lock size={10} strokeWidth={2.4}/> {f.need} ур.</>}</span>
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 700, marginTop: 12, letterSpacing: "-0.2px" }}>{f.t}</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{f.d}</div>
-              <div style={{ marginTop: 11 }}>
-                <div style={{ height: 5, borderRadius: 999, background: isDarkAI ? "rgba(255,255,255,0.10)" : "var(--surface-3)", overflow: "hidden" }}>
-                  <span style={{ display: "block", height: "100%", width: pct + "%", background: isDarkAI ? "#f2f2f5" : "#0a0a0a", borderRadius: 999 }} />
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 5, fontWeight: 600 }}>{unlocked ? "Готовим к запуску" : "Уровень " + lvl.level + " / " + f.need + " · подробнее ›"}</div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      {/* ═══ БЛОК 2 — БАЛАНС ЖИЗНИ ═══ Колесо-лепестки. Рисуем ВСЕГДА, когда база пройдена:
+          раньше при нуле привычек карточка исчезала совсем — человек проходил опрос ради
+          обещанного «колесо оживёт» и терял его (найдено 2026-07-31). */}
+      {typeof BosBalanceWheelLive === "function" && (
+        <div style={{ marginTop: 12 }}>
+          {!app?.baseline && typeof BosWheelLockedLive === "function"
+            ? <BosWheelLockedLive app={app} dark={isDarkAI} openSheet={openSheet} />
+            : <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />}
+        </div>
+      )}
     </div>
   );
 }

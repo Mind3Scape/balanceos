@@ -3765,13 +3765,41 @@ function BosBalanceWheelLive(props) {
   var SPH = data.spheres, N = SPH.length;
   var stt = React.useState(null); var selId = stt[0], setSel = stt[1];
 
-  // «ЖИДКОЕ СТЕКЛО» (утверждённый макет 2026-07-22-колесо-баланса-ios27.html): точечное
-  // поле вместо сетки, идеал = кольцо точек, тело = полупрозрачная теплокарта, контур =
-  // рёбра с градиентами вершина→вершина (цвет ТЕЧЁТ по силе), цифры только у крайних сфер.
-  var OUT = 100, LAB = 124, TARGET = 0.55, targetPct = Math.round(TARGET * 100);
-  var pt = function (i, r) { var t = i * Math.PI / 3; return (r * Math.sin(t)).toFixed(1) + "," + (-r * Math.cos(t)).toFixed(1); };
+  // «ЛЕПЕСТКИ» (утверждённый макет 2026-07-31-вкладка-ии-v3-золото.html). Полигон-радар убран:
+  // он соединял линией соседние оси, будто между «Телом» и «Разумом» есть переход, и схлопывал
+  // пустые сферы в иглы. Теперь шесть отдельных лепестков растут из центра; между ними воздух.
+  // Зазор задан В ПИКСЕЛЯХ (а не в градусах) — иначе у центра он схлопывался, а у края
+  // расползался, и грани выглядели косыми. Углы скруглены радиусом В САМОЙ ТРАЕКТОРИИ (обводка
+  // того же цвета «пухла» и мылила края). Норма — не кольцо поверх всего (David: «жёлтый круг
+  // убого»), а короткая засечка ВНУТРИ каждого лепестка.
+  var OUT = 104, R0 = 32, LAB = 126, GAPPX = 4.2, RCORN = 4.6, TARGET = 0.55, targetPct = Math.round(TARGET * 100);
+  var R_ICON = R0 + (OUT - R0) * 0.20;   // одна окружность для всех шести знаков
   var pt2 = function (i, r) { var t = i * Math.PI / 3; return [r * Math.sin(t), -r * Math.cos(t)]; };
-  var dataPts = SPH.map(function (s, i) { return pt(i, OUT * Math.max(s.v, 0.06)); }).join(" ");
+  // Точка по углу В ГРАДУСАХ (0° — верх, дальше по часовой), как в макете лепестков.
+  var pd = function (aDeg, r) { var t = (aDeg - 90) * Math.PI / 180; return [+(Math.cos(t) * r).toFixed(2), +(Math.sin(t) * r).toFixed(2)]; };
+  var degFor = function (r, px) { return (px / r) * 180 / Math.PI; };   // px по дуге радиуса r → градусы
+  // Траектория лепестка: постоянный зазор в пикселях + скругление углов радиусом rc.
+  var petalPath = function (aMid, half, r0, r1, gapPx, rc) {
+    var a0 = aMid - half, a1 = aMid + half;
+    var g0 = degFor(r0, gapPx), g1 = degFor(r1, gapPx);
+    var i0 = a0 + g0, i1 = a1 - g0, o0 = a0 + g1, o1 = a1 - g1;
+    if (i1 <= i0) { var m = (i0 + i1) / 2; i0 = m - 0.01; i1 = m + 0.01; }
+    rc = Math.max(0, Math.min(rc, (r1 - r0) / 2 - 0.5));
+    var cIn = degFor(r0, rc), cOut = degFor(r1, rc);
+    if (i1 - i0 < 2 * cIn + 0.4) cIn = Math.max(0, (i1 - i0) / 2 - 0.2);
+    if (o1 - o0 < 2 * cOut + 0.4) cOut = Math.max(0, (o1 - o0) / 2 - 0.2);
+    var A = pd(i0, r0 + rc), B = pd(o0, r1 - rc), C = pd(o0 + cOut, r1), D = pd(o1 - cOut, r1),
+        E = pd(o1, r1 - rc), F = pd(i1, r0 + rc), G = pd(i1 - cIn, r0), H = pd(i0 + cIn, r0);
+    var cB = pd(o0, r1), cE = pd(o1, r1), cF = pd(i1, r0), cA = pd(i0, r0);
+    return "M" + A[0] + " " + A[1] + " L" + B[0] + " " + B[1]
+      + " Q" + cB[0] + " " + cB[1] + " " + C[0] + " " + C[1]
+      + " A" + r1 + " " + r1 + " 0 0 1 " + D[0] + " " + D[1]
+      + " Q" + cE[0] + " " + cE[1] + " " + E[0] + " " + E[1]
+      + " L" + F[0] + " " + F[1]
+      + " Q" + cF[0] + " " + cF[1] + " " + G[0] + " " + G[1]
+      + " A" + r0 + " " + r0 + " 0 0 0 " + H[0] + " " + H[1]
+      + " Q" + cA[0] + " " + cA[1] + " " + A[0] + " " + A[1] + " Z";
+  };
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
   var bwStatus = total >= 75 ? "Отлично" : total >= 55 ? "Хорошо" : total >= 35 ? "В движении" : "Начало";
   // Шкалы цвета (сила сферы = цвет + плотность; David: цвет должен считываться)
@@ -3786,6 +3814,13 @@ function BosBalanceWheelLive(props) {
   var fillA = function (v) { return _onScale(v, [[0.3, "#E3DCCA"], [0.55, "#F6DC7E"], [1, "#FBBF13"]]); };
   var fillB = function (v) { return _onScale(v, [[0.3, "#D6CDB8"], [0.55, "#EFC24A"], [1, "#EF9F14"]]); };
   var opaFor = function (v) { return (0.14 + 0.34 * Math.max(0, Math.min(1, (v - 0.3) / 0.7))).toFixed(2); };
+  // Шкала ЛЕПЕСТКА: песочный у слабых сфер → насыщенное золото у сильных. Внутренний край
+  // светлее внешнего (свет идёт из центра), поэтому две функции, а не одна.
+  var _mixW = function (hex, t) { var c = _h2r(hex); return _r2h([_lerp(c[0], 255, t), _lerp(c[1], 255, t), _lerp(c[2], 255, t)]); };
+  var petDeep = function (v) { return _onScale(v, [[0.20, "#DCD3BE"], [0.40, "#E9CE87"], [0.55, "#F5C64B"], [0.75, "#F0A81A"], [1, "#E8930A"]]); };
+  var petLight = function (v) { return _mixW(petDeep(v), 0.24); };
+  var trackCol = dark ? "rgba(255,255,255,0.07)" : "#F1EFE9";
+  var tickCol = dark ? "rgba(255,255,255,0.34)" : "rgba(21,22,27,0.32)";
   var goldInk = dark ? "#F0C838" : "#C8930A";
   var iconCol = dark ? "#e8e8ea" : "#101828";
   var rowIcCol = dark ? "#c8c8cd" : "#57585f";
@@ -3839,40 +3874,36 @@ function BosBalanceWheelLive(props) {
   function tapRadar() { beginFlip(); if (list) setList(false); else { setSel(null); setList(true); } }
   // Стандарт: тап по сфере ВЕЗДЕ раскрывает аккордеон. Из ранжира — сворачиваем колесо и открываем.
   function tapNode(s) { if (list) { beginFlip(); setSel(s.id); setList(false); } else setSel(s.id === selId ? null : s.id); }
-  // ── SVG колеса (один на оба состояния; в мини CSS прячет поле/подписи/блеск/тень) ──
+  // ── SVG колеса (один на оба состояния; в мини CSS прячет подписи и знаки) ──
   var wheelSvg = (function () {
-    var defs = [], segs = [], edges = [], dots = [], ideal = [], verts = [], labs = [];
-    for (var i = 0; i < N; i++) {
-      var j = (i + 1) % N;
-      var P1 = pt2(i, OUT * Math.max(SPH[i].v, 0.06)), P2 = pt2(j, OUT * Math.max(SPH[j].v, 0.06));
-      defs.push(<linearGradient key={"sg" + i} id={uid + "sg" + i} gradientUnits="userSpaceOnUse" x1={P1[0]} y1={P1[1]} x2={P2[0]} y2={P2[1]}>
-        <stop offset="0" stopColor={segCol(SPH[i].v)} stopOpacity={opaFor(SPH[i].v)} /><stop offset="1" stopColor={segCol(SPH[j].v)} stopOpacity={opaFor(SPH[j].v)} /></linearGradient>);
-      defs.push(<linearGradient key={"eg" + i} id={uid + "eg" + i} gradientUnits="userSpaceOnUse" x1={P1[0]} y1={P1[1]} x2={P2[0]} y2={P2[1]}>
-        <stop offset="0" stopColor={edgeColW(SPH[i].v)} /><stop offset="1" stopColor={edgeColW(SPH[j].v)} /></linearGradient>);
-      segs.push(<path key={"s" + i} d={"M0 0 L" + P1[0].toFixed(1) + " " + P1[1].toFixed(1) + " L" + P2[0].toFixed(1) + " " + P2[1].toFixed(1) + " Z"} fill={"url(#" + uid + "sg" + i + ")"} />);
-      edges.push(<path key={"e" + i} d={"M" + P1[0].toFixed(1) + " " + P1[1].toFixed(1) + " L" + P2[0].toFixed(1) + " " + P2[1].toFixed(1)} fill="none" stroke={"url(#" + uid + "eg" + i + ")"} strokeWidth="2.6" strokeLinecap="round" style={{ vectorEffect: "non-scaling-stroke" }} />);
-    }
-    var dotCol = dark ? "rgba(255,255,255,0.14)" : "rgba(20,20,30,0.10)";
-    var dotCol2 = dark ? "rgba(255,255,255,0.08)" : "rgba(20,20,30,0.06)";
-    [0.33, 0.66, 1].forEach(function (rf) { for (var k = 0; k < N; k++) { var p = pt2(k, OUT * rf); dots.push(<circle key={"d" + rf + k} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="1.15" fill={dotCol} />); } });
-    for (var k2 = 0; k2 < N; k2++) { [0.5, 0.83].forEach(function (rf) { var a = (k2 + 0.5) * Math.PI / 3; dots.push(<circle key={"m" + rf + k2} cx={(Math.sin(a) * OUT * rf).toFixed(1)} cy={(-Math.cos(a) * OUT * rf).toFixed(1)} r="1" fill={dotCol2} />); }); }
-    var idealCol = dark ? "rgba(240,200,60,0.45)" : "rgba(140,100,10,0.38)";
-    for (var d = 0; d < N * 6; d++) { var a2 = d * Math.PI / (N * 3); ideal.push(<circle key={"i" + d} cx={(Math.sin(a2) * OUT * TARGET).toFixed(1)} cy={(-Math.cos(a2) * OUT * TARGET).toFixed(1)} r="0.9" fill={idealCol} />); }
+    var defs = [], track = [], body = [], labs = [];
     SPH.forEach(function (s, i) {
-      var p = pt2(i, OUT * Math.max(s.v, 0.06));
-      verts.push(<g key={"v" + i}><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4" fill={dark ? "#1c1c20" : "#fff"} /><circle cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="2.4" fill={edgeColW(s.v)} /></g>);
+      var aMid = i * 60, rv = R0 + Math.max(0.06, s.v) * (OUT - R0), rN = R0 + TARGET * (OUT - R0);
+      // «потолок» сферы — куда она может дорасти
+      track.push(<path key={"t" + i} d={petalPath(aMid, 30, R0, OUT, GAPPX, RCORN)} fill={trackCol}
+        onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
+      var mid = pd(aMid, rv);
+      defs.push(<linearGradient key={"pg" + i} id={uid + "pg" + i} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={mid[0]} y2={mid[1]}>
+        <stop offset="0" stopColor={petLight(s.v)} /><stop offset="1" stopColor={petDeep(s.v)} /></linearGradient>);
+      body.push(<path key={"p" + i} d={petalPath(aMid, 30, R0, rv, GAPPX, RCORN)} fill={"url(#" + uid + "pg" + i + ")"}
+        onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
+      // засечка нормы — одна и та же у всех шести (на золоте читается как гравировка,
+      // на пустом «потолке» — как ориентир, до которого не дотянул)
+      var t0 = aMid - 30 + degFor(rN, GAPPX + 2.5), t1 = aMid + 30 - degFor(rN, GAPPX + 2.5);
+      var q0 = pd(t0, rN), q1 = pd(t1, rN);
+      body.push(<path key={"n" + i} d={"M" + q0[0] + " " + q0[1] + " A" + rN + " " + rN + " 0 0 1 " + q1[0] + " " + q1[1]}
+        fill="none" stroke={tickCol} strokeWidth="1.5" strokeLinecap="round" />);
     });
-    // Подписи: все сферы тихо; ЦИФРЫ — только у сильнейшей и слабейшей (лаконичность макета).
+    // Подписи: все сферы тихо; ЦИФРЫ — только у сильнейшей и слабейшей, одним цветом.
     SPH.forEach(function (s, i) {
       var p = pt2(i, LAB);
       var x = Math.sin(i * Math.PI / 3);
       var anch = Math.abs(x) < 0.35 ? "middle" : (x > 0 ? "start" : "end");
       var edgeCase = !!(s.n && ((strong && s.id === strong.id) || (weak && s.id === weak.id)));
-      var valCol = weak && s.id === weak.id ? (dark ? "#E0A070" : "#b0663a") : (dark ? "#F0C838" : "#a8790a");
       labs.push(
         <g key={"l" + i} onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }}>
           <text className={"bw-lab" + (edgeCase ? "" : " dim")} x={p[0].toFixed(1)} y={(p[1] + (edgeCase ? -3 : 3)).toFixed(1)} textAnchor={anch}>{s.l}</text>
-          {edgeCase ? <text className="bw-val" x={p[0].toFixed(1)} y={(p[1] + 11).toFixed(1)} textAnchor={anch} fill={valCol}>{Math.round(s.v * 100)}</text> : null}
+          {edgeCase ? <text className="bw-val" x={p[0].toFixed(1)} y={(p[1] + 11).toFixed(1)} textAnchor={anch} fill={dark ? "#c9c9ce" : "#5B5D66"}>{Math.round(s.v * 100)}</text> : null}
         </g>
       );
     });
@@ -3880,22 +3911,33 @@ function BosBalanceWheelLive(props) {
       <svg viewBox="-148 -150 296 300">
         <defs>
           {defs}
-          <linearGradient id={uid + "gl"} x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stopColor="#ffffff" stopOpacity="0.75" /><stop offset="0.35" stopColor="#ffffff" stopOpacity="0.08" /><stop offset="1" stopColor="#ffffff" stopOpacity="0" /></linearGradient>
-          <filter id={uid + "sf"} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="9" /></filter>
-          {/* Свечение контура — SVG-фильтром (CSS drop-shadow на <g> внутри svg на телефонах
-              часто игнорируется → контур без глоу и выглядел бледнее макета). */}
-          <filter id={uid + "eglow"} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+          <filter id={uid + "lift"} x="-25%" y="-25%" width="150%" height="150%">
+            <feDropShadow dx="0" dy="2.4" stdDeviation="3" floodColor="#8A6400" floodOpacity={dark ? "0.34" : "0.16"} />
+          </filter>
         </defs>
-        <g className="bw-field">{dots}{ideal}</g>
-        <polygon className="bw-shadow" points={dataPts} fill="rgba(214,150,20,0.18)" filter={"url(#" + uid + "sf)"} transform="translate(0 5) scale(0.985)" />
-        {segs}
-        <polygon className="bw-gloss" points={dataPts} fill={"url(#" + uid + "gl)"} opacity="0.35" />
-        <g filter={"url(#" + uid + "eglow)"}>{edges}</g>
-        <g className="bw-verts">{verts}</g>
+        <g className="bw-track">{track}</g>
+        <g filter={"url(#" + uid + "lift)"}>{body}</g>
+        <circle cx="0" cy="0" r={R0 - 3.6} fill={dark ? "#1c1d22" : "#fff"} />
+        <text className="bw-core" x="0" y={(OUT * 0.05).toFixed(1)} textAnchor="middle" fill={dark ? "#f2f2f5" : "#15161B"}>{total}</text>
+        <text className="bw-coresub" x="0" y={(OUT * 0.185).toFixed(1)} textAnchor="middle" fill={dark ? "#8b8c94" : "#B0B3BB"}>/100</text>
         <g className="bw-labels">{labs}</g>
       </svg>
     );
   })();
+  // Знаки сфер — HTML-слоем ПОВЕРХ svg: все шесть на одной окружности, одного цвета (белые),
+  // «тонкие» силуэты (луна, искра) чуть крупнее — иначе рядом с гантелью они выглядят жиже.
+  var ICON_BOOST = { soul: 1.18, rest: 1.16, mind: 1.06 };
+  var iconLayer = SPH.map(function (s, i) {
+    var p = pd(i * 60, R_ICON);
+    var covered = Math.max(0.06, s.v) * (OUT - R0) + R0 >= R_ICON + 2;
+    var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
+    var sz = Math.round(17 * (ICON_BOOST[s.id] || 1));
+    return (
+      <span key={s.id} className="bw-ic" style={{ left: ((p[0] + 148) / 296 * 100) + "%", top: ((p[1] + 150) / 300 * 100) + "%" }}>
+        {((typeof bosIconEl === "function") && bosIconEl(nm, { size: sz, color: covered ? "#fff" : (dark ? "rgba(255,255,255,0.34)" : "rgba(90,70,20,0.34)") })) || s.e}
+      </span>
+    );
+  });
 
   // Стекло-карта (макет: жидкое стекло с бликом; bare — без собственной карты). Тёплые
   // радиальные пятна — В СОСТАВЕ фона карты: в макете они жили на странице и просвечивали
@@ -3912,15 +3954,25 @@ function BosBalanceWheelLive(props) {
   return (
     <div style={glassCard}>
       <div className={"bosLR bw27" + (list ? " bw-list" : "")} ref={rootRef}>
-        {!hideTitle && <div className="bw-cap">Баланс жизни</div>}
-        <div className="bw-score">
-          <span className="n">{total}</span><span className="m">/ 100</span>
-          <span className="bw-stat">{bwStatus}</span>
-        </div>
+        {/* Балл живёт В ЦЕНТРЕ колеса, поэтому в шапке его нет (один факт — одно место).
+            В раскрытом виде колесо мелкое — там балл возвращается в шапку. */}
+        {!hideTitle && !list && (
+          <div className="bw-head">
+            <span className="bw-cap">Баланс жизни</span>
+            <span className="bw-per">за всё время</span>
+            <span className="bw-badge">{SPH.filter(function (s) { return s.n && s.v >= TARGET; }).length} из 6 выше нормы</span>
+          </div>
+        )}
+        {list && (
+          <div className="bw-score">
+            <span className="n">{total}</span><span className="m">/ 100</span>
+            <span className="bw-stat">{bwStatus}</span>
+          </div>
+        )}
 
         {list ? (
           <div className="bw-miniRow">
-            <div className="bw-svgbox mini" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}</div>
+            <div className="bw-svgbox mini" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
             <div className="bw-insight">
               {(strong && weak && strong.id !== weak.id)
                 ? <span>Сильнее всего — <b>{strong.l}</b>.<br />Слабее всех — <b>{weak.l}</b>: {(typeof BOS_SPHERE_NUDGE !== "undefined" && BOS_SPHERE_NUDGE[weak.id]) || "небольшой ход поднимет сферу"}.</span>
@@ -3928,7 +3980,7 @@ function BosBalanceWheelLive(props) {
             </div>
           </div>
         ) : (
-          <div className="bw-svgbox" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}</div>
+          <div className="bw-svgbox" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
         )}
 
         {list && (

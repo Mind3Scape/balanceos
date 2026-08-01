@@ -948,6 +948,35 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 @media (prefers-reduced-motion: reduce){ .bosPl--live, .bosPl--live *{ animation:none !important } }
 
 /* ═══ Колесо баланса v2 — «жидкое стекло» (утверждённый макет 2026-07-22-колесо-баланса-ios27) ═══ */
+/* ═══ «ЧТО Я ЗАМЕТИЛ» — верхний блок вкладки ИИ ═══
+   Анатомия одна и та же: кто говорит → вывод одной фразой → на чём основано → что можно
+   сделать → чем ответить. Тексты пишет модель, форму держит вёрстка. */
+.aiobs { background: var(--card); border-radius: 24px; padding: 15px 16px 14px; box-shadow: var(--card-shadow); color: var(--text); }
+.aiobs-who { display: flex; align-items: center; gap: 9px; }
+.aiobs-mark { width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;
+  background: #15161b; }
+.theme-dark .aiobs-mark { background: #f2f2f5; }
+.theme-dark .aiobs-mark svg { fill: #15161b; }
+.aiobs-kick { font-size: 10.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-3); }
+.aiobs-cnt { font-size: 10.5px; font-weight: 700; color: var(--text-4); letter-spacing: 0.4px; }
+.aiobs-tm { margin-left: auto; font-size: 11px; color: var(--text-4); }
+.aiobs-head { font-size: 16.5px; line-height: 1.34; letter-spacing: -0.35px; font-weight: 700; margin-top: 11px; }
+.aiobs-body { font-size: 14px; line-height: 1.48; color: var(--text-3); margin-top: 7px; }
+.aiobs-offer { display: flex; gap: 9px; align-items: flex-start; margin-top: 10px; padding: 10px 12px; border-radius: 16px;
+  background: rgba(247,206,74,0.20); color: #6B5412; font-size: 13.5px; line-height: 1.45; }
+.theme-dark .aiobs-offer { background: rgba(240,195,10,0.13); color: #F0D890; }
+.aiobs-src { margin-top: 11px; padding-top: 10px; border-top: 0.5px solid var(--line); font-size: 11.5px; color: var(--text-4); line-height: 1.45; }
+.aiobs-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+.aiobs-chip { border: 0; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600; border-radius: 999px;
+  padding: 9px 13px; background: var(--surface-3); color: var(--text-2); }
+.aiobs-chip.solid { background: #15161b; color: #fff; font-weight: 700; }
+.theme-dark .aiobs-chip.solid { background: #f2f2f5; color: #15161b; }
+.aiobs-chip.ghost { background: transparent; color: var(--text-4); box-shadow: inset 0 0 0 1px var(--line); }
+.aiobs-after { display: flex; align-items: center; margin-top: 9px; }
+.aiobs-after .h { font-size: 11px; color: var(--text-4); }
+.aiobs-after .n { margin-left: auto; border: 0; background: transparent; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 650; color: var(--text-2); padding: 2px 0; }
+
 .bw27 { color: var(--text); }
 .bw27 .bw-cap { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-4); }
 .bw27 .bw-score { display: flex; align-items: baseline; gap: 7px; margin-top: 2px; }
@@ -959,12 +988,20 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   background: linear-gradient(165deg, rgba(254,222,52,0.30), rgba(239,159,20,0.16));
   box-shadow: inset 0 1px 0.5px rgba(255,255,255,0.8), inset 0 0 0 0.6px rgba(200,150,10,0.18); }
 .theme-dark .bw27 .bw-stat { color: #FEDE34; background: rgba(240,195,10,0.14); box-shadow: inset 0 0 0 0.6px rgba(240,195,10,0.3); }
-.bw27 .bw-svgbox { max-width: 300px; margin: 4px auto 0; cursor: pointer; }
+.bw27 .bw-svgbox { max-width: 300px; margin: 4px auto 0; cursor: pointer; position: relative; }
 .bw27 .bw-svgbox svg { width: 100%; display: block; overflow: visible; }
 .bw27 .bw-miniRow { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
 .bw27 .bw-miniRow .bw-svgbox { width: 96px; margin: 0; flex-shrink: 0; }
-.bw27.bw-list .bw-field, .bw27.bw-list .bw-labels, .bw27.bw-list .bw-verts,
-.bw27.bw-list .bw-gloss, .bw27.bw-list .bw-shadow { display: none; }
+.bw27.bw-list .bw-labels, .bw27.bw-list .bw-ic { display: none; }
+/* ── ЛЕПЕСТКИ ── шапка без балла (балл в центре колеса), знаки сфер белым слоем поверх svg */
+.bw27 .bw-head { display: flex; align-items: center; gap: 9px; }
+.bw27 .bw-per { font-size: 11px; color: var(--text-4); }
+.bw27 .bw-badge { margin-left: auto; font-size: 11.5px; font-weight: 750; padding: 6px 11px; border-radius: 999px;
+  white-space: nowrap; color: #8a6400; background: rgba(247,206,74,0.22); }
+.theme-dark .bw27 .bw-badge { color: #FEDE34; background: rgba(240,195,10,0.14); }
+.bw27 .bw-ic { position: absolute; transform: translate(-50%, -50%); line-height: 0; pointer-events: none; }
+.bw27 .bw-core { font-size: 32px; font-weight: 750; letter-spacing: -1.2px; }
+.bw27 .bw-coresub { font-size: 8px; font-weight: 700; letter-spacing: 1.1px; }
 .bw27 .bw-insight { flex: 1; min-width: 0; font-size: 13px; line-height: 1.55; color: var(--text-3); }
 .bw27 .bw-insight b { color: var(--text); font-weight: 700; }
 .bw27 .bw-lab { font-size: 11.5px; font-weight: 600; letter-spacing: 0.4px; fill: #8e8f97; }
