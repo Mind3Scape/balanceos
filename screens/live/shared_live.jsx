@@ -3997,7 +3997,8 @@ function BosWheelMiniLive(props) {
     <svg width={size} height={size} viewBox="-112 -112 224 224" style={{ display: "block", flexShrink: 0 }} aria-hidden>
       <defs>{defs}</defs>
       <g>{track}</g>
-      <g>{body}</g>
+      {/* mute — колесо ещё не заслужено (нет базы): только «потолки», без золота. */}
+      {props.mute ? null : <g>{body}</g>}
       <circle cx="0" cy="0" r={R0 - 3.6} fill={dark ? "#1c1d22" : "#fff"} />
       {props.score != null ? (
         <text x="0" y={(OUT * 0.115).toFixed(1)} textAnchor="middle" fill={dark ? "#f2f2f5" : "#15161B"}
@@ -4007,40 +4008,73 @@ function BosWheelMiniLive(props) {
   );
 }
 
-// ВИДЖЕТ ГЛАВНОЙ «Баланс жизни» (David 2026-08-01: «хочу виджет на главной, захотел включил,
-// захотел выключил»). Широкая плитка в языке доски: колесо слева, балл в его центре (один факт —
-// одно место, поэтому в тексте балла нет), справа — имя и ОДНА строка о состоянии сфер.
-// Тап уводит на вкладку ИИ, где колесо живое и раскрывается.
+// ВИДЖЕТ ГЛАВНОЙ «Баланс жизни» — анатомия из утверждённого макета
+// `2026-07-31-колесо-баланса-с-нуля.html` (широкий виджет), переложенная на то, что мы в итоге
+// сделали живьём. David 2026-08-01 забраковал первую версию: «это просто ссылка, херня» —
+// виджет обязан ПОКАЗЫВАТЬ баланс, а не вести к нему. Поэтому здесь всё, что было в макете:
+// колесо, крупный балл, пилюля-статус, фраза о раскладе и строка «слабая · сильная сфера».
+// Балл живёт В ТЕКСТЕ (как в макете у широкого), поэтому в центре колеса его нет — один факт
+// в одном месте. Норма («выше нормы 4 из 6») из фразы ушла: её в продукте пока нет.
 function BosBalanceWidgetLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate || function () {};
   var data = (typeof bosWheelData === "function") ? bosWheelData(app) : { spheres: [] };
   var SPH = data.spheres || [], N = SPH.length;
   var locked = !app || !app.baseline;
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
-  var weak = null, strong = null;
+  var status = total >= 75 ? "Отлично" : total >= 55 ? "Хорошо" : total >= 35 ? "В движении" : "Начало";
+  var weak = null, strong = null, filled = 0;
   SPH.forEach(function (s) {
     if (!s.n) return;
+    filled++;
     if (!weak || s.v < weak.v) weak = s;
     if (!strong || s.v > strong.v) strong = s;
   });
-  var sub;
-  if (locked) sub = "Пройди короткий опрос — колесо оживёт";
-  else if (!weak) sub = "Заведи первую привычку — колесо начнёт наполняться";
-  else if (strong && weak.id === strong.id) sub = "Пока живёт только «" + weak.l + "» — остальные ждут";
-  else sub = "Слабее всех — «" + weak.l + "» · " + Math.round(weak.v * 100) + "%";
+  var lone = !!(weak && strong && weak.id === strong.id);
+  var ruHab = function (n) { return n % 10 === 1 && n % 100 !== 11 ? "привычка" : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "привычки" : "привычек"); };
+  var line;
+  if (locked) line = <span>Пройди короткий опрос — и колесо оживёт: шесть сфер, одна картина.</span>;
+  else if (!weak) line = <span>Заведи первую привычку — сферы начнут наполняться.</span>;
+  else if (lone) line = <span>Живёт одна сфера — <b>{weak.l}</b>. Остальные пять ждут первой привычки.</span>;
+  else line = <span>Сильнее всего — <b>{strong.l}</b>. Просело <b>{weak.l}</b>: {weak.n} {ruHab(weak.n)}{filled < N ? ", " + (N - filled) + " " + (N - filled === 1 ? "сфера пуста" : (N - filled < 5 ? "сферы пусты" : "сфер пусты")) : ""}.</span>;
+  var terra = dark ? "#E0A070" : "#b0663a";
+  var inkQuiet = dark ? "#c8c8cd" : "#57585f";
+  var ic = function (s, col) { return ((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles", { size: 14, color: col })) || s.e; };
   // Фон и тень даёт ряд доски (SwipeRow), поэтому сама плитка прозрачная — иначе на краю
   // «отъезда» под свайп появлялась бы вторая поверхность.
   return (
-    <button className="tap" onClick={function () { navigate("ai"); }}
-      style={{ width: "100%", background: "transparent", border: 0, padding: "13px 15px", textAlign: "left",
-        color: "var(--text)", display: "flex", alignItems: "center", gap: 13, fontFamily: "inherit" }}>
-      <BosWheelMiniLive spheres={SPH} size={72} dark={dark} score={locked ? null : total} />
+    <button className="tap bosbw" onClick={function () { navigate("ai"); }}
+      style={{ width: "100%", background: "transparent", border: 0, padding: "14px 15px 12px", textAlign: "left",
+        color: "var(--text)", display: "flex", alignItems: "center", gap: 14, fontFamily: "inherit" }}>
+      <BosWheelMiniLive spheres={SPH} size={94} dark={dark} mute={locked} />
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Баланс жизни</span>
-        <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{sub}</span>
-      </span>
-      <span style={{ flexShrink: 0, color: "var(--text-4)", display: "grid", placeItems: "center" }}>
-        {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={17} /> : "›"}
+        <span style={{ display: "block", fontSize: 9.5, fontWeight: 800, letterSpacing: 1.3, textTransform: "uppercase", color: "var(--text-4)" }}>Баланс жизни</span>
+        {/* Без базы балла ещё нет — не показываем ни числа, ни статуса, чтобы не врать прочерком. */}
+        {!locked && (
+          <span style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
+            <span style={{ fontSize: 30, fontWeight: 750, letterSpacing: "-1.4px", lineHeight: 1 }}>{total}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-4)" }}>/ 100</span>
+            <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 750, padding: "5px 11px", borderRadius: 999, whiteSpace: "nowrap",
+              color: dark ? "#FEDE34" : "#8a6400", background: dark ? "rgba(240,195,10,0.14)" : "rgba(247,206,74,0.22)" }}>{status}</span>
+          </span>
+        )}
+        <span className="bosbw-line" style={{ display: "block", fontSize: 11.5, lineHeight: 1.4, color: "var(--text-4)", marginTop: locked ? 4 : 7 }}>{line}</span>
+        {!locked && weak && (
+          <span style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: lone ? inkQuiet : terra }}>
+              {ic(weak, lone ? inkQuiet : terra)}
+              <b style={{ fontSize: 11.5, fontWeight: 800 }}>{Math.round(weak.v * 100)}</b>
+              <span style={{ fontSize: 11.5, fontWeight: 600 }}>{weak.l}</span>
+            </span>
+            {!lone && strong && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: inkQuiet, marginLeft: 8 }}>
+                {ic(strong, inkQuiet)}
+                <b style={{ fontSize: 11.5, fontWeight: 800 }}>{Math.round(strong.v * 100)}</b>
+                <span style={{ fontSize: 11.5, fontWeight: 600 }}>{strong.l}</span>
+              </span>
+            )}
+            <span style={{ marginLeft: "auto", fontSize: 10.5, color: "var(--text-5, var(--text-4))", whiteSpace: "nowrap" }}>за всё время</span>
+          </span>
+        )}
       </span>
     </button>
   );
@@ -4234,10 +4268,15 @@ function BosBalanceWheelLive(props) {
             с текстом ИИ здесь больше нет: над карточкой и так говорит Balance AI, а вторая
             реплика другим кеглем делала низ «разнородным» (David). */}
         {list ? (
-          <div className="bw-score">
-            <div className="bw-svgbox mini" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
+          // ВСЯ ШАПКА — кнопка «назад» (David 2026-08-01: «не всегда сворачивается, иногда
+          // открывает сферу»). Мини-колесо 46px стоит вплотную к столбикам, и промах в пару
+          // пикселей попадал в столбик. Теперь цель — вся строка, от колеса до статуса.
+          <div className="bw-score bw-back" role="button" tabIndex={0} onClick={tapRadar}
+            onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tapRadar(); } }}>
+            <div className="bw-svgbox mini" ref={svgBoxRef} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
             <span className="n">{total}</span><span className="m">/ 100</span>
             <span className="bw-stat">{bwStatus}</span>
+            <svg className="bw-backchev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
           </div>
         ) : (
           <div className="bw-svgbox" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
@@ -4268,7 +4307,7 @@ function BosBalanceWheelLive(props) {
           </div>
         )}
         {/* В раскрытом виде обратной дороги не было видно — подписываем оба жеста. */}
-        {list && <div className="bw-rowsub">Тап по сфере — что в неё входит. Тап по колесу — свернуть.</div>}
+        {list && <div className="bw-rowsub">Тап по сфере — что в неё входит. Строка с баллом — свернуть.</div>}
 
         {/* Подвал колеса: слабейшая и сильнейшая сферы одной строкой. */}
         {!list && (weak || strong) && (

@@ -973,6 +973,8 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   font-size: 12px; font-weight: 650; color: var(--text-2); padding: 2px 0; }
 
 .bw27 { color: var(--text); }
+/* Виджет главной: имена сфер в фразе — чернилами, всё остальное тихо-серым. */
+.bosbw .bosbw-line b { color: var(--text); font-weight: 700; }
 .bw27 .bw-cap { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-4); }
 .bw27 .bw-score { display: flex; align-items: baseline; gap: 7px; margin-top: 2px; }
 .bw27 .bw-score .n { font-size: 46px; font-weight: 700; letter-spacing: -2px; line-height: 1;
@@ -987,7 +989,13 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .bw27 .bw-svgbox svg { width: 100%; display: block; overflow: visible; }
 /* Раскрыто: мини-колесо стоит В шапке слева от балла и работает как «назад». Отдельного ряда
    «мини-колесо + реплика» больше нет — он и делал низ карточки разнородным. */
-.bw27 .bw-score .bw-svgbox { width: 46px; margin: 0; flex-shrink: 0; align-self: center; }
+.bw27 .bw-score .bw-svgbox { width: 46px; margin: 0; flex-shrink: 0; align-self: center; pointer-events: none; }
+/* Шапка раскрытого вида = кнопка «назад» целиком: маленькое колесо стояло вплотную к столбикам,
+   и промах на пару пикселей открывал сферу вместо возврата. */
+.bw27 .bw-back { cursor: pointer; padding: 4px 2px; margin: -4px -2px 0; border-radius: 16px; -webkit-tap-highlight-color: transparent; }
+.bw27 .bw-back:active { background: var(--surface-3); }
+.theme-dark .bw27 .bw-back:active { background: rgba(255,255,255,0.06); }
+.bw27 .bw-backchev { margin-left: 8px; color: var(--text-4); flex-shrink: 0; align-self: center; }
 .bw27.bw-list .bw-labels, .bw27.bw-list .bw-ic { display: none; }
 /* Балл в раскрытом виде живёт в шапке крупно — в мини-колесе он же был вторым разом (мелко,
    нечитаемо). Один факт — одно место. */
