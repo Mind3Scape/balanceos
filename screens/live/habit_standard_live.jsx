@@ -198,7 +198,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
                 <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{m.thread.past ? "Этот день" : "Сегодня"}</span>
                 {m.threadHint && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span>}
               </div>
-              <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} showNow={!m.thread.past} />
+              <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} hist={m.thread.hist || null} isDark={isDark} accent={m.color} showNow={!m.thread.past} />
             </div>
           )}
           {m.primary && <div style={{ marginTop: 14 }}>{m.primary}</div>}
@@ -246,7 +246,7 @@ function BosHabitStandardBodyLive({ model, isDark }) {
         <React.Fragment>
           {h2(m.thread && m.thread.past ? "Этот день" : "Сегодня", m.threadHint ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span> : null)}
           <div style={{ ...blockCard, padding: "6px 8px" }}>
-            <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} showNow={!m.thread.past} />
+            <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} hist={m.thread.hist || null} isDark={isDark} accent={m.color} showNow={!m.thread.past} />
           </div>
         </React.Fragment>
       )}

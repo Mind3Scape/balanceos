@@ -177,16 +177,43 @@ function HabitDetailLive() {
   // прыгала. Теперь нить рисуется всегда, но показывает ТОТ день: у себя время берём из
   // локального журнала отметок, у друзей за прошлое время неизвестно (облако хранит только
   // факт дня) — их лица на линию не ставим и об этом честно пишем подписью.
+  // ⚠️ ОБЪЯВЛЯТЬ ДО _threadSel. Сборка переводит const→var, поэтому переменная, объявленная
+  // НИЖЕ, внутри мгновенно исполняемой функции читается как undefined (без ошибки). Раньше
+  // _selPast жил ниже — и ветка «прошлый день» в нити не срабатывала НИКОГДА.
+  const _selPast = selDay !== _todayK;
+  // ЧАСОВАЯ ГИСТОГРАММА (David 2026-08-01: «столбцы активности» вместо волны). Считаем по СВОЕМУ
+  // журналу времени отметок — это единственные честные данные: у друзей облако хранит время
+  // только за сегодня. Меньше десяти отметок со временем — столбцов нет, врать не о чем.
+  const _hourHist = React.useMemo(() => {
+    const out = new Array(24).fill(0); let n = 0;
+    Object.keys(_mtStore || {}).forEach((k) => {
+      const v = _myMin(k);
+      if (v == null) return;
+      out[Math.max(0, Math.min(23, Math.floor(v / 60)))]++; n++;
+    });
+    return n >= 10 ? out : null;
+  }, [_mtStore, h.cloudId, h.id]);
   const _threadSel = (() => {
-    if (!_shared || h.threadOff === true) return null;
-    if (!_selPast) return thread;
-    const mineMin = _myMin(selDay);
-    const faces = [];
-    if (_log[selDay] && mineMin != null) {
-      const meB = buddies.find((m) => m.me);
-      faces.push({ avatar: meB && meB.avatar, name: "Ты", hr: mineMin / 60 });
+    if (h.threadOff === true) return null;
+    // Личная привычка тоже получает блок — но только когда есть чем его наполнить (свой ритм).
+    if (!_shared && !_hourHist) return null;
+    if (_selPast) {
+      const mineMin = _myMin(selDay);
+      const faces = [];
+      if (_log[selDay] && mineMin != null) {
+        const meB = (buddies || []).find((m) => m.me);
+        faces.push({ avatar: meB && meB.avatar, name: "Ты", hr: mineMin / 60 });
+      }
+      return { faces, past: true, hist: _hourHist };
     }
-    return { faces, past: true };
+    if (_shared) return Object.assign({ hist: _hourHist }, thread || { faces: [] });
+    const mine = _myMin(_todayK), meB = (buddies || []).find((m) => m.me);
+    const faces = [];
+    if (h.done || (_isQuant && _qCount > 0)) {
+      const now = new Date();
+      faces.push({ avatar: meB && meB.avatar, name: "Ты", hr: mine != null ? mine / 60 : (now.getHours() + now.getMinutes() / 60) });
+    }
+    return { faces, hist: _hourHist };
   })();
   const _threadHint = _threadSel && _threadSel.past
     ? (_threadSel.faces.length ? "время — по твоей отметке" : "за этот день времени не сохранилось")
@@ -196,7 +223,6 @@ function HabitDetailLive() {
   // прогулка, и отмечаю ТАМ ЖЕ; не надо ни нижней кнопки, ни отката в историю»). Тап по дню
   // календаря/истории меняет ТОЛЬКО selDay — шапка перестраивается под этот день: подпись =
   // дата, чекбокс = состояние этого дня, тап по нему ставит/снимает (прошлое — без XP).
-  const _selPast = selDay !== _todayK;
   const _selMarked = _selPast ? !!_log[selDay] : (h.done || (_isQuant && _qCount > 0));
   const _selLate = !!(h.lateDays && h.lateDays[selDay]);
   // Чекбокс прошлого дня в шапке — золотой (язык «наполненности»), без всплывашки +XP.
@@ -206,9 +232,9 @@ function HabitDetailLive() {
       style={{ width: 30, height: 30, borderRadius: "50%", border: 0, cursor: "pointer", flexShrink: 0, display: "grid", placeItems: "center",
         // Цвет = цвет привычки (David 2026-08-01: грядка красится в него, значит и отметка дня тоже);
         // у привычки без своего цвета остаётся золото — канон наполненности.
-        background: _selMarked ? (accent ? bosCellFill(accent, 1, isDark) : "linear-gradient(135deg,#FEDE34,#EF9F14)") : "transparent",
+        background: _selMarked ? (accent ? bosCellFill(accent, 1, isDark) : (isDark ? "rgba(255,255,255,0.9)" : "#14141a")) : "transparent",
         boxShadow: _selMarked ? "none" : "inset 0 0 0 2px " + (isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.18)") }}>
-      {_selMarked ? <I.Check size={15} strokeWidth={3} color={accent ? "#fff" : "#4a3400"} /> : null}
+      {_selMarked ? <I.Check size={15} strokeWidth={3} color={accent ? "#fff" : (isDark ? "#101013" : "#fff")} /> : null}
     </button>
   );
   // Возврат из прошлого дня — КРУГЛАЯ ИКОНКА, без слова (David 2026-08-01: «почему написано

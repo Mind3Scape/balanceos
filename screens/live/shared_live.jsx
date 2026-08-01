@@ -579,6 +579,7 @@ function bosDayRing(pct, accent, isDark, opts) {
    вызывающий дал onDayMark. Будущие дни не нажимаются. */
 var BOS_FIELD_DOW = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 var BOS_FIELD_MON = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+var BOS_FIELD_MON_FULL = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 function bosFieldKey(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
@@ -590,9 +591,11 @@ function bosFieldTint(accent, v, isDark) {
              ("" + accent).toLowerCase() !== "#0a0a0a" && accent !== "#8e8e93" && accent !== "#8E8E93";
   if (!(v > 0)) return isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.06)";
   if (real) return bosCellFill(accent, v, isDark);
-  // Золото: полный день — плотный градиент, частичный — он же на альфе (ступени видно, оттенок один).
-  var a = 0.34 + 0.66 * Math.max(0, Math.min(1, v));
-  return "linear-gradient(135deg, rgba(254,222,52," + a.toFixed(2) + "), rgba(239,159,20," + a.toFixed(2) + "))";
+  // ЧЕРНИЛА — БАЗА (David 2026-08-01: «золото везде продето, слишком цветасто; дефолтный цвет
+  // чёрно-белый, золото только иногда»). Данные рисуются чернилами; золото осталось валютой —
+  // XP, уровень, награды. Потолок 0.52, а не 0.78 («слишком чёрный, помягче»).
+  var a = 0.16 + 0.36 * Math.max(0, Math.min(1, v));
+  return isDark ? "rgba(255,255,255," + a.toFixed(3) + ")" : "rgba(10,10,10," + a.toFixed(3) + ")";
 }
 /* ЕДИНЫЙ АКЦЕНТ ОБЪЕКТА (David 2026-08-01: «поменял цвет в привычке или цели — ВСЕ цветные
    элементы стали этого цвета»). Одно место, из которого красятся календарь, нить дня, чипы
@@ -609,9 +612,16 @@ function bosAccentPaint(accent, isDark) {
   var a = bosAccentOf(accent);
   // Литералы, а не BOS_ROOM_GOLD*: те живут в circle_room_live, а этот helper зовут и из мест,
   // которые грузятся раньше.
+  // БЕЗ СВОЕГО ЦВЕТА = ЧЕРНИЛА (David 2026-08-01: «линия дня в базе должна быть строгая, в
+  // строгих цветах; а если человек поменял цвет — тогда адаптируется под тот цвет»).
+  // Золото сюда больше не приходит: оно валюта (XP, уровень, награда), а не свойство привычки.
   if (!a) return {
-    solid: "#EF9F14", light: "#FEDE34", ink: isDark ? "#FEDE34" : "#B4820A",
-    chipBg: "rgba(240,195,10,0.14)", chipInk: isDark ? "#FEDE34" : "#B4820A", glyph: "#EF9F14",
+    solid: isDark ? "rgba(255,255,255,0.62)" : "rgba(10,10,10,0.55)",
+    light: isDark ? "rgba(255,255,255,0.34)" : "rgba(10,10,10,0.28)",
+    ink: isDark ? "rgba(255,255,255,0.72)" : "rgba(10,10,10,0.62)",
+    chipBg: isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.05)",
+    chipInk: isDark ? "rgba(255,255,255,0.72)" : "rgba(10,10,10,0.62)",
+    glyph: isDark ? "rgba(255,255,255,0.62)" : "rgba(10,10,10,0.55)",
   };
   // Чернила чипа: на светлой подложке нужен ТЁМНЫЙ тон цвета (иначе текст не читается),
   // на тёмной — осветлённый. Заливка чипа — тот же цвет на низкой альфе.
@@ -676,6 +686,42 @@ function BosFieldCalendarLive(props) {
     el.scrollLeft = Math.round(el.scrollWidth - el.clientWidth);
   }, [cols.length]);
 
+  /* ПЕРЕКЛЮЧАТЕЛЬ «МЕСЯЦ · ГОД» (David 2026-08-01: «давай ещё тоггл на календаре для тех, кто
+     хочет смотреть не год грядки, а только месяц текущей грядки»). Состояния честно отвечают на
+     РАЗНЫЕ вопросы: «Месяц» — сетка с числами, сюда приходят за конкретным днём (ткнуть в 14-е и
+     отметить задним числом); «Год» — грядка, сюда приходят за характером. Выбор общий на всё
+     приложение, поэтому лежит в localStorage, а не в состоянии экрана. */
+  var VKEY = "bos:calview";
+  var viewState = React.useState(function () {
+    try { return localStorage.getItem(VKEY) === "month" ? "month" : "year"; } catch (e) { return "year"; }
+  });
+  var view = viewState[0], setView = viewState[1];
+  var setViewSaved = function (v) {
+    setView(v);
+    try { localStorage.setItem(VKEY, v); } catch (e) {}
+    try { if (window.bosHaptic) window.bosHaptic("select"); } catch (e) {}
+  };
+  var monOff = React.useState(0);            // 0 = текущий месяц, -1 = прошлый …
+  var mOff = monOff[0], setMOff = monOff[1];
+  var mBase = new Date(today.getFullYear(), today.getMonth() + mOff, 1);
+  var monthCells = React.useMemo(function () {
+    var first = new Date(mBase.getFullYear(), mBase.getMonth(), 1);
+    var shift = (first.getDay() + 6) % 7;
+    var dim = new Date(mBase.getFullYear(), mBase.getMonth() + 1, 0).getDate();
+    var rows = [], n = Math.ceil((shift + dim) / 7);
+    for (var r = 0; r < n; r++) {
+      var row = [];
+      for (var i = 0; i < 7; i++) {
+        var num = r * 7 + i - shift + 1;
+        if (num < 1 || num > dim) { row.push(null); continue; }
+        var d = new Date(mBase.getFullYear(), mBase.getMonth(), num);
+        row.push({ k: bosFieldKey(d), d: num, future: d > today });
+      }
+      rows.push(row);
+    }
+    return rows;
+  }, [mBase.getFullYear(), mBase.getMonth(), todayK]);
+
   var startLong = function (k, can) {
     if (!onDayMark || !can) return;
     firedRef.current = false;
@@ -689,8 +735,85 @@ function BosFieldCalendarLive(props) {
   var endLong = function () { clearTimeout(lpRef.current); };
 
   var trackInk = isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.06)";
+  var segBtn = function (v, label) {
+    var on = view === v;
+    return (
+      <button key={v} className="tap" onClick={function () { setViewSaved(v); }}
+        style={{ border: 0, padding: "5px 12px", borderRadius: 999, cursor: "pointer",
+          fontSize: 11.5, fontWeight: 700, letterSpacing: "-0.1px",
+          background: on ? (isDark ? "rgba(255,255,255,0.14)" : "#fff") : "transparent",
+          color: on ? "var(--text)" : "var(--text-3)",
+          boxShadow: on ? (isDark ? "none" : "0 1px 2px rgba(10,10,10,0.10)") : "none",
+          transition: "background 0.16s, color 0.16s" }}>{label}</button>
+    );
+  };
+  var arrow = function (dir) {
+    var canFwd = dir > 0 && mOff >= 0;
+    return (
+      <button className="tap" disabled={canFwd} onClick={function () { setMOff(mOff + dir); }}
+        style={{ border: 0, background: "transparent", padding: "2px 6px", cursor: canFwd ? "default" : "pointer",
+          color: canFwd ? "var(--text-5)" : "var(--text-3)", fontSize: 17, lineHeight: 1, fontWeight: 500 }}>
+        {dir < 0 ? "‹" : "›"}
+      </button>
+    );
+  };
   return (
     <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
+          {view === "month" && arrow(-1)}
+          <span style={{ fontSize: 14, fontWeight: 750, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
+            {view === "month" ? (BOS_FIELD_MON_FULL[mBase.getMonth()] + (mBase.getFullYear() !== today.getFullYear() ? " " + mBase.getFullYear() : "")) : today.getFullYear()}
+          </span>
+          {view === "month" && arrow(1)}
+        </div>
+        <div style={{ display: "inline-flex", gap: 2, padding: 2, borderRadius: 999, flexShrink: 0,
+          background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)" }}>
+          {segBtn("month", "Месяц")}{segBtn("year", "Год")}
+        </div>
+      </div>
+      {view === "month" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {BOS_FIELD_DOW.map(function (w, i) {
+              return <span key={i} style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: 9.5, fontWeight: 600, color: "var(--text-4)" }}>{w}</span>;
+            })}
+          </div>
+          {monthCells.map(function (row, ri) {
+            return (
+              <div key={ri} style={{ display: "flex", gap: 4 }}>
+                {row.map(function (dd, ci) {
+                  if (!dd) return <span key={ci} aria-hidden style={{ flex: 1, minWidth: 0, aspectRatio: "1/1" }} />;
+                  var v = pctOf(dd.k), isToday = dd.k === todayK;
+                  var isSel = props.selKey && dd.k === props.selKey && !isToday;
+                  var unknown = props.unknownBefore ? dd.k < props.unknownBefore : false;
+                  var off = props.offOf ? !!props.offOf(dd.k) : false;
+                  var on = v > 0 && !dd.future;
+                  return (
+                    <button key={ci} className="tap" data-no-haptic
+                      onClick={function () { if (firedRef.current) { firedRef.current = false; return; } if (unknown || dd.future) return; if (onDayTap) onDayTap(dd.k); }}
+                      onPointerDown={function () { startLong(dd.k, !unknown && !dd.future); }}
+                      onPointerUp={endLong} onPointerLeave={endLong} onPointerCancel={endLong}
+                      onContextMenu={function (e) { e.preventDefault(); }}
+                      style={{ flex: 1, minWidth: 0, aspectRatio: "1/1", borderRadius: 11, border: 0, padding: 0,
+                        cursor: (unknown || dd.future) ? "default" : "pointer",
+                        fontSize: 13, fontWeight: isToday ? 800 : 600, fontVariantNumeric: "tabular-nums",
+                        /* Отмеченный день — мягкая заливка и ТЁМНОЕ число: месяц остаётся воздушным,
+                           а сделанные дни видно группами. Пустой день — без плашки вовсе. */
+                        background: on ? bosFieldTint(accent, v, isDark) : "transparent",
+                        color: dd.future ? "var(--text-5)" : (on ? "var(--text)" : "var(--text-3)"),
+                        opacity: unknown ? 0.32 : ((off && !on) ? 0.5 : 1),
+                        boxShadow: isToday ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.45)"))
+                                 : (isSel ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(10,10,10,0.22)")) : "none"),
+                        transition: "background 0.18s, box-shadow 0.15s" }}>{dd.d}</button>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {view === "year" && (
       <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
         {/* Ширина колонки дней недели — ФИКСИРОВАННАЯ и целая (David 2026-08-01, второй заход про
             обводку: «серый квадратик — левый и верхний край толще»). Раньше она равнялась ширине
@@ -756,6 +879,7 @@ function BosFieldCalendarLive(props) {
           </div>
         </div>
       </div>
+      )}
       {props.hint !== false && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 9, paddingLeft: 2 }}>
           <span style={{ fontSize: 9.5, color: "var(--text-4)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -2688,12 +2812,11 @@ function BosThreadGlyph({ kind, left, dark }) {
 }
 /* faces — [{avatar,name,hr}] ИМЕНА (только свой круг: чужие отметки закрыты RLS).
    hours — [часы] БЕЗ имён (чужой открытый круг, из bos_circle_pulse). Одно из двух. */
-function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = null, showNow = true }) {
+function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = null, showNow = true, hist = null }) {
   // Нить дня красится в цвет привычки/цели (David 2026-08-01: «нить дня остаётся золотой, а
   // календарь меняет цвет»). Нейтральный объект → прежнее золото. Градиент волны получает
   // УНИКАЛЬНЫЙ id на цвет: одинаковый id на всю страницу подменял бы цвет соседним нитям.
   var P = (typeof bosAccentPaint === "function") ? bosAccentPaint(accent, isDark) : { solid: BOS_THREAD_GOLD, light: BOS_THREAD_GOLD_L };
-  var gid = "bosThreadWaveG_" + ("" + P.solid).replace(/[^0-9a-zA-Z]/g, "");
   var glowRGB = (function () {
     var hx = P.solid; if (!(hx && hx[0] === "#" && hx.length >= 7)) return "239,159,20";
     return parseInt(hx.slice(1, 3), 16) + "," + parseInt(hx.slice(3, 5), 16) + "," + parseInt(hx.slice(5, 7), 16);
@@ -2709,20 +2832,37 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = nul
   var nowPct = bosThreadPct(nowHr);
   var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.10)";
   var ringCol = isDark ? "#1c1c20" : "#fff";
+  /* СТОЛБЦЫ ЧАСОВ вместо волны (David 2026-08-01: понравились «столбцы активности»; волна была
+     украшением — одинаковая у всех привычек, у всех людей, в любой день). Высота столбика —
+     сколько отметок пришлось на этот час. hist (24 числа) — история своих отметок из журнала
+     bos:marktimes; если её нет, строим по часам сегодняшних отметок. Столбцы стоят ВПЛОТНУЮ
+     к линии (David: «столбы слишком высоко от нити дня — реализовать ближе»). */
+  var BARS = React.useMemo(function () {
+    var out = new Array(24).fill(0), any = false;
+    if (hist && hist.length === 24) { for (var i = 0; i < 24; i++) { out[i] = hist[i] || 0; if (out[i] > 0) any = true; } }
+    // Без истории столбцы строим только когда лиц СЛИШКОМ МНОГО, чтобы показывать их поимённо —
+    // иначе столбцы просто повторили бы те же лица, что уже стоят на линии.
+    else if (many) (hrs || []).forEach(function (h) { var b = Math.max(0, Math.min(23, Math.floor(h))); out[b]++; any = true; });
+    return any ? out : null;
+  }, [hist, hrs.join(","), many]);
+  var BH = 26;                     // высота полосы столбцов
   var LINE = 34;   // y центра линии внутри бокса — лица садятся РОВНО на неё
   return (
     <div>
       <div style={{ position: "relative", height: 44 }}>
-        {many && hrs.length > 0 && (
-          <svg viewBox={"0 0 330 30"} preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, top: 4, width: "100%", height: 30 }}>
-            <defs>
-              <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={P.light} stopOpacity="0.85" />
-                <stop offset="100%" stopColor={P.solid} stopOpacity="0.10" />
-              </linearGradient>
-            </defs>
-            <path d={bosThreadWave(hrs, 330, 30)} fill={"url(#" + gid + ")"} />
-          </svg>
+        {BARS && (
+          <div style={{ position: "absolute", left: 0, right: 0, top: LINE - BH - 3, height: BH, display: "flex", gap: 2, alignItems: "flex-end" }}>
+            {(function () {
+              var mx = Math.max.apply(null, BARS) || 1;
+              return BARS.map(function (v, i) {
+                var h = v > 0 ? Math.max(3, Math.round(v / mx * BH)) : 0;
+                return (
+                  <span key={i} style={{ flex: 1, minWidth: 0, height: h, borderRadius: 2,
+                    background: h ? ("linear-gradient(180deg," + P.solid + "," + P.light + ")") : "transparent" }} />
+                );
+              });
+            })()}
+          </div>
         )}
         <div style={{ position: "absolute", left: 0, right: 0, top: LINE, height: 2, borderRadius: 2, background: track }} />
         {showNow && <div style={{ position: "absolute", left: 0, top: LINE, height: 2, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + P.light + "," + P.solid + ")" }} />}
@@ -8605,18 +8745,20 @@ function HomeWeekStripLive(props) {
   var keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
   var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   var WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-  /* НЕДЕЛЯ = СЕМЬ ОТДЕЛЬНЫХ ПЛИТОК, всё внутри плитки (David 2026-08-01, четвёртый заход:
-     «дни склеиваются — убого и криво; день и неделю можно вписать в квадратики; минимализма
-     не хватает»).
-     История заходов, чтобы не ходить по кругу: кольца-кружки → плитки с двойным выделением
-     (капсула + обводка) → подпись «Сегодня» вместо буквы → слияние серий в капсулу. Каждый раз
-     я ДОБАВЛЯЛ приём. Теперь наоборот — вычитание: одна плитка = один день, внутри буква дня и
-     число, снаружи ничего. Никаких склеек, подложек, обводок и подписей под рядом.
-     Сегодня — единственное отличие во всём ряду: его текст полностью чёрный (в тёмной белый).
-     Заливка — та же золотая шкала наполненности, что в грядке. */
-  var track = isDark ? "rgba(255,255,255,0.085)" : "rgba(10,10,10,0.05)";
+  /* НЕДЕЛЯ = СТОЛБИКИ (David 2026-08-01, пятый заход: «виджет недели делаем столбики, столбики
+     сделай аккуратнее — а то у тебя изначально белые не закруглённые, а вырастают закруглённые.
+     Дату писать в столбиках, день недели ниже под столбиками»).
+     История заходов, чтобы не ходить по кругу: кольца → плитки с двойным выделением → подпись
+     «Сегодня» → слияние серий в капсулу → одна плитка = один день. Всё это красило ФАКТ «день
+     был». Сдвинулось, когда сменились ДАННЫЕ: высота столбика — ДОЛЯ закрытых за день привычек,
+     то есть насколько день удался, а не был ли он.
+     Геометрия: подложка и заливка ОДНОГО радиуса, заливка растёт снизу внутри подложки
+     (overflow:hidden) — низ повторяет скругление подложки, верх скруглён своим. Число живёт
+     ВНУТРИ столбика у основания и переворачивает цвет, когда заливка до него дорастает. */
+  var track = isDark ? "rgba(255,255,255,0.075)" : "rgba(10,10,10,0.05)";
+  var COLH = 62, R = 12;
   return (
-    <div style={{ display: "flex", gap: 6 }}>
+    <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
       {keys.map(function (k, i) {
         // «Дни недели»: привычка с расписанием в чужой день НЕ входит в знаменатель — день требует
         // только то, что на него назначено (отметил в выходной → всё равно идёт в счёт).
@@ -8627,17 +8769,29 @@ function HomeWeekStripLive(props) {
         var doneN = due.length ? due.filter(function (h) { return h.log && h.log[k]; }).length : 0;
         var pct = due.length ? doneN / due.length : 0;
         var isToday = k === todayK, isFuture = todayK ? k > todayK : false;
-        var filled = pct > 0 && !isFuture;
         var num = parseInt(("" + k).slice(-2), 10) || "";
-        var ink = isToday ? "var(--text)" : (filled ? "#6b4e00" : (isFuture ? "var(--text-5)" : "var(--text-3)"));
-        var sub = isToday ? "var(--text)" : (filled ? "rgba(107,78,0,0.62)" : (isFuture ? "var(--text-5)" : "var(--text-4)"));
+        var fillH = (isFuture || !(pct > 0)) ? 0 : Math.max(14, Math.round(COLH * pct));
+        // Число выворачиваем ТОЛЬКО в тёмной теме: там заливка светлая и тёмный текст на ней
+        // читается, а в светлой чернильная заливка серая — белым по ней было бы мутно, чёрным
+        // же читается и на пустой подложке, и на залитой.
+        var onFill = fillH >= 26;
+        var numCol = isFuture ? "var(--text-5)" : ((onFill && isDark) ? "#101013" : "var(--text)");
         return (
-          <div key={i} style={{ flex: 1, minWidth: 0, aspectRatio: "1/1", borderRadius: 13,
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
-            background: filled ? ((typeof bosFieldTint === "function") ? bosFieldTint(null, pct, isDark) : track) : track,
-            opacity: isFuture ? 0.5 : 1 }}>
-            <span style={{ fontSize: 8.5, fontWeight: 600, letterSpacing: "0.3px", color: sub, lineHeight: 1 }}>{WD[i]}</span>
-            <span style={{ fontSize: 14.5, fontWeight: isToday ? 800 : 600, letterSpacing: "-0.4px", color: ink, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>{num}</span>
+          <div key={i} style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ position: "relative", height: COLH, borderRadius: R, background: track, overflow: "hidden",
+              boxShadow: isToday ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.45)")) : "none",
+              opacity: isFuture ? 0.55 : 1 }}>
+              {fillH > 0 && (
+                <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: fillH, borderRadius: R,
+                  background: (typeof bosFieldTint === "function") ? bosFieldTint(null, pct, isDark) : "var(--text)",
+                  transition: "height 0.24s ease" }} />
+              )}
+              <span style={{ position: "absolute", left: 0, right: 0, bottom: 7, textAlign: "center",
+                fontSize: 13, fontWeight: isToday ? 800 : 650, letterSpacing: "-0.3px",
+                fontVariantNumeric: "tabular-nums", lineHeight: 1, color: numCol }}>{num}</span>
+            </div>
+            <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, letterSpacing: "0.2px",
+              color: isToday ? "var(--text-2)" : "var(--text-4)" }}>{WD[i]}</div>
           </div>
         );
       })}
