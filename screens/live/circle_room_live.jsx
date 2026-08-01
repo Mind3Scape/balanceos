@@ -44,8 +44,11 @@ function BosFlatCheckLive({ on, isDark, onToggle, label }) {
 }
 
 /* Лицо участника: цветное — сегодня в деле, серое — ещё нет. gold — золотой ободок (я/сегодня). */
-function BosRoomFaceLive({ p, size, active, gold, isDark, onClick, level }) {
-  var ring = "0 0 0 2px " + (isDark ? "#1c1c20" : "#fff") + (gold ? ", 0 0 0 3.4px " + BOS_ROOM_GOLD : "");
+function BosRoomFaceLive({ p, size, active, gold, isDark, onClick, level, accent }) {
+  // Кольцо «это ты / выбранный» — в цвете привычки/цели/круга (David 2026-08-01: «выделение
+  // „Кто со мной" тоже должно быть в цвет, а не оранжевым»). Нейтральный объект → золото.
+  var _ringCol = (typeof bosAccentPaint === "function") ? bosAccentPaint(accent, isDark).solid : BOS_ROOM_GOLD;
+  var ring = "0 0 0 2px " + (isDark ? "#1c1c20" : "#fff") + (gold ? ", 0 0 0 3.4px " + _ringCol : "");
   // Бейдж уровня — ВНЕ грейскейла молчащих: цифра читается всегда (David: «хочу видеть лвлы»).
   var node = (
     <span style={{ position: "relative", borderRadius: "50%", lineHeight: 0, flexShrink: 0, display: "inline-block", boxShadow: ring }}>

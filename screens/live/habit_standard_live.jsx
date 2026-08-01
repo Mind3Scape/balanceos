@@ -195,10 +195,10 @@ function BosHabitStandardBodyLive({ model, isDark }) {
           {m.thread && (
             <div style={{ marginTop: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>Сегодня</span>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{m.thread.past ? "Этот день" : "Сегодня"}</span>
                 {m.threadHint && <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span>}
               </div>
-              <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} />
+              <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} showNow={!m.thread.past} />
             </div>
           )}
           {m.primary && <div style={{ marginTop: 14 }}>{m.primary}</div>}
@@ -244,9 +244,9 @@ function BosHabitStandardBodyLive({ model, isDark }) {
       {/* «Сегодня» — нить (лица) или волна (толпа); только у общих ступеней. */}
       {m.thread && (
         <React.Fragment>
-          {h2("Сегодня", m.threadHint ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span> : null)}
+          {h2(m.thread && m.thread.past ? "Этот день" : "Сегодня", m.threadHint ? <span style={{ fontSize: 10.5, color: "var(--text-4)" }}>{m.threadHint}</span> : null)}
           <div style={{ ...blockCard, padding: "6px 8px" }}>
-            <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} />
+            <BosDayThreadLive faces={m.thread.faces || []} hours={m.thread.hours || []} isDark={isDark} accent={m.color} showNow={!m.thread.past} />
           </div>
         </React.Fragment>
       )}
@@ -374,7 +374,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
         {gridPeople.slice(0, 21).map((p) => (
           <BosRoomFaceLive key={p.id} p={p} size={34} isDark={isDark}
             active={p.id === meId ? (isDone || !!byUserAt[p.id]) : !!byUserAt[p.id]}
-            gold={p.id === selU} level={(levels && levels[p.id] && (levels[p.id].level | 0)) || 0}
+            gold={p.id === selU} level={(levels && levels[p.id] && (levels[p.id].level | 0)) || 0} accent={h.color}
             onClick={() => { if (p.id === selU) { if (onPerson) onPerson(p); } else setSelU(p.id); }} />
         ))}
         {gridPeople.length > 21 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>{"+" + (gridPeople.length - 21)}</span>}

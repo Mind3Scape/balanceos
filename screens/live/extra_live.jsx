@@ -172,6 +172,26 @@ function HabitDetailLive() {
     return gen ? (d.getDate() + " " + BOS_MON_GEN[d.getMonth()]) : (BOS_DOW_RU[d.getDay()] + ", " + d.getDate() + " " + BOS_MON_GEN[d.getMonth()]);
   };
 
+  // НИТЬ ДНЯ ЖИВЁТ И В ПРОШЛОМ (David 2026-08-01: «на прошлых днях нити нет — если она
+  // включена, должна быть везде»). Раньше на прошлом дне блок просто исчезал, и карточка
+  // прыгала. Теперь нить рисуется всегда, но показывает ТОТ день: у себя время берём из
+  // локального журнала отметок, у друзей за прошлое время неизвестно (облако хранит только
+  // факт дня) — их лица на линию не ставим и об этом честно пишем подписью.
+  const _threadSel = (() => {
+    if (!_shared || h.threadOff === true) return null;
+    if (!_selPast) return thread;
+    const mineMin = _myMin(selDay);
+    const faces = [];
+    if (_log[selDay] && mineMin != null) {
+      const meB = buddies.find((m) => m.me);
+      faces.push({ avatar: meB && meB.avatar, name: "Ты", hr: mineMin / 60 });
+    }
+    return { faces, past: true };
+  })();
+  const _threadHint = _threadSel && _threadSel.past
+    ? (_threadSel.faces.length ? "время — по твоей отметке" : "за этот день времени не сохранилось")
+    : null;
+
   // ТЕЛЕПОРТ В ДЕНЬ ЧЕРЕЗ ШАПКУ (David 2026-07-22: «тыкнул день — наверху вижу, отмечена ли
   // прогулка, и отмечаю ТАМ ЖЕ; не надо ни нижней кнопки, ни отката в историю»). Тап по дню
   // календаря/истории меняет ТОЛЬКО selDay — шапка перестраивается под этот день: подпись =
@@ -191,10 +211,15 @@ function HabitDetailLive() {
       {_selMarked ? <I.Check size={15} strokeWidth={3} color={accent ? "#fff" : "#4a3400"} /> : null}
     </button>
   );
-  // «Сегодня» — тихий возврат из прошлого дня (headExtra в шапке).
+  // Возврат из прошлого дня — КРУГЛАЯ ИКОНКА, без слова (David 2026-08-01: «почему написано
+  // „сегодня" там, где надо чекбокс нажать?»). Слово рядом с чекбоксом читалось как подпись к
+  // нему («отметить сегодня»), хотя это кнопка «вернуться». Дата дня и так живёт в подписи.
   const _backToToday = _selPast ? (
-    <button onClick={() => setSelDay(_todayK)} className="tap" data-haptic="selection"
-      style={{ border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "5px 11px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Сегодня</button>
+    <button onClick={() => setSelDay(_todayK)} className="tap" data-haptic="selection" aria-label="Вернуться к сегодня" title="Вернуться к сегодня"
+      style={{ width: 30, height: 30, borderRadius: "50%", border: 0, cursor: "pointer", flexShrink: 0, display: "grid", placeItems: "center",
+        background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text-3)" }}>
+      <I.Refresh size={14} strokeWidth={2} />
+    </button>
   ) : null;
 
   // ИСТОРИЯ — одна тихая строка НА ДЕНЬ («15 июля · Ты 07:12»), новые сверху; тап — телепорт.
@@ -241,7 +266,7 @@ function HabitDetailLive() {
     people = (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 12, justifyItems: "center", alignItems: "center", padding: "4px 0" }}>
         {ranked.map((m, i) => (
-          <BosRoomFaceLive key={m.id || i} p={{ avatar: m.avatar, name: m.me ? "Ты" : m.name }} size={34} active={active(m)} gold={!!m.me} isDark={isDark} />
+          <BosRoomFaceLive key={m.id || i} p={{ avatar: m.avatar, name: m.me ? "Ты" : m.name }} size={34} active={active(m)} gold={!!m.me} isDark={isDark} accent={accent} />
         ))}
       </div>
     );
@@ -271,8 +296,8 @@ function HabitDetailLive() {
       : ((_shared ? ("вместе с " + (buddies.length - 1) + (buddies.length - 1 === 1 ? " другом" : " друзьями") + " · ") : "")
         + ((_mask && typeof daysSummary === "function") ? daysSummary(h.days) : "Ежедневно") + (h.duration ? " · " + h.duration + " мин" : "")),
     chips,
-    // Нить «Сегодня» — только когда смотришь сегодня (на прошлом дне она про сегодня = сбивает).
-    thread: _selPast ? null : thread,
+    // Нить дня — и в прошлом тоже (см. _threadSel): она показывает ВЫБРАННЫЙ день, а не сегодня.
+    thread: _threadSel, threadHint: _threadHint,
     unified: true, check, headExtra: _backToToday,
     // Календарь = ГРЯДКА (David 2026-08-01): год строками дней недели, цвет = цвет привычки,
     // тап по дню = телепорт в шапку, долгий тап = отметка прямо в клетке.

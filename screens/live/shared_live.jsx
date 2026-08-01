@@ -692,7 +692,12 @@ function BosFieldCalendarLive(props) {
   return (
     <div>
       <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: gap, paddingTop: 19, flexShrink: 0 }}>
+        {/* Ширина колонки дней недели — ФИКСИРОВАННАЯ и целая (David 2026-08-01, второй заход про
+            обводку: «серый квадратик — левый и верхний край толще»). Раньше она равнялась ширине
+            текста «Пн» — дробное число; из-за него левая граница сетки вставала на полпикселя, и
+            КАЖДАЯ клетка получала дробный X. Тень при этом растрируется на одну сторону толще —
+            хоть наружная, хоть внутренняя. С целой шириной все клетки садятся на целые пиксели. */}
+        <div style={{ width: 20, display: "flex", flexDirection: "column", gap: gap, paddingTop: 19, flexShrink: 0 }}>
           {BOS_FIELD_DOW.map(function (w, i) {
             return <span key={i} style={{ height: cell, lineHeight: cell + "px", fontSize: 8.5, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-4)", opacity: i % 2 ? 0 : 1 }}>{w}</span>;
           })}
@@ -2683,7 +2688,7 @@ function BosThreadGlyph({ kind, left, dark }) {
 }
 /* faces — [{avatar,name,hr}] ИМЕНА (только свой круг: чужие отметки закрыты RLS).
    hours — [часы] БЕЗ имён (чужой открытый круг, из bos_circle_pulse). Одно из двух. */
-function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = null }) {
+function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = null, showNow = true }) {
   // Нить дня красится в цвет привычки/цели (David 2026-08-01: «нить дня остаётся золотой, а
   // календарь меняет цвет»). Нейтральный объект → прежнее золото. Градиент волны получает
   // УНИКАЛЬНЫЙ id на цвет: одинаковый id на всю страницу подменял бы цвет соседним нитям.
@@ -2720,12 +2725,12 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = nul
           </svg>
         )}
         <div style={{ position: "absolute", left: 0, right: 0, top: LINE, height: 2, borderRadius: 2, background: track }} />
-        <div style={{ position: "absolute", left: 0, top: LINE, height: 2, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + P.light + "," + P.solid + ")" }} />
+        {showNow && <div style={{ position: "absolute", left: 0, top: LINE, height: 2, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + P.light + "," + P.solid + ")" }} />}
         {/* Лица сидят ПО ЦЕНТРУ линии (David: «иконки должны стоять на линии самой, а не над ней» —
             в макете они висели чуть выше, ровно то, за что он ругал прошлый вариант). */}
         {/* Точка «сейчас» — ПОД лицами (zIndex 2 < 3): только что отметился — твоя ава сверху,
             а не жёлтый кружок поверх лица (David 2026-07-16: «ава всегда должна ставиться поверх»). */}
-        <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 2, width: 11, height: 11, borderRadius: "50%", background: P.solid, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 0 7px rgba(" + glowRGB + ",0.5)" }} />
+        {showNow && <span aria-hidden style={{ position: "absolute", left: nowPct + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 2, width: 11, height: 11, borderRadius: "50%", background: P.solid, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 0 7px rgba(" + glowRGB + ",0.5)" }} />}
         {!many && fs.map(function (f, i) {
           return (
             <span key={i} style={{ position: "absolute", left: bosThreadPct(f.hr) + "%", top: LINE + 1, transform: "translate(-50%, -50%)", zIndex: 3, borderRadius: "50%", lineHeight: 0, boxShadow: "0 0 0 2.5px " + ringCol + ", 0 1px 4px rgba(0,0,0,0.18)" }}>
@@ -3936,6 +3941,110 @@ function BosWheelLockedLive({ app, dark, openSheet }) {
   );
 }
 
+// ── ГЕОМЕТРИЯ И ЦВЕТ ЛЕПЕСТКА — общие для колеса на вкладке ИИ и виджета главной. Вынесены из
+// компонента, чтобы виджет рисовал ТО ЖЕ колесо, а не похожую копию (иначе две правды образа).
+var BOS_PET_OUT = 104, BOS_PET_R0 = 32, BOS_PET_GAP = 4.2, BOS_PET_RC = 4.6;
+var bosPetPd = function (aDeg, r) { var t = (aDeg - 90) * Math.PI / 180; return [+(Math.cos(t) * r).toFixed(2), +(Math.sin(t) * r).toFixed(2)]; };
+var bosPetDegFor = function (r, px) { return (px / r) * 180 / Math.PI; };   // px по дуге радиуса r → градусы
+// Траектория лепестка: постоянный зазор В ПИКСЕЛЯХ + скругление углов радиусом rc в самой траектории.
+function bosPetalPath(aMid, half, r0, r1, gapPx, rc) {
+  var pd = bosPetPd, degFor = bosPetDegFor;
+  var a0 = aMid - half, a1 = aMid + half;
+  var g0 = degFor(r0, gapPx), g1 = degFor(r1, gapPx);
+  var i0 = a0 + g0, i1 = a1 - g0, o0 = a0 + g1, o1 = a1 - g1;
+  if (i1 <= i0) { var m = (i0 + i1) / 2; i0 = m - 0.01; i1 = m + 0.01; }
+  rc = Math.max(0, Math.min(rc, (r1 - r0) / 2 - 0.5));
+  var cIn = degFor(r0, rc), cOut = degFor(r1, rc);
+  if (i1 - i0 < 2 * cIn + 0.4) cIn = Math.max(0, (i1 - i0) / 2 - 0.2);
+  if (o1 - o0 < 2 * cOut + 0.4) cOut = Math.max(0, (o1 - o0) / 2 - 0.2);
+  var A = pd(i0, r0 + rc), B = pd(o0, r1 - rc), C = pd(o0 + cOut, r1), D = pd(o1 - cOut, r1),
+      E = pd(o1, r1 - rc), F = pd(i1, r0 + rc), G = pd(i1 - cIn, r0), H = pd(i0 + cIn, r0);
+  var cB = pd(o0, r1), cE = pd(o1, r1), cF = pd(i1, r0), cA = pd(i0, r0);
+  return "M" + A[0] + " " + A[1] + " L" + B[0] + " " + B[1]
+    + " Q" + cB[0] + " " + cB[1] + " " + C[0] + " " + C[1]
+    + " A" + r1 + " " + r1 + " 0 0 1 " + D[0] + " " + D[1]
+    + " Q" + cE[0] + " " + cE[1] + " " + E[0] + " " + E[1]
+    + " L" + F[0] + " " + F[1]
+    + " Q" + cF[0] + " " + cF[1] + " " + G[0] + " " + G[1]
+    + " A" + r0 + " " + r0 + " 0 0 0 " + H[0] + " " + H[1]
+    + " Q" + cA[0] + " " + cA[1] + " " + A[0] + " " + A[1] + " Z";
+}
+var _bwLerp = function (a, b, t) { return a + (b - a) * t; };
+var _bwH2r = function (h) { h = h.replace("#", ""); return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; };
+var _bwR2h = function (a) { return "#" + a.map(function (x) { var s = Math.round(x).toString(16); return s.length < 2 ? "0" + s : s; }).join(""); };
+var bosOnScale = function (v, SC) { v = Math.max(SC[0][0], Math.min(1, v)); for (var i = 1; i < SC.length; i++) { if (v <= SC[i][0]) { var t = (v - SC[i - 1][0]) / (SC[i][0] - SC[i - 1][0]); var a = _bwH2r(SC[i - 1][1]), b = _bwH2r(SC[i][1]); return _bwR2h([_bwLerp(a[0], b[0], t), _bwLerp(a[1], b[1], t), _bwLerp(a[2], b[2], t)]); } } return SC[SC.length - 1][1]; };
+var bosMixW = function (hex, t) { var c = _bwH2r(hex); return _bwR2h([_bwLerp(c[0], 255, t), _bwLerp(c[1], 255, t), _bwLerp(c[2], 255, t)]); };
+// Песочный у слабых сфер → насыщенное золото у сильных; внутренний край светлее внешнего.
+var bosPetDeep = function (v) { return bosOnScale(v, [[0.20, "#DCD3BE"], [0.40, "#E9CE87"], [0.55, "#F5C64B"], [0.75, "#F0A81A"], [1, "#E8930A"]]); };
+var bosPetLight = function (v) { return bosMixW(bosPetDeep(v), 0.24); };
+
+// МИНИ-КОЛЕСО: тот же образ без подписей и жестов — для виджета главной и любых превью.
+// spheres = [{id,v}], size — сторона в пикселях.
+function BosWheelMiniLive(props) {
+  var SPH = props.spheres || [], size = props.size || 76, dark = !!props.dark;
+  var uid = React.useMemo(function () { return "wm" + Math.random().toString(36).slice(2, 7); }, []);
+  var OUT = BOS_PET_OUT, R0 = BOS_PET_R0;
+  var track = [], body = [], defs = [];
+  SPH.forEach(function (s, i) {
+    var aMid = i * 60, rv = R0 + Math.max(0.06, s.v || 0) * (OUT - R0);
+    track.push(<path key={"t" + i} d={bosPetalPath(aMid, 30, R0, OUT, BOS_PET_GAP, BOS_PET_RC)} fill={dark ? "rgba(255,255,255,0.07)" : "#F1EFE9"} />);
+    var mid = bosPetPd(aMid, rv);
+    defs.push(<linearGradient key={"g" + i} id={uid + "g" + i} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={mid[0]} y2={mid[1]}>
+      <stop offset="0" stopColor={bosPetLight(s.v || 0)} /><stop offset="1" stopColor={bosPetDeep(s.v || 0)} /></linearGradient>);
+    body.push(<path key={"p" + i} d={bosPetalPath(aMid, 30, R0, rv, BOS_PET_GAP, BOS_PET_RC)} fill={"url(#" + uid + "g" + i + ")"} />);
+  });
+  return (
+    <svg width={size} height={size} viewBox="-112 -112 224 224" style={{ display: "block", flexShrink: 0 }} aria-hidden>
+      <defs>{defs}</defs>
+      <g>{track}</g>
+      <g>{body}</g>
+      <circle cx="0" cy="0" r={R0 - 3.6} fill={dark ? "#1c1d22" : "#fff"} />
+      {props.score != null ? (
+        <text x="0" y={(OUT * 0.115).toFixed(1)} textAnchor="middle" fill={dark ? "#f2f2f5" : "#15161B"}
+          style={{ fontSize: 40, fontWeight: 750, letterSpacing: "-1.4px" }}>{props.score}</text>
+      ) : null}
+    </svg>
+  );
+}
+
+// ВИДЖЕТ ГЛАВНОЙ «Баланс жизни» (David 2026-08-01: «хочу виджет на главной, захотел включил,
+// захотел выключил»). Широкая плитка в языке доски: колесо слева, балл в его центре (один факт —
+// одно место, поэтому в тексте балла нет), справа — имя и ОДНА строка о состоянии сфер.
+// Тап уводит на вкладку ИИ, где колесо живое и раскрывается.
+function BosBalanceWidgetLive(props) {
+  var app = props.app, dark = !!props.dark, navigate = props.navigate || function () {};
+  var data = (typeof bosWheelData === "function") ? bosWheelData(app) : { spheres: [] };
+  var SPH = data.spheres || [], N = SPH.length;
+  var locked = !app || !app.baseline;
+  var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
+  var weak = null, strong = null;
+  SPH.forEach(function (s) {
+    if (!s.n) return;
+    if (!weak || s.v < weak.v) weak = s;
+    if (!strong || s.v > strong.v) strong = s;
+  });
+  var sub;
+  if (locked) sub = "Пройди короткий опрос — колесо оживёт";
+  else if (!weak) sub = "Заведи первую привычку — колесо начнёт наполняться";
+  else if (strong && weak.id === strong.id) sub = "Пока живёт только «" + weak.l + "» — остальные ждут";
+  else sub = "Слабее всех — «" + weak.l + "» · " + Math.round(weak.v * 100) + "%";
+  var cardBg = dark ? "#1b1b1e" : "#fff";
+  return (
+    <button className="tap" onClick={function () { navigate("ai"); }}
+      style={{ width: "100%", background: cardBg, border: 0, borderRadius: 22, padding: "13px 15px", textAlign: "left",
+        boxShadow: "var(--card-shadow)", color: "var(--text)", display: "flex", alignItems: "center", gap: 13 }}>
+      <BosWheelMiniLive spheres={SPH} size={72} dark={dark} score={locked ? null : total} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Баланс жизни</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{sub}</span>
+      </span>
+      <span style={{ flexShrink: 0, color: "var(--text-4)", display: "grid", placeItems: "center" }}>
+        {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={17} /> : "›"}
+      </span>
+    </button>
+  );
+}
+
 function BosBalanceWheelLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate, hideTitle = !!props.hideTitle, bare = !!props.bare;
   var openSheet = props.openSheet || function () {};
@@ -3954,53 +4063,17 @@ function BosBalanceWheelLive(props) {
   // расползался, и грани выглядели косыми. Углы скруглены радиусом В САМОЙ ТРАЕКТОРИИ (обводка
   // того же цвета «пухла» и мылила края). Норма — не кольцо поверх всего (David: «жёлтый круг
   // убого»), а короткая засечка ВНУТРИ каждого лепестка.
-  var OUT = 104, R0 = 32, LAB = 126, GAPPX = 4.2, RCORN = 4.6, TARGET = 0.55, targetPct = Math.round(TARGET * 100);
+  // Геометрия и палитра лепестка — общие с виджетом главной (bosPetalPath / bosPetDeep выше).
+  var OUT = BOS_PET_OUT, R0 = BOS_PET_R0, LAB = 126, GAPPX = BOS_PET_GAP, RCORN = BOS_PET_RC;
   var R_ICON = R0 + (OUT - R0) * 0.20;   // одна окружность для всех шести знаков
   var pt2 = function (i, r) { var t = i * Math.PI / 3; return [r * Math.sin(t), -r * Math.cos(t)]; };
-  // Точка по углу В ГРАДУСАХ (0° — верх, дальше по часовой), как в макете лепестков.
-  var pd = function (aDeg, r) { var t = (aDeg - 90) * Math.PI / 180; return [+(Math.cos(t) * r).toFixed(2), +(Math.sin(t) * r).toFixed(2)]; };
-  var degFor = function (r, px) { return (px / r) * 180 / Math.PI; };   // px по дуге радиуса r → градусы
-  // Траектория лепестка: постоянный зазор в пикселях + скругление углов радиусом rc.
-  var petalPath = function (aMid, half, r0, r1, gapPx, rc) {
-    var a0 = aMid - half, a1 = aMid + half;
-    var g0 = degFor(r0, gapPx), g1 = degFor(r1, gapPx);
-    var i0 = a0 + g0, i1 = a1 - g0, o0 = a0 + g1, o1 = a1 - g1;
-    if (i1 <= i0) { var m = (i0 + i1) / 2; i0 = m - 0.01; i1 = m + 0.01; }
-    rc = Math.max(0, Math.min(rc, (r1 - r0) / 2 - 0.5));
-    var cIn = degFor(r0, rc), cOut = degFor(r1, rc);
-    if (i1 - i0 < 2 * cIn + 0.4) cIn = Math.max(0, (i1 - i0) / 2 - 0.2);
-    if (o1 - o0 < 2 * cOut + 0.4) cOut = Math.max(0, (o1 - o0) / 2 - 0.2);
-    var A = pd(i0, r0 + rc), B = pd(o0, r1 - rc), C = pd(o0 + cOut, r1), D = pd(o1 - cOut, r1),
-        E = pd(o1, r1 - rc), F = pd(i1, r0 + rc), G = pd(i1 - cIn, r0), H = pd(i0 + cIn, r0);
-    var cB = pd(o0, r1), cE = pd(o1, r1), cF = pd(i1, r0), cA = pd(i0, r0);
-    return "M" + A[0] + " " + A[1] + " L" + B[0] + " " + B[1]
-      + " Q" + cB[0] + " " + cB[1] + " " + C[0] + " " + C[1]
-      + " A" + r1 + " " + r1 + " 0 0 1 " + D[0] + " " + D[1]
-      + " Q" + cE[0] + " " + cE[1] + " " + E[0] + " " + E[1]
-      + " L" + F[0] + " " + F[1]
-      + " Q" + cF[0] + " " + cF[1] + " " + G[0] + " " + G[1]
-      + " A" + r0 + " " + r0 + " 0 0 0 " + H[0] + " " + H[1]
-      + " Q" + cA[0] + " " + cA[1] + " " + A[0] + " " + A[1] + " Z";
-  };
+  var pd = bosPetPd;
+  var petalPath = bosPetalPath;
   var total = N ? Math.round(SPH.reduce(function (a, s) { return a + (s.v || 0); }, 0) / N * 100) : 0;
   var bwStatus = total >= 75 ? "Отлично" : total >= 55 ? "Хорошо" : total >= 35 ? "В движении" : "Начало";
-  // Шкалы цвета (сила сферы = цвет + плотность; David: цвет должен считываться)
-  var _lerp = function (a, b, t) { return a + (b - a) * t; };
-  var _h2r = function (h) { h = h.replace("#", ""); return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; };
-  var _r2h = function (a) { return "#" + a.map(function (x) { var s = Math.round(x).toString(16); return s.length < 2 ? "0" + s : s; }).join(""); };
-  var _onScale = function (v, SC) { v = Math.max(SC[0][0], Math.min(1, v)); for (var i = 1; i < SC.length; i++) { if (v <= SC[i][0]) { var t = (v - SC[i - 1][0]) / (SC[i][0] - SC[i - 1][0]); var a = _h2r(SC[i - 1][1]), b = _h2r(SC[i][1]); return _r2h([_lerp(a[0], b[0], t), _lerp(a[1], b[1], t), _lerp(a[2], b[2], t)]); } } return SC[SC.length - 1][1]; };
-  // Шкалы КРУЧЕ макета (David 2026-07-22: «на телефоне всё супер бледно»): реальные значения
-  // живут в середине шкалы, поэтому золото должно вспыхивать уже с ~0.55, а не только на пике.
-  var segCol = function (v) { return _onScale(v, [[0.3, "#EFE9DB"], [0.55, "#F9DC82"], [0.78, "#F6BC3C"], [1, "#F2A82A"]]); };
-  var edgeColW = function (v) { return _onScale(v, [[0.3, "#CFC9BB"], [0.45, "#E6C476"], [0.65, "#F5B62A"], [1, "#FBBF13"]]); };
-  var fillA = function (v) { return _onScale(v, [[0.3, "#E3DCCA"], [0.55, "#F6DC7E"], [1, "#FBBF13"]]); };
-  var fillB = function (v) { return _onScale(v, [[0.3, "#D6CDB8"], [0.55, "#EFC24A"], [1, "#EF9F14"]]); };
-  var opaFor = function (v) { return (0.14 + 0.34 * Math.max(0, Math.min(1, (v - 0.3) / 0.7))).toFixed(2); };
-  // Шкала ЛЕПЕСТКА: песочный у слабых сфер → насыщенное золото у сильных. Внутренний край
-  // светлее внешнего (свет идёт из центра), поэтому две функции, а не одна.
-  var _mixW = function (hex, t) { var c = _h2r(hex); return _r2h([_lerp(c[0], 255, t), _lerp(c[1], 255, t), _lerp(c[2], 255, t)]); };
-  var petDeep = function (v) { return _onScale(v, [[0.20, "#DCD3BE"], [0.40, "#E9CE87"], [0.55, "#F5C64B"], [0.75, "#F0A81A"], [1, "#E8930A"]]); };
-  var petLight = function (v) { return _mixW(petDeep(v), 0.24); };
+  // Шкала лепестка — общая с виджетом (bosPetDeep/bosPetLight). Старые шкалы «жидкого стекла»
+  // (segCol/edgeColW/fillA/fillB/opaFor) ушли вместе с радаром-полигоном.
+  var petDeep = bosPetDeep, petLight = bosPetLight;
   var trackCol = dark ? "rgba(255,255,255,0.07)" : "#F1EFE9";
   var rowIcCol = dark ? "#c8c8cd" : "#57585f";
 
@@ -5395,6 +5468,9 @@ var BOS_HOME_WIDGETS = [
   // «Состояние» — виджет-орб (редизайн 2026-07-04): не отмечено → приглашение StateInviteLive,
   // отмечено → MoodWidgetLive (орб в цвете + след недели). Тап → Момент (жест A, route "mood").
   { id: "mood",    t: "Состояние",    d: "Как ты сейчас — свет орба", Icon: BosStateGlyph, emoji: "☀️" },
+  // «Баланс жизни» — колесо шести сфер прямо на главной (David 2026-08-01). Opt-in: включается
+  // и выключается из галереи «+», сам на доску не лезет.
+  { id: "balance", t: "Баланс жизни", d: "Колесо шести сфер",        Icon: I.ChartBar,     emoji: "🌿" },
   // «Баланс окружения» отложён (2026-07-13, см. _parked/env-balance/) — виджет убран из галереи.
   { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     Icon: I.Users,        emoji: "👥" },
   // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
@@ -8513,8 +8589,13 @@ function HomeWeekStripLive(props) {
         return (
           <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 7px 6px", borderRadius: 18, background: isToday ? todayCap : "transparent" }}>
-              {/* СТАНДАРТ (David 2026-07-22): золото = наполненность дня — и на виджете главной. */}
-              <div style={{ width: 28, height: 28 }}>{bosDayRing(pct, "#0a0a0a", isDark, { sw: 4.9, gold: true })}</div>
+              {/* ЯЗЫК ГРЯДКИ (David 2026-08-01: «виджет „Эта неделя" не в стиле нового календаря —
+                  там старые кружочки с кольцом»). Тот же скруглённый квадрат-день и та же заливка
+                  по наполненности, что в грядке; «сегодня» — внутренняя обводка, как в клетке.
+                  Цвет золотой: виджет сводит ВСЕ привычки сразу, своего цвета у него нет. */}
+              <div style={{ width: 28, height: 28, borderRadius: 9,
+                background: (typeof bosFieldTint === "function") ? bosFieldTint(null, pct, isDark) : "transparent",
+                boxShadow: isToday ? ("inset 0 0 0 1.6px " + (isDark ? "#fff" : "#0a0a0a")) : "none" }} />
               <span style={{ fontSize: 10, fontWeight: 600, color: isToday ? "var(--text-2)" : "var(--text-4)", letterSpacing: "0.2px" }}>{WD[i]}</span>
             </div>
           </div>
