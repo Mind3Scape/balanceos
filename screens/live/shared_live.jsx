@@ -8605,44 +8605,56 @@ function HomeWeekStripLive(props) {
   var keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
   var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   var WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-  /* НЕДЕЛЯ = семь ПЛИТОК-ДНЕЙ (David 2026-08-01: «виджет выглядит страшно; зачем чёрная обводка,
-     если день уже выделен серым; может, писать дату внутри и сделать крупнее»).
-     Что было не так: сегодня выделялся ДВАЖДЫ (серая капсула-подложка + чёрная обводка на клетке)
-     — два приёма про один факт, глазу шумно; сама клетка была 28px с подписью-буквой под ней,
-     то есть маленький безымянный квадрат, по которому не прочитать дату.
-     Стало: плитка во всю ширину ячейки, ЧИСЛО ДНЯ внутри, буква недели под ней. Сегодня выделен
-     ОДНИМ приёмом — типографикой (число и буква темнее и жирнее). Никаких рамок и капсул.
-     Заливка — та же, что в грядке: золото по наполненности дня. */
-  var track = isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.055)";
+  /* НЕДЕЛЯ = СЕРИЯ, А НЕ СЕМЬ КЛЕТОК (David 2026-08-01, третий заход: «подпись „Сегодня" — тупо,
+     непродуманно; сделай в разы круче»).
+     Путь до сюда: были кружки-кольца → плитки с двойным выделением (капсула + обводка) → плитки
+     с подписью «Сегодня». Слово было заплаткой: оно ломало ровный ряд букв и ничего не добавляло
+     к смыслу.
+     Что сделано вместо: ДНИ ПОДРЯД СЛИВАЮТСЯ В ОДНУ КАПСУЛУ. Два закрытых дня рядом — и зазор
+     между ними исчезает, скругления гаснут, серия читается как непрерывная золотая полоса —
+     ровно так, как iOS выделяет текст. Виджет перестаёт быть таблицей и начинает показывать
+     РИТМ: где серия, где разрыв (правило «образ сильнее таблицы»).
+     Сегодня выделен ОДНИМ приёмом и без единого нового элемента: его число — единственное
+     чисто-чёрное (в тёмной — белое) на всём ряду; у прошедших дней числа тёплые тёмно-золотые
+     или серые, у будущих — почти невидимые. Ни рамок, ни капсул, ни слов. */
+  var track = isDark ? "rgba(255,255,255,0.085)" : "rgba(10,10,10,0.05)";
+  var GAP = 6, R = 13, r = 4;
+  // Доля дня считается заранее по всем семи — она нужна и для слияния соседей.
+  var week = keys.map(function (k, i) {
+    // «Дни недели»: привычка с расписанием в чужой день НЕ входит в знаменатель — день требует
+    // только то, что на него назначено (отметил в выходной → всё равно идёт в счёт).
+    var due = habits.filter(function (h) {
+      var m = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
+      return (h.log && h.log[k]) || !m || !!m[i];
+    });
+    var doneN = due.length ? due.filter(function (h) { return h.log && h.log[k]; }).length : 0;
+    var isFuture = todayK ? k > todayK : false;
+    return {
+      k: k, i: i, pct: due.length ? doneN / due.length : 0, future: isFuture,
+      today: k === todayK, num: parseInt(("" + k).slice(-2), 10) || "",
+    };
+  });
+  week.forEach(function (d) { d.filled = d.pct > 0 && !d.future; });
   return (
-    <div style={{ display: "flex", gap: 6 }}>
-      {keys.map(function (k, i) {
-        // «Дни недели»: привычка с расписанием в чужой день НЕ входит в знаменатель — день
-        // требует только то, что на него назначено (отметил в выходной → всё равно идёт в счёт).
-        var due = habits.filter(function (h) {
-          var m = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
-          return (h.log && h.log[k]) || !m || !!m[i];
-        });
-        var doneN = due.length ? due.filter(function (h) { return h.log && h.log[k]; }).length : 0;
-        var pct = due.length ? doneN / due.length : 0;
-        var isToday = k === todayK;
-        var isFuture = todayK ? k > todayK : false;
-        var dayNum = parseInt(("" + k).slice(-2), 10) || "";
-        var filled = pct > 0 && !isFuture;
-        // Чернила числа: на золоте — тёмное золото (читается на любой ступени заливки), на пустой
-        // плитке — обычный текст; сегодня темнее и жирнее остальных, будущее почти не видно.
-        var ink = filled ? "#6b4e00" : (isFuture ? "var(--text-5)" : (isToday ? "var(--text)" : "var(--text-3)"));
+    <div style={{ display: "flex" }}>
+      {week.map(function (d, i) {
+        var prevOn = i > 0 && week[i - 1].filled, nextOn = i < 6 && week[i + 1].filled;
+        var joinL = d.filled && prevOn, joinR = d.filled && nextOn;
+        // Заливка выезжает в зазор ровно на его половину с той стороны, где день продолжает серию.
+        var ml = joinL ? -GAP / 2 : 0, mr = joinR ? -GAP / 2 : 0;
+        var ink = d.today ? "var(--text)"
+          : (d.filled ? "#6b4e00" : (d.future ? "var(--text-5)" : "var(--text-3)"));
         return (
-          <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div style={{ width: "100%", aspectRatio: "1/1", borderRadius: 13, display: "grid", placeItems: "center",
-              background: filled ? ((typeof bosFieldTint === "function") ? bosFieldTint(null, pct, isDark) : track) : track,
-              opacity: isFuture ? 0.55 : 1 }}>
-              <span style={{ fontSize: 15, fontWeight: isToday ? 800 : 600, letterSpacing: "-0.3px", color: ink, fontVariantNumeric: "tabular-nums" }}>{dayNum}</span>
+          <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "0 " + (GAP / 2) + "px" }}>
+            <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", display: "grid", placeItems: "center" }}>
+              <span aria-hidden style={{ position: "absolute", top: 0, bottom: 0, left: ml, right: mr,
+                background: d.filled ? ((typeof bosFieldTint === "function") ? bosFieldTint(null, d.pct, isDark) : track) : track,
+                opacity: d.future ? 0.5 : 1,
+                borderTopLeftRadius: joinL ? r : R, borderBottomLeftRadius: joinL ? r : R,
+                borderTopRightRadius: joinR ? r : R, borderBottomRightRadius: joinR ? r : R }} />
+              <span style={{ position: "relative", fontSize: 15.5, fontWeight: d.today ? 800 : 600, letterSpacing: "-0.3px", color: ink, fontVariantNumeric: "tabular-nums" }}>{d.num}</span>
             </div>
-            {/* У сегодня подпись — слово «Сегодня», а не буква дня: так текущий день читается
-                сразу и без единой рамки (David: «зачем чёрная обводка, если уже выделено»). */}
-            <span style={{ fontSize: isToday ? 9.5 : 10.5, fontWeight: isToday ? 800 : 600, letterSpacing: isToday ? "-0.1px" : "0.2px",
-              color: isToday ? "var(--text)" : "var(--text-4)", whiteSpace: "nowrap" }}>{isToday ? "Сегодня" : WD[i]}</span>
+            <span style={{ fontSize: 10.5, fontWeight: d.today ? 800 : 600, letterSpacing: "0.2px", color: d.today ? "var(--text)" : "var(--text-4)" }}>{WD[i]}</span>
           </div>
         );
       })}
