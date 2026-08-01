@@ -599,28 +599,29 @@ function BosFieldCalendarLive(props) {
   var accent = (typeof bosCanonColor === "function") ? bosCanonColor(props.accent) : props.accent;
   var isDark = !!props.isDark;
   var onDayTap = props.onDayTap, onDayMark = props.onDayMark;
-  var cell = props.cell || 13, gap = props.gap || 3.5;
+  var cell = props.cell || 12, gap = props.gap || 3;
   var scRef = React.useRef(null);
   var lpRef = React.useRef(null);        // таймер долгого тапа
   var firedRef = React.useRef(false);    // долгий тап уже сработал → обычный клик глотаем
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var todayK = bosFieldKey(today);
 
-  // Начало грядки: с 1 января, но не меньше 10 недель (у новой привычки иначе видно одну колонку)
-  // и не раньше, чем объект вообще появился (sinceKey — дата создания/первой отметки): рисовать
-  // пустой январь там, где данных физически нет, — обман.
+  // ДЛИНА ГРЯДКИ (David 2026-08-01, второй заход: «справа пустое белое пространство, грядка ни о
+  // чём»). Короткое окно (10 недель) не заполняло ширину карточки — грядка липла к левому краю.
+  // Теперь как в макете: ГОД, ровно 52 недели назад от текущей недели. Поле всегда занимает всю
+  // ширину и уезжает вправо скроллом, а не висит огрызком. sinceKey больше не режет длину —
+  // «до появления привычки» дни просто пустые, как и любой пропуск.
   var start = React.useMemo(function () {
-    var jan = new Date(today.getFullYear(), 0, 1);
-    var minW = new Date(today); minW.setDate(today.getDate() - 10 * 7);
-    var s = jan;
-    if (props.sinceKey) {
-      var since = bosFieldDate(props.sinceKey);
-      if (since > jan) s = since;
-    }
+    // ТЕКУЩИЙ ГОД (как в макете — «2026»), а не скользящие 52 недели: скользящее окно уводило
+    // левый край в прошлый август, и половина грядки была прошлогодней пустотой.
+    var s = new Date(today.getFullYear(), 0, 1);
+    // …но в начале года колонок мало и поле снова стало бы огрызком — добираем прошлым годом
+    // до 20 недель, чтобы грядка всегда была шире карточки и честно уезжала скроллом.
+    var minW = new Date(today); minW.setDate(minW.getDate() - 20 * 7);
     if (s > minW) s = minW;
     s.setDate(s.getDate() - ((s.getDay() + 6) % 7));   // ровно на понедельник
     return s;
-  }, [props.sinceKey, todayK]);
+  }, [todayK]);
 
   var cols = React.useMemo(function () {
     var out = [], cur = new Date(start), seen = {};
@@ -630,8 +631,8 @@ function BosFieldCalendarLive(props) {
         var d = new Date(cur); d.setDate(cur.getDate() + i);
         if (d > today) { col.days.push(null); continue; }
         var k = bosFieldKey(d);
-        var m = d.getMonth();
-        if (seen[m] === undefined && d.getDate() <= 7) { seen[m] = 1; col.label = BOS_FIELD_MON[m]; }
+        var m = d.getMonth(), ym = d.getFullYear() + "-" + m;
+        if (seen[ym] === undefined && d.getDate() <= 7) { seen[ym] = 1; col.label = BOS_FIELD_MON[m]; }
         col.days.push({ k: k, m: m, d: d.getDate() });
       }
       out.push(col);
@@ -659,17 +660,26 @@ function BosFieldCalendarLive(props) {
   return (
     <div>
       <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: gap, paddingTop: 17, flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: gap, paddingTop: 19, flexShrink: 0 }}>
           {BOS_FIELD_DOW.map(function (w, i) {
             return <span key={i} style={{ height: cell, lineHeight: cell + "px", fontSize: 8.5, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-4)", opacity: i % 2 ? 0 : 1 }}>{w}</span>;
           })}
         </div>
         <div ref={scRef} className="screen-scroll bos-field-scroll" style={{ overflowX: "auto", overflowY: "hidden", flex: 1, minWidth: 0, paddingBottom: 2 }}>
-          <div style={{ display: "flex", gap: gap, minWidth: "min-content", padding: "2px 2px 2px 0" }}>
+          <div style={{ width: cols.length * (cell + gap) + 4, padding: "2px 4px 2px 0" }}>
+            {/* Подписи месяцев — ОТДЕЛЬНЫМ рядом (David: «месяцы такие с разделениями получились»).
+                Раньше метка жила ВНУТРИ колонки: «Июн» шире клетки в 12px, колонка растягивалась под
+                текст, и грядка рвалась на группы с щелями. Теперь ячейка метки строго cell+gap,
+                а текст выходит за неё через overflow:visible — сетка остаётся ровной. */}
+            <div style={{ display: "flex", height: 14, marginBottom: 3 }}>
+              {cols.map(function (col, ci) {
+                return <span key={ci} style={{ width: cell + gap, flexShrink: 0, fontSize: 9, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap", overflow: "visible" }}>{col.label}</span>;
+              })}
+            </div>
+            <div style={{ display: "flex", gap: gap }}>
             {cols.map(function (col, ci) {
               return (
-                <div key={ci} style={{ display: "flex", flexDirection: "column", gap: gap, flexShrink: 0 }}>
-                  <span style={{ height: 15, fontSize: 9, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap", overflow: "visible" }}>{col.label}</span>
+                <div key={ci} style={{ display: "flex", flexDirection: "column", gap: gap, flexShrink: 0, width: cell }}>
                   {col.days.map(function (dd, ri) {
                     if (!dd) return <span key={ri} aria-hidden style={{ width: cell, height: cell }} />;
                     var v = pctOf(dd.k);
@@ -677,25 +687,30 @@ function BosFieldCalendarLive(props) {
                     var isSel = props.selKey && dd.k === props.selKey && !isToday;
                     var late = props.lateOf ? !!props.lateOf(dd.k) : false;
                     var off = props.offOf ? !!props.offOf(dd.k) : false;   // не по расписанию — тише
-                    var can = true;
+                    // unknownBefore — граница, до которой данных ПРОСТО НЕТ (круг отдаёт лишь
+                    // последние 31 день). Такие дни рисуем призраком: пропуск и «неизвестно» —
+                    // разные вещи, и выдавать одно за другое нельзя.
+                    var unknown = props.unknownBefore ? dd.k < props.unknownBefore : false;
+                    var can = !unknown;
                     var ring = isToday ? ("0 0 0 1.6px " + (isDark ? "#fff" : "#0a0a0a"))
                              : (isSel ? ("0 0 0 1.6px " + (isDark ? "rgba(255,255,255,0.7)" : "rgba(10,10,10,0.55)")) : "none");
                     return (
                       <button key={ri} className="tap" data-no-haptic
-                        onClick={function () { if (firedRef.current) { firedRef.current = false; return; } if (onDayTap) onDayTap(dd.k); }}
+                        onClick={function () { if (firedRef.current) { firedRef.current = false; return; } if (unknown) return; if (onDayTap) onDayTap(dd.k); }}
                         onPointerDown={function () { startLong(dd.k, can); }}
                         onPointerUp={endLong} onPointerLeave={endLong} onPointerCancel={endLong}
                         onContextMenu={function (e) { e.preventDefault(); }}
                         aria-label={dd.d + " " + BOS_FIELD_MON[dd.m]}
-                        style={{ width: cell, height: cell, borderRadius: Math.round(cell * 0.3), border: 0, padding: 0, cursor: "pointer",
+                        style={{ width: cell, height: cell, borderRadius: Math.round(cell * 0.3), border: 0, padding: 0, cursor: unknown ? "default" : "pointer",
                           background: v > 0 ? bosFieldTint(accent, v, isDark) : trackInk,
-                          opacity: (off && !(v > 0)) ? 0.45 : (late ? 0.62 : 1),
+                          opacity: unknown ? 0.32 : ((off && !(v > 0)) ? 0.45 : (late ? 0.62 : 1)),
                           boxShadow: ring, transition: "background 0.18s, box-shadow 0.15s" }} />
                     );
                   })}
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       </div>
@@ -3985,16 +4000,16 @@ function BosBalanceWheelLive(props) {
     } catch (e) {}
   }, [list]);
   function tapRadar() { beginFlip(); if (list) setList(false); else { setSel(null); setList(true); } }
-  // Стандарт: тап по сфере ВЕЗДЕ раскрывает аккордеон. Из ранжира — сворачиваем колесо и открываем.
-  function tapNode(s) { if (list) { beginFlip(); setSel(s.id); setList(false); } else setSel(s.id === selId ? null : s.id); }
+  // David 2026-08-01: тап по сфере в самом колесе больше НЕ открывает панель снизу — колесо
+  // сначала раскладывается в столбики, и уже там тап по столбику открывает содержимое сферы.
+  function tapNode(s) { if (list) setSel(s.id === selId ? null : s.id); else { beginFlip(); setSel(null); setList(true); } }
   // ── SVG колеса (один на оба состояния; в мини CSS прячет подписи и знаки) ──
   var wheelSvg = (function () {
     var defs = [], track = [], body = [], labs = [];
     SPH.forEach(function (s, i) {
       var aMid = i * 60, rv = R0 + Math.max(0.06, s.v) * (OUT - R0);
-      // «потолок» сферы — куда она может дорасти
-      track.push(<path key={"t" + i} d={petalPath(aMid, 30, R0, OUT, GAPPX, RCORN)} fill={trackCol}
-        onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
+      // «Потолок» сферы (серый лепесток во всю длину) УБРАН — David 2026-08-01: «серые штуки
+      // торчат». Вместе с ним из колеса ушла и вся тема нормы/бейслайна: вернёмся к ней позже.
       var mid = pd(aMid, rv);
       defs.push(<linearGradient key={"pg" + i} id={uid + "pg" + i} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={mid[0]} y2={mid[1]}>
         <stop offset="0" stopColor={petLight(s.v)} /><stop offset="1" stopColor={petDeep(s.v)} /></linearGradient>);
@@ -4067,7 +4082,7 @@ function BosBalanceWheelLive(props) {
           <div className="bw-head">
             <span className="bw-cap">Баланс жизни</span>
             <span className="bw-per">за всё время</span>
-            <span className="bw-badge">{SPH.filter(function (s) { return s.n && s.v >= TARGET; }).length} из 6 выше нормы</span>
+            <span className="bw-badge">{bwStatus}</span>
           </div>
         )}
         {list && (
@@ -4090,48 +4105,48 @@ function BosBalanceWheelLive(props) {
           <div className="bw-svgbox" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
         )}
 
+        {/* РАСКРЫТО — «столбики света» (David: вертикали вместо горизонтальных полос).
+            Высота и цвет = наполненность сферы; тап по столбику открывает её содержимое. */}
         {list && (
-          <div className="bw-rows">
+          <div className="bw-cols">
             {byV.map(function (s, i) {
               var pct = s.n ? Math.round(s.v * 100) : 0;
-              var weakRow = !s.n || s.v < TARGET;
               var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
+              var on = selId === s.id;
               return (
-                <button key={s.id} className="bw-row tap" data-no-haptic style={{ animationDelay: (i * 0.045) + "s" }} onClick={function () { tapNode(s); }}>
-                  <span className="bw-ric">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 17, color: rowIcCol })) || s.e}</span>
-                  <span className="bw-nm">{s.l}</span>
-                  <span className="bw-track">
-                    <span className="bw-fill" style={{ width: Math.max(pct, 3) + "%", background: "linear-gradient(90deg," + fillA(Math.max(s.v, 0.3)) + "," + fillB(Math.max(s.v, 0.3)) + ")", animationDelay: (0.12 + i * 0.05) + "s" }} />
-                    <span className="bw-tick" style={{ left: targetPct + "%" }} />
+                <button key={s.id} className={"bw-col tap" + (on ? " on" : "")} data-no-haptic onClick={function () { tapNode(s); }}>
+                  <span className="bw-colv">{pct}</span>
+                  <span className="bw-coltr">
+                    <span className="bw-colfill" style={{ height: Math.max(pct, 8) + "%", background: "linear-gradient(180deg," + petLight(Math.max(s.v, 0.12)) + "," + petDeep(Math.max(s.v, 0.12)) + ")", animationDelay: (0.06 + i * 0.05) + "s" }} />
+                    <span className="bw-colic">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: "#fff" })) || s.e}</span>
                   </span>
-                  <span className="bw-pct" style={{ color: weakRow ? (dark ? "#E0A070" : "#b0663a") : (dark ? "#c9c9ce" : "#5a5b63") }}>{pct}%</span>
-                  <svg className="bw-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+                  <span className="bw-colnm">{s.l}</span>
                 </button>
               );
             })}
-            <div className="bw-rowsub">Тап по сфере — что в неё входит (привычки и цели). Засечка на полосе — твой идеал.</div>
           </div>
         )}
+        {list && <div className="bw-rowsub">Тап по сфере — что в неё входит: привычки и цели.</div>}
 
-        {/* Подвал как в макете: слабейшая и сильнейшая сферы одной строкой + «сфера — тап ›».
-            Стеклянная капсула-шёпот убрана — она спорила с матовой картой. */}
-        {!list && !selSphere && (weak || strong) && (
+        {/* Подвал колеса: слабейшая и сильнейшая сферы одной строкой. */}
+        {!list && (weak || strong) && (
           <div className="bw-foot">
             {weak && (
-              <button className="bw-fitem tap" data-no-haptic onClick={function () { setSel(weak.id); }} style={{ color: dark ? "#E0A070" : "#b0663a" }}>
+              <button className="bw-fitem tap" data-no-haptic onClick={function () { beginFlip(); setSel(weak.id); setList(true); }} style={{ color: dark ? "#E0A070" : "#b0663a" }}>
                 {((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[weak.id]) || "Sparkles", { size: 15, color: dark ? "#E0A070" : "#b0663a" })) || weak.e}
                 <b>{Math.round(weak.v * 100)}</b> {weak.l}
               </button>
             )}
             {strong && strong !== weak && (
-              <button className="bw-fitem tap" data-no-haptic onClick={function () { setSel(strong.id); }}>
+              <button className="bw-fitem tap" data-no-haptic onClick={function () { beginFlip(); setSel(strong.id); setList(true); }}>
                 {((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[strong.id]) || "Sparkles", { size: 15, color: rowIcCol })) || strong.e}
                 <b>{Math.round(strong.v * 100)}</b> {strong.l}
               </button>
             )}
-            <span className="bw-fmore">сфера — тап ›</span>
+            <span className="bw-fmore">все сферы — тап по колесу ›</span>
           </div>
         )}
+
         {!list && selSphere ? (function () {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";

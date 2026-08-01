@@ -324,8 +324,8 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
   const [selDayK, setSelDayK] = React.useState(todayK);
   const nowD = new Date();
   const dimM = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
-  // ГРЯДКА (David 2026-08-01). Круг отдаёт отметки только за последние 31 день (rangeRows),
-  // поэтому и грядка начинается оттуда — рисовать пустой январь честнее не показывать вовсе.
+  // ГРЯДКА (David 2026-08-01). Круг отдаёт отметки только за последние 31 день (rangeRows) —
+  // дни старше этой границы грядка рисует призраком (unknownBefore), а не «пропуском».
   const _fieldSince = (() => { const d = new Date(); d.setDate(d.getDate() - 30); return bosFieldKey(d); })();
   const _fieldPctStd = (k) => (k > todayK ? 0 : (selDays[k] ? 1 : 0));
   // Панель дня круга: кто отметился в выбранный день (rangeRows несёт весь круг за 31 день).
@@ -400,7 +400,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
     // как выше, но локально под эту привычку»): лица в свой час / волна на толпе.
     thread: thread,
     rhythm: { title: "Календарь · " + (selName || "ты"), single: true, accent: (h.color && h.color !== "#0a0a0a" && h.color !== "#8E8E93") ? h.color : null,
-      field: { pctOf: _fieldPctStd, selKey: selDayK, onDayTap: (k) => setSelDayK(k), sinceKey: _fieldSince, hint: "тап — кто отметился в этот день" },
+      field: { pctOf: _fieldPctStd, selKey: selDayK, onDayTap: (k) => setSelDayK(k), unknownBefore: _fieldSince, hint: "тап — кто отметился в этот день" },
       belowNode: dayNode },
     peopleTitle: "Люди",
     peopleExtra: doneUsers.length + " из " + membersN + " сегодня",

@@ -144,7 +144,6 @@ function HabitDetailLive() {
     if (app.toggleHabitDay) app.toggleHabitDay(h.id, k);
     setSelDay(k);
   };
-  const _sinceKey = _logDays.length ? _logDays[0] : null;
 
   // ОТМЕТКИ ДНЯ + ИСТОРИЯ (David 2026-07-22: «тыкаю на день — телепортируюсь в него и вижу,
   // кто отмечался; и внизу история отметок — кто во сколько»). Мои времена — локальный журнал
@@ -275,7 +274,7 @@ function HabitDetailLive() {
     // тап по дню = телепорт в шапку, долгий тап = отметка прямо в клетке.
     rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, accent,
       field: { pctOf: _fieldPct, selKey: selDay, onDayTap: (k) => setSelDay(k), onDayMark: _markDay,
-        lateOf: (k) => !!(h.lateDays && h.lateDays[k]), offOf: _offKey, sinceKey: _sinceKey,
+        lateOf: (k) => !!(h.lateDays && h.lateDays[k]), offOf: _offKey,
         hint: _shared ? "долгий тап — отметить · плотность = доля друзей" : undefined } },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };

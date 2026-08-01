@@ -4542,7 +4542,7 @@ function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, team
           isDark={isDark}
           accent={(accent && accent[0] === "#" && ("" + accent).toLowerCase() !== "#0a0a0a" && accent !== "#8E8E93") ? accent : null}
           pctOf={function (k) { return selKey === "all" ? (allFrac[k] || 0) : (selDays[k] ? 1 : 0); }}
-          sinceKey={(function () { var d = new Date(today); d.setDate(d.getDate() - 26 * 7); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })()}
+          unknownBefore={(function () { var d = new Date(today); d.setDate(d.getDate() - 26 * 7); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })()}
           hint={selKey === "all" ? "плотность = доля круга в дне" : "клетка = день"} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", marginTop: 14, borderTop: "1px solid var(--line)" }}>
