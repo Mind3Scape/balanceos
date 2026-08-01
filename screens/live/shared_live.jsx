@@ -4008,8 +4008,11 @@ function BosBalanceWheelLive(props) {
     var defs = [], track = [], body = [], labs = [];
     SPH.forEach(function (s, i) {
       var aMid = i * 60, rv = R0 + Math.max(0.06, s.v) * (OUT - R0);
-      // «Потолок» сферы (серый лепесток во всю длину) УБРАН — David 2026-08-01: «серые штуки
-      // торчат». Вместе с ним из колеса ушла и вся тема нормы/бейслайна: вернёмся к ней позже.
+      // «Потолок» сферы — светло-серый лепесток во всю длину: показывает, куда сфера может
+      // дорасти. David 2026-08-01: «большие серые лепестки мне нравились, оставь» — убирать
+      // надо было только засечки нормы ближе к центру, а не сам потолок.
+      track.push(<path key={"t" + i} d={petalPath(aMid, 30, R0, OUT, GAPPX, RCORN)} fill={trackCol}
+        onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
       var mid = pd(aMid, rv);
       defs.push(<linearGradient key={"pg" + i} id={uid + "pg" + i} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={mid[0]} y2={mid[1]}>
         <stop offset="0" stopColor={petLight(s.v)} /><stop offset="1" stopColor={petDeep(s.v)} /></linearGradient>);
@@ -4040,7 +4043,7 @@ function BosBalanceWheelLive(props) {
             <feDropShadow dx="0" dy="2.4" stdDeviation="3" floodColor="#8A6400" floodOpacity={dark ? "0.34" : "0.16"} />
           </filter>
         </defs>
-        <g className="bw-track">{track}</g>
+        <g className="bw-ceil">{track}</g>
         <g filter={"url(#" + uid + "lift)"}>{body}</g>
         <circle cx="0" cy="0" r={R0 - 3.6} fill={dark ? "#1c1d22" : "#fff"} />
         <text className="bw-core" x="0" y={(OUT * 0.05).toFixed(1)} textAnchor="middle" fill={dark ? "#f2f2f5" : "#15161B"}>{total}</text>
