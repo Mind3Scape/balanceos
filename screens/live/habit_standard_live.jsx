@@ -70,7 +70,7 @@ function BosStdHist({ dist, me, isDark }) {
 
 /* «РИТМ» — один блок времени. Пилюля-переключатель в заголовке СПРАВА (компактная, v3):
    свёрнута — один таймфрейм «Неделя ⌄»; тап — три пилюли на месте; выбор схлопывает. */
-function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, single, gold, onDayTap, belowNode }) {
+function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthCells, monthHint, yearMonths, yearHint, onYearOpen, accent, isDark, bare, initialTab, single, gold, onDayTap, belowNode, field }) {
   // single (David 2026-07-22): «уберём неделю и год пока» — один месяц, пилюли нет.
   const [tab, setTab] = React.useState(single ? "month" : (initialTab || "week"));
   const [open, setOpen] = React.useState(false);
@@ -93,6 +93,13 @@ function BosRhythmBlockLive({ mode, title, titleExtra, weekCells, hist, monthCel
           {(weekCells || []).map((c, i) => <BosStdRingCell key={i} pct={c.pct} size={26} below={c.l} accent={accent} isDark={isDark} dim={c.dim} today={c.today} />)}
         </div>
       );
+  } else if (tab === "month" && field) {
+    // ГРЯДКА (David 2026-08-01) — единый календарь приложения вместо месячной сетки колец.
+    // Данные приходят функцией по ключу дня, поэтому виден весь год, а не текущий месяц.
+    body = (
+      <BosFieldCalendarLive {...field} isDark={isDark} accent={field.accent !== undefined ? field.accent : accent}
+        hint={field.hint !== undefined ? field.hint : (monthHint || undefined)} />
+    );
   } else if (tab === "month") {
     // Телепорт в день (David 2026-07-22): тап по ЛЮБОМУ прожитому дню (c.canTap) — не шторка,
     // а возврат в этот день (панель дня и история под календарём). single — клетки крупнее.
@@ -330,10 +337,10 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
   const [selDayK, setSelDayK] = React.useState(todayK);
   const nowD = new Date();
   const dimM = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
-  const monthCells = Array.from({ length: dimM }).map((_, i) => {
-    const k = nowD.getFullYear() + "-" + String(nowD.getMonth() + 1).padStart(2, "0") + "-" + String(i + 1).padStart(2, "0");
-    return { pct: selDays[k] ? 1 : 0, dim: k > todayK, today: k === todayK, k, canTap: k <= todayK, sel: k === selDayK && k !== todayK };
-  });
+  // ГРЯДКА (David 2026-08-01). Круг отдаёт отметки только за последние 31 день (rangeRows),
+  // поэтому и грядка начинается оттуда — рисовать пустой январь честнее не показывать вовсе.
+  const _fieldSince = (() => { const d = new Date(); d.setDate(d.getDate() - 30); return bosFieldKey(d); })();
+  const _fieldPctStd = (k) => (k > todayK ? 0 : (selDays[k] ? 1 : 0));
   // Панель дня круга: кто отметился в выбранный день (rangeRows несёт весь круг за 31 день).
   const _dayUsers = {}; (rangeRows || []).forEach((r) => { if (r.h === h.id && r.day === selDayK) _dayUsers[r.u] = 1; });
   if (selDayK === todayK) doneUsers.forEach((u) => { _dayUsers[u] = 1; });
@@ -405,7 +412,9 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
     // Нить «Сегодня» — И в аккордеоне (David 2026-07-16: «не хватает таймлайна активности,
     // как выше, но локально под эту привычку»): лица в свой час / волна на толпе.
     thread: thread,
-    rhythm: { title: "Календарь · " + (selName || "ты"), single: true, gold: true, monthCells, onDayTap: (k) => setSelDayK(k), belowNode: dayNode },
+    rhythm: { title: "Календарь · " + (selName || "ты"), single: true, accent: (h.color && h.color !== "#0a0a0a" && h.color !== "#8E8E93") ? h.color : null,
+      field: { pctOf: _fieldPctStd, selKey: selDayK, onDayTap: (k) => setSelDayK(k), sinceKey: _fieldSince, hint: "клетка = день · тап показывает, кто отметился" },
+      belowNode: dayNode },
     peopleTitle: "Люди",
     peopleExtra: doneUsers.length + " из " + membersN + " сегодня",
     people: peopleGrid,

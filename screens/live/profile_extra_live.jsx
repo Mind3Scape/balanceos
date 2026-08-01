@@ -914,6 +914,15 @@ function HistoryLive() {
   };
 
   const [selDay, setSelDay] = useP(today);
+  // Грядка живёт годом, а не месяцем: доля дня по КЛЮЧУ + выбранный день как ключ (mIdx/selDay
+  // остаются источником правды для панели дня ниже — тап по клетке просто переставляет их).
+  const _todayKeyCal = year + "-" + String(CUR_M + 1).padStart(2, "0") + "-" + String(today).padStart(2, "0");
+  const fieldSelK = year + "-" + String(mIdx + 1).padStart(2, "0") + "-" + String(selDay).padStart(2, "0");
+  const fieldPctK = (k) => {
+    if (k > _todayKeyCal || !liveHabits.length) return 0;
+    const n = liveHabits.reduce((s, h) => s + (h && h.log && h.log[k] ? 1 : 0), 0);
+    return n / liveHabits.length;
+  };
 
   const blanks = Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i }));
   const days = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }));
@@ -962,39 +971,21 @@ function HistoryLive() {
           золотые кольца-заполнения bosDayRing (золото = наполненность дня), «сегодня» — серая
           заливка, тап по дню — телепорт в панель дня ниже (состояние · журнал · привычки =
           «история в один день»). Глазик и легенда убраны — один подробный вид. */}
+      {/* ГРЯДКА (David 2026-08-01) — единый календарь приложения. Здесь считается доля ВСЕХ
+          привычек за день, поэтому свой цвет объекта не подставляем: наполненность = золото.
+          Тап по клетке телепортирует панель дня ниже (она и так живёт этим днём). */}
       <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22, transform: "translateZ(0)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={() => setMIdx(m => Math.max(0, m - 1))} disabled={mIdx === 0} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
-            <I.ChevronLeft size={16}/>
-          </button>
-          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
-          <button onClick={() => setMIdx(m => Math.min(11, m + 1))} disabled={mIdx === 11} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
-            <I.ChevronRight size={16}/>
-          </button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{year}</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5 }}>{liveHabits.length} {liveHabits.length === 1 ? "привычка" : (liveHabits.length >= 2 && liveHabits.length <= 4 ? "привычки" : "привычек")}</div>
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "14px auto 0" }}>
-          {weekday.map((w, i) => (
-            <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6 }}>{w}</div>
-          ))}
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "6px auto 0" }}>
-          {cells.map(c => {
-            if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }}/>;
-            const pct = completion(c.d);
-            const fut = pct == null;
-            const isSelected = selDay === c.d;
-            const isToday = isCurMonth && c.d === today;
-            return (
-              <button key={c.key} onClick={fut ? undefined : () => setSelDay(c.d)} className="tap" data-haptic="selection"
-                style={{ aspectRatio: "1/1", border: 0, background: "transparent", padding: 0, position: "relative", display: "grid", placeItems: "center", cursor: fut ? "default" : "pointer", opacity: fut ? 0.35 : 1 }}>
-                <span aria-hidden style={{ position: "absolute", inset: 0 }}>{bosDayRing(fut ? 0 : pct, null, isDark, { sw: 3.6, gold: true, today: isToday, sel: isSelected && !isToday })}</span>
-                <span style={{ position: "relative", fontSize: 11, fontWeight: isToday ? 800 : 600, color: (!fut && pct >= 1) ? "#6b4e00" : (isToday ? "var(--text)" : "var(--text-4)") }}>{c.d}</span>
-              </button>
-            );
-          })}
-        </div>
+        <BosFieldCalendarLive
+          isDark={isDark}
+          accent={null}
+          pctOf={fieldPctK}
+          selKey={fieldSelK}
+          onDayTap={(k) => { setMIdx(+k.slice(5, 7) - 1); setSelDay(+k.slice(8, 10)); }}
+          hint="клетка = день · тап открывает его историю" />
       </SysCard>
 
       {/* Панель дня — «история в один день»: % · состояние · журнал · привычки. Всегда видна

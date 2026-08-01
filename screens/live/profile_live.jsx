@@ -426,19 +426,18 @@ function bosAiMemoryPctLive(app, st) {
    пишет модель по реальным фактам. Заготовки остаются только как честный запасной вариант,
    когда ключа нет или модель молчит — тогда лучше сухая правда, чем пустая карточка. */
 var BOS_OBS_SYSTEM =
-  "Ты — Balance AI в приложении привычек. Пользователь открыл вкладку ИИ. Напиши 1–3 НАБЛЮДЕНИЯ о нём " +
-  "по фактам ниже. Верни СТРОГО JSON-массив без пояснений:\n" +
-  '[{"kick":"...","head":"...","body":"...","offer":"...","chips":["...","..."]}]\n' +
-  "kick — 1–3 слова, как называется этот разговор («Что я заметил», «Пока только факты», «Знакомимся»).\n" +
-  "head — короткая фраза-вывод, которую человек мог бы пересказать другу (до 60 знаков, без точки в конце).\n" +
-  "body — 1–2 предложения, ОБЯЗАТЕЛЬНО с цифрой и окном времени из фактов (до 180 знаков).\n" +
-  "offer — одно маленькое действие, которое реально умеет приложение: отметить привычку, поменять дни или " +
-  "напоминание, добавить привычку в сферу, снизить цель, позвать человека в совместную привычку, отметить " +
-  "состояние. Ничего другого приложение не умеет — не выдумывай таймеры, трекеры сна, экспорт и прочее. " +
-  "Если предложить нечего — пустая строка.\n" +
-  "chips — 2 коротких ответа человека (до 22 знаков), продолжающих разговор.\n" +
-  "Правила: по-русски, на «ты», тепло и без пафоса. Никаких выводов без числа — если данных мало, так и скажи. " +
-  "Не ставь диагнозов и не обещай результатов. Не повторяй факты дословно — говори по-человечески.";
+  "Ты — Balance AI в приложении привычек. Пользователь открыл вкладку ИИ, и ты пишешь ему СООБЩЕНИЕ — " +
+  "так, как писал бы живой человек, который смотрит на его дни. Верни СТРОГО JSON-массив 1–3 сообщений " +
+  "без пояснений:\n" +
+  '[{"text":"...","chips":["...","..."]}]\n' +
+  "text — 2–4 коротких предложения одним куском, БЕЗ заголовков, списков, markdown и эмодзи. Начни с того, " +
+  "что заметил, вплети цифру и окно времени прямо в речь, и закончи одним маленьким предложением, что можно " +
+  "сделать. Пиши по-русски, на «ты», спокойно и без пафоса. До 320 знаков.\n" +
+  "chips — 2 коротких ответа человека (до 22 знаков), которыми он продолжит разговор.\n" +
+  "Что можно предлагать: отметить привычку, поменять её дни или напоминание, добавить привычку в сферу, " +
+  "снизить цель, позвать человека в совместную привычку, отметить состояние. Ничего другого приложение не " +
+  "умеет — не выдумывай таймеры, трекеры сна, экспорт.\n" +
+  "Никаких выводов без числа: если данных мало, честно скажи об этом. Не ставь диагнозов и не обещай результатов.";
 
 function bosObsFactsLive(app, st) {
   var out = [];
@@ -469,62 +468,57 @@ function bosObsFactsLive(app, st) {
   } catch (e) {}
   return out.join("\n");
 }
-/* Запасные наблюдения — считаются локально, без ключа. Ровно та же анатомия. */
+/* Запасные сообщения — считаются локально, без ключа. Тот же тон: живая речь, не карточка
+   с полями. Показываем их, только пока модель молчит или ключа нет. */
 function bosObsLocalLive(app, st) {
   var out = [];
   var wd = (typeof bosWheelData === "function") ? bosWheelData(app) : null;
   var filled = wd ? wd.spheres.filter(function (s) { return s.n; }) : [];
   if (st.daysHist < 1) {
-    out.push({ kick: "Знакомимся", head: "Пока я о тебе ничего не знаю",
-      body: "Наблюдения появятся из отмеченных дней — придумывать за тебя я не буду.",
-      offer: "Начни с одной маленькой привычки и отметь сегодняшний день.",
+    out.push({ text: "Привет. Я пока ничего о тебе не знаю и придумывать не буду — мои наблюдения растут из отмеченных дней. Начни с одной маленькой привычки и отметь сегодняшний день, дальше я подхвачу.",
       chips: ["С чего начать?", "Отметить состояние"] });
     return out;
   }
   if (st.daysHist < 7) {
-    out.push({ kick: "Пока только факты", head: "Отмеченных дней — " + st.daysHist,
-      body: "Закономерности я ищу с седьмого дня: раньше это будет гадание, а не наблюдение. Сегодня закрыто " + st.doneToday + " из " + st.schedToday + ".",
-      offer: "", chips: ["Что ты уже видишь?", "Как это работает?"] });
+    out.push({ text: "У тебя " + st.daysHist + " отмеченных " + bosObsDaysRu(st.daysHist) + ", сегодня закрыто " + st.doneToday + " из " + st.schedToday + ". Закономерности я начну искать с седьмого дня — раньше это будет гадание, а не наблюдение. Просто отмечай, я смотрю.",
+      chips: ["Что ты уже видишь?", "Как это работает?"] });
     return out;
   }
-  if (st.weekday) out.push({ kick: "Что я заметил", head: bosAiCapLive(BOS_AI_DOW_RU[st.weekday.dow]) + " — твоё слабое звено",
-    body: "В этот день закрывается " + st.weekday.rate + "% привычек против " + st.weekday.restAvg + "% в остальные — за 4 недели.",
-    offer: "Оставь на этот день одну привычку вместо всех — так ритм не рвётся.",
+  if (st.weekday) out.push({ text: "Заметил: " + BOS_AI_DOW_RU[st.weekday.dow] + " — твой самый тяжёлый день. За четыре недели в него закрывается " + st.weekday.rate + "% привычек против " + st.weekday.restAvg + "% в остальные. Может, оставить на этот день одну привычку вместо всех — так ритм не будет рваться.",
     chips: ["Почему так выходит?", "Что убрать?"] });
-  if (st.state) out.push({ kick: "Что я заметил", head: "«" + st.state.h.name + "» " + (st.state.delta >= 0 ? "поднимает твой день" : "совпадает с тяжёлыми днями"),
-    body: "В дни с этой привычкой состояние " + (st.state.delta >= 0 ? "выше" : "ниже") + " на " + bosAiNumRuLive(Math.abs(st.state.delta)) + " балла — по " + (st.state.nWith + st.state.nWithout) + " дням с отметкой.",
-    offer: st.state.delta >= 0 ? "Добавь её в те дни недели, где её сейчас нет." : "",
-    chips: ["Разобрать подробнее", "Совпадение?"] });
-  if (st.link) out.push({ kick: "Что я заметил", head: "«" + st.link.a.name + "» тянет за собой «" + st.link.b.name + "»",
-    body: "В дни с первой вторая закрыта в " + bosAiNumRuLive(st.link.lift) + " раза чаще — за " + st.link.n + " общих дней.",
-    offer: "Поставь их подряд: напоминание второй сразу после первой.",
+  if (st.state) out.push({ text: "В дни с «" + st.state.h.name + "» твоё состояние " + (st.state.delta >= 0 ? "выше" : "ниже") + " на " + bosAiNumRuLive(Math.abs(st.state.delta)) + " балла — я сравнил " + (st.state.nWith + st.state.nWithout) + " дней с отметкой. " + (st.state.delta >= 0 ? "Похоже, это твоя опора: попробуй поставить её и в те дни недели, где её сейчас нет." : "Стоит посмотреть, что ещё совпадает с этими днями."),
+    chips: ["Разобрать подробнее", "Это совпадение?"] });
+  if (st.link) out.push({ text: "Похоже, «" + st.link.a.name + "» тянет за собой «" + st.link.b.name + "»: в дни с первой вторая закрывается в " + bosAiNumRuLive(st.link.lift) + " раза чаще — за " + st.link.n + " общих дней. Если поставить их одну за другой, вторая будет даваться легче.",
     chips: ["Как связать?", "Разобрать подробнее"] });
-  if (st.record) out.push({ kick: "Что я заметил", head: "До рекорда «" + st.record.h.name + "» — " + st.record.left + " дн.",
-    body: "Серия сейчас " + st.record.cur + " дней, личный рекорд " + st.record.best + ".",
-    offer: "Отметь её сегодня — до рекорда останется " + Math.max(0, st.record.left - 1) + ".",
+  if (st.record) out.push({ text: "До твоего рекорда по «" + st.record.h.name + "» осталось " + st.record.left + " " + bosObsDaysRu(st.record.left) + ": сейчас серия " + st.record.cur + ", лучшая была " + st.record.best + ". Отметь сегодня — и станет ближе.",
     chips: ["Как удержать серию?", "Что мешало раньше?"] });
   if (!out.length && filled.length) {
     var wk = filled.reduce(function (a, s) { return s.v < a.v ? s : a; });
-    out.push({ kick: "Что я заметил", head: "«" + wk.l + "» держится ниже твоей нормы",
-      body: "Сфера на " + Math.round(wk.v * 100) + " при норме 55 — по всем твоим отметкам за всё время.",
-      offer: "Добавь в неё одну маленькую привычку — сфера начнёт наливаться.",
+    out.push({ text: "Сфера «" + wk.l + "» держится ниже твоей нормы — " + Math.round(wk.v * 100) + " при норме 55, по всем отметкам за всё время. Одна маленькая привычка туда, и она начнёт наливаться.",
       chips: ["Что туда добавить?", "Почему просела?"] });
   }
-  if (!out.length) out.push({ kick: "Что я заметил", head: "Сферы держатся ровно",
-    body: "Ни одна не проседает заметно ниже нормы — за всё время наблюдений это редкость.",
-    offer: "", chips: ["Что подтянуть?", "Разбери мою неделю"] });
+  if (!out.length) out.push({ text: "Сферы держатся ровно — ни одна не проседает заметно ниже нормы. За всё время наблюдений это редкость, так что просто продолжай.",
+    chips: ["Что подтянуть?", "Разбери мою неделю"] });
   return out.slice(0, 3);
+}
+function bosObsDaysRu(n) {
+  var a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return "дней";
+  if (b === 1) return "день";
+  if (b > 1 && b < 5) return "дня";
+  return "дней";
 }
 function bosObsCleanLive(x) {
   if (!x || typeof x !== "object") return null;
-  var s = function (v, max) { return ("" + (v == null ? "" : v)).replace(/\s+/g, " ").trim().slice(0, max); };
-  var head = s(x.head, 90), body = s(x.body, 260);
-  if (!head || !body) return null;
-  var letters = (head + body).replace(/[^A-Za-zА-Яа-яЁё]/g, "");
+  var t = ("" + (x.text == null ? "" : x.text)).replace(/[*#_`>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 360);
+  if (t.length < 24) return null;
+  var letters = t.replace(/[^A-Za-zА-Яа-яЁё]/g, "");
   var cyr = (letters.match(/[А-Яа-яЁё]/g) || []).length;
   if (!letters.length || cyr / letters.length < 0.6) return null;      // не по-русски → не показываем
-  var chips = (Array.isArray(x.chips) ? x.chips : []).map(function (c) { return s(typeof c === "string" ? c : c && c.t, 26); }).filter(Boolean).slice(0, 2);
-  return { kick: s(x.kick, 26) || "Что я заметил", head: head, body: body, offer: s(x.offer, 180), chips: chips.length ? chips : ["Разобрать подробнее"] };
+  var chips = (Array.isArray(x.chips) ? x.chips : []).map(function (c) {
+    return ("" + (typeof c === "string" ? c : (c && c.t) || "")).replace(/\s+/g, " ").trim().slice(0, 26);
+  }).filter(Boolean).slice(0, 2);
+  return { text: t, chips: chips.length ? chips : ["Разобрать подробнее"] };
 }
 async function bosObsFetchLive(app, st) {
   try {
@@ -571,18 +565,18 @@ function BosObsCardLive(props) {
     return function () { dead = true; };
   }, [cacheKey, st.daysHist]);
 
-  var live = (items || []).filter(function (o) { return no.indexOf(o.head) < 0; });
+  var live = (items || []).filter(function (o) { return no.indexOf(o.text) < 0; });
   if (!live.length) live = local;
   var i = Math.min(idx, live.length - 1), o = live[i] || local[0];
   if (!o) return null;
 
-  var srcBits = ["отмеченных дней " + st.daysHist];
+  var srcBits = [st.daysHist + " " + bosObsDaysRu(st.daysHist) + " отметок"];
   if (st.habits.length) srcBits.push("привычек " + st.habits.length);
   if (st.moodDays) srcBits.push("отметок состояния " + st.moodDays);
 
-  var ask = function (chip) { navigate("ai-chat", { prompt: "«" + o.head + "» — " + chip }); };
+  var ask = function (chip) { navigate("ai-chat", { prompt: chip }); };
   var skip = function () {
-    var nn = no.concat([o.head]);
+    var nn = no.concat([o.text]);
     try { localStorage.setItem(noKey, JSON.stringify(nn.slice(-40))); } catch (e) {}
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
     setNo(nn); setIdx(0);
@@ -590,38 +584,29 @@ function BosObsCardLive(props) {
 
   return (
     <div className={"aiobs" + (dark ? " dk" : "")}>
+      {/* Шапка карточки: сфера ИИ в цвет состояния + имя. Больше в шапке ничего нет —
+          ни «персонально для…», ни кикеров (David 2026-08-01). */}
       <div className="aiobs-who">
-        {/* Здесь и живёт сфера ИИ (David): она в цвет сегодняшнего состояния — говорит не
-            абстрактный значок, а твоя планета. В шапке страницы её больше нет (один факт —
-            одно место). */}
-        {/* PlanetOrb — React.memo, а это ОБЪЕКТ, не функция: проверять надо на undefined,
-            иначе сфера молча не рисуется. */}
-        <span className="aiobs-orb">{typeof PlanetOrb !== "undefined" ? <PlanetOrb size={30} tint={props.tint} live /> : null}</span>
-        <span className="aiobs-kick">{o.kick}</span>
-        {live.length > 1 && <span className="aiobs-cnt">· {i + 1} из {live.length}</span>}
+        <span className="aiobs-orb">{typeof PlanetOrb !== "undefined" ? <PlanetOrb size={34} tint={props.tint} live /> : null}</span>
+        <span className="aiobs-name">Balance AI</span>
         <span className="aiobs-tm">сегодня</span>
       </div>
-      <div className="aiobs-head">{o.head}</div>
-      <div className="aiobs-body">{o.body}</div>
-      {o.offer ? (
-        <div className="aiobs-offer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 1 }}><path d="M13 4.5 20.5 12 13 19.5v-4.3H4v-6.4h9z" /></svg>
-          <span>{o.offer}</span>
-        </div>
-      ) : null}
-      <div className="aiobs-src">Основание: {srcBits.join(" · ")} — только твои данные</div>
+      {/* Сообщение целиком — как написал бы человек: наблюдение, цифра и предложение
+          вплетены в речь, а не разложены по плашкам. */}
+      <div className="aiobs-text">{o.text}</div>
+      <div className="aiobs-src">{srcBits.join(" · ")} — только твои данные</div>
       <div className="aiobs-chips">
         {(o.chips || []).map(function (c, j) {
           return <button key={j} className={"aiobs-chip tap" + (j === 0 ? " solid" : "")} data-no-haptic onClick={function () { ask(c); }}>{c}</button>;
         })}
         <button className="aiobs-chip ghost tap" data-no-haptic onClick={skip}>Мимо</button>
       </div>
-      <div className="aiobs-after">
-        <span className="h">«Мимо» — уберу это наблюдение</span>
-        {live.length > 1 && (
+      {live.length > 1 && (
+        <div className="aiobs-after">
+          <span className="h">{i + 1} из {live.length}</span>
           <button className="n tap" data-no-haptic onClick={function () { setIdx((i + 1) % live.length); }}>Ещё наблюдение ›</button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -654,16 +639,7 @@ function AILive() {
   const moodName = _mToday ? _mToday.t : "не отмечено";
 
   return (
-    <div className="page-in" style={{ padding: "0 12px 24px" }}>
-      {/* Шапка: только имя вкладки. Сфера ИИ переехала в карточку наблюдения — она там и
-          «говорит» (David 2026-08-01). */}
-      <div style={{ padding: "4px 4px 12px" }}>
-        <div style={{ fontSize: 11.5, color: "var(--text-4)", letterSpacing: 0.3 }}>
-          {(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}{moodName ? " · " + moodName : ""}
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 1 }}>Balance AI</div>
-      </div>
-
+    <div className="page-in" style={{ padding: "8px 12px 24px" }}>
       {/* ═══ БЛОК 1 — ЧТО Я ЗАМЕТИЛ ═══ Здесь говорит сам ИИ: что увидел в твоих данных, что
           предлагает, и чем можно ответить. Всё, что раньше лежало в плитках «Твой пульс»,
           он теперь говорит предложениями (David 2026-08-01: «не пихать кучу мелких виджетов»). */}

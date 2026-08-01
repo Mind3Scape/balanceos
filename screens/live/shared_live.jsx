@@ -561,6 +561,161 @@ function bosDayRing(pct, accent, isDark, opts) {
     </svg>
   );
 }
+/* ═══════════════ ГРЯДКА — ЕДИНЫЙ КАЛЕНДАРЬ ПРИЛОЖЕНИЯ (David 2026-08-01) ═══════════════
+   Выбран вариант «В · Грядка» из макета `2026-08-01-календари-4-варианта.html`. Заменяет собой
+   месячные сетки колец ВЕЗДЕ: деталь привычки (личная и круга), цель, круг, страница «Календарь».
+
+   Почему грядка, а не месяц колец: месячная сетка отвечала только «какое число», причём в детали
+   привычки даже неверно (числа 1..31 шли подряд, без выравнивания по дням недели). Грядка
+   отвечает на «какой у меня ритм»: строки = дни недели, колонки = недели, и провал выходных
+   виден без единой цифры.
+
+   ЦВЕТ = ЦВЕТ ОБЪЕКТА. accent — цвет привычки/цели/круга из пикера; нейтральный (нет цвета,
+   #0a0a0a, #8E8E93) → золотой градиент (наш дефолт наполненности). Меняешь цвет привычки —
+   меняется вся её грядка, отдельной настройки нет.
+
+   ЖЕСТЫ: тап = выбрать день (шапка/панель дня перестраивается под него, отметка живёт ТАМ —
+   один способ отметить, не два); долгий тап = поставить/снять отметку прямо в клетке, если
+   вызывающий дал onDayMark. Будущие дни не нажимаются. */
+var BOS_FIELD_DOW = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+var BOS_FIELD_MON = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+function bosFieldKey(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function bosFieldDate(k) { return new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10)); }
+/* Заливка клетки. Нейтральный accent → золото (bosDayRing/gold), свой цвет → bosCellFill —
+   ровно та же краска, что у колец и недельного страйпа, поэтому грядка не выбивается из языка. */
+function bosFieldTint(accent, v, isDark) {
+  var real = accent && accent[0] === "#" && accent.length === 7 &&
+             ("" + accent).toLowerCase() !== "#0a0a0a" && accent !== "#8e8e93" && accent !== "#8E8E93";
+  if (!(v > 0)) return isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.06)";
+  if (real) return bosCellFill(accent, v, isDark);
+  // Золото: полный день — плотный градиент, частичный — он же на альфе (ступени видно, оттенок один).
+  var a = 0.34 + 0.66 * Math.max(0, Math.min(1, v));
+  return "linear-gradient(135deg, rgba(254,222,52," + a.toFixed(2) + "), rgba(239,159,20," + a.toFixed(2) + "))";
+}
+function BosFieldCalendarLive(props) {
+  var pctOf = props.pctOf || function () { return 0; };
+  var accent = (typeof bosCanonColor === "function") ? bosCanonColor(props.accent) : props.accent;
+  var isDark = !!props.isDark;
+  var onDayTap = props.onDayTap, onDayMark = props.onDayMark;
+  var cell = props.cell || 13, gap = props.gap || 3.5;
+  var scRef = React.useRef(null);
+  var lpRef = React.useRef(null);        // таймер долгого тапа
+  var firedRef = React.useRef(false);    // долгий тап уже сработал → обычный клик глотаем
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var todayK = bosFieldKey(today);
+
+  // Начало грядки: с 1 января, но не меньше 14 недель истории (у новой привычки иначе видно
+  // одну колонку) и не раньше, чем объект вообще появился (sinceKey — дата создания/первой отметки).
+  var start = React.useMemo(function () {
+    var jan = new Date(today.getFullYear(), 0, 1);
+    var min14 = new Date(today); min14.setDate(today.getDate() - 14 * 7);
+    var s = jan;
+    if (props.sinceKey) {
+      var since = bosFieldDate(props.sinceKey);
+      if (since > jan) s = since;
+    }
+    if (s > min14) s = min14;
+    s.setDate(s.getDate() - ((s.getDay() + 6) % 7));   // ровно на понедельник
+    return s;
+  }, [props.sinceKey, todayK]);
+
+  var cols = React.useMemo(function () {
+    var out = [], cur = new Date(start), seen = {};
+    while (cur <= today) {
+      var col = { days: [], label: "" };
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(cur); d.setDate(cur.getDate() + i);
+        if (d > today) { col.days.push(null); continue; }
+        var k = bosFieldKey(d);
+        var m = d.getMonth();
+        if (seen[m] === undefined && d.getDate() <= 7) { seen[m] = 1; col.label = BOS_FIELD_MON[m]; }
+        col.days.push({ k: k, m: m, d: d.getDate() });
+      }
+      out.push(col);
+      cur.setDate(cur.getDate() + 7);
+    }
+    return out;
+  }, [start, todayK]);
+
+  // Открывается у СЕГОДНЯ (правый край) — жизнь смотрят с конца, а не с января.
+  React.useEffect(function () { if (scRef.current) scRef.current.scrollLeft = scRef.current.scrollWidth; }, [cols.length]);
+
+  var startLong = function (k, can) {
+    if (!onDayMark || !can) return;
+    firedRef.current = false;
+    clearTimeout(lpRef.current);
+    lpRef.current = setTimeout(function () {
+      firedRef.current = true;
+      try { if (window.bosHaptic) window.bosHaptic("impact"); } catch (e) {}
+      onDayMark(k);
+    }, 420);
+  };
+  var endLong = function () { clearTimeout(lpRef.current); };
+
+  var trackInk = isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.06)";
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: gap, paddingTop: 17, flexShrink: 0 }}>
+          {BOS_FIELD_DOW.map(function (w, i) {
+            return <span key={i} style={{ height: cell, lineHeight: cell + "px", fontSize: 8.5, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-4)", opacity: i % 2 ? 0 : 1 }}>{w}</span>;
+          })}
+        </div>
+        <div ref={scRef} className="screen-scroll bos-field-scroll" style={{ overflowX: "auto", overflowY: "hidden", flex: 1, minWidth: 0, paddingBottom: 2 }}>
+          <div style={{ display: "flex", gap: gap, minWidth: "min-content", padding: "2px 2px 2px 0" }}>
+            {cols.map(function (col, ci) {
+              return (
+                <div key={ci} style={{ display: "flex", flexDirection: "column", gap: gap, flexShrink: 0 }}>
+                  <span style={{ height: 15, fontSize: 9, fontWeight: 700, color: "var(--text-4)", whiteSpace: "nowrap", overflow: "visible" }}>{col.label}</span>
+                  {col.days.map(function (dd, ri) {
+                    if (!dd) return <span key={ri} aria-hidden style={{ width: cell, height: cell }} />;
+                    var v = pctOf(dd.k);
+                    var isToday = dd.k === todayK;
+                    var isSel = props.selKey && dd.k === props.selKey && !isToday;
+                    var late = props.lateOf ? !!props.lateOf(dd.k) : false;
+                    var off = props.offOf ? !!props.offOf(dd.k) : false;   // не по расписанию — тише
+                    var can = true;
+                    var ring = isToday ? ("0 0 0 1.6px " + (isDark ? "#fff" : "#0a0a0a"))
+                             : (isSel ? ("0 0 0 1.4px " + (isDark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.42)")) : "none");
+                    return (
+                      <button key={ri} className="tap" data-no-haptic
+                        onClick={function () { if (firedRef.current) { firedRef.current = false; return; } if (onDayTap) onDayTap(dd.k); }}
+                        onPointerDown={function () { startLong(dd.k, can); }}
+                        onPointerUp={endLong} onPointerLeave={endLong} onPointerCancel={endLong}
+                        onContextMenu={function (e) { e.preventDefault(); }}
+                        aria-label={dd.d + " " + BOS_FIELD_MON[dd.m]}
+                        style={{ width: cell, height: cell, borderRadius: Math.round(cell * 0.3), border: 0, padding: 0, cursor: "pointer",
+                          background: v > 0 ? bosFieldTint(accent, v, isDark) : trackInk,
+                          opacity: (off && !(v > 0)) ? 0.45 : (late ? 0.62 : 1),
+                          boxShadow: ring, transition: "background 0.18s, box-shadow 0.15s" }} />
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      {props.hint !== false && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 9, paddingLeft: 2 }}>
+          <span style={{ fontSize: 9.5, color: "var(--text-4)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {props.hint || (onDayMark ? "тап — открыть день · долгий тап — отметить" : "клетка = день")}
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+            <span style={{ fontSize: 9, color: "var(--text-4)" }}>меньше</span>
+            {[0, 0.34, 0.67, 1].map(function (v, i) {
+              return <span key={i} style={{ width: 9, height: 9, borderRadius: 3, background: bosFieldTint(accent, v, isDark) }} />;
+            })}
+            <span style={{ fontSize: 9, color: "var(--text-4)" }}>больше</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Glass for the habit/goal ICON tiles — a BRIGHTER specular top + soft edge + depth than the small
 // day-cell glass (David: «на главной иконке привычки стекло еле видно — чуть светлее и заметнее, и
 // так ВЕЗДЕ где привычки видны»). Pair with BOS_TILE_SHEEN on the background.
@@ -692,6 +847,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const selPerson = selProp !== undefined ? selProp : selInner;
   const setSelPerson = (v) => { if (onSelPerson) onSelPerson(v); else setSelInner(v); };
   const [selDay, setSelDay] = React.useState(today);
+  // Ключ дня для ГРЯДКИ (David 2026-08-01): она живёт годом, поэтому выбранный день хранится
+  // как «YYYY-MM-DD», а старые selDay/mIdx остаются для строки-итога под календарём.
+  const _fieldTodayK = year + "-" + String(CUR_M + 1).padStart(2, "0") + "-" + String(today).padStart(2, "0");
+  const [_fieldSelK, _setFieldSelK] = React.useState(_fieldTodayK);
   // СТАНДАРТ КАЛЕНДАРЯ (David 2026-07-22): один МЕСЯЦ (неделя/год убраны «пока»), подробный
   // вид всегда (числа + тап по дню), золото = наполненность. Глазик и пилюля срока убраны.
   const [compact, setCompact] = React.useState(false);
@@ -849,70 +1008,24 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
           </div>
         )}
 
-        {view === "month" && !compact && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
-            <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
-            <button onClick={() => setMIdx((m) => Math.min(11, m + 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}><I.ChevronRight size={16} /></button>
-          </div>
-        )}
-
-        {view === "month" && !compact && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 252, width: "100%", margin: "12px auto 0" }}>
-            {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, letterSpacing: 0.3, color: "var(--text-4)" }}>{w}</div>)}
-          </div>
-        )}
-        {/* Day cells — CIRCLES (день = кружок; люди = чипы выше), залитые хитмапом по выполнению.
-            «Красиво» прячет числа/подписи/навигацию для глазастой сетки. */}
+        {/* ГРЯДКА (David 2026-08-01) вместо месячной сетки колец: строки — дни недели, колонки —
+            недели, цвет — цвет привычки/цели/круга. Стрелки ‹ › и подписи Пн..Вс месяца больше не
+            нужны: год едет горизонтально и открыт у сегодня. */}
         {view === "month" && (
-        <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 252, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
-          {cells.map((c, _ci) => {
-            // Соседние месяцы (prev/next) = еле заметный ПОЛНЫЙ кружок (David: «продолжить еле заметными
-            // кружочками слева и справа, чтобы месяц был ближе к ГРЯДКЕ»). Полный размер достраивает
-            // прямоугольник-грядку; opacity ниже пустого дня (track) → месяц мягко «бледнеет» по краям,
-            // но клетка-кружок не рвётся на точки — бесшовное продолжение бесконечной грядки.
-            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", opacity: 0.5, display: "grid", placeItems: "center" }}>{bosDayRing(0, selColor, isDark, {})}</span>;
-            const isToday = isCurMonth && c.d === today;
-            // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
-            // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a
-            // buddy's filter — and it always shows YOUR state, since the tap marks your check-in.
-            const itx = !!(todayTap && isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
-            const pct = itx ? todayTap.pct : dayPct(c.d);
-            const fut = pct == null;
-            const isSel = selDay === c.d;
-            const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
-            const done = !fut && pct >= 1;
-            const filled = !fut && pct > 0;
-            // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
-            const bg = fut ? bosCellEmpty(hx, isDark, 0.42)
-              : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14, isDark) : bosCellEmpty(hx, isDark)) : bosCellFill(hx, pct, isDark));
-            // One COHESIVE today-glyph colour (David: «цвет цифры прыгает с чёрного на белый на 4→5 —
-            // бред; пусть пока копится и в конце ВСЕГДА белый; „+" пусть остаётся в цвете обводки»).
-            // Filled today = ALWAYS white number/✓ (never flips) + soft shadow so it reads on any fill;
-            // empty today = accent «+» (harmonises with the ring). Non-today keeps the heat-map ink.
-            const ink = fut ? "var(--text-4)" : (pct <= 0 ? (itx ? hx : "var(--text)") : (itx ? "#fff" : bosCellInk(hx, pct, isDark)));
-            const todayGlow = (itx && filled) ? "0 0.5px 1.5px rgba(0,0,0,0.55)" : "none";
-            // Сегодня = единое СТЕКЛЯННОЕ кольцо (bosTodayRing) — как на внешнем страйпе (David); выбранный
-            // день (не сегодня) — тонкая обводка selRing. Без accent-зелёного/серого разнобоя.
-            const shadow = [filled ? bosCellGlass(isDark) : "", isToday ? bosTodayRing(isDark, hx) : ((!compact && isSel) ? ("0 0 0 1.6px " + selRing) : "")].filter(Boolean).join(", ") || "none";
-            const onClick = itx ? fireToday : (compact ? undefined : () => setSelDay(c.d));
-            var mchk = (hx && hx[0] === "#" && ("" + hx).toLowerCase() !== "#0a0a0a" && hx !== "#8E8E93") ? hx : "var(--text)";
-            var ringInk = fut ? "var(--text-4)" : "var(--text)";
-            // Сетка месяца начинается с ВС (startWeekday по getDay) → Пн-first индекс = (кол+6)%7.
-            var mOff = _offMon((_ci % 7 + 6) % 7) && !(pct > 0);
-            return (
-              <button key={c.key} {...(itx ? { "data-no-haptic": "" } : {})} onClick={onClick} className="tap" style={{
-                aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center",
-                fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: (itx || !compact) ? "pointer" : "default",
-                background: "transparent", color: ringInk, position: "relative" }}>
-                <span aria-hidden style={{ position: "absolute", inset: 0, opacity: mOff ? 0.38 : 1 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { gold: true, today: isToday, sel: (!compact && isSel && !isToday) })}</span>
-                {(itx && done)
-                  ? <span style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}><I.Check size={14} strokeWidth={3} color="#6b4e00" /></span>
-                  : (!compact && !fut && <span style={{ position: "relative", zIndex: 1, color: done ? "#6b4e00" : undefined }}>{c.d}</span>)}
-              </button>
-            );
-          })}
-        </div>
+          <BosFieldCalendarLive
+            isDark={isDark}
+            accent={(selColor && selColor[0] === "#" && ("" + selColor).toLowerCase() !== "#0a0a0a" && selColor !== "#8E8E93") ? selColor : null}
+            pctOf={(k) => {
+              const kd = +k.slice(8, 10), km = +k.slice(5, 7) - 1;
+              if (todayTap && k === _fieldTodayK && (solo || selPerson == null || (people[selPerson] && people[selPerson].you))) return todayTap.pct || 0;
+              if (selPerson == null) { const v = people.map((_, i) => dayFrac(i, kd, km) || 0); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; }
+              return dayFrac(selPerson, kd, km) || 0;
+            }}
+            offOf={(k) => { const d = new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10)); return _offMon((d.getDay() + 6) % 7); }}
+            selKey={_fieldSelK}
+            onDayTap={(k) => { _setFieldSelK(k); setSelDay(+k.slice(8, 10)); setMIdx(+k.slice(5, 7) - 1); }}
+            onDayMark={todayTap && todayTap.onTap ? ((k) => { if (k === _fieldTodayK) { setSelDay(today); todayTap.onTap(); } }) : null}
+            hint={hidePicker || !todayTap ? "клетка = день · тап открывает его" : "тап — открыть день · долгий тап — отметить сегодня"} />
         )}
 
         {/* Год — «грядка» с начала года до сегодня: столбцы = недели, строки = дни недели (Пн↑Вс),
@@ -3820,7 +3933,6 @@ function BosBalanceWheelLive(props) {
   var petDeep = function (v) { return _onScale(v, [[0.20, "#DCD3BE"], [0.40, "#E9CE87"], [0.55, "#F5C64B"], [0.75, "#F0A81A"], [1, "#E8930A"]]); };
   var petLight = function (v) { return _mixW(petDeep(v), 0.24); };
   var trackCol = dark ? "rgba(255,255,255,0.07)" : "#F1EFE9";
-  var tickCol = dark ? "rgba(255,255,255,0.34)" : "rgba(21,22,27,0.32)";
   var goldInk = dark ? "#F0C838" : "#C8930A";
   var iconCol = dark ? "#e8e8ea" : "#101828";
   var rowIcCol = dark ? "#c8c8cd" : "#57585f";
@@ -3878,7 +3990,7 @@ function BosBalanceWheelLive(props) {
   var wheelSvg = (function () {
     var defs = [], track = [], body = [], labs = [];
     SPH.forEach(function (s, i) {
-      var aMid = i * 60, rv = R0 + Math.max(0.06, s.v) * (OUT - R0), rN = R0 + TARGET * (OUT - R0);
+      var aMid = i * 60, rv = R0 + Math.max(0.06, s.v) * (OUT - R0);
       // «потолок» сферы — куда она может дорасти
       track.push(<path key={"t" + i} d={petalPath(aMid, 30, R0, OUT, GAPPX, RCORN)} fill={trackCol}
         onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
@@ -3887,12 +3999,9 @@ function BosBalanceWheelLive(props) {
         <stop offset="0" stopColor={petLight(s.v)} /><stop offset="1" stopColor={petDeep(s.v)} /></linearGradient>);
       body.push(<path key={"p" + i} d={petalPath(aMid, 30, R0, rv, GAPPX, RCORN)} fill={"url(#" + uid + "pg" + i + ")"}
         onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
-      // засечка нормы — одна и та же у всех шести (на золоте читается как гравировка,
-      // на пустом «потолке» — как ориентир, до которого не дотянул)
-      var t0 = aMid - 30 + degFor(rN, GAPPX + 2.5), t1 = aMid + 30 - degFor(rN, GAPPX + 2.5);
-      var q0 = pd(t0, rN), q1 = pd(t1, rN);
-      body.push(<path key={"n" + i} d={"M" + q0[0] + " " + q0[1] + " A" + rN + " " + rN + " 0 0 1 " + q1[0] + " " + q1[1]}
-        fill="none" stroke={tickCol} strokeWidth="1.5" strokeLinecap="round" />);
+      // Засечки нормы внутри лепестков БОЛЬШЕ НЕТ (David 2026-08-01: «что это за серые линии
+      // ближе к центру?»). Знак, который приходится объяснять, не работает: норма теперь
+      // живёт словами в шапке («N из 6 выше нормы») и засечкой на полосах в раскрытом ранжире.
     });
     // Подписи: все сферы тихо; ЦИФРЫ — только у сильнейшей и слабейшей, одним цветом.
     SPH.forEach(function (s, i) {

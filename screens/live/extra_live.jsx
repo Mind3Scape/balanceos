@@ -127,17 +127,24 @@ function HabitDetailLive() {
   const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const _mk = (d) => now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
   const _maskOk = (mi, d) => !_mask || _mask[(new Date(now.getFullYear(), mi, d).getDay() + 6) % 7];
-  const monthCells = Array.from({ length: dim }).map((_, i) => {
-    const k = _mk(i + 1);
-    const dimC = k > _todayK || !_maskOk(now.getMonth(), i + 1);
-    const tdy = k === _todayK;
-    const late = !!(h.lateDays && h.lateDays[k]);
-    const canTap = k <= _todayK; // телепорт — в любой прожитый день (и в сегодня)
-    const sel = k === selDay && !tdy; // сегодня и так в золотом кольце
-    if (!_shared) return { pct: _dayPct(k), dim: dimC, today: tdy, k, late, canTap, sel };
+  // ГРЯДКА (David 2026-08-01): доля дня считается ПО КЛЮЧУ — календарь показывает весь год,
+  // а не текущий месяц, поэтому месячный массив клеток больше не нужен.
+  const _fieldPct = (k) => {
+    if (k > _todayK) return 0;
+    if (!_shared) return _dayPct(k);
     const didN = buddies.filter((m) => (m.me ? (_log[k] || (m.days && m.days[k])) : (m.days && m.days[k]))).length;
-    return { pct: didN / buddies.length, dim: dimC, today: tdy, k, late, canTap, sel };
-  });
+    return buddies.length ? didN / buddies.length : 0;
+  };
+  const _offKey = (k) => { if (!_mask) return false; const d = new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10)); return !_mask[(d.getDay() + 6) % 7]; };
+  // Долгий тап по клетке = отметить/снять. Сегодня отдаём обычному toggleHabit (там XP и
+  // празднования), прошлое — toggleHabitDay (без XP, помечается как «задним числом»).
+  const _markDay = (k) => {
+    if (!app) return;
+    if (k === _todayK) { if (app.toggleHabit) app.toggleHabit(h.id); return; }
+    if (app.toggleHabitDay) app.toggleHabitDay(h.id, k);
+    setSelDay(k);
+  };
+  const _sinceKey = _logDays.length ? _logDays[0] : null;
 
   // ОТМЕТКИ ДНЯ + ИСТОРИЯ (David 2026-07-22: «тыкаю на день — телепортируюсь в него и вижу,
   // кто отмечался; и внизу история отметок — кто во сколько»). Мои времена — локальный журнал
@@ -262,9 +269,12 @@ function HabitDetailLive() {
     // Нить «Сегодня» — только когда смотришь сегодня (на прошлом дне она про сегодня = сбивает).
     thread: _selPast ? null : thread,
     unified: true, check, headExtra: _backToToday,
-    // Календарь: ОДИН месяц, золото = наполненность; тап по дню = телепорт в шапку (без панелей/дублей).
-    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, gold: true, monthCells, monthHint: _shared ? "кольцо = доля друзей" : null, accent,
-      onDayTap: (k) => setSelDay(k) },
+    // Календарь = ГРЯДКА (David 2026-08-01): год строками дней недели, цвет = цвет привычки,
+    // тап по дню = телепорт в шапку, долгий тап = отметка прямо в клетке.
+    rhythm: { mode: _shared ? "friends" : "solo", title: "Календарь", titleExtra: calExtra, single: true, accent,
+      field: { pctOf: _fieldPct, selKey: selDay, onDayTap: (k) => setSelDay(k), onDayMark: _markDay,
+        lateOf: (k) => !!(h.lateDays && h.lateDays[k]), offOf: _offKey, sinceKey: _sinceKey,
+        hint: _shared ? "тап — открыть день · долгий тап — отметить · плотность = доля друзей" : undefined } },
     peopleTitle: "Кто со мной", peopleExtra, people,
   };
 

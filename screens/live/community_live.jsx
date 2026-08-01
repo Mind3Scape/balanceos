@@ -4454,7 +4454,6 @@ function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, team
     : (members || []).map(function (m) { return { id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, days: {} }; });
   var roleById = {}; (members || []).forEach(function (m) { if (m) roleById[m.id] = m.role; });
   var _s = React.useState("me"); var selKey = _s[0], setSelKey = _s[1]; // "all" | "me" | <member id>
-  var _cm = React.useState("year"); var calMode = _cm[0], setCalMode = _cm[1];
   var _lv = React.useState({}); var levels = _lv[0], setLevels = _lv[1];
   var idsSig = base.map(function (p) { return p.id; }).filter(Boolean).join(",");
   React.useEffect(function () {
@@ -4577,35 +4576,19 @@ function CirclePeopleCalendarBlockLive({ members, mainProg, meId, navigate, team
         </div>
       </div>
 
-      {/* (2) КАЛЕНДАРЬ — отдельный блок: год-теплокарта / месяц + серия·лучшая·всего */}
+      {/* (2) КАЛЕНДАРЬ — ГРЯДКА (David 2026-08-01, единый календарь приложения). Прежние
+          «Месяц / Год» с СЕРО-ЧЁРНОЙ теплокартой были третьим языком календаря в приложении:
+          сегмент убран, масштаб один, цвет — цвет круга (нейтральный → золото). */}
       <div style={{ ...card, padding: "16px 16px 14px", marginTop: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.2px", color: "var(--text)" }}>{calMode === "year" ? mY : (monthNames[mM] + " " + mY)}</div>
-          <div style={{ display: "inline-flex", background: "var(--surface-3)", borderRadius: 999, padding: 4, gap: 2 }}>{seg("Месяц", "month")}{seg("Год", "year")}</div>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.2px", color: "var(--text)" }}>{mY}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)" }}>{selKey === "all" ? "весь круг" : (selP && selP.me ? "ты" : (selP && ("" + (selP.name || "")).split(" ")[0]))}</div>
         </div>
-
-        {calMode === "year" ? (
-          <div style={{ overflowX: "auto", scrollbarWidth: "none" }}>
-            <div style={{ display: "grid", gridAutoFlow: "column", gridTemplateRows: "repeat(7, 10px)", gap: 3, width: "max-content", margin: "0 auto" }}>
-              {cols.map(function (col, ci) { return col.map(function (cell, ri) {
-                return <span key={ci + "-" + ri} title={cell.k} style={{ width: 10, height: 10, borderRadius: "50%", background: hmColor[cell.cls], boxShadow: cell.today ? "inset 0 0 0 1.5px #FEDE34" : (cell.cls === "future" ? "inset 0 0 0 0.7px " + (isDark ? "rgba(255,255,255,0.12)" : "#e3e3e3") : "none") }} />;
-              }); })}
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, padding: "0 1px 5px" }}>
-              {["пн", "вт", "ср", "чт", "пт", "сб", "вс"].map(function (w) { return <span key={w} style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.5, color: "var(--text-5)", textAlign: "center", textTransform: "uppercase" }}>{w}</span>; })}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
-              {monthCells.map(function (cell, i) {
-                if (!cell) return <span key={"g" + i} />;
-                var s = cdFill(cell.frac, cell.today, cell.future);
-                return <span key={cell.k} style={{ aspectRatio: "1", borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 11, fontWeight: cell.today ? 800 : 600, ...s }}>{cell.d}</span>;
-              })}
-            </div>
-          </div>
-        )}
+        <BosFieldCalendarLive
+          isDark={isDark}
+          accent={(accent && accent[0] === "#" && ("" + accent).toLowerCase() !== "#0a0a0a" && accent !== "#8E8E93") ? accent : null}
+          pctOf={function (k) { return selKey === "all" ? (allFrac[k] || 0) : (selDays[k] ? 1 : 0); }}
+          hint={selKey === "all" ? "клетка = день · плотность = доля круга" : "клетка = день"} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", marginTop: 14, borderTop: "1px solid var(--line)" }}>
           {[["серия", stats.streak, "д"], ["лучшая", stats.best, "д"], ["всего", stats.total, ""]].map(function (s, i) {

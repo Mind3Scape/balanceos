@@ -953,15 +953,10 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
    сделать → чем ответить. Тексты пишет модель, форму держит вёрстка. */
 .aiobs { background: var(--card); border-radius: 24px; padding: 15px 16px 14px; box-shadow: var(--card-shadow); color: var(--text); }
 .aiobs-who { display: flex; align-items: center; gap: 9px; }
-.aiobs-orb { width: 30px; height: 30px; flex-shrink: 0; display: block; line-height: 0; }
-.aiobs-kick { font-size: 10.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-3); }
-.aiobs-cnt { font-size: 10.5px; font-weight: 700; color: var(--text-4); letter-spacing: 0.4px; }
-.aiobs-tm { margin-left: auto; font-size: 11px; color: var(--text-4); }
-.aiobs-head { font-size: 16.5px; line-height: 1.34; letter-spacing: -0.35px; font-weight: 700; margin-top: 11px; }
-.aiobs-body { font-size: 14px; line-height: 1.48; color: var(--text-3); margin-top: 7px; }
-.aiobs-offer { display: flex; gap: 9px; align-items: flex-start; margin-top: 10px; padding: 10px 12px; border-radius: 16px;
-  background: rgba(247,206,74,0.20); color: #6B5412; font-size: 13.5px; line-height: 1.45; }
-.theme-dark .aiobs-offer { background: rgba(240,195,10,0.13); color: #F0D890; }
+.aiobs-orb { width: 34px; height: 34px; flex-shrink: 0; display: block; line-height: 0; }
+.aiobs-name { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); }
+.aiobs-tm { margin-left: auto; font-size: 11.5px; color: var(--text-4); }
+.aiobs-text { font-size: 15.5px; line-height: 1.52; letter-spacing: -0.2px; color: var(--text); margin-top: 12px; }
 .aiobs-src { margin-top: 11px; padding-top: 10px; border-top: 0.5px solid var(--line); font-size: 11.5px; color: var(--text-4); line-height: 1.45; }
 .aiobs-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
 .aiobs-chip { border: 0; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600; border-radius: 999px;
@@ -969,7 +964,7 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .aiobs-chip.solid { background: #15161b; color: #fff; font-weight: 700; }
 .theme-dark .aiobs-chip.solid { background: #f2f2f5; color: #15161b; }
 .aiobs-chip.ghost { background: transparent; color: var(--text-4); box-shadow: inset 0 0 0 1px var(--line); }
-.aiobs-after { display: flex; align-items: center; margin-top: 9px; }
+.aiobs-after { display: flex; align-items: center; margin-top: 10px; }
 .aiobs-after .h { font-size: 11px; color: var(--text-4); }
 .aiobs-after .n { margin-left: auto; border: 0; background: transparent; cursor: pointer; font-family: inherit;
   font-size: 12px; font-weight: 650; color: var(--text-2); padding: 2px 0; }
