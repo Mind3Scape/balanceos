@@ -988,6 +988,9 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .bw27 .bw-miniRow { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
 .bw27 .bw-miniRow .bw-svgbox { width: 96px; margin: 0; flex-shrink: 0; }
 .bw27.bw-list .bw-labels, .bw27.bw-list .bw-ic { display: none; }
+/* Балл в раскрытом виде живёт в шапке крупно — в мини-колесе он же был вторым разом (мелко,
+   нечитаемо). Один факт — одно место. */
+.bw27.bw-list .bw-core, .bw27.bw-list .bw-coresub { display: none; }
 /* ── ЛЕПЕСТКИ ── шапка без балла (балл в центре колеса), знаки сфер белым слоем поверх svg */
 .bw27 .bw-head { display: flex; align-items: center; gap: 9px; }
 .bw27 .bw-per { font-size: 11px; color: var(--text-4); }

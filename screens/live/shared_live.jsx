@@ -3776,12 +3776,19 @@ function BosSphereMoveSheetLive({ item, cur, app }) {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "center", marginTop: 18 }}>
         {(BOS_SPHERES || []).map((s) => {
-          const on = cur === s.id && item.manual;
+          // Текущая сфера подсвечивается ВСЕГДА — раньше только при ручном выборе, и человек,
+          // которому сферу подобрало приложение, не видел, где привычка лежит сейчас.
+          const on = cur === s.id;
+          const fg = on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)";
+          // Знаки сфер — наши заливные SVG (как в колесе), а не эмодзи: одна и та же шестёрка
+          // не может выглядеть по-разному в двух тапах друг от друга.
+          const ic = (typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles", { size: 15, color: on ? (isDark ? "#0a0a0a" : "#fff") : (isDark ? "#c8c8cd" : "#57585f") });
           return (
             <button key={s.id} className="tap tap-pill" onClick={() => pick(s.id)}
               style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 14px", fontSize: 14, fontWeight: 700, fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: 7,
                 background: on ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
-                color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{s.e} {s.l}</button>
+                color: fg }}>{ic || s.e} {s.l}</button>
           );
         })}
       </div>
@@ -4054,6 +4061,25 @@ function BosBalanceWheelLive(props) {
   // Сворачивая колесо, ЗАКРЫВАЕМ и открытую сферу: иначе панель оставалась висеть под целым
   // колесом — ровно то, чего David просил не делать («тап по сфере не должен открывать панель»).
   function tapRadar() { beginFlip(); setSel(null); setList(!list); }
+  // Открытая сфера часто рождается НИЖЕ экрана (столбики + панель длиннее одного экрана): тап
+  // по столбику выглядел как «ничего не произошло». Подтягиваем панель под нижний хром.
+  var panelRef = React.useRef(null);
+  React.useEffect(function () {
+    if (!selId) return;
+    var t = setTimeout(function () {
+      var el = panelRef.current; if (!el) return;
+      try {
+        // Экран прокручивает НЕ окно, а контейнер `.bos-page` — window.scrollBy тут молчит.
+        var sc = el.parentElement;
+        while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
+        if (!sc) return;
+        var r = el.getBoundingClientRect(), b = sc.getBoundingClientRect();
+        var over = r.bottom - (b.bottom - 96);            // 96 — плавающая панель вкладок
+        if (over > 4) sc.scrollBy({ top: Math.min(over, Math.max(0, r.top - b.top - 12)), behavior: "smooth" });
+      } catch (e) {}
+    }, 70);
+    return function () { clearTimeout(t); };
+  }, [selId]);
   // David 2026-08-01: тап по сфере в самом колесе больше НЕ открывает панель снизу — колесо
   // сначала раскладывается в столбики, и уже там тап по столбику открывает содержимое сферы.
   function tapNode(s) { if (list) setSel(s.id === selId ? null : s.id); else { beginFlip(); setSel(null); setList(true); } }
@@ -4175,9 +4201,10 @@ function BosBalanceWheelLive(props) {
                   <span className="bw-colv">{pct}</span>
                   <span className="bw-coltr">
                     <span className="bw-colfill" style={{ height: Math.max(pct, 8) + "%", background: "linear-gradient(180deg," + petLight(Math.max(s.v, 0.12)) + "," + petDeep(Math.max(s.v, 0.12)) + ")", animationDelay: (0.06 + i * 0.05) + "s" }} />
-                    {/* Знак белый ТОЛЬКО если столбик дорос до него: на пустом (или бледном)
-                        столбике белое по светло-серому не читалось совсем. */}
-                    <span className="bw-colic">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: pct >= 24 ? "#fff" : (dark ? "rgba(255,255,255,0.38)" : "rgba(90,70,20,0.38)") })) || s.e}</span>
+                    {/* Знаки столбиков — ОДНОГО цвета у всех шести (правило David по макету
+                        «Столбики света»). Белый жил только на высоком золоте, а на пустом и
+                        бледном столбике исчезал — получалось «где белая, где серая». */}
+                    <span className="bw-colic">{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: dark ? "rgba(255,255,255,0.72)" : "rgba(88,66,12,0.62)" })) || s.e}</span>
                   </span>
                   <span className="bw-colnm">{s.l}</span>
                 </button>
@@ -4185,7 +4212,8 @@ function BosBalanceWheelLive(props) {
             })}
           </div>
         )}
-        {list && <div className="bw-rowsub">Тап по сфере — что в неё входит: привычки и цели.</div>}
+        {/* В раскрытом виде обратной дороги не было видно — подписываем оба жеста. */}
+        {list && <div className="bw-rowsub">Тап по сфере — что в неё входит. Тап по колесу — свернуть.</div>}
 
         {/* Подвал колеса: слабейшая и сильнейшая сферы одной строкой. */}
         {!list && (weak || strong) && (
@@ -4211,7 +4239,7 @@ function BosBalanceWheelLive(props) {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
           return (
-            <div className="lr-panel" key={s.id}>
+            <div className="lr-panel" key={s.id} ref={panelRef}>
               <button className="lr-phead" onClick={function () { setSel(null); }}>
                 <span className="lr-orb" style={{ width: 40, height: 40, flexShrink: 0 }}>
                   <span className="lr-disc" style={{ width: 40, height: 40 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 19, color: iconCol })) || s.e}</span>
