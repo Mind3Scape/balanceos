@@ -8605,20 +8605,20 @@ function HomeWeekStripLive(props) {
   var keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
   var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   var WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-  // ТОЛЬКО ГРАДИЕНТЫ, без обводок (David). Выполнено = глянцевый графит-круг; пусто = тусклый
-  // градиент-диск; СЕГОДНЯ = вертикальная «капсула»-подсветка за днём (удлинённая, как на референсе),
-  // а не кольцо-строчка. Кружки МЕНЬШЕ (28px), капсула чуть уже ячейки → дышит.
-  var doneFill = (typeof bosCellFill === "function") ? bosCellFill("#0a0a0a", 1) : "#0a0a0a";
-  var doneGlass = (typeof bosCellGlass === "function") ? bosCellGlass(isDark) : "0 1px 3px rgba(0,0,0,0.18)";
-  var emptyFill = isDark ? "linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))" : "linear-gradient(160deg, #eef0f4, #e1e4ea)";
-  var emptyInset = isDark ? "inset 0 1px 1px rgba(255,255,255,0.06)" : "inset 0 1px 2px rgba(0,0,0,0.06)";
-  var todayCap = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  /* НЕДЕЛЯ = семь ПЛИТОК-ДНЕЙ (David 2026-08-01: «виджет выглядит страшно; зачем чёрная обводка,
+     если день уже выделен серым; может, писать дату внутри и сделать крупнее»).
+     Что было не так: сегодня выделялся ДВАЖДЫ (серая капсула-подложка + чёрная обводка на клетке)
+     — два приёма про один факт, глазу шумно; сама клетка была 28px с подписью-буквой под ней,
+     то есть маленький безымянный квадрат, по которому не прочитать дату.
+     Стало: плитка во всю ширину ячейки, ЧИСЛО ДНЯ внутри, буква недели под ней. Сегодня выделен
+     ОДНИМ приёмом — типографикой (число и буква темнее и жирнее). Никаких рамок и капсул.
+     Заливка — та же, что в грядке: золото по наполненности дня. */
+  var track = isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.055)";
   return (
-    <div style={{ display: "flex" }}>
+    <div style={{ display: "flex", gap: 6 }}>
       {keys.map(function (k, i) {
-        // День = стеклянное КОЛЬЦО-заполнение: доля выполненных сегодня привычек (David v660).
-        // «Дни недели»: привычка с расписанием в чужой день НЕ входит в знаменатель — кольцо
-        // требует только то, что на этот день назначено (отметил в чужой день → всё равно idёт в счёт).
+        // «Дни недели»: привычка с расписанием в чужой день НЕ входит в знаменатель — день
+        // требует только то, что на него назначено (отметил в выходной → всё равно идёт в счёт).
         var due = habits.filter(function (h) {
           var m = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
           return (h.log && h.log[k]) || !m || !!m[i];
@@ -8626,18 +8626,23 @@ function HomeWeekStripLive(props) {
         var doneN = due.length ? due.filter(function (h) { return h.log && h.log[k]; }).length : 0;
         var pct = due.length ? doneN / due.length : 0;
         var isToday = k === todayK;
+        var isFuture = todayK ? k > todayK : false;
+        var dayNum = parseInt(("" + k).slice(-2), 10) || "";
+        var filled = pct > 0 && !isFuture;
+        // Чернила числа: на золоте — тёмное золото (читается на любой ступени заливки), на пустой
+        // плитке — обычный текст; сегодня темнее и жирнее остальных, будущее почти не видно.
+        var ink = filled ? "#6b4e00" : (isFuture ? "var(--text-5)" : (isToday ? "var(--text)" : "var(--text-3)"));
         return (
-          <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 7px 6px", borderRadius: 18, background: isToday ? todayCap : "transparent" }}>
-              {/* ЯЗЫК ГРЯДКИ (David 2026-08-01: «виджет „Эта неделя" не в стиле нового календаря —
-                  там старые кружочки с кольцом»). Тот же скруглённый квадрат-день и та же заливка
-                  по наполненности, что в грядке; «сегодня» — внутренняя обводка, как в клетке.
-                  Цвет золотой: виджет сводит ВСЕ привычки сразу, своего цвета у него нет. */}
-              <div style={{ width: 28, height: 28, borderRadius: 9,
-                background: (typeof bosFieldTint === "function") ? bosFieldTint(null, pct, isDark) : "transparent",
-                boxShadow: isToday ? ("inset 0 0 0 1.6px " + (isDark ? "#fff" : "#0a0a0a")) : "none" }} />
-              <span style={{ fontSize: 10, fontWeight: 600, color: isToday ? "var(--text-2)" : "var(--text-4)", letterSpacing: "0.2px" }}>{WD[i]}</span>
+          <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div style={{ width: "100%", aspectRatio: "1/1", borderRadius: 13, display: "grid", placeItems: "center",
+              background: filled ? ((typeof bosFieldTint === "function") ? bosFieldTint(null, pct, isDark) : track) : track,
+              opacity: isFuture ? 0.55 : 1 }}>
+              <span style={{ fontSize: 15, fontWeight: isToday ? 800 : 600, letterSpacing: "-0.3px", color: ink, fontVariantNumeric: "tabular-nums" }}>{dayNum}</span>
             </div>
+            {/* У сегодня подпись — слово «Сегодня», а не буква дня: так текущий день читается
+                сразу и без единой рамки (David: «зачем чёрная обводка, если уже выделено»). */}
+            <span style={{ fontSize: isToday ? 9.5 : 10.5, fontWeight: isToday ? 800 : 600, letterSpacing: isToday ? "-0.1px" : "0.2px",
+              color: isToday ? "var(--text)" : "var(--text-4)", whiteSpace: "nowrap" }}>{isToday ? "Сегодня" : WD[i]}</span>
           </div>
         );
       })}
