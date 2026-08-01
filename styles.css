@@ -985,8 +985,9 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .theme-dark .bw27 .bw-stat { color: #FEDE34; background: rgba(240,195,10,0.14); box-shadow: inset 0 0 0 0.6px rgba(240,195,10,0.3); }
 .bw27 .bw-svgbox { max-width: 300px; margin: 4px auto 0; cursor: pointer; position: relative; }
 .bw27 .bw-svgbox svg { width: 100%; display: block; overflow: visible; }
-.bw27 .bw-miniRow { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
-.bw27 .bw-miniRow .bw-svgbox { width: 96px; margin: 0; flex-shrink: 0; }
+/* Раскрыто: мини-колесо стоит В шапке слева от балла и работает как «назад». Отдельного ряда
+   «мини-колесо + реплика» больше нет — он и делал низ карточки разнородным. */
+.bw27 .bw-score .bw-svgbox { width: 46px; margin: 0; flex-shrink: 0; align-self: center; }
 .bw27.bw-list .bw-labels, .bw27.bw-list .bw-ic { display: none; }
 /* Балл в раскрытом виде живёт в шапке крупно — в мини-колесе он же был вторым разом (мелко,
    нечитаемо). Один факт — одно место. */
@@ -1024,8 +1025,27 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .bw27 .bw-fmore { margin-left: auto; font-size: 11.5px; color: var(--text-4); }
 .bw27 .bw-core { font-size: 32px; font-weight: 750; letter-spacing: -1.2px; }
 .bw27 .bw-coresub { font-size: 8px; font-weight: 700; letter-spacing: 1.1px; }
-.bw27 .bw-insight { flex: 1; min-width: 0; font-size: 13px; line-height: 1.55; color: var(--text-3); }
-.bw27 .bw-insight b { color: var(--text); font-weight: 700; }
+/* Содержимое сферы — тихий список одной типографики: имя-строка, перечень, одна подсказка. */
+.bw27 .bw-sp { margin-top: 12px; padding-top: 11px; border-top: 0.5px solid var(--line);
+  animation: bwSpIn 0.32s cubic-bezier(.32,.72,0,1) both; }
+@keyframes bwSpIn { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .bw27 .bw-sp { animation: none; } }
+.bw27 .bw-sphead { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent;
+  padding: 0 0 2px; font-family: inherit; color: var(--text); cursor: pointer; }
+.bw27 .bw-sphead .nm { font-size: 14px; font-weight: 750; }
+.bw27 .bw-sphead .pct { font-size: 13px; font-weight: 700; color: var(--text-4); font-variant-numeric: tabular-nums; }
+.bw27 .bw-sphead .x { margin-left: auto; color: var(--text-4); flex-shrink: 0; }
+.bw27 .bw-splist { display: flex; flex-direction: column; margin-top: 4px; }
+.bw27 .bw-spitem { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 0; border: 0;
+  background: transparent; font-family: inherit; color: var(--text); text-align: left; cursor: pointer; }
+.bw27 .bw-spitem + .bw-spitem { border-top: 0.5px solid var(--line); }
+.bw27 .bw-spitem .ico { width: 20px; flex-shrink: 0; display: grid; place-items: center; }
+.bw27 .bw-spitem .nm { flex: 1; min-width: 0; font-size: 14px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bw27 .bw-spitem .tag { font-size: 11px; color: var(--text-4); flex-shrink: 0; }
+.bw27 .bw-spadd { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; border: 0; background: transparent;
+  padding: 4px 0; font-family: inherit; font-size: 13px; font-weight: 650; color: var(--text-2); cursor: pointer; }
+.bw27 .bw-spsub { font-size: 12px; color: var(--text-4); margin-top: 8px; line-height: 1.45; }
 .bw27 .bw-lab { font-size: 11.5px; font-weight: 600; letter-spacing: 0.4px; fill: #8e8f97; }
 .bw27 .bw-lab.dim { fill: #b9bac1; }
 .theme-dark .bw27 .bw-lab { fill: #9a9ba4; }

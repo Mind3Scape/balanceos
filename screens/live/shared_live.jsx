@@ -4002,8 +4002,6 @@ function BosBalanceWheelLive(props) {
   var petDeep = function (v) { return _onScale(v, [[0.20, "#DCD3BE"], [0.40, "#E9CE87"], [0.55, "#F5C64B"], [0.75, "#F0A81A"], [1, "#E8930A"]]); };
   var petLight = function (v) { return _mixW(petDeep(v), 0.24); };
   var trackCol = dark ? "rgba(255,255,255,0.07)" : "#F1EFE9";
-  var goldInk = dark ? "#F0C838" : "#C8930A";
-  var iconCol = dark ? "#e8e8ea" : "#101828";
   var rowIcCol = dark ? "#c8c8cd" : "#57585f";
 
   var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
@@ -4023,19 +4021,6 @@ function BosBalanceWheelLive(props) {
     if (s.v >= 0.7) return [q + " — твоя сильная сфера", "Здесь ты на подъёме. Оставь силы на остальные."];
     return [q + " в движении", cap(BOS_SPHERE_NUDGE[s.id] || "небольшой ход уже поднимет сферу") + "."];
   }
-  // короткая подсказка ИИ под контекст — для режима списка (справа от маленького радара)
-  function insightNode() {
-    var filled = SPH.filter(function (s) { return s.n; });
-    if (!filled.length) return <span>Заведи первую привычку — <b>Balance AI</b> начнёт собирать твой баланс по сферам.</span>;
-    var en = SPH.length - filled.length;
-    if (filled.length <= 2 && en >= 3) return <span>Ты вкладываешься в {filled.map(function (s) { return "«" + s.l + "»"; }).join(" и ")}. Ещё {en} {en === 1 ? "сфера ждёт" : (en < 5 ? "сферы ждут" : "сфер ждут")} первого хода.</span>;
-    if (strong && weak && strong.id !== weak.id) return <span>Сильнее всего — «{strong.l}». «{weak.l}» просел: {BOS_SPHERE_NUDGE[weak.id] || "небольшой ход поднимет сферу"}.</span>;
-    return <span>Сферы держатся ровно — редкий баланс. Так держать.</span>;
-  }
-  var nudge = null;
-  if (weak) nudge = { s: weak, t: "«" + weak.l + "» отстаёт — " + (BOS_SPHERE_NUDGE[weak.id] || "небольшой ход уже поднимет сферу") };
-  else if (emptySph.length) nudge = { s: emptySph[0], t: "Заведи первую привычку — колесо начнёт заполняться" };
-
   var selSphere = null; SPH.forEach(function (s) { if (s.id === selId) selSphere = s; });
   var byV = SPH.slice().sort(function (a, b) { return b.v - a.v; });
 
@@ -4096,8 +4081,11 @@ function BosBalanceWheelLive(props) {
       var mid = pd(aMid, rv);
       defs.push(<linearGradient key={"pg" + i} id={uid + "pg" + i} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={mid[0]} y2={mid[1]}>
         <stop offset="0" stopColor={petLight(s.v)} /><stop offset="1" stopColor={petDeep(s.v)} /></linearGradient>);
+      // В РАСКРЫТОМ виде колесо стало кнопкой «назад» целиком: клик по лепестку НЕ перехватываем,
+      // он всплывает к tapRadar и сворачивает. David: «жму на колесо вернуться, а он открывает
+      // мне конкретную сферу». Сферы в этом состоянии выбираются столбиками, а не лепестками.
       body.push(<path key={"p" + i} d={petalPath(aMid, 30, R0, rv, GAPPX, RCORN)} fill={"url(#" + uid + "pg" + i + ")"}
-        onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
+        onClick={function (e) { if (list) return; e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
       // Засечки нормы внутри лепестков БОЛЬШЕ НЕТ (David 2026-08-01: «что это за серые линии
       // ближе к центру?»). Знак, который приходится объяснять, не работает: норма теперь
       // живёт словами в шапке («N из 6 выше нормы») и засечкой на полосах в раскрытом ранжире.
@@ -4109,7 +4097,7 @@ function BosBalanceWheelLive(props) {
       var anch = Math.abs(x) < 0.35 ? "middle" : (x > 0 ? "start" : "end");
       var edgeCase = !!(s.n && ((strong && s.id === strong.id) || (weak && s.id === weak.id)));
       labs.push(
-        <g key={"l" + i} onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }}>
+        <g key={"l" + i} onClick={function (e) { if (list) return; e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }}>
           <text className={"bw-lab" + (edgeCase ? "" : " dim")} x={p[0].toFixed(1)} y={(p[1] + (edgeCase ? -3 : 3)).toFixed(1)} textAnchor={anch}>{s.l}</text>
           {edgeCase ? <text className="bw-val" x={p[0].toFixed(1)} y={(p[1] + 11).toFixed(1)} textAnchor={anch} fill={dark ? "#c9c9ce" : "#5B5D66"}>{Math.round(s.v * 100)}</text> : null}
         </g>
@@ -4168,21 +4156,14 @@ function BosBalanceWheelLive(props) {
             <span className="bw-badge">{bwStatus}</span>
           </div>
         )}
-        {list && (
+        {/* РАСКРЫТО: одна шапка — мини-колесо (оно же «назад»), балл, статус. Отдельной строки
+            с текстом ИИ здесь больше нет: над карточкой и так говорит Balance AI, а вторая
+            реплика другим кеглем делала низ «разнородным» (David). */}
+        {list ? (
           <div className="bw-score">
+            <div className="bw-svgbox mini" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
             <span className="n">{total}</span><span className="m">/ 100</span>
             <span className="bw-stat">{bwStatus}</span>
-          </div>
-        )}
-
-        {list ? (
-          <div className="bw-miniRow">
-            <div className="bw-svgbox mini" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
-            <div className="bw-insight">
-              {(strong && weak && strong.id !== weak.id)
-                ? <span>Сильнее всего — <b>{strong.l}</b>.<br />Слабее всех — <b>{weak.l}</b>: {(typeof BOS_SPHERE_NUDGE !== "undefined" && BOS_SPHERE_NUDGE[weak.id]) || "небольшой ход поднимет сферу"}.</span>
-                : insightNode()}
-            </div>
           </div>
         ) : (
           <div className="bw-svgbox" ref={svgBoxRef} onClick={tapRadar} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
@@ -4234,40 +4215,37 @@ function BosBalanceWheelLive(props) {
           </div>
         )}
 
-        {/* Панель сферы живёт и в раскрытом виде — тап по столбику открывает её тут же. */}
+        {/* Содержимое сферы — ТИХИЙ список, а не вторая карточка. Было: орб 40px, заголовок в
+            две строки, теги и золотая плашка «Balance AI сам раскладывает…» на каждой сфере —
+            низ рассыпался (David: «глаза разбегаются»). Осталось: строка-имя с процентом,
+            перечень привычек, одна подсказка. */}
         {selSphere ? (function () {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
           return (
-            <div className="lr-panel" key={s.id} ref={panelRef}>
-              <button className="lr-phead" onClick={function () { setSel(null); }}>
-                <span className="lr-orb" style={{ width: 40, height: 40, flexShrink: 0 }}>
-                  <span className="lr-disc" style={{ width: 40, height: 40 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 19, color: iconCol })) || s.e}</span>
-                </span>
-                <span className="h"><b>{h[0]}{s.n ? " · " + pct + "%" : ""}</b><span>{h[1]}</span></span>
-                <svg className="lr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
+            <div className="bw-sp" key={s.id} ref={panelRef}>
+              <button className="bw-sphead tap" data-no-haptic onClick={function () { setSel(null); }}>
+                {((typeof bosIconEl === "function") && bosIconEl(nm, { size: 15, color: rowIcCol })) || s.e}
+                <span className="nm">{s.l}</span>
+                {s.n ? <span className="pct">{pct}%</span> : null}
+                <svg className="x" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
               </button>
               {s.items && s.items.length ? (
-                <div className="lr-items">
+                <div className="bw-splist">
                   {s.items.map(function (it, j) { return (
-                    <button className="lr-item tap" key={j} type="button"
-                      onClick={function () { if (openSheet) openSheet(<BosSphereMoveSheetLive item={it} cur={s.id} app={app} />); }}
-                      style={{ width: "100%", border: 0, background: "transparent", font: "inherit", color: "inherit", textAlign: "left", cursor: "pointer" }}>
-                      <span className="ico">{bosIconOf(it, 19, null)}</span><span className="nm">{it.name}</span>
-                      <span className="tag">{it.manual ? "вручную" : (it.kind === "goal" ? "цель" : "привычка")}</span>
+                    <button className="bw-spitem tap" key={j} type="button" data-no-haptic
+                      onClick={function () { if (openSheet) openSheet(<BosSphereMoveSheetLive item={it} cur={s.id} app={app} />); }}>
+                      <span className="ico">{bosIconOf(it, 17, null)}</span><span className="nm">{it.name}</span>
+                      {it.kind === "goal" ? <span className="tag">цель</span> : null}
                     </button>
                   ); })}
                 </div>
               ) : (
-                <div className="lr-empty">
-                  <p>В сфере «{s.l}» пока нет привычек. Заведи первую — и сфера начнёт наполняться.</p>
-                  <button className="lr-addbtn" onClick={function (e) { e.stopPropagation(); var pr = (typeof BOS_SPHERE_PRESET !== "undefined" && BOS_SPHERE_PRESET[s.id]) || { i: "✨", t: s.l }; if (typeof HabitFormSheetLive === "function") openSheet(<HabitFormSheetLive mode="create" preset={{ i: pr.i, t: pr.t, sphere: s.id }} navigate={navigate} />); else if (navigate) navigate("home"); }}>{typeof I !== "undefined" && I.Plus ? <I.Plus size={14} /> : "＋"} Добавить привычку</button>
-                </div>
+                <button className="bw-spadd tap" data-no-haptic onClick={function (e) { e.stopPropagation(); var pr = (typeof BOS_SPHERE_PRESET !== "undefined" && BOS_SPHERE_PRESET[s.id]) || { i: "✨", t: s.l }; if (typeof HabitFormSheetLive === "function") openSheet(<HabitFormSheetLive mode="create" preset={{ i: pr.i, t: pr.t, sphere: s.id }} navigate={navigate} />); else if (navigate) navigate("home"); }}>
+                  {typeof I !== "undefined" && I.Plus ? <I.Plus size={14} /> : "＋"} Первая привычка в сферу
+                </button>
               )}
-              <div className="lr-ai">
-                <span className="lr-aiico"><svg width="13" height="13" viewBox="0 0 24 24" fill={goldInk}><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg></span>
-                <span className="s"><b>Balance AI</b> сам раскладывает твои привычки и цели по шести сферам жизни и считает, где ты в балансе — тебе ничего не нужно сортировать вручную.</span>
-              </div>
+              <div className="bw-spsub">{h[1]}</div>
             </div>
           );
         })() : null}
