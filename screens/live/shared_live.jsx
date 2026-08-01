@@ -4147,7 +4147,8 @@ function BosBalanceWheelLive(props) {
           </div>
         )}
 
-        {!list && selSphere ? (function () {
+        {/* Панель сферы живёт и в раскрытом виде — тап по столбику открывает её тут же. */}
+        {selSphere ? (function () {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
           return (
