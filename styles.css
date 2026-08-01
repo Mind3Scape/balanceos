@@ -953,10 +953,7 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
    сделать → чем ответить. Тексты пишет модель, форму держит вёрстка. */
 .aiobs { background: var(--card); border-radius: 24px; padding: 15px 16px 14px; box-shadow: var(--card-shadow); color: var(--text); }
 .aiobs-who { display: flex; align-items: center; gap: 9px; }
-.aiobs-mark { width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;
-  background: #15161b; }
-.theme-dark .aiobs-mark { background: #f2f2f5; }
-.theme-dark .aiobs-mark svg { fill: #15161b; }
+.aiobs-orb { width: 30px; height: 30px; flex-shrink: 0; display: block; line-height: 0; }
 .aiobs-kick { font-size: 10.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-3); }
 .aiobs-cnt { font-size: 10.5px; font-weight: 700; color: var(--text-4); letter-spacing: 0.4px; }
 .aiobs-tm { margin-left: auto; font-size: 11px; color: var(--text-4); }
@@ -1000,6 +997,11 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   white-space: nowrap; color: #8a6400; background: rgba(247,206,74,0.22); }
 .theme-dark .bw27 .bw-badge { color: #FEDE34; background: rgba(240,195,10,0.14); }
 .bw27 .bw-ic { position: absolute; transform: translate(-50%, -50%); line-height: 0; pointer-events: none; }
+.bw27 .bw-foot { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--line); }
+.bw27 .bw-fitem { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-2); padding: 0; }
+.bw27 .bw-fitem b { font-weight: 800; }
+.bw27 .bw-fmore { margin-left: auto; font-size: 11.5px; color: var(--text-4); }
 .bw27 .bw-core { font-size: 32px; font-weight: 750; letter-spacing: -1.2px; }
 .bw27 .bw-coresub { font-size: 8px; font-weight: 700; letter-spacing: 1.1px; }
 .bw27 .bw-insight { flex: 1; min-width: 0; font-size: 13px; line-height: 1.55; color: var(--text-3); }

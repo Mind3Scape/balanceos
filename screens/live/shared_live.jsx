@@ -3926,12 +3926,12 @@ function BosBalanceWheelLive(props) {
   })();
   // Знаки сфер — HTML-слоем ПОВЕРХ svg: все шесть на одной окружности, одного цвета (белые),
   // «тонкие» силуэты (луна, искра) чуть крупнее — иначе рядом с гантелью они выглядят жиже.
-  var ICON_BOOST = { soul: 1.18, rest: 1.16, mind: 1.06 };
+  var ICON_BOOST = { soul: 1.12, rest: 1.10, mind: 1.04 };
   var iconLayer = SPH.map(function (s, i) {
     var p = pd(i * 60, R_ICON);
     var covered = Math.max(0.06, s.v) * (OUT - R0) + R0 >= R_ICON + 2;
     var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
-    var sz = Math.round(17 * (ICON_BOOST[s.id] || 1));
+    var sz = Math.round(14 * (ICON_BOOST[s.id] || 1));
     return (
       <span key={s.id} className="bw-ic" style={{ left: ((p[0] + 148) / 296 * 100) + "%", top: ((p[1] + 150) / 300 * 100) + "%" }}>
         {((typeof bosIconEl === "function") && bosIconEl(nm, { size: sz, color: covered ? "#fff" : (dark ? "rgba(255,255,255,0.34)" : "rgba(90,70,20,0.34)") })) || s.e}
@@ -3939,16 +3939,13 @@ function BosBalanceWheelLive(props) {
     );
   });
 
-  // Стекло-карта (макет: жидкое стекло с бликом; bare — без собственной карты). Тёплые
-  // радиальные пятна — В СОСТАВЕ фона карты: в макете они жили на странице и просвечивали
-  // сквозь стекло, у приложения фон плоский серый → без них всё выглядело выцветшим (David).
+  // МАТОВАЯ карта (макет лепестков 2026-07-31): стекло здесь больше не нужно — оно было под
+  // «жидкое стекло», а с лепестками давало выцветший тёплый фон, на котором пропадал и светлый
+  // «потолок» сферы, и белые знаки (David: «в лайве не так красиво, как на макетах»).
+  // Материальная дисциплина: стекло — только плавающий хром, внутри экрана карточки матовые.
   var glassCard = bare ? { padding: 0 } : {
-    borderRadius: 28, padding: "18px 18px 20px", position: "relative",
-    background: dark
-      ? "linear-gradient(165deg, rgba(46,47,54,0.78), rgba(28,29,34,0.66)), radial-gradient(340px 240px at 18% 8%, rgba(254,222,52,0.10), transparent 70%), radial-gradient(420px 300px at 88% 30%, rgba(239,159,20,0.08), transparent 70%), #1c1d22"
-      : "linear-gradient(165deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42) 55%, rgba(255,255,255,0.58)), radial-gradient(340px 240px at 18% 8%, rgba(254,222,52,0.26), transparent 70%), radial-gradient(420px 300px at 88% 30%, rgba(239,159,20,0.18), transparent 72%), radial-gradient(360px 280px at 50% 100%, rgba(160,170,200,0.14), transparent 70%), #f4f5f8",
-    WebkitBackdropFilter: "blur(24px) saturate(1.3)", backdropFilter: "blur(24px) saturate(1.3)",
-    boxShadow: dark ? "0 22px 46px rgba(0,0,0,0.38), inset 0 1px 0.5px rgba(255,255,255,0.09)" : "0 22px 46px rgba(30,34,50,0.12), 0 2px 8px rgba(30,34,50,0.05), inset 0 1.5px 1px rgba(255,255,255,0.95), inset 0 0 0 0.6px rgba(255,255,255,0.6)"
+    borderRadius: 26, padding: "16px 16px 15px", position: "relative",
+    background: "var(--card)", boxShadow: "var(--card-shadow)"
   };
 
   return (
@@ -4006,13 +4003,25 @@ function BosBalanceWheelLive(props) {
           </div>
         )}
 
-        {!list && !selSphere && nudge && (
-          <button className="bw-whisper tap" data-no-haptic onClick={function () { setSel(nudge.s.id); }}>
-            <span className="bw-moon">{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[nudge.s.id]) || "Sparkles", { size: 14, color: "#8a6400" })) || nudge.s.e}</span>
-            <span style={{ flex: 1, minWidth: 0 }}>{nudge.t}</span>
-          </button>
+        {/* Подвал как в макете: слабейшая и сильнейшая сферы одной строкой + «сфера — тап ›».
+            Стеклянная капсула-шёпот убрана — она спорила с матовой картой. */}
+        {!list && !selSphere && (weak || strong) && (
+          <div className="bw-foot">
+            {weak && (
+              <button className="bw-fitem tap" data-no-haptic onClick={function () { setSel(weak.id); }} style={{ color: dark ? "#E0A070" : "#b0663a" }}>
+                {((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[weak.id]) || "Sparkles", { size: 15, color: dark ? "#E0A070" : "#b0663a" })) || weak.e}
+                <b>{Math.round(weak.v * 100)}</b> {weak.l}
+              </button>
+            )}
+            {strong && strong !== weak && (
+              <button className="bw-fitem tap" data-no-haptic onClick={function () { setSel(strong.id); }}>
+                {((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[strong.id]) || "Sparkles", { size: 15, color: rowIcCol })) || strong.e}
+                <b>{Math.round(strong.v * 100)}</b> {strong.l}
+              </button>
+            )}
+            <span className="bw-fmore">сфера — тап ›</span>
+          </div>
         )}
-
         {!list && selSphere ? (function () {
           var s = selSphere, h = hintFor(s), pct = s.n ? Math.round(s.v * 100) : 0;
           var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";

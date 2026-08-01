@@ -591,7 +591,12 @@ function BosObsCardLive(props) {
   return (
     <div className={"aiobs" + (dark ? " dk" : "")}>
       <div className="aiobs-who">
-        <span className="aiobs-mark"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg></span>
+        {/* Здесь и живёт сфера ИИ (David): она в цвет сегодняшнего состояния — говорит не
+            абстрактный значок, а твоя планета. В шапке страницы её больше нет (один факт —
+            одно место). */}
+        {/* PlanetOrb — React.memo, а это ОБЪЕКТ, не функция: проверять надо на undefined,
+            иначе сфера молча не рисуется. */}
+        <span className="aiobs-orb">{typeof PlanetOrb !== "undefined" ? <PlanetOrb size={30} tint={props.tint} live /> : null}</span>
         <span className="aiobs-kick">{o.kick}</span>
         {live.length > 1 && <span className="aiobs-cnt">· {i + 1} из {live.length}</span>}
         <span className="aiobs-tm">сегодня</span>
@@ -650,35 +655,20 @@ function AILive() {
 
   return (
     <div className="page-in" style={{ padding: "0 12px 24px" }}>
-      {/* Шапка: имя вкладки + орб в цвет сегодняшнего состояния (честный серый, если не отмечено). */}
-      <div style={{ padding: "4px 4px 12px", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ flexShrink: 0, width: 46, height: 46 }}><PlanetOrb size={46} tint={liveTint} live /></div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11.5, color: "var(--text-4)", letterSpacing: 0.3 }}>
-            {(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}{moodName ? " · " + moodName : ""}
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 1 }}>Balance AI</div>
+      {/* Шапка: только имя вкладки. Сфера ИИ переехала в карточку наблюдения — она там и
+          «говорит» (David 2026-08-01). */}
+      <div style={{ padding: "4px 4px 12px" }}>
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", letterSpacing: 0.3 }}>
+          {(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}{moodName ? " · " + moodName : ""}
         </div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 1 }}>Balance AI</div>
       </div>
 
       {/* ═══ БЛОК 1 — ЧТО Я ЗАМЕТИЛ ═══ Здесь говорит сам ИИ: что увидел в твоих данных, что
           предлагает, и чем можно ответить. Всё, что раньше лежало в плитках «Твой пульс»,
           он теперь говорит предложениями (David 2026-08-01: «не пихать кучу мелких виджетов»). */}
       <div data-tour="ai-hero">
-        <BosObsCardLive app={app} st={st} navigate={navigate} dark={isDarkAI} pid={pid} />
-      </div>
-
-      {/* Разговор — продолжение того же блока, поэтому сразу под ним. */}
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 10, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 2px 0 8px" }}>
-          <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
-            onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
-            style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "8px 4px" }}/>
-          <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap hit44" aria-label="Спросить"
-            style={{ width: 34, height: 34, borderRadius: "50%", background: isDarkAI ? "#f2f2f5" : "#0a0a0a", border: 0, color: isDarkAI ? "#0a0a0a" : "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
-            <I.Send size={13}/>
-          </button>
-        </div>
+        <BosObsCardLive app={app} st={st} navigate={navigate} dark={isDarkAI} pid={pid} tint={liveTint} />
       </div>
 
       {/* ═══ БЛОК 2 — БАЛАНС ЖИЗНИ ═══ Колесо-лепестки. Рисуем ВСЕГДА, когда база пройдена:
@@ -691,6 +681,19 @@ function AILive() {
             : <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />}
         </div>
       )}
+
+      {/* Поле разговора — под обоими блоками (David: «спросить Balance AI вниз, под баланс жизни»). */}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 10, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 2px 0 8px" }}>
+          <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
+            onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
+            style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "8px 4px" }}/>
+          <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap hit44" aria-label="Спросить"
+            style={{ width: 34, height: 34, borderRadius: "50%", background: isDarkAI ? "#f2f2f5" : "#0a0a0a", border: 0, color: isDarkAI ? "#0a0a0a" : "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <I.Send size={13}/>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
