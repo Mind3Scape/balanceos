@@ -632,6 +632,48 @@ function bosAccentPaint(accent, isDark) {
     chipBg: a + (isDark ? "24" : "1f"), chipInk: ink, glyph: isDark ? (typeof bosLightenHex === "function" ? bosLightenHex(a, 0.2) : a) : a,
   };
 }
+/* ДЕНЬ = КРУЖОК С КОЛЬЦОМ ЗАПОЛНЕНИЯ (David 2026-08-01: «квадратики не заходят; в месячном
+   календаре хотелось бы кружочки с кольцами, заполнение вместо квадратиков»).
+   Один элемент на всё приложение: виджет недели на Главной и месячный календарь. Кольцо-дорожка
+   всегда на месте, дуга поверх — доля дня (у личной привычки 0 или 1, у цели и круга — доля).
+   Дуга идёт от 12 часов по часовой, с круглыми концами: неполный день видно формой, а не цветом.
+   Рисуем SVG в системе 40×40 и растягиваем по контейнеру — толщина кольца масштабируется вместе
+   с ним, поэтому кружок одинаково аккуратен и в 32 px, и в 44 px. */
+function BosRingDayLive(props) {
+  var pct = Math.max(0, Math.min(1, props.pct || 0));
+  var isDark = !!props.isDark;
+  var P = (typeof bosAccentPaint === "function") ? bosAccentPaint(props.accent, isDark) : null;
+  var col = props.color || (P ? P.solid : (isDark ? "rgba(255,255,255,0.62)" : "rgba(10,10,10,0.55)"));
+  var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.09)";
+  var SW = 3.4, R = (40 - SW) / 2, C = 2 * Math.PI * R;
+  var full = pct >= 0.999;
+  return (
+    <span style={{ position: "relative", display: "block", width: "100%", aspectRatio: "1/1" }}>
+      <svg viewBox="0 0 40 40" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", overflow: "visible" }}>
+        {/* мягкая заливка под полным днём — кружок «налит», а не просто обведён */}
+        {pct > 0 && <circle cx="20" cy="20" r={R - SW / 2} fill={col} opacity={0.1 + 0.1 * pct} />}
+        {/* У пустого дня дорожки нет вовсе — иначе месяц превращается в соты из тридцати колец.
+            Она нужна там, где есть дуга (чтобы читалась доля) и в недельном ряду (там ритм). */}
+        {(pct > 0 || !props.hideEmptyTrack) && <circle cx="20" cy="20" r={R} fill="none" stroke={track} strokeWidth={SW} />}
+        {pct > 0 && (full
+          ? <circle cx="20" cy="20" r={R} fill="none" stroke={col} strokeWidth={SW} />
+          : <circle cx="20" cy="20" r={R} fill="none" stroke={col} strokeWidth={SW} strokeLinecap="round"
+              strokeDasharray={(C * pct).toFixed(2) + " " + C.toFixed(2)} transform="rotate(-90 20 20)" />)}
+        {/* «сегодня» и «выбранный» — тонкий ободок СНАРУЖИ кольца, с воздухом между ними,
+            иначе два кольца сливаются в одно жирное */}
+        {props.today && <circle cx="20" cy="20" r={R + SW * 1.15} fill="none"
+          stroke={isDark ? "rgba(255,255,255,0.45)" : "rgba(10,10,10,0.38)"} strokeWidth="1.2" />}
+        {props.sel && !props.today && <circle cx="20" cy="20" r={R + SW * 1.15} fill="none"
+          stroke={isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.16)"} strokeWidth="1.2" />}
+      </svg>
+      {props.num != null && (
+        <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center",
+          fontSize: props.numSize || 13, fontWeight: props.today ? 800 : 600, letterSpacing: "-0.3px",
+          fontVariantNumeric: "tabular-nums", lineHeight: 1, color: props.numColor || "var(--text)" }}>{props.num}</span>
+      )}
+    </span>
+  );
+}
 function BosFieldCalendarLive(props) {
   var pctOf = props.pctOf || function () { return 0; };
   var accent = (typeof bosCanonColor === "function") ? bosCanonColor(props.accent) : props.accent;
@@ -643,6 +685,42 @@ function BosFieldCalendarLive(props) {
   var firedRef = React.useRef(false);    // долгий тап уже сработал → обычный клик глотаем
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var todayK = bosFieldKey(today);
+
+  /* ПЕРЕКЛЮЧАТЕЛЬ «МЕСЯЦ · ГОД» (David 2026-08-01: «давай ещё тоггл на календаре для тех, кто
+     хочет смотреть не год грядки, а только месяц текущей грядки»). Состояния честно отвечают на
+     РАЗНЫЕ вопросы: «Месяц» — сетка с числами, сюда приходят за конкретным днём (ткнуть в 14-е и
+     отметить задним числом); «Год» — грядка, сюда приходят за характером. Выбор общий на всё
+     приложение, поэтому лежит в localStorage, а не в состоянии экрана. */
+  var VKEY = "bos:calview";
+  var viewState = React.useState(function () {
+    try { return localStorage.getItem(VKEY) === "month" ? "month" : "year"; } catch (e) { return "year"; }
+  });
+  var view = viewState[0], setView = viewState[1];
+  var setViewSaved = function (v) {
+    setView(v);
+    try { localStorage.setItem(VKEY, v); } catch (e) {}
+    try { if (window.bosHaptic) window.bosHaptic("select"); } catch (e) {}
+  };
+  var monOff = React.useState(0);            // 0 = текущий месяц, -1 = прошлый …
+  var mOff = monOff[0], setMOff = monOff[1];
+  var mBase = new Date(today.getFullYear(), today.getMonth() + mOff, 1);
+  var monthCells = React.useMemo(function () {
+    var first = new Date(mBase.getFullYear(), mBase.getMonth(), 1);
+    var shift = (first.getDay() + 6) % 7;
+    var dim = new Date(mBase.getFullYear(), mBase.getMonth() + 1, 0).getDate();
+    var rows = [], n = Math.ceil((shift + dim) / 7);
+    for (var r = 0; r < n; r++) {
+      var row = [];
+      for (var i = 0; i < 7; i++) {
+        var num = r * 7 + i - shift + 1;
+        if (num < 1 || num > dim) { row.push(null); continue; }
+        var d = new Date(mBase.getFullYear(), mBase.getMonth(), num);
+        row.push({ k: bosFieldKey(d), d: num, future: d > today });
+      }
+      rows.push(row);
+    }
+    return rows;
+  }, [mBase.getFullYear(), mBase.getMonth(), todayK]);
 
   // ДЛИНА ГРЯДКИ (David 2026-08-01, второй заход: «справа пустое белое пространство, грядка ни о
   // чём»). Короткое окно (10 недель) не заполняло ширину карточки — грядка липла к левому краю.
@@ -684,43 +762,7 @@ function BosFieldCalendarLive(props) {
   React.useEffect(function () {
     var el = scRef.current; if (!el) return;
     el.scrollLeft = Math.round(el.scrollWidth - el.clientWidth);
-  }, [cols.length]);
-
-  /* ПЕРЕКЛЮЧАТЕЛЬ «МЕСЯЦ · ГОД» (David 2026-08-01: «давай ещё тоггл на календаре для тех, кто
-     хочет смотреть не год грядки, а только месяц текущей грядки»). Состояния честно отвечают на
-     РАЗНЫЕ вопросы: «Месяц» — сетка с числами, сюда приходят за конкретным днём (ткнуть в 14-е и
-     отметить задним числом); «Год» — грядка, сюда приходят за характером. Выбор общий на всё
-     приложение, поэтому лежит в localStorage, а не в состоянии экрана. */
-  var VKEY = "bos:calview";
-  var viewState = React.useState(function () {
-    try { return localStorage.getItem(VKEY) === "month" ? "month" : "year"; } catch (e) { return "year"; }
-  });
-  var view = viewState[0], setView = viewState[1];
-  var setViewSaved = function (v) {
-    setView(v);
-    try { localStorage.setItem(VKEY, v); } catch (e) {}
-    try { if (window.bosHaptic) window.bosHaptic("select"); } catch (e) {}
-  };
-  var monOff = React.useState(0);            // 0 = текущий месяц, -1 = прошлый …
-  var mOff = monOff[0], setMOff = monOff[1];
-  var mBase = new Date(today.getFullYear(), today.getMonth() + mOff, 1);
-  var monthCells = React.useMemo(function () {
-    var first = new Date(mBase.getFullYear(), mBase.getMonth(), 1);
-    var shift = (first.getDay() + 6) % 7;
-    var dim = new Date(mBase.getFullYear(), mBase.getMonth() + 1, 0).getDate();
-    var rows = [], n = Math.ceil((shift + dim) / 7);
-    for (var r = 0; r < n; r++) {
-      var row = [];
-      for (var i = 0; i < 7; i++) {
-        var num = r * 7 + i - shift + 1;
-        if (num < 1 || num > dim) { row.push(null); continue; }
-        var d = new Date(mBase.getFullYear(), mBase.getMonth(), num);
-        row.push({ k: bosFieldKey(d), d: num, future: d > today });
-      }
-      rows.push(row);
-    }
-    return rows;
-  }, [mBase.getFullYear(), mBase.getMonth(), todayK]);
+  }, [cols.length, view]);   // view — иначе после «Месяц → Год» грядка открывается в январе
 
   var startLong = function (k, can) {
     if (!onDayMark || !can) return;
@@ -795,17 +837,13 @@ function BosFieldCalendarLive(props) {
                       onPointerDown={function () { startLong(dd.k, !unknown && !dd.future); }}
                       onPointerUp={endLong} onPointerLeave={endLong} onPointerCancel={endLong}
                       onContextMenu={function (e) { e.preventDefault(); }}
-                      style={{ flex: 1, minWidth: 0, aspectRatio: "1/1", borderRadius: 11, border: 0, padding: 0,
+                      style={{ flex: 1, minWidth: 0, background: "none", border: 0, padding: 2,
                         cursor: (unknown || dd.future) ? "default" : "pointer",
-                        fontSize: 13, fontWeight: isToday ? 800 : 600, fontVariantNumeric: "tabular-nums",
-                        /* Отмеченный день — мягкая заливка и ТЁМНОЕ число: месяц остаётся воздушным,
-                           а сделанные дни видно группами. Пустой день — без плашки вовсе. */
-                        background: on ? bosFieldTint(accent, v, isDark) : "transparent",
-                        color: dd.future ? "var(--text-5)" : (on ? "var(--text)" : "var(--text-3)"),
-                        opacity: unknown ? 0.32 : ((off && !on) ? 0.5 : 1),
-                        boxShadow: isToday ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.45)"))
-                                 : (isSel ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(10,10,10,0.22)")) : "none"),
-                        transition: "background 0.18s, box-shadow 0.15s" }}>{dd.d}</button>
+                        opacity: unknown ? 0.32 : (dd.future ? 0.45 : ((off && !on) ? 0.55 : 1)) }}>
+                      <BosRingDayLive pct={on ? v : 0} accent={accent} isDark={isDark} num={dd.d}
+                        today={isToday} sel={isSel} hideEmptyTrack
+                        numColor={dd.future ? "var(--text-4)" : (on ? "var(--text)" : "var(--text-3)")} />
+                    </button>
                   );
                 })}
               </div>
@@ -866,7 +904,10 @@ function BosFieldCalendarLive(props) {
                         onPointerUp={endLong} onPointerLeave={endLong} onPointerCancel={endLong}
                         onContextMenu={function (e) { e.preventDefault(); }}
                         aria-label={dd.d + " " + BOS_FIELD_MON[dd.m]}
-                        style={{ width: cell, height: cell, borderRadius: Math.round(cell * 0.3), border: 0, padding: 0, cursor: unknown ? "default" : "pointer",
+                        /* Клетка грядки — КРУЖОК (David 2026-08-01: «в календаре хотелось бы
+                           кружочки вместо квадратиков»). На 12 px кольцо не читается, поэтому
+                           здесь кружок сплошной, а кольца живут в месячном виде, где есть место. */
+                        style={{ width: cell, height: cell, borderRadius: "50%", border: 0, padding: 0, cursor: unknown ? "default" : "pointer",
                           background: v > 0 ? bosFieldTint(accent, v, isDark) : trackInk,
                           opacity: unknown ? 0.32 : ((off && !(v > 0)) ? 0.45 : (late ? 0.62 : 1)),
                           boxShadow: ring, transition: "background 0.18s, box-shadow 0.15s" }} />
@@ -888,7 +929,7 @@ function BosFieldCalendarLive(props) {
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
             <span style={{ fontSize: 9, color: "var(--text-4)" }}>меньше</span>
             {[0, 0.34, 0.67, 1].map(function (v, i) {
-              return <span key={i} style={{ width: 9, height: 9, borderRadius: 3, background: bosFieldTint(accent, v, isDark) }} />;
+              return <span key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: bosFieldTint(accent, v, isDark) }} />;
             })}
             <span style={{ fontSize: 9, color: "var(--text-4)" }}>больше</span>
           </span>
@@ -8745,20 +8786,14 @@ function HomeWeekStripLive(props) {
   var keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
   var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   var WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-  /* НЕДЕЛЯ = СТОЛБИКИ (David 2026-08-01, пятый заход: «виджет недели делаем столбики, столбики
-     сделай аккуратнее — а то у тебя изначально белые не закруглённые, а вырастают закруглённые.
-     Дату писать в столбиках, день недели ниже под столбиками»).
-     История заходов, чтобы не ходить по кругу: кольца → плитки с двойным выделением → подпись
-     «Сегодня» → слияние серий в капсулу → одна плитка = один день. Всё это красило ФАКТ «день
-     был». Сдвинулось, когда сменились ДАННЫЕ: высота столбика — ДОЛЯ закрытых за день привычек,
-     то есть насколько день удался, а не был ли он.
-     Геометрия: подложка и заливка ОДНОГО радиуса, заливка растёт снизу внутри подложки
-     (overflow:hidden) — низ повторяет скругление подложки, верх скруглён своим. Число живёт
-     ВНУТРИ столбика у основания и переворачивает цвет, когда заливка до него дорастает. */
-  var track = isDark ? "rgba(255,255,255,0.075)" : "rgba(10,10,10,0.05)";
-  var COLH = 62, R = 12;
+  /* НЕДЕЛЯ = КРУЖКИ С КОЛЬЦОМ ЗАПОЛНЕНИЯ (David 2026-08-01, шестой заход: «прямоугольники на
+     виджете дня не нравятся, хочется кружочки с кольцами — заполнение вместо квадратиков»).
+     История заходов, чтобы не ходить по кругу: кольца-кружки → плитки с двойным выделением →
+     подпись «Сегодня» → слияние серий в капсулу → одна плитка = день → столбики. Форма менялась
+     шесть раз, но главное осталось от столбиков: показываем ДОЛЮ закрытых за день привычек, а не
+     факт «день был». Теперь эта доля — дуга кольца, тот же элемент, что в месячном календаре. */
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
       {keys.map(function (k, i) {
         // «Дни недели»: привычка с расписанием в чужой день НЕ входит в знаменатель — день требует
         // только то, что на него назначено (отметил в выходной → всё равно идёт в счёт).
@@ -8770,27 +8805,11 @@ function HomeWeekStripLive(props) {
         var pct = due.length ? doneN / due.length : 0;
         var isToday = k === todayK, isFuture = todayK ? k > todayK : false;
         var num = parseInt(("" + k).slice(-2), 10) || "";
-        var fillH = (isFuture || !(pct > 0)) ? 0 : Math.max(14, Math.round(COLH * pct));
-        // Число выворачиваем ТОЛЬКО в тёмной теме: там заливка светлая и тёмный текст на ней
-        // читается, а в светлой чернильная заливка серая — белым по ней было бы мутно, чёрным
-        // же читается и на пустой подложке, и на залитой.
-        var onFill = fillH >= 26;
-        var numCol = isFuture ? "var(--text-5)" : ((onFill && isDark) ? "#101013" : "var(--text)");
         return (
-          <div key={i} style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ position: "relative", height: COLH, borderRadius: R, background: track, overflow: "hidden",
-              boxShadow: isToday ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.55)" : "rgba(10,10,10,0.45)")) : "none",
-              opacity: isFuture ? 0.55 : 1 }}>
-              {fillH > 0 && (
-                <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: fillH, borderRadius: R,
-                  background: (typeof bosFieldTint === "function") ? bosFieldTint(null, pct, isDark) : "var(--text)",
-                  transition: "height 0.24s ease" }} />
-              )}
-              <span style={{ position: "absolute", left: 0, right: 0, bottom: 7, textAlign: "center",
-                fontSize: 13, fontWeight: isToday ? 800 : 650, letterSpacing: "-0.3px",
-                fontVariantNumeric: "tabular-nums", lineHeight: 1, color: numCol }}>{num}</span>
-            </div>
-            <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, letterSpacing: "0.2px",
+          <div key={i} style={{ flex: 1, minWidth: 0, opacity: isFuture ? 0.45 : 1 }}>
+            <BosRingDayLive pct={isFuture ? 0 : pct} isDark={isDark} num={num} today={isToday}
+              numColor={isFuture ? "var(--text-4)" : (pct > 0 ? "var(--text)" : "var(--text-3)")} />
+            <div style={{ textAlign: "center", marginTop: 7, fontSize: 9.5, fontWeight: 600, letterSpacing: "0.2px",
               color: isToday ? "var(--text-2)" : "var(--text-4)" }}>{WD[i]}</div>
           </div>
         );
