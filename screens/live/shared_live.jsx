@@ -4309,11 +4309,6 @@ function BosBalanceWidgetLive(props) {
   else if (!weak) line = <span>Заведи первую привычку — сферы начнут наполняться.</span>;
   else if (lone) line = <span>Живёт одна сфера — <b>{weak.l}</b>. Остальные пять ждут первой привычки.</span>;
   else line = <span>Сильнее всего — <b>{strong.l}</b>. Просело <b>{weak.l}</b>: {weak.n} {ruHab(weak.n)}{filled < N ? ", " + (N - filled) + " " + (N - filled === 1 ? "сфера пуста" : (N - filled < 5 ? "сферы пусты" : "сфер пусты")) : ""}.</span>;
-  // Знаки сфер — ОДНОГО цвета (David 2026-08-01: «иконки на балансе жизни разных цветов, это
-  // смущает»). Слабую сферу отличает не оттенок иконки, а её место в строке и число рядом.
-  var inkQuiet = dark ? "#c8c8cd" : "#57585f";
-  var terra = inkQuiet;
-  var ic = function (s, col) { return ((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles", { size: 14, color: col })) || s.e; };
   // Фон и тень даёт ряд доски (SwipeRow), поэтому сама плитка прозрачная — иначе на краю
   // «отъезда» под свайп появлялась бы вторая поверхность.
   return (
@@ -4328,28 +4323,12 @@ function BosBalanceWidgetLive(props) {
           <span style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
             <span style={{ fontSize: 30, fontWeight: 750, letterSpacing: "-1.4px", lineHeight: 1 }}>{total}</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-4)" }}>/ 100</span>
-            <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 750, padding: "5px 11px", borderRadius: 999, whiteSpace: "nowrap",
-              color: dark ? "#FEDE34" : "#8a6400", background: dark ? "rgba(240,195,10,0.14)" : "rgba(247,206,74,0.22)" }}>{status}</span>
           </span>
         )}
-        <span className="bosbw-line" style={{ display: "block", fontSize: 11.5, lineHeight: 1.4, color: "var(--text-4)", marginTop: locked ? 4 : 7 }}>{line}</span>
-        {!locked && weak && (
-          <span style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: lone ? inkQuiet : terra }}>
-              {ic(weak, lone ? inkQuiet : terra)}
-              <b style={{ fontSize: 11.5, fontWeight: 800 }}>{Math.round(weak.v * 100)}</b>
-              <span style={{ fontSize: 11.5, fontWeight: 600 }}>{weak.l}</span>
-            </span>
-            {!lone && strong && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: inkQuiet, marginLeft: 8 }}>
-                {ic(strong, inkQuiet)}
-                <b style={{ fontSize: 11.5, fontWeight: 800 }}>{Math.round(strong.v * 100)}</b>
-                <span style={{ fontSize: 11.5, fontWeight: 600 }}>{strong.l}</span>
-              </span>
-            )}
-            <span style={{ marginLeft: "auto", fontSize: 10.5, color: "var(--text-5, var(--text-4))", whiteSpace: "nowrap" }}>за всё время</span>
-          </span>
-        )}
+        {/* Строка знаков «слабая · сильная сфера» убрана (David 2026-08-01: «текст как-то ниже
+            всего выпирает, там не должно быть лишнего»). Она повторяла то, что уже сказано
+            словами строкой выше, и висела ниже столбцов — из-за неё блок и не вставал ровно. */}
+        <span className="bosbw-line" style={{ display: "block", fontSize: 11.5, lineHeight: 1.4, color: "var(--text-4)", marginTop: locked ? 4 : 6 }}>{line}</span>
       </span>
     </button>
   );
@@ -4540,10 +4519,12 @@ function BosBalanceWheelLive(props) {
         {/* Балл живёт В ЦЕНТРЕ колеса, поэтому в шапке его нет (один факт — одно место).
             В раскрытом виде колесо мелкое — там балл возвращается в шапку. */}
         {!hideTitle && !list && (
+          /* Ярлык «Начало / В движении» убран (David 2026-08-01: «почему мне всё ещё пишет
+             в правом верхнем углу „Начало"? нафига это?»). Он оценивал человека словом, не
+             говоря ничего сверх балла, который и так стоит в центре колеса. */
           <div className="bw-head">
             <span className="bw-cap">Баланс жизни</span>
             <span className="bw-per">за всё время</span>
-            <span className="bw-badge">{bwStatus}</span>
           </div>
         )}
         {/* РАСКРЫТО: одна шапка — мини-колесо (оно же «назад»), балл, статус. Отдельной строки
@@ -4557,7 +4538,6 @@ function BosBalanceWheelLive(props) {
             onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tapRadar(); } }}>
             <div className="bw-svgbox mini" ref={svgBoxRef} style={{ transformOrigin: "top left" }}>{wheelSvg}{iconLayer}</div>
             <span className="n">{total}</span><span className="m">/ 100</span>
-            <span className="bw-stat">{bwStatus}</span>
             <svg className="bw-backchev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
           </div>
         ) : (
@@ -8757,7 +8737,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
                     </div>
                   ) : (
                     <div style={{ position: "absolute", left: -150, top: -150, width: 300, height: 300 }}>
-                      <UniSpinOrbit sp={sp} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} isDark={isDark} spinOn={vq.openV > 0.45} />
+                      <UniSpinOrbit sp={sp} moodC={undefined}   /* David 2026-08-01: состояние больше не красит мою систему во Вселенной */ isDark={isDark} spinOn={vq.openV > 0.45} />
                     </div>
                   )}
                 </div>

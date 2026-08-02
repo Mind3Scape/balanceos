@@ -148,7 +148,7 @@ function ProfileLive() {
         {/* При входе во Вселенную прячем СТРАНИЧНУЮ орбиту (overlay рисует её идентичную копию ровно
             на этом же месте) → нет «двойной орбиты», переход читается как одно целое. */}
         <div ref={orbitRef} style={{ opacity: universeOpen ? 0 : 1, transition: "opacity 0.2s ease" }}>
-          <OrbitField avatar={app?.avatar} name={app?.userName} habits={_visHabits} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} centerMood={(() => { try { const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : ""; return (app?.dayMoods && app.dayMoods[_tk] != null && app?.mood?.c) ? app.mood.c : null; } catch (e) { return null; } })()} />
+          <OrbitField avatar={app?.avatar} name={app?.userName} habits={_visHabits} people={orbitPeople} levelPct={lvlPct} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
         </div>
         <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 6, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
       </div>
