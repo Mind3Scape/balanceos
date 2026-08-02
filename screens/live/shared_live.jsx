@@ -608,6 +608,19 @@ function bosAccentOf(accent) {
              ("" + accent).toLowerCase() !== "#0a0a0a" && ("" + accent).toLowerCase() !== "#8e8e93";
   return real ? accent : null;
 }
+/* Тот же цвет с нулевой альфой — для градиентов, которые должны РАСТВОРЯТЬСЯ, а не упираться
+   в серый. `transparent` в CSS-градиенте — это rgba(0,0,0,0), и по дороге к нему цвет уходит
+   в грязь; поэтому гасим альфу у самого цвета. */
+function bosFadeCol(c, a) {
+  var to = (a == null ? 0.06 : a);
+  var s = "" + (c || "");
+  if (s[0] === "#" && s.length >= 7) {
+    return "rgba(" + parseInt(s.slice(1, 3), 16) + "," + parseInt(s.slice(3, 5), 16) + "," + parseInt(s.slice(5, 7), 16) + "," + to + ")";
+  }
+  var m = s.match(/rgba?\(([^)]+)\)/);
+  if (m) { var p = m[1].split(",").map(function (x) { return x.trim(); }); return "rgba(" + p[0] + "," + p[1] + "," + p[2] + "," + to + ")"; }
+  return s;
+}
 function bosAccentPaint(accent, isDark) {
   var a = bosAccentOf(accent);
   // Литералы, а не BOS_ROOM_GOLD*: те живут в circle_room_live, а этот helper зовут и из мест,
@@ -2884,7 +2897,11 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = nul
     else if (many) (hrs || []).forEach(function (h) { var b = Math.max(0, Math.min(23, Math.floor(h))); out[b]++; any = true; });
     return any ? out : null;
   }, [hist, hrs.join(","), many]);
-  var BH = 26;                     // высота полосы столбцов
+  // Столбцы как в макете: заметно выше и с градиентом, УХОДЯЩИМ В ПРОЗРАЧНОСТЬ ВНИЗ
+  // (David 2026-08-01: «градиент был снизу, чтобы кружочкам на линии с аватарками не мешать»).
+  // Плотный верх держит форму гистограммы, растворённый низ не спорит с лицами на линии.
+  var BH = 34;
+  var barTop = P.solid, barBot = bosFadeCol(P.solid);
   var LINE = 34;   // y центра линии внутри бокса — лица садятся РОВНО на неё
   return (
     <div>
@@ -2896,8 +2913,8 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = nul
               return BARS.map(function (v, i) {
                 var h = v > 0 ? Math.max(3, Math.round(v / mx * BH)) : 0;
                 return (
-                  <span key={i} style={{ flex: 1, minWidth: 0, height: h, borderRadius: 2,
-                    background: h ? ("linear-gradient(180deg," + P.solid + "," + P.light + ")") : "transparent" }} />
+                  <span key={i} style={{ flex: 1, minWidth: 0, height: h, borderRadius: "2px 2px 1px 1px",
+                    background: h ? ("linear-gradient(180deg," + barTop + " 0%," + barBot + " 100%)") : "transparent" }} />
                 );
               });
             })()}
@@ -4363,16 +4380,21 @@ function BosBalanceWheelLive(props) {
       // «Потолок» сферы — светло-серый лепесток во всю длину: показывает, куда сфера может
       // дорасти. David 2026-08-01: «большие серые лепестки мне нравились, оставь» — убирать
       // надо было только засечки нормы ближе к центру, а не сам потолок.
-      track.push(<path key={"t" + i} d={petalPath(aMid, 30, R0, OUT, GAPPX, RCORN)} fill={trackCol}
-        onClick={function (e) { e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
+      // ЦВЕТЕНИЕ КОЛЕСА (David 2026-08-01: «хочу красивую анимацию с лепестками баланса»).
+      // Лепестки распускаются из центра по очереди — центр колеса совпадает с началом координат
+      // svg, поэтому обычный scale и есть «рост из середины». Потолок всплывает первым и мягче.
+      track.push(<path key={"t" + i} d={petalPath(aMid, 30, R0, OUT, GAPPX, RCORN)} fill={trackCol} className="bw-pet-tr"
+        style={{ cursor: "pointer", animationDelay: (0.04 + i * 0.05).toFixed(2) + "s" }}
+        onClick={function (e) { e.stopPropagation(); tapNode(s); }} />);
       var mid = pd(aMid, rv);
       defs.push(<linearGradient key={"pg" + i} id={uid + "pg" + i} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={mid[0]} y2={mid[1]}>
         <stop offset="0" stopColor={petLight(s.v)} /><stop offset="1" stopColor={petDeep(s.v)} /></linearGradient>);
       // В РАСКРЫТОМ виде колесо стало кнопкой «назад» целиком: клик по лепестку НЕ перехватываем,
       // он всплывает к tapRadar и сворачивает. David: «жму на колесо вернуться, а он открывает
       // мне конкретную сферу». Сферы в этом состоянии выбираются столбиками, а не лепестками.
-      body.push(<path key={"p" + i} d={petalPath(aMid, 30, R0, rv, GAPPX, RCORN)} fill={"url(#" + uid + "pg" + i + ")"}
-        onClick={function (e) { if (list) return; e.stopPropagation(); tapNode(s); }} style={{ cursor: "pointer" }} />);
+      body.push(<path key={"p" + i} d={petalPath(aMid, 30, R0, rv, GAPPX, RCORN)} fill={"url(#" + uid + "pg" + i + ")"} className="bw-pet"
+        style={{ cursor: "pointer", animationDelay: (0.12 + i * 0.06).toFixed(2) + "s" }}
+        onClick={function (e) { if (list) return; e.stopPropagation(); tapNode(s); }} />);
       // Засечки нормы внутри лепестков БОЛЬШЕ НЕТ (David 2026-08-01: «что это за серые линии
       // ближе к центру?»). Знак, который приходится объяснять, не работает: норма теперь
       // живёт словами в шапке («N из 6 выше нормы») и засечкой на полосах в раскрытом ранжире.
@@ -6718,9 +6740,20 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     "Хорошо":      "Ты в ресурсе — отличный день, чтобы закрыть серию.",
     "Отлично":     "На пике — бери самое важное, сегодня оно даётся легче.",
   };
+  // РОВНО ОДНА ФРАЗА, НО НЕ ОДНА И ТА ЖЕ (David 2026-08-01: «несколько дней висит одно и то
+  // же»). Когда ИИ молчит (нет ключа/офлайн), берём заготовку — но крутим её по номеру дня,
+  // чтобы утро не начиналось вчерашней строкой.
+  const _briefPool = [
+    "Один маленький шаг сегодня — и ритм на твоей стороне.",
+    "Начни с самого лёгкого пункта — дальше пойдёт само.",
+    "Сегодня достаточно не прервать ритм. Остальное — бонус.",
+    "Выбери одну привычку и закрой её сейчас, пока день не разошёлся.",
+    "Дни решают не подвиги, а то, что повторяется. Отметь одно.",
+  ];
+  const _briefDay = Math.floor(Date.now() / 86400000);
   const aiBrief = (totalCount && doneCount >= totalCount)
     ? "Идеальный день — ты в потоке. Так держи ритм."
-    : (AI_BRIEF[mood && mood.t] || "Один маленький шаг сегодня — и ритм на твоей стороне.");
+    : (AI_BRIEF[mood && mood.t] || _briefPool[_briefDay % _briefPool.length]);
   // For LIVE the summary + pills come from the AI login brief (heuristic fallback if absent).
   const _liveBrief = heroApp?.aiBrief || null;
   const _homeSummary = (_liveBrief && _liveBrief.summary) || aiBrief;

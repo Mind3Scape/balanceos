@@ -504,9 +504,24 @@ function bosObsLocalLive(app, st) {
     out.push({ text: "Сфера **«" + wk.l + "»** держится слабее остальных — " + Math.round(wk.v * 100) + " при норме 55, по всем отметкам за всё время. Одна маленькая привычка туда, и она начнёт наливаться.",
       chips: ["Что туда добавить?", "Почему просела?"] });
   }
+  if (st.weekPct != null && st.prevPct != null && Math.abs(st.weekPct - st.prevPct) >= 8) {
+    out.push({ text: st.weekPct >= st.prevPct
+      ? "Эта неделя идёт сильнее прошлой: **" + st.weekPct + "%** против " + st.prevPct + "%. Ритм набран — самое время не добавлять новое, а спокойно доводить то, что уже стоит."
+      : "Эта неделя тише прошлой: **" + st.weekPct + "%** против " + st.prevPct + "%. Не разгоняй всё разом — выбери одну привычку и закрой её сегодня, тренд разворачивается с одной.",
+      chips: ["Почему просело?", "Что закрыть сегодня?"] });
+  }
+  if (st.recordNow) out.push({ text: "Сейчас у тебя личный рекорд по **«" + st.recordNow.h.name + "»** — " + st.recordNow.cur + " " + bosObsDaysRu(st.recordNow.cur) + " подряд. Такие серии рвутся не от лени, а от переезда и болезней: реши заранее, каким будет твой минимальный вариант в плохой день.",
+    chips: ["Придумать минимум", "Что дальше?"] });
+  if (st.moodDays >= 5 && st.daysHist >= 7) out.push({ text: "Ты отметил состояние в **" + st.moodDays + "** " + bosObsDaysRu(st.moodDays) + " — этого уже хватает, чтобы я искал связи между самочувствием и привычками. Чем чаще отмечаешь, тем точнее я вижу, что тебя вытягивает.",
+    chips: ["Что ты уже видишь?", "Отметить состояние"] });
   if (!out.length) out.push({ text: "Сферы держатся ровно — ни одна не проседает заметно ниже нормы. За всё время наблюдений это редкость, так что просто продолжай.",
     chips: ["Что подтянуть?", "Разбери мою неделю"] });
-  return out.slice(0, 3);
+  /* РАЗНЫЕ КАЖДЫЙ ДЕНЬ (David 2026-08-01: «несколько дней висит одна и та же фраза, а он же
+     должен каждый раз писать разное»). Порядок заготовок крутим по номеру дня: без ключа ИИ
+     набор фактов один и тот же, но человек видит сегодня не то, что вчера. */
+  var dn = Math.floor(Date.now() / 86400000);
+  var rot = out.slice(dn % out.length).concat(out.slice(0, dn % out.length));
+  return rot.slice(0, 3);
 }
 function bosObsDaysRu(n) {
   var a = Math.abs(n) % 100, b = a % 10;
@@ -517,18 +532,34 @@ function bosObsDaysRu(n) {
 }
 /* Разбор сообщения в разметку: **важное** → жирным чернилами, числа → золотом.
    David: «в дизайнах ключевые слова выделялись, а тут однородный текст — нечитаемо». */
-function bosObsRichLive(text) {
-  var out = [], k = 0;
+function bosObsRichLive(text, typed) {
+  // typed = «печатает»: то же самое, но каждое слово влетает по очереди (David 2026-08-01:
+  // «хочу, чтобы ИИ красиво писал, аля анимация»). Разметку не ломаем — бьём на слова уже
+  // ПОСЛЕ разбора **жирного** и чисел, поэтому выделения остаются на своих местах.
+  var out = [], k = 0, w = 0;
+  var push = function (str, cls) {
+    if (!str) return;
+    if (!typed) {
+      out.push(cls ? <span className={cls} key={"p" + (k++)}>{str}</span> : <React.Fragment key={"p" + (k++)}>{str}</React.Fragment>);
+      return;
+    }
+    str.split(/(\s+)/).forEach(function (tok) {
+      if (!tok) return;
+      if (/^\s+$/.test(tok)) { out.push(<React.Fragment key={"s" + (k++)}>{tok}</React.Fragment>); return; }
+      out.push(<span className={"aiw" + (cls ? " " + cls : "")} key={"w" + (k++)}
+        style={{ animationDelay: (0.10 + (w++) * 0.026).toFixed(3) + "s" }}>{tok}</span>);
+    });
+  };
   ("" + (text || "")).split(/(\*\*[^*]+\*\*)/g).forEach(function (part) {
     if (!part) return;
-    if (/^\*\*[^*]+\*\*$/.test(part)) { out.push(<b key={"b" + (k++)}>{part.slice(2, -2)}</b>); return; }
+    if (/^\*\*[^*]+\*\*$/.test(part)) { push(part.slice(2, -2), "aiobs-b"); return; }
     // числа (в т.ч. «38%», «0,8», «3 из 8») подсвечиваем золотом — глазу есть за что зацепиться
     part.split(/(\d+(?:[.,]\d+)?\s?%?)/g).forEach(function (piece) {
       if (!piece) return;
-      if (/^\d/.test(piece)) out.push(<span className="aiobs-num" key={"n" + (k++)}>{piece}</span>);
-      else out.push(<React.Fragment key={"t" + (k++)}>{piece}</React.Fragment>);
+      push(piece, /^\d/.test(piece) ? "aiobs-num" : null);
     });
   });
+  if (typed) out.push(<span className="aicaret" key="caret" style={{ animationDelay: (0.10 + w * 0.026).toFixed(3) + "s" }} />);
   return out;
 }
 function bosObsCleanLive(x) {
@@ -616,7 +647,7 @@ function BosObsCardLive(props) {
       </div>
       {/* Сообщение целиком — как написал бы человек: наблюдение, цифра и предложение
           вплетены в речь, а не разложены по плашкам. */}
-      <div className="aiobs-text">{bosObsRichLive(o.text)}</div>
+      <div className="aiobs-text" key={o.text}>{bosObsRichLive(o.text, true)}</div>
       <div className="aiobs-src">{srcBits.join(" · ")} — только твои данные</div>
       <div className="aiobs-chips">
         {(o.chips || []).map(function (c, j) {
@@ -666,7 +697,7 @@ function AILive() {
       {/* ═══ БЛОК 1 — ЧТО Я ЗАМЕТИЛ ═══ Здесь говорит сам ИИ: что увидел в твоих данных, что
           предлагает, и чем можно ответить. Всё, что раньше лежало в плитках «Твой пульс»,
           он теперь говорит предложениями (David 2026-08-01: «не пихать кучу мелких виджетов»). */}
-      <div data-tour="ai-hero">
+      <div data-tour="ai-hero" className="ai-rise" style={{ animationDelay: "0.02s" }}>
         <BosObsCardLive app={app} st={st} navigate={navigate} dark={isDarkAI} pid={pid} tint={liveTint} />
       </div>
 
@@ -674,7 +705,7 @@ function AILive() {
           раньше при нуле привычек карточка исчезала совсем — человек проходил опрос ради
           обещанного «колесо оживёт» и терял его (найдено 2026-07-31). */}
       {typeof BosBalanceWheelLive === "function" && (
-        <div style={{ marginTop: 12 }}>
+        <div className="ai-rise" style={{ marginTop: 12, animationDelay: "0.12s" }}>
           {!app?.baseline && typeof BosWheelLockedLive === "function"
             ? <BosWheelLockedLive app={app} dark={isDarkAI} openSheet={openSheet} />
             : <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />}
@@ -682,7 +713,7 @@ function AILive() {
       )}
 
       {/* Поле разговора — под обоими блоками (David: «спросить Balance AI вниз, под баланс жизни»). */}
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 10, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+      <div className="ai-rise" style={{ background: "var(--card)", borderRadius: 22, padding: 10, marginTop: 12, boxShadow: "var(--card-shadow)", animationDelay: "0.22s" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 2px 0 8px" }}>
           <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
             onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
