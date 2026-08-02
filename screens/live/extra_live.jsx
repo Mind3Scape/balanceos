@@ -433,6 +433,35 @@ function GoalDetailPersonalLive() {
 
   // ПУЛЬС: active = отметился сегодня → колечко «в деле» на лице.
   const _otk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+
+  // ЧАСЫ ЦЕЛИ: гистограмма по журналу времени отметок ЕЁ привычек (свои данные, честные).
+  // Объявлено ДО разметки и до любых IIFE, которые это читают: сборка переводит const→var,
+  // и переменная, объявленная ниже, молча читалась бы как undefined.
+  const _mtGoal = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("bos:marktimes:" + ((app && app.persistId) || "live")) || "{}"); } catch (e) { return {}; }
+  }, [app && app.persistId, _goalDoneN]);
+  const _minOf = (dayK, h) => { const d = _mtGoal[dayK] || {}; const v = d["" + (h.cloudId || h.id)]; return v == null ? d["" + h.id] : v; };
+  const _goalHist = React.useMemo(() => {
+    if (!linked.length) return null;
+    const out = new Array(24).fill(0); let n = 0;
+    Object.keys(_mtGoal || {}).forEach((k) => {
+      linked.forEach((h) => { const v = _minOf(k, h); if (v == null) return; out[Math.max(0, Math.min(23, Math.floor(v / 60)))]++; n++; });
+    });
+    return n >= 10 ? out : null;
+  }, [_mtGoal, linked.map((h) => h.id).join(",")]);
+  // Лица на линии — кто уже двигал цель сегодня: я (по времени самой ранней отметки) и друзья.
+  const _goalFaces = (function () {
+    const out = [];
+    let mine = null;
+    linked.forEach((h) => { if (!h.done) return; const v = _minOf(_otk, h); if (v != null && (mine == null || v < mine)) mine = v; });
+    if (mine != null) out.push({ avatar: (app && app.avatar) || null, name: "Ты", hr: mine / 60 });
+    (buddies || []).forEach((m) => {
+      if (!m || m.me || !m.todayAt) return;
+      const d = (typeof bosParseTs === "function") ? bosParseTs(m.todayAt) : new Date(m.todayAt);
+      out.push({ avatar: m.avatar, name: m.name, hr: d.getHours() + d.getMinutes() / 60 });
+    });
+    return out;
+  })();
   const orbitPeople = (buddies || []).filter((m) => m && !m.me).map((m) => ({ avatar: m.avatar, name: m.name, active: !!(_otk && m.days && m.days[_otk]) }));
   const orbitsHero = gStyle.orbits && typeof GoalOrbitMini === "function";
 
@@ -525,6 +554,18 @@ function GoalDetailPersonalLive() {
       </div>
 
       <div style={{ padding: "8px 16px 0" }}>
+
+      {/* СТОЛБЦЫ ЧАСОВ И У ЦЕЛИ (David 2026-08-01: «почему-то не вижу столбцов активности на общих
+          целях»). Цель двигают её привычки, поэтому гистограмма — их часы из моего журнала отметок,
+          а на линии стоят те, кто уже двигал цель сегодня. */}
+      {(_goalHist || _goalFaces.length > 0) && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", margin: "0 4px 8px" }}>Сегодня</div>
+          <div style={{ ...card, borderRadius: 22, padding: "14px 16px 10px", marginBottom: 18 }}>
+            <BosDayThreadLive faces={_goalFaces} hist={_goalHist} isDark={isDark} accent={teamColor} />
+          </div>
+        </>
+      )}
 
       {/* СКЛАДЫВАЕТСЯ ИЗ ПРИВЫЧЕК — цель ведут её привычки: отмечаешь ПРЯМО ТУТ (чек-кружок), кольцо
           растёт. Тап по имени → детали привычки. «+ Привычка для этой цели» заводит новую (можно

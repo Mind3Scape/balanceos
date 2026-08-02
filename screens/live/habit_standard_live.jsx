@@ -297,10 +297,14 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
   // Раньше чип брал час пик всего круга — у всех привычек было одно время (David: «как
   // такое может быть?»). Мало данных (<5 отметок или <3 дней) — чипа честно нет.
   const [usualMin, setUsualMin] = React.useState(() => { const c0 = _bosStdTimesCache[h.id]; return c0 ? c0.v : null; });
+  // СТОЛБЦЫ ЧАСОВ ДЛЯ ОБЩЕЙ ПРИВЫЧКИ (David 2026-08-01: «не вижу столбцов активности на общих
+  // целях»). Те же строки teamHabitTimes, что дают «обычно в …», раскладываем по 24 часам —
+  // это честный ритм КРУГА за две недели, а не выдуманный. Меньше десяти отметок — столбцов нет.
+  const [histTeam, setHistTeam] = React.useState(() => { const c0 = _bosStdTimesCache[h.id]; return c0 ? (c0.h24 || null) : null; });
   React.useEffect(() => {
     let on = true;
     const c0 = _bosStdTimesCache[h.id];
-    if (c0 && Date.now() - c0.at < 600000) { setUsualMin(c0.v); return; }
+    if (c0 && Date.now() - c0.at < 600000) { setUsualMin(c0.v); setHistTeam(c0.h24 || null); return; }
     if (!h.id || !window.bosCloud || !window.bosCloud.teamHabitTimes) return;
     window.bosCloud.teamHabitTimes(h.id, 14).then((d) => {
       if (!on || !d) return;
@@ -311,8 +315,13 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
         const mins = rows.map((r) => { const dt = _pt(r.at); return dt.getHours() * 60 + dt.getMinutes(); }).sort((a, b) => a - b);
         v = mins[Math.floor(mins.length / 2)];
       }
-      _bosStdTimesCache[h.id] = { at: Date.now(), v };
-      setUsualMin(v);
+      let h24 = null;
+      if (rows.length >= 10) {
+        h24 = new Array(24).fill(0);
+        rows.forEach((r) => { const dt = _pt(r.at); h24[Math.max(0, Math.min(23, dt.getHours()))]++; });
+      }
+      _bosStdTimesCache[h.id] = { at: Date.now(), v, h24 };
+      setUsualMin(v); setHistTeam(h24);
     }).catch(() => {});
     return () => { on = false; };
   }, [h.id]);
@@ -408,7 +417,7 @@ function HabitStandardSheetLive({ mode, habit, team, members, meId, levels, rang
     }} />,
     // Нить «Сегодня» — И в аккордеоне (David 2026-07-16: «не хватает таймлайна активности,
     // как выше, но локально под эту привычку»): лица в свой час / волна на толпе.
-    thread: thread,
+    thread: histTeam ? Object.assign({ hist: histTeam }, thread) : thread,
     rhythm: { title: "Календарь · " + (selName || "ты"), single: true, accent: (h.color && h.color !== "#0a0a0a" && h.color !== "#8E8E93") ? h.color : null,
       field: { pctOf: _fieldPctStd, selKey: selDayK, onDayTap: (k) => setSelDayK(k), unknownBefore: _fieldSince, hint: "тап — кто отметился в этот день" },
       belowNode: dayNode },

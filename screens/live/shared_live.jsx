@@ -649,9 +649,15 @@ function BosRingDayLive(props) {
   var full = pct >= 0.999;
   return (
     <span style={{ position: "relative", display: "block", width: "100%", aspectRatio: "1/1" }}>
-      <svg viewBox="0 0 40 40" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", overflow: "visible" }}>
-        {/* мягкая заливка под полным днём — кружок «налит», а не просто обведён */}
-        {pct > 0 && <circle cx="20" cy="20" r={R - SW / 2} fill={col} opacity={0.1 + 0.1 * pct} />}
+      <svg viewBox="0 0 40 40" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}>
+        {/* РАЗДЕЛЕНИЕ РОЛЕЙ (David 2026-08-01): КОЛЬЦО = сколько сделано в этот день,
+            СЕРАЯ ЗАЛИВКА = «ты здесь» (сегодня или выбранный день). Никаких тонких ободков:
+            обводкой я выделял сегодня, и она спорила с кольцом за одно и то же место. */}
+        {(props.today || props.sel) && (
+          <circle cx="20" cy="20" r={R + SW / 2} fill={isDark
+            ? (props.today ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.08)")
+            : (props.today ? "rgba(10,10,10,0.09)" : "rgba(10,10,10,0.055)")} />
+        )}
         {/* У пустого дня дорожки нет вовсе — иначе месяц превращается в соты из тридцати колец.
             Она нужна там, где есть дуга (чтобы читалась доля) и в недельном ряду (там ритм). */}
         {(pct > 0 || !props.hideEmptyTrack) && <circle cx="20" cy="20" r={R} fill="none" stroke={track} strokeWidth={SW} />}
@@ -659,12 +665,6 @@ function BosRingDayLive(props) {
           ? <circle cx="20" cy="20" r={R} fill="none" stroke={col} strokeWidth={SW} />
           : <circle cx="20" cy="20" r={R} fill="none" stroke={col} strokeWidth={SW} strokeLinecap="round"
               strokeDasharray={(C * pct).toFixed(2) + " " + C.toFixed(2)} transform="rotate(-90 20 20)" />)}
-        {/* «сегодня» и «выбранный» — тонкий ободок СНАРУЖИ кольца, с воздухом между ними,
-            иначе два кольца сливаются в одно жирное */}
-        {props.today && <circle cx="20" cy="20" r={R + SW * 1.15} fill="none"
-          stroke={isDark ? "rgba(255,255,255,0.45)" : "rgba(10,10,10,0.38)"} strokeWidth="1.2" />}
-        {props.sel && !props.today && <circle cx="20" cy="20" r={R + SW * 1.15} fill="none"
-          stroke={isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.16)"} strokeWidth="1.2" />}
       </svg>
       {props.num != null && (
         <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center",
@@ -889,13 +889,12 @@ function BosFieldCalendarLive(props) {
                     // разные вещи, и выдавать одно за другое нельзя.
                     var unknown = props.unknownBefore ? dd.k < props.unknownBefore : false;
                     var can = !unknown;
-                    // Обводка ВНУТРЕННЯЯ (inset), а не наружная (David 2026-08-01: «слева полосочка
-                    // тоньше»). Наружная тень рисуется ЗА границей элемента: клетка 12px в потоке с
-                    // дробным смещением (скролл, флексы) — и левый край обводки садится на полпикселя,
-                    // растрируется тоньше правого. Inset живёт внутри уже растрированного прямоугольника
-                    // → все четыре стороны одинаковой толщины при любом положении. Стекла тут нет.
-                    var ring = isToday ? ("inset 0 0 0 1.5px " + (isDark ? "#fff" : "#0a0a0a"))
-                             : (isSel ? ("inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.7)" : "rgba(10,10,10,0.5)")) : "none");
+                    // ОБВОДКИ БОЛЬШЕ НЕТ (David 2026-08-01: «убери тоненькую обводку со всех круговых
+                    // календарей — серая заливка должна быть только на текущем или выбранном дне»).
+                    // Здесь роль заливки уже занята данными, поэтому «ты здесь» показываем ореолом
+                    // ВОКРУГ точки — той же серой заливкой, просто вынесенной за её край.
+                    var halo = isToday ? ("0 0 0 3px " + (isDark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)"))
+                             : (isSel ? ("0 0 0 3px " + (isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.06)")) : "none");
                     return (
                       <button key={ri} className="tap" data-no-haptic
                         onClick={function () { if (firedRef.current) { firedRef.current = false; return; } if (unknown) return; if (onDayTap) onDayTap(dd.k); }}
@@ -909,7 +908,7 @@ function BosFieldCalendarLive(props) {
                         style={{ width: cell, height: cell, borderRadius: "50%", border: 0, padding: 0, cursor: unknown ? "default" : "pointer",
                           background: v > 0 ? bosFieldTint(accent, v, isDark) : trackInk,
                           opacity: unknown ? 0.32 : ((off && !(v > 0)) ? 0.45 : (late ? 0.62 : 1)),
-                          boxShadow: ring, transition: "background 0.18s, box-shadow 0.15s" }} />
+                          boxShadow: halo, transition: "background 0.18s, box-shadow 0.15s" }} />
                     );
                   })}
                 </div>
