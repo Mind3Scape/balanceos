@@ -21,6 +21,12 @@ function bosRoomDayKey(offsetBack) {
   var d = new Date(); d.setDate(d.getDate() - (offsetBack || 0));
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
+// «1 отметка · 2 отметки · 5 отметок» — для подписи под кривой роста, когда у круга
+// нет своей единицы (км, страниц, ночей).
+function bosRoomMarksWord(n) {
+  var a = n % 10, b = n % 100;
+  return (a === 1 && b !== 11) ? "отметка" : ((a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "отметки" : "отметок");
+}
 function bosRoomHHMM(ts) {
   try { var d = (typeof bosParseTs === "function") ? bosParseTs(ts) : new Date(ts); var m = d.getMinutes(); return d.getHours() + ":" + (m < 10 ? "0" + m : m); } catch (e) { return ""; }
 }
@@ -766,6 +772,38 @@ function TeamDetailLive() {
     yearRows.forEach((r) => { if (r.u !== meId) return; if (seen[r.day]) return; seen[r.day] = 1; n++; });
     return n;
   })();
+  /* КРИВАЯ РОСТА КРУГА (макет «сообщество-v5», кадр 07 — David: «на макетах был график,
+     сколько ночей вместе»). Считается из тех же отметок, что и всё остальное: по дням от
+     первого дня с данными до сегодня, накопительно. Ничего не сглаживаем и не выдумываем —
+     линия просто показывает, как рос общий счёт круга.
+     Меньше трёх дней данных — графика нет: две точки это не история, а отрезок. */
+  const pathCurve = React.useMemo(function () {
+    if (!yearRows.length) return null;
+    const per = {};
+    yearRows.forEach(function (r) { per[r.day] = (per[r.day] | 0) + 1; });
+    let first = -1;
+    for (let i = 365; i >= 0; i--) { if (per[bosRoomDayKey(i)]) { first = i; break; } }
+    if (first < 2) return null;
+    const raw = []; let acc = 0;
+    for (let i = first; i >= 0; i--) { acc += (per[bosRoomDayKey(i)] | 0); raw.push(acc); }
+    if (raw.length < 3 || acc < 3) return null;
+    // Длинную историю прореживаем до ~60 узлов: на 320px больше точек глазу не нужно,
+    // а path из 366 пар координат раздувает разметку на каждый рендер.
+    const MAX = 60;
+    let pts = raw;
+    if (raw.length > MAX) {
+      pts = [];
+      for (let k = 0; k < MAX; k++) pts.push(raw[Math.round(k * (raw.length - 1) / (MAX - 1))]);
+    }
+    const W = 317, H = 52, top = 6, bot = H - 5;
+    const xy = pts.map(function (v, i) {
+      return [+(W * i / (pts.length - 1)).toFixed(1), +(bot - (bot - top) * (v / acc)).toFixed(1)];
+    });
+    const d = xy.map(function (p, i) { return (i ? "L" : "M") + p[0] + " " + p[1]; }).join(" ");
+    const area = d + " L" + W + " " + bot + " L0 " + bot + " Z";
+    return { d: d, area: area, total: acc, days: first + 1, last: { y: top } };
+  }, [yearRows]);
+
   // Цель круга бывает ДВУХ смыслов: «серия вместе» (держим ритм) и «общий счёт» (складываем
   // километры/страницы). Для серии цифра «0 из 14 дней» бессмысленна — круг держит ритм N дней,
   // и это и есть его главное число (David 2026-08-02).
@@ -1015,17 +1053,20 @@ function TeamDetailLive() {
         </div>
       </div>
 
-      {/* ЧЕТЫРЕ СЕГМЕНТА (v5): День · Разговор · Путь · Люди. Разговор больше не спрятан за
-          значком — у него имя и золотая цифра непрочитанного. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, padding: 3, borderRadius: 999, marginTop: 8,
-        background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)" }}>
+      {/* ЧЕТЫРЕ СЕГМЕНТА (v5): День · Чат · Путь · Люди. Разговор больше не спрятан за
+          значком — у него имя и золотая цифра непрочитанного.
+          МАТЕРИАЛ ПО МАКЕТУ (design-mockups/2026-07-26-сообщество-v5.html, .seg): активный —
+          БЕЛАЯ карточка с мягкой тенью на сером жёлобе, скругление 14/11, а не чёрная
+          таблетка-пилюля. David 2026-08-02: «в дизайнах он выделялся белым, а сейчас чёрным». */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, padding: 3, borderRadius: 14, marginTop: 8,
+        background: isDark ? "rgba(255,255,255,0.07)" : "#e5e5eb" }}>
         {[["day", "День"], ["chat", "Чат"], ["path", "Путь"], ["people", "Люди"]].map(([id, label]) => {
           const on = roomTab === id;
           return (
             <button key={id} onClick={() => { setRoomTab(id); if (id === "path") setPathSeen(true); try { window.scrollTo(0, 0); } catch (e) {} }} className="tap" data-haptic="selection"
-              style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 999, height: 32, padding: 0, cursor: "pointer", fontSize: 12.5, fontWeight: 700, letterSpacing: "-0.2px",
-                background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
-                boxShadow: on ? "0 1px 3px rgba(0,0,0,0.14)" : "none", transition: "background .15s, color .15s" }}>
+              style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 11, height: 34, padding: 0, cursor: "pointer", fontSize: 12.5, fontWeight: on ? 700 : 650, letterSpacing: "-0.2px",
+                background: on ? (isDark ? "rgba(255,255,255,0.16)" : "#fff") : "transparent", color: on ? "var(--text)" : "var(--text-3)",
+                boxShadow: on ? (isDark ? "none" : "0 2px 7px rgba(24,26,36,0.08)") : "none", transition: "background .15s, color .15s" }}>
               {label}
               {id === "chat" && !on && unreadN > 0 && (
                 <span style={{ position: "absolute", top: -2, right: 2, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#5a4104", fontSize: 8.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
@@ -1075,16 +1116,16 @@ function TeamDetailLive() {
 
       {/* МОЙ ДЕНЬ В КРУГЕ — вкладки «Привычки · Дела» (David 2026-07-20: «не смешивать в одно;
           переключатель посимпатичней»): пилюля-сегмент в языке шапки комнаты (активный сегмент =
-          чёрная/белая таблетка, как «День/Чат»); счётчик справа — по активной вкладке. */}
+          белая карточка на сером, как «День/Чат»); счётчик справа — по активной вкладке. */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0 9px" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, padding: 3, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 3, borderRadius: 14, padding: 3, background: isDark ? "rgba(255,255,255,0.07)" : "#e5e5eb" }}>
           {[["habits", "Привычки"], ["tasks", "Дела"]].map(([id, label]) => {
             const on = listTab === id;
             return (
               <button key={id} onClick={() => setListTab(id)} className="tap" data-haptic="selection"
-                style={{ border: 0, borderRadius: 999, padding: "6px 15px", fontSize: 12.5, fontWeight: 700, letterSpacing: "-0.1px", cursor: "pointer",
-                  background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
-                  boxShadow: on ? "0 1px 3px rgba(0,0,0,0.14)" : "none", transition: "background .15s, color .15s" }}>{label}</button>
+                style={{ border: 0, borderRadius: 11, padding: "7px 15px", fontSize: 12.5, fontWeight: on ? 700 : 650, letterSpacing: "-0.1px", cursor: "pointer",
+                  background: on ? (isDark ? "rgba(255,255,255,0.16)" : "#fff") : "transparent", color: on ? "var(--text)" : "var(--text-3)",
+                  boxShadow: on ? (isDark ? "none" : "0 2px 7px rgba(24,26,36,0.08)") : "none", transition: "background .15s, color .15s" }}>{label}</button>
             );
           })}
         </div>
@@ -1179,26 +1220,37 @@ function TeamDetailLive() {
         {!isCount && circleStreak === 0 && (
           <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 5, lineHeight: 1.4 }}>Серия начинается в день, когда весь круг в деле. Сегодня ещё можно.</div>
         )}
+        {/* КРИВАЯ РОСТА — то, чего не хватало верхней части «Пути»: одно число говорит, где мы
+            сейчас, а линия — как мы сюда пришли. Красится цветом круга (цвет = выбор человека),
+            без золота: это факт, а не награда. */}
+        {pathCurve && (
+          <div style={{ marginTop: isCount ? 13 : 11 }}>
+            <svg viewBox="0 0 317 52" preserveAspectRatio="none" style={{ display: "block", width: "100%", height: 52, overflow: "visible" }} aria-hidden>
+              <path d={pathCurve.area} fill={bosAccentPaint(t.accent || null, isDark).solid} opacity={isDark ? 0.14 : 0.10} />
+              <path d={pathCurve.d} fill="none" stroke={bosAccentPaint(t.accent || null, isDark).solid} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <circle cx="317" cy={pathCurve.last.y} r="3.6" fill={bosAccentPaint(t.accent || null, isDark).solid} />
+            </svg>
+            <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 6, lineHeight: 1.45 }}>
+              {pathCurve.total + (gUnit ? " " + gUnit : " " + bosRoomMarksWord(pathCurve.total)) + " вместе"}
+              {myMarksN > 0 ? " · твоих из них " + myMarksN : ""}
+            </div>
+          </div>
+        )}
         {/* Паспорт круга одной строкой: с какого дня вместе, сколько людей, открыт ли, банк. */}
-        <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: isCount ? 9 : 6, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: pathCurve ? 4 : (isCount ? 9 : 6), lineHeight: 1.45 }}>
           {(t.createdAt ? "вместе с " + bosRoomDateWord(t.createdAt) : (subParts[0] || ""))}
           {subParts.length > 1 ? " · " + subParts.slice(1).join(" · ") : ""}
         </div>
       </div>
 
-      {/* 1б · ТВОЙ ВКЛАД — сколько в этом круге сделал именно ты (David: «видно, как ты
-          поучаствовал»). Дни, а не строки: три привычки в один день — это один день. */}
+      {/* 1б · ТВОЯ НЕДЕЛЯ — одной строкой. Раньше здесь была карточка в две колонки, но её
+          левая половина («N дней твоего вклада») теперь стоит подписью под кривой роста, и
+          верх «Пути» дважды говорил одно и то же. Осталась неделя — единственный факт,
+          которого в карточке счёта нет. */}
       {meId && (myDaysN > 0 || myMarksN > 0) && (
-        <div style={{ ...card, padding: "13px 14px", marginTop: 9, display: "flex", gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{myDaysN}</div>
-            <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>{bosRoomDaysWord(myDaysN) + " твоего вклада"}</div>
-          </div>
-          <div style={{ width: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{(wk7[meId] || 0) + " из 7"}</div>
-            <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>эта неделя{teamHabits.length > 1 ? " · привычек в круге " + teamHabits.length : ""}</div>
-          </div>
+        <div style={{ ...card, padding: "11px 14px", marginTop: 9, display: "flex", alignItems: "baseline", gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", flexShrink: 0 }}>{(wk7[meId] || 0) + " из 7"}</span>
+          <span style={{ fontSize: 11.5, color: "var(--text-4)", minWidth: 0 }}>твоя неделя{teamHabits.length > 1 ? " · привычек в круге " + teamHabits.length : ""}</span>
         </div>
       )}
 
