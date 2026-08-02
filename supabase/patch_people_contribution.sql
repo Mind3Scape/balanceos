@@ -41,6 +41,23 @@
 
 begin;
 
+-- ── ПРОВЕРКА ПЕРЕД СТАРТОМ ───────────────────────────────────────────────────
+-- Патч опирается на чужие таблицы и функции. Если чего-то нет, лучше упасть здесь
+-- с человеческим текстом, чем установиться и сломаться потом в руках у людей.
+do $$
+declare v_missing text := '';
+begin
+  if to_regclass('public.network_offers')   is null then v_missing := v_missing || E'\n  • network_offers  → прогони supabase/patch_network_offers.sql'; end if;
+  if to_regclass('public.thanks')           is null then v_missing := v_missing || E'\n  • thanks          → прогони supabase/patch_community_v2.sql'; end if;
+  if to_regclass('public.user_skills')      is null then v_missing := v_missing || E'\n  • user_skills     → прогони supabase/patch_skill_network_v1.sql'; end if;
+  if to_regclass('public.skill_catalog')    is null then v_missing := v_missing || E'\n  • skill_catalog   → прогони supabase/patch_skill_network_v1.sql'; end if;
+  if to_regclass('public.xp_ledger')        is null then v_missing := v_missing || E'\n  • xp_ledger       → прогони sql/patch_xp_wallet.sql (без него платные вклады не спишутся)'; end if;
+  if to_regproc('public.bos_shares_circle') is null then v_missing := v_missing || E'\n  • bos_shares_circle → прогони supabase/patch_help_trust_p0.sql'; end if;
+  if v_missing <> '' then
+    raise exception E'Не хватает предыдущих патчей:%\n\nПрогони их и запусти этот файл заново. Ничего не изменено.', v_missing;
+  end if;
+end $$;
+
 -- ── 0) СБРОС ДЛЯ ВСЕХ ────────────────────────────────────────────────────────
 -- David: «сбрось эту вкладку для всех, там остались тестовые люди и мои
 -- незавершённые пробы». Кошелёк, круги, привычки и профили НЕ ТРОГАЕМ —
