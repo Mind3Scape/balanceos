@@ -2687,10 +2687,13 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
   const lvl = (cXP != null && typeof bosCircleLevel === "function") ? bosCircleLevel(cXP) : null;
   // Непрочитанные — только у своих (в чужой чат я не вижу).
   const [unread, setUnread] = React.useState(() => { const c = (ck && typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(ck) : null; return c ? c.count : 0; });
+  // ПОСЛЕДНЯЯ ФРАЗА (сообщество v5: «цифра не зовёт — фраза зовёт»). Текст уже приезжает
+  // вместе со счётчиком (unreadMessages возвращает last), так что это бесплатно.
+  const [lastPhrase, setLastPhrase] = React.useState(() => { const c = (ck && typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(ck) : null; return (c && c.last) || null; });
   React.useEffect(() => {
     if (!ck || !joined || ctx.mode || typeof bosTeamUnreadPeek !== "function") return;
     let on = true;
-    bosTeamUnreadPeek(ck).then((r) => { if (on && r) setUnread(r.count || 0); }).catch(() => {});
+    bosTeamUnreadPeek(ck).then((r) => { if (!on || !r) return; setUnread(r.count || 0); setLastPhrase(r.last || null); }).catch(() => {});
     return () => { on = false; };
   }, [ck, joined, ctx.mode]);
   // РЕАЛТАЙМ (David 2026-07-17: «значок должен показывать реальные сообщения, в реалтайме»):
@@ -2784,6 +2787,18 @@ function BosCircleCardLive({ t, joined, ctx = { mode: false }, onOpen, onJoin, b
         // и карточка перещёлкивалась на глазах (David: «очень странно»). Чужой круг лиц не
         // знает (RLS) — ему волна из пульса и положена.
         <div style={{ marginTop: 11 }}><BosDayThreadLive faces={faces} hours={joined ? [] : hours} isDark={isDark} /></div>
+      )}
+      {/* КРУГ РАЗГОВАРИВАЕТ — последняя непрочитанная фраза прямо на карточке (v5). Тап по
+          строке ведёт сразу в разговор, а не в комнату вообще. */}
+      {joined && !ctx.mode && unread > 0 && lastPhrase && (lastPhrase.text || lastPhrase.image_url) && (
+        <button onClick={(e) => { e.stopPropagation(); onOpen && onOpen({ chat: true }); }} className="tap"
+          style={{ marginTop: 9, width: "100%", display: "flex", alignItems: "center", gap: 7, border: 0, cursor: "pointer", textAlign: "left",
+            borderRadius: 13, padding: "8px 10px", background: isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)" }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--text-4)" style={{ flexShrink: 0 }} aria-hidden><path d="M12 3.2c5.3 0 9.6 3.4 9.6 7.6s-4.3 7.6-9.6 7.6c-.9 0-1.8-.1-2.6-.3l-4.6 2.3a.55.55 0 0 1-.79-.64l1-3.4C3.1 14.9 2.4 13.1 2.4 10.8 2.4 6.6 6.7 3.2 12 3.2z" /></svg>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {lastPhrase.image_url && !lastPhrase.text ? "прислали фото" : lastPhrase.text}
+          </span>
+        </button>
       )}
       <div style={{ marginTop: 9, display: "flex", flexWrap: "wrap", gap: 5 }}>
         {peak ? chip(<><I.Clock size={11} color="#EF9F14" strokeWidth={2} />обычно в {peak}</>, true, "p") : null}
@@ -3263,7 +3278,7 @@ async function bosTeamUnreadPeek(cloudId) {
     var since = bosChatReadTs(localStorage.getItem("bos:chatread:" + cloudId));
     var u = await window.bosCloud.unreadMessages(cloudId, since);
     if (!u) return _bosTeamUnreadCache[cloudId] || null;
-    var rec = { at: Date.now(), count: u.count || 0 };
+    var rec = { at: Date.now(), count: u.count || 0, last: u.last || null };
     _bosTeamUnreadCache[cloudId] = rec;
     return rec;
   } catch (e) { return _bosTeamUnreadCache[cloudId] || null; }

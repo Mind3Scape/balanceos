@@ -654,8 +654,11 @@ function GoalDetailPersonalLive() {
         style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22, width: "100%", display: "flex", alignItems: "center", gap: 12, border: 0, textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
         <span style={{ width: 38, height: 38, borderRadius: 13, background: g.color ? g.color + "22" : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Идти к цели вместе</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>Позвать людей — поведёте цель вместе.</div>
+          {/* Словарь v5 (кадр 15): текст говорит, ЧТО именно увидят другие и что останется твоим.
+              Обещать «серия переезжает в круг» нельзя — общий счёт начинается с первой совместной
+              отметки, и врать об этом мы не будем. */}
+          <div style={{ fontSize: 15, fontWeight: 600 }}>Открыть цель людям</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>Заметки и история останутся твоими. Люди увидят название, ритм и общий счёт — и смогут идти рядом.</div>
         </div>
         <I.ChevronRight size={17} color="var(--text-4)" />
       </button>
