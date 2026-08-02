@@ -889,8 +889,6 @@ function TeamDetailLive() {
     const _readTs = (typeof bosChatReadTs === "function") ? bosChatReadTs(localStorage.getItem("bos:chatread:" + t.cloudId)) : 0;
     unreadN = msgs.filter((m) => !m.me && m.ts && m.ts > _readTs).length;
   } catch (e) {}
-  // Последняя фраза — для строки-«всплывашки» над композером (v5: «цифра не зовёт, фраза зовёт»).
-  const lastMsg = msgs.length ? msgs[msgs.length - 1] : null;
 
   /* ── праздник закрытого дня круга (механика не менялась) ── */
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
@@ -967,7 +965,7 @@ function TeamDetailLive() {
   });
 
   return (
-    <div className="page-in" style={{ padding: "0 16px 8px", display: "flex", flexDirection: "column", minHeight: "calc(100vh - 40px)" }}>
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
       {/* ШАПКА-ПИЛЮЛЯ (v5, кадр 05): назад · имя круга с подписью «кто уже в деле» · компас и «⋯».
           Раньше здесь стоял переключатель, а имени не было вовсе — комната читалась как экран, а
           не как место. Сегменты уехали ниже: их стало четыре, значками они уже не помещались.
@@ -1009,7 +1007,7 @@ function TeamDetailLive() {
           значком — у него имя и золотая цифра непрочитанного. */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, padding: 3, borderRadius: 999, marginTop: 8,
         background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)" }}>
-        {[["day", "День"], ["chat", "Разговор"], ["path", "Путь"], ["people", "Люди"]].map(([id, label]) => {
+        {[["day", "День"], ["chat", "Чат"], ["path", "Путь"], ["people", "Люди"]].map(([id, label]) => {
           const on = roomTab === id;
           return (
             <button key={id} onClick={() => { setRoomTab(id); if (id === "path") setPathSeen(true); try { window.scrollTo(0, 0); } catch (e) {} }} className="tap" data-haptic="selection"
@@ -1142,48 +1140,45 @@ function TeamDetailLive() {
       )}
       </React.Fragment>)}
 
-      {/* ПУТЬ (v5, кадр 07): счёт круга, три факта и НАСТОЯЩИЙ календарь — тот же компонент,
-          что рисует год личной привычки и цели. Грамматика колец у всего приложения одна. */}
+      {/* ПУТЬ — читается сверху вниз одной историей: ГДЕ круг сейчас → КАК он держится →
+          КАК шёл (календарь) → КТО как. Уровень живёт отдельной строкой: он валюта, а не
+          статистика, и золото на экране одно. */}
       {roomTab === "path" && (<React.Fragment>
-      <div style={{ ...card, padding: "14px 14px 12px", marginTop: 10 }}>
+
+      {/* 1 · ГДЕ СЕЙЧАС. Есть цель — цифра и полоса к ней; нет цели — общий счёт отметок. */}
+      <div style={{ ...card, padding: "15px 14px 13px", marginTop: 10 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 30, fontWeight: 800, color: "var(--text)", letterSpacing: "-1.2px", fontVariantNumeric: "tabular-nums" }}>{gTgt > 0 ? gCur : marksN}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>{gTgt > 0 ? ("из " + gTgt + (gUnit ? " " + gUnit : "")) : "отметок вместе"}</span>
+          <span style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", letterSpacing: "-1.3px", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{gTgt > 0 ? gCur : marksN}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>{gTgt > 0 ? ("из " + gTgt + (gUnit ? " " + gUnit : "")) : (marksN === 1 ? "отметка вместе" : "отметок вместе")}</span>
         </div>
-        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>
-          {(t.createdAt ? "вместе с " + bosRoomDateWord(t.createdAt) : (marksSince === "за месяц" ? "за последний месяц" : "за год"))}
-          {/* «твоих из них» — только когда наверху ОБЩИЙ счёт отметок: у цели наверху единицы
-              цели (км, страницы), и мешать их с отметками нельзя. */}
-          {gTgt <= 0 && myMarksN > 0 ? " · твоих из них " + myMarksN : ""}
-        </div>
-        {/* Три факта, каждый — своя правда: держится ли круг, держатся ли люди, куда он растёт. */}
-        <div style={{ display: "flex", gap: 8, marginTop: 13, paddingTop: 12, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px" }}>{streakCap}</div>
-            <div style={{ fontSize: 10, color: "var(--text-4)", lineHeight: 1.3, marginTop: 1 }}>{bosRoomDaysWord(circleStreak) + " без разрыва"}</div>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px" }}>{keepPct + "%"}</div>
-            <div style={{ fontSize: 10, color: "var(--text-4)", lineHeight: 1.3, marginTop: 1 }}>держат ритм</div>
-          </div>
-          {circleLvl && (
-            <button onClick={openLevelSheet} className="tap" style={{ flex: 1, minWidth: 0, border: 0, background: "transparent", padding: 0, textAlign: "left", cursor: "pointer" }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.4px" }}>{circleLvl.level + " ур."}</div>
-              <div style={{ fontSize: 10, color: "var(--text-4)", lineHeight: 1.3, marginTop: 1 }}>{"до " + (circleLvl.level + 1) + " — " + circleLvl.toNext}</div>
-            </button>
-          )}
-        </div>
-        {/* Паспорт круга — то, что раньше висело в визитке на «Дне»: возраст, размер, открытость,
-            банк. Здесь ему и место: «Путь» — это про круг целиком. */}
-        {subParts.length > 0 && (
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 10 }}>{subParts.join(" · ")}</div>
-        )}
-        {circleLvl && (
-          <div style={{ fontSize: 10.5, color: "var(--text-2)", fontWeight: 600, marginTop: 6 }}>
-            {"Сегодня круг набрал +" + todayGain + " XP"}
-            {rhythmToday && <span style={{ fontSize: 9, color: BOS_ROOM_GOLD_INK, fontWeight: 800, background: "rgba(240,195,10,0.13)", borderRadius: 999, padding: "2px 6px", marginLeft: 5 }}>в ритме ×2</span>}
+        {gTgt > 0 && (
+          <div style={{ marginTop: 11 }}>
+            <div style={{ height: 6, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.07)", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: Math.max(2, Math.min(100, Math.round(100 * gCur / gTgt))) + "%", borderRadius: 999, background: bosAccentPaint(t.accent || null, isDark).solid }} />
+            </div>
+            <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 6 }}>{gDone ? "цель взята" : ("осталось " + (gTgt - gCur) + (gUnit ? " " + gUnit : ""))}</div>
           </div>
         )}
+        {/* Паспорт круга одной строкой: с какого дня вместе, сколько людей, открыт ли, банк. */}
+        <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: gTgt > 0 ? 9 : 6, lineHeight: 1.45 }}>
+          {(t.createdAt ? "вместе с " + bosRoomDateWord(t.createdAt) : (subParts[0] || ""))}
+          {subParts.length > 1 ? " · " + subParts.slice(1).join(" · ") : ""}
+          {gTgt <= 0 && myMarksN > 0 ? " · твоих отметок " + myMarksN : ""}
+        </div>
+      </div>
+
+      {/* 2 · КАК ДЕРЖИМСЯ. Два ОДНОРОДНЫХ факта про круг — и оба про одно: не рвётся ли ритм. */}
+      <BosRoomH2>Как держимся</BosRoomH2>
+      <div style={{ ...card, padding: "13px 14px", display: "flex", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{streakCap}</div>
+          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>{bosRoomDaysWord(circleStreak) + " подряд весь круг в деле"}</div>
+        </div>
+        <div style={{ width: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)" }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{keepPct + "%"}</div>
+          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>людей держат ритм — 4+ дня за неделю</div>
+        </div>
       </div>
 
       {/* Мои залёты: тихо на 1-м, тревожно на 2-м; на 3-м человека тут уже нет. */}
@@ -1194,30 +1189,39 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* КАЛЕНДАРЬ КРУГА — общий компонент приложения (месяц числами · год грядкой). Кольцо =
-          сколько человек закрыли тот день. */}
-      {_live && (
-        <div style={{ ...card, padding: "13px 13px 11px", marginTop: 9 }}>
-          <BosFieldCalendarLive isDark={isDark} accent={t.accent || null}
-            pctOf={(k) => { const n = Object.keys(yearByDay[k] || {}).length; return membersN ? Math.min(1, n / membersN) : 0; }} />
-          {/* Подпись держит ОБА вида: год рисует клетками, месяц — кольцами. */}
-          <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 9, lineHeight: 1.4 }}>Чем плотнее день, тем больше людей его закрыли. Сегодня серым: день ещё идёт.</div>
-        </div>
+      {/* 3 · УРОВЕНЬ — одна строка и единственное золото на экране (валюта, не статистика). */}
+      {circleLvl && (
+        <button onClick={openLevelSheet} className="tap" data-haptic="selection"
+          style={{ ...card, width: "100%", border: 0, cursor: "pointer", textAlign: "left", marginTop: 9, padding: "11px 13px", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ position: "relative", width: 38, height: 38, flexShrink: 0 }}>
+            <svg viewBox="0 0 36 36" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+              <circle cx="18" cy="18" r="16" fill="none" stroke={isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.08)"} strokeWidth="2.8" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke={BOS_ROOM_GOLD} strokeWidth="2.8" strokeLinecap="round" strokeDasharray="100.5" strokeDashoffset={(100.5 * (1 - circleLvl.frac)).toFixed(1)} />
+            </svg>
+            <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 800, color: "var(--text)" }}>{circleLvl.level}</span>
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{circleLvl.level + " уровень круга"}</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--text-4)", marginTop: 1 }}>
+              {"до " + (circleLvl.level + 1) + "-го — " + circleLvl.toNext + " · сегодня +" + todayGain + " XP"}
+              {rhythmToday ? " ×2" : ""}
+            </span>
+          </span>
+          <I.ChevronRight size={16} color="var(--text-4)" />
+        </button>
       )}
 
-      {/* ПОСЛЕДНИЙ ПОЛНЫЙ КРУГ — день, когда отметились все. Времени прошлых дней у нас нет,
-          поэтому вместо часов — лица: это то, что мы правда знаем. */}
-      {fullDay && (
+      {/* 4 · КАК ШЛИ — общий календарь приложения (месяц числами · год грядкой). */}
+      {_live && (
         <React.Fragment>
-          <BosRoomH2>{bosRoomDateWord(bosFieldDate(fullDay)) + " — полный круг"}</BosRoomH2>
-          <div style={{ ...card, padding: "13px 13px 12px" }}>
-            <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>{"все " + bosRoomCountWord(membersN) + " закрыли день"}</div>
-            <div style={{ display: "flex", marginTop: 10 }}>
-              {members.slice(0, 12).map((m, i) => (
-                <span key={m.id} style={{ marginLeft: i ? -7 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px " + (isDark ? "#1c1c20" : "#fff"), lineHeight: 0 }}>
-                  <BuddyFaceLive avatar={m.avatar} name={m.name} size={26} />
-                </span>
-              ))}
+          <BosRoomH2>Календарь круга</BosRoomH2>
+          <div style={{ ...card, padding: "13px 13px 11px" }}>
+            <BosFieldCalendarLive isDark={isDark} accent={t.accent || null}
+              pctOf={(k) => { const n = Object.keys(yearByDay[k] || {}).length; return membersN ? Math.min(1, n / membersN) : 0; }} />
+            {/* Подпись держит ОБА вида: год рисует клетками, месяц — кольцами. */}
+            <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 9, lineHeight: 1.4 }}>
+              Чем плотнее день, тем больше людей его закрыли.
+              {fullDay ? " Последний полный круг — " + bosRoomDateWord(bosFieldDate(fullDay)) + "." : ""}
             </div>
           </div>
         </React.Fragment>
@@ -1308,10 +1312,10 @@ function TeamDetailLive() {
 
       {/* ЧАТ-БОКС: лента скроллится ВНУТРИ и открыта на свежем. С v5 композер уехал из коробки
           в закреплённую строку внизу комнаты — она одна на все четыре вкладки. */}
-      {/* Высота — РЕЗИНОВАЯ (flex), а не «100vh минус магическое число»: коробка сама занимает
-          всё между сегментами и закреплённой строкой разговора, на любом экране. */}
-      <div style={{ ...card, overflow: "hidden", marginTop: cheeredMe.length > 0 ? 0 : 10, flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      <div ref={feedBoxRef} className="screen-scroll" style={{ flex: 1, minHeight: 300, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 8px", display: "flex", flexDirection: "column" }}>
+      {/* Чат занимает ОГРАНИЧЕННУЮ высоту экрана, лента скроллится внутри, композер приклеен к её
+          дну: страница под ним не едет (David 2026-08-02: «как раньше в чате было удобнее»). */}
+      <div style={{ ...card, overflow: "hidden", marginTop: cheeredMe.length > 0 ? 0 : 10 }}>
+      <div ref={feedBoxRef} className="screen-scroll" style={{ height: "calc(100vh - " + (cheeredMe.length > 0 ? 366 : 324) + "px)", minHeight: 320, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
       {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px", flexShrink: 0 }}>показаны последние события</div>}
       {feedShown.length === 0 && !hasMiles ? (
         <div style={{ textAlign: "center", padding: "0 24px", margin: "auto" }}>
@@ -1375,47 +1379,25 @@ function TeamDetailLive() {
       )}
       </div>
 
+      {/* КОМПОЗЕР — на дне чат-коробки, как в мессенджере (David 2026-08-02: закреплённая внизу
+          строка «Написать кругу» на всех вкладках не нужна — для разговора есть своя вкладка,
+          а бегущая за экраном строка неудобна). Скролл живёт ВНУТРИ ленты. */}
+      <div style={{ display: "flex", gap: 7, alignItems: "center", padding: "9px 10px", borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)") }}>
+        <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
+        <button onClick={() => { if (fileRef.current) fileRef.current.click(); }} className="tap" aria-label="Прикрепить фото"
+          style={{ width: 36, height: 36, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15l-5-5L5 21" /></svg>
+        </button>
+        <input ref={composerRef} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Написать кругу…"
+          onFocus={() => setTimeout(() => { try { composerRef.current && composerRef.current.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {} }, 250)}
+          style={{ flex: 1, minWidth: 0, ...bosChipGlass(isDark), border: 0, outline: 0, borderRadius: 999, padding: "10px 15px", fontSize: 15, color: "var(--text)" }} />
+        <button onClick={send} className="tap" aria-label="Отправить"
+          style={{ width: 36, height: 36, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, background: text.trim() ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), transition: "background .2s" }}>
+          <I.Send size={15} color={text.trim() ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)"} strokeWidth={2.2} />
+        </button>
+      </div>
       </div>
       </React.Fragment>)}
-
-      {/* ═══ РАЗГОВОР ВСЕГДА ПОД РУКОЙ (главное изменение v5) ═══
-          Строка «Написать кругу» закреплена внизу на ВСЕХ вкладках: написать своим — один тап из
-          любого места комнаты. Над ней всплывает последнее сообщение с числом непрочитанных —
-          круг разговаривает, даже когда ты смотришь календарь. marginTop:auto прижимает её к низу
-          и на коротких экранах, sticky — держит при скролле длинных. */}
-      {_live && (
-        <div style={{ marginTop: "auto", position: "sticky", bottom: 0, zIndex: 30, paddingTop: 8, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
-          background: "linear-gradient(to bottom, " + (isDark ? "rgba(10,10,12,0)" : "rgba(242,242,247,0)") + " 0%, " + (isDark ? "rgba(10,10,12,0.92)" : "rgba(242,242,247,0.94)") + " 34%)" }}>
-          {roomTab !== "chat" && lastMsg && (
-            <button onClick={() => { setRoomTab("chat"); try { window.scrollTo(0, 0); } catch (e) {} }} className="tap"
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, border: 0, cursor: "pointer", textAlign: "left",
-                borderRadius: 16, padding: "8px 11px", marginBottom: 7, background: "var(--card)", boxShadow: "var(--card-shadow)" }}>
-              {(() => { const p = rosterById[lastMsg._uid]; return p ? <BuddyFaceLive avatar={p.avatar} name={p.name} size={22} /> : <BuddyFaceLive avatar={lastMsg.avatar} name={lastMsg.who} size={22} />; })()}
-              <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                <b style={{ color: "var(--text)", fontWeight: 700 }}>{(lastMsg.me ? "Ты" : lastMsg.who) + ": "}</b>
-                {lastMsg.img ? "фото" : lastMsg.t}
-              </span>
-              {unreadN > 0 && (
-                <span style={{ flexShrink: 0, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#5a4104", fontSize: 10, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
-              )}
-            </button>
-          )}
-          <div style={{ display: "flex", gap: 7, alignItems: "center", borderRadius: 999, padding: 5, ...glass }}>
-            <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
-            <button onClick={() => { if (roomTab !== "chat") setRoomTab("chat"); if (fileRef.current) fileRef.current.click(); }} className="tap" aria-label="Прикрепить фото"
-              style={{ width: 34, height: 34, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)" }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15l-5-5L5 21" /></svg>
-            </button>
-            <input ref={composerRef} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Написать кругу…"
-              onFocus={() => { if (roomTab !== "chat") setRoomTab("chat"); setTimeout(() => { try { composerRef.current && composerRef.current.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {} }, 250); }}
-              style={{ flex: 1, minWidth: 0, background: "transparent", border: 0, outline: 0, borderRadius: 999, padding: "9px 6px", fontSize: 15, color: "var(--text)" }} />
-            <button onClick={send} className="tap" aria-label="Отправить"
-              style={{ width: 34, height: 34, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, background: text.trim() ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), transition: "background .2s" }}>
-              <I.Send size={15} color={text.trim() ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)"} strokeWidth={2.2} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ПРОСМОТР ФОТО — на весь экран, поверх всего; тап в любом месте закрывает. */}
       {photoView && (

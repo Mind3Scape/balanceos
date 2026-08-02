@@ -3947,9 +3947,20 @@ function CommunityLive() {
   // David: «Рядом» слит в «Партнёры» (карта+сетка одним блоком). «Курсы» ВЕРНУЛИ отдельным чипом
   // (David: «верни вкладку Курсы с 3мя курсами»). Старое «nearby» аккуратно переводим в «partners».
   if (filter === "nearby") filter = "partners";
+  /* ТРИ КОМНАТЫ ВМЕСТО ШЕСТИ ЧИПОВ (David 2026-08-02: «на вкладке сообщество всё обновить,
+     чтобы было логично»). Шесть фильтров резали одно и то же на куски («Общие цели» и
+     «Челленджи» — оба про круги, «Партнёры» и «Курсы» — оба про то, куда деть XP), а «Все»
+     показывало смесь. Теперь: КРУГИ (с кем делать) · ЛЮДИ (кто рядом) · ПАРТНЁРЫ (куда деть
+     XP). Старые значения filter живут дальше — по ним приходят тур, онбординг и другие
+     экраны, — просто сворачиваются в три комнаты. */
+  const seg = (filter === "people") ? "people" : ((filter === "partners" || filter === "training") ? "partners" : "circles");
   const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "training" ? "courses" : "network", helpOwnerIds: null, helpOfferIds: null });
   const isDark = app?.themeOverride === "dark";
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+  // ТВОИ КРУГИ — те же, что на доске Главной (архивные не в счёт): тут они показываются
+  // полноценными карточками, а не строчками (David 2026-08-02).
+  const _archCV = (typeof useBosArchived === "function") ? useBosArchived() : null;
+  const myCircles = (app?.teams || []).filter((t) => t && !(typeof bosIsArch === "function" && bosIsArch(_archCV, "t", t)));
 
   // Переход с «Баланса окружения» ведёт не просто на вкладку, а к реальному блоку
   // помощи. Данные приходят асинхронно, поэтому коротко ждём появления блока.
@@ -4074,7 +4085,7 @@ function CommunityLive() {
       {!searching && (
       /* Full-bleed (David: «карточки должны обрезаться самим экраном»): лента выезжает за
          паддинг страницы (12px) и режется физическим краем — как в iOS, без масок. */
-      <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "2px 14px 0", margin: "0 -12px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
+      <div style={{ display: "flex", gap: 2, padding: 3, margin: "0 2px", borderRadius: 999, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.05)" }}>
         {/* Чип «Рядом» (David) — режим КАРТЫ партнёров города, сразу после «Все». Пока город один
             (Москва) — карта живёт и на обзоре «Все» героем, и крупно тут. */}
         {/* Иконки у категорий (David: «svg-иконок не хватает, чтобы чётче отличать»).
@@ -4084,18 +4095,17 @@ function CommunityLive() {
             приложении, а «Круги» и «Люди» перестали быть двумя картинками про людей. */}
         {/* «Круги» → «Общие цели» (David 2026-07-17: одно имя наверху и на «Все»). */}
         {/* «Челленджи» — своя вкладка сразу после «Общих целей» (David 2026-07-17). */}
-        {[["all", "Все", I.Globe], ["circles", "Общие цели", BosCircleIcon], ["challenges", "Челленджи", I.Flame], ["people", "Контакты", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
-          const on = filter === id;
-          const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
+        {[["circles", "Круги"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
+          const on = seg === id;
           return (
             <button key={id} onClick={() => setFilter(id)} className="tap" data-haptic="selection"
               data-tour={id === "people" ? "network" : undefined}
-              style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 600, flexShrink: 0,
-                display: "inline-flex", alignItems: "center", gap: 6,
-                transition: "background 0.2s, color 0.2s", ...glass,
-                background: on ? "var(--cta, #0a0a0a)" : glass.background,
-                color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>
-              <Ic size={14} strokeWidth={2.1} color={on ? "var(--cta-ink, #fff)" : "var(--text-3)"} />{t}
+              style={{ flex: 1, minWidth: 0, border: 0, cursor: "pointer", borderRadius: 999, height: 32, padding: 0,
+                fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", transition: "background 0.16s, color 0.16s",
+                background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent",
+                color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
+                boxShadow: on ? "0 1px 3px rgba(0,0,0,0.14)" : "none" }}>
+              {t}
             </button>
           );
         })}
@@ -4159,46 +4169,57 @@ function CommunityLive() {
           программы партнёров. Во время поиска лента уступает результатам. */}
       {!searching && (
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
-        {filter === "all" && (
+        {/* ══ КРУГИ — комната «с кем делать». Читается сверху вниз: сначала ТВОИ круги живыми
+            карточками, потом чужие открытые, потом готовые челленджи и «собери свой», и только в
+            самом низу — как всё устроено. Раньше здесь первым шла лента гайдов, а живые люди
+            лежали под ней. ══ */}
+        {seg === "circles" && (
           <React.Fragment>
-            {/* ЛЕНТА «ОТКРЫТИЙ» вместо баннера гида (David 2026-07-10): свайп-карточки, каждая
-                открывает СВОЮ шторку про механику. Гид (GuideLive) пока жив, но здесь его баннер
-                (CommunityGuideBannerLive) заменён лентой. Кромка ленты — по общей сетке страницы. */}
-            <BosBlock name="discovery"><DiscoveryFeedLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
-            {/* ── СООБЩЕСТВО v2 · Э1 «Одно окно» (ЖИВЫЕ данные, пусто = скрыто): Подходит сейчас →
-                Мои круги → Помощь круга → Мой вклад. Каждый блок изолирован BosBlock — сбой одного
-                не роняет страницу. Ставятся под лентой открытий, партнёры/круги остаются ниже. */}
-            <BosBlock name="suggest"><CommunitySuggestLive app={app} navigate={navigate} isDark={isDark} onOpen={() => setFilter("circles")} /></BosBlock>
-            {/* «Мои круги» УБРАНЫ (David 2026-07-11: «круги и так на Главной, тут не нужны»). Свои
-                публичные круги теперь видны в «Открытых» (фильтр «Круги», раздел «Твои открытые»). */}
-            {/* Под гидом — карусель ОТКРЫТЫХ кругов (David 2026-07-14): реальные публичные круги +
-                заготовленные популярные шаблоны. Заменила «Просьбы твоих кругов» (в архив). */}
-            <BosBlock name="open-circles"><OpenCirclesRailLive app={app} navigate={navigate} isDark={isDark} onAll={() => setFilter("circles")} /></BosBlock>
-            {/* СКРЫТО (David 2026-07-12): «Помощь от своих» (circle-help) и «Мой вклад ·
-                черновик для общих кругов» (my-contribution) убраны с «Все». Компоненты живы —
-                вернуть = раскомментировать.
-            <BosBlock name="circle-help"><CircleHelpLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
-            <BosBlock name="my-contribution"><MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
-            */}
-            {/* ПАРТНЁРЫ убраны с «Все» (David 2026-07-12): карусель дублировала вкладку «Партнёры»,
-                где уже есть карта + полная сетка. Партнёры живут только на своём чипе. */}
-            {/* СКРЫТО (David 2026-07-12): футер-подсказка «Как работает сообщество» (Круг → Дело →
-                Спасибо) убрана с «Все». Вернуть = раскомментировать.
-            <BosBlock name="how-works">
-              <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof DiscoveryHelpersSheetLive === "function") _openSheet(<DiscoveryHelpersSheetLive app={app} navigate={navigate} isDark={isDark} />); }} className="tap"
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
-                <span style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg></span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>Как работает сообщество</div>
-                  <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2 }}>Круг → Дело → Спасибо</div>
+            {/* ТВОИ КРУГИ — ПОЛНОЦЕННОЙ карточкой (David 2026-08-02), той же самой, что на
+                Главной: нить дня, уровень, непрочитанная фраза. Круг — не строчка в списке. */}
+            {myCircles.length > 0 && (
+              <BosBlock name="my-circles">
+                <CommSectionHeadLive title="Твои круги" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {myCircles.map((t) => <TeamTileLive key={t._id || t.cloudId} team={t} from="community" />)}
                 </div>
-                <I.ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0 }} />
-              </button>
-            </BosBlock>
-            */}
+              </BosBlock>
+            )}
+            {/* «Подходит сейчас» УБРАН: он показывал тот же публичный круг, что стоит ниже в
+                «Открытых» — один и тот же круг дважды на одном экране. Причина показа («потому
+                что у тебя 12 дней зарядки») вернётся строкой НА карточке, когда будет чем её
+                считать по-настоящему. Компонент CommunitySuggestLive жив. */}
+            {/* ОТКРЫТЫЕ КРУГИ — настоящие публичные круги других людей, тоже полными карточками. */}
+            <BosBlock name="open-circles"><CloudTeamsDiscoverLive app={app} navigate={navigate} /></BosBlock>
+            {/* ЧЕЛЛЕНДЖИ — готовые круги с призом за финиш; старт создаёт ТВОЙ настоящий круг. */}
+            <CirclesMosaicLive kicker="Готовый челлендж">
+              {SEED_CIRCLES.map((s) => {
+                const mine = (app?.teams || []).find((t) => t.seedId === s.id);
+                return (
+                  <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
+                    onTap={() => {
+                      if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+                      if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
+                      _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
+                    }} />
+                );
+              })}
+            </CirclesMosaicLive>
+            {/* СОБЕРИ СВОЙ — те же шаблоны, но круг придумываешь ты. */}
+            <CirclesMosaicLive kicker="Собери свой">
+              {CIRCLE_STARTERS.map((s) => (
+                <CircleTileLive key={s.t} emoji={s.i} title={s.t} meta={s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий")}
+                  onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }} />
+              ))}
+            </CirclesMosaicLive>
+            {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
+            {/* КАК ВСЁ УСТРОЕНО — лента карточек-гайдов. Она учит, а не зовёт, поэтому стоит
+                последней: сначала живые люди, потом объяснения. */}
+            <BosBlock name="discovery"><DiscoveryFeedLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
           </React.Fragment>
         )}
-        {filter === "partners" && (
+
+        {seg === "partners" && (
           <React.Fragment>
             {/* КАРТА + СЕТКА партнёров ОДНИМ блоком (David: «карта и партнёры аккуратнее в одном
                 блоке»): крупная карта Москвы сверху → под ней все партнёры сеткой. */}
@@ -4212,39 +4233,7 @@ function CommunityLive() {
         )}
         {/* Чип «Общие цели» — только настоящие публичные круги из облака + «Собери свой».
             Челленджи-шаблоны уехали на СВОЙ чип «Челленджи» (David 2026-07-17). */}
-        {filter === "circles" && (
-          <React.Fragment>
-            <CloudTeamsDiscoverLive app={app} navigate={navigate} />
-            <CirclesMosaicLive kicker="🤝 Собери свой">
-              {CIRCLE_STARTERS.map((s) => (
-                <CircleTileLive key={s.t} emoji={s.i} title={s.t} meta={s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий")}
-                  onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }} />
-              ))}
-            </CirclesMosaicLive>
-            {/* Позови своих — родной выбор контактов Telegram (реферал), только на «Круги». */}
-            {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
-          </React.Fragment>
-        )}
-
-        {/* ЧЕЛЛЕНДЖИ — своя вкладка (David 2026-07-17: «не в общих целях, а отдельно после них»):
-            все готовые челленджи-шаблоны; старт создаёт ТВОЙ настоящий круг. */}
-        {filter === "challenges" && (
-          <CirclesMosaicLive kicker="🔥 Готовая привычка с призом">
-            {SEED_CIRCLES.map((s) => {
-              const mine = (app?.teams || []).find((t) => t.seedId === s.id);
-              return (
-                <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
-                  onTap={() => {
-                    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
-                    if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
-                    _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
-                  }} />
-              );
-            })}
-          </CirclesMosaicLive>
-        )}
-
-        {filter === "people" && (
+        {seg === "people" && (
           <div style={{ marginTop: 0 }}>
             {userLevel >= 10 || networkPreview ? (
               // НАСТОЯЩИЙ Нетворк: твоя карточка + реальные дошедшие (без выдуманных людей).
@@ -4275,7 +4264,8 @@ function CommunityLive() {
           </div>
         )}
 
-        {filter === "training" && (
+        {/* КУРСЫ — там же, где партнёры: обе двери про то, куда деть XP. */}
+        {seg === "partners" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {/* КУРСЫ (вернули отдельным чипом — David: «верни вкладку Курсы с 3мя курсами»):
               голд-баннер «зачем» + полные карточки → course-detail (запись роняет практику+круг). */}

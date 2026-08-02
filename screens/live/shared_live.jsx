@@ -7172,13 +7172,15 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   const _dHdrIcon = (typeof BosCircleIcon === "function") ? <BosCircleIcon size={13} strokeWidth={2} color="var(--text-4)" /> : null;
   return (
     <div style={{ marginTop: 10 }}>
-      {/* Мои открытые круги — карточкой Главной (David: «одна карточка везде», создатель видит, что круг открыт). */}
-      {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Общие цели</div>}
-      {/* КОМПАКТ-СЕТКА 2 в ряд (David 2026-07-16: «в Сообществе все круги — компактной карточкой»). */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {/* ПОЛНОЦЕННЫЕ КАРТОЧКИ (David 2026-08-02: «пусть там будут полноценные карточки кругов и
+          целей»). Компакт-сетка 2 в ряд резала имена и подписи в многоточие — по чужому кругу
+          нельзя было понять, живой он или пустой. Теперь та же карточка, что на Главной: нить
+          дня, сколько людей, обычное время, кнопка «Вступить». */}
+      {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {shownList.map((t) => (
-          <BosCircleCardCompactLive key={t.id} t={t} joined={!!t.joined} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join}
-            onOpen={t.joined ? function () { navigate && navigate("team-detail", { team: mineById[t.id] || t, from: "community" }); } : undefined} />
+          <BosCircleCardLive key={t.id} t={t} joined={!!t.joined} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join}
+            onOpen={function () { navigate && navigate("team-detail", { team: mineById[t.id] || t, from: "community" }); }} />
         ))}
       </div>
     </div>
@@ -8139,19 +8141,20 @@ function LivingCirclesShowcaseLive({ navigate }) {
 function InviteFriendsCardLive({ isDark }) {
   var sheet = (typeof useSheet === "function") ? useSheet() : null;
   var openInvite = function () { try { if (sheet && sheet.open && typeof ShareAppSheetLive === "function") sheet.open(<ShareAppSheetLive dark={isDark} />); } catch (e) {} };
+  /* Была золотая плашка во весь блок — золото как декор. По канону палитры (бел/чёрн/золото)
+     золото = валюта: белая карточка, чернильный текст, золото ТОЛЬКО на пилюле «+150 XP». */
   return (
     <div>
-      <button onClick={openInvite} className="tap" style={{ width: "100%", position: "relative", overflow: "hidden", border: 0, borderRadius: 22, padding: 16, background: "linear-gradient(135deg, #FEDE34, #EF9F14)", boxShadow: "0 8px 22px rgba(239,159,20,0.3)", color: "#0a0a0a", display: "flex", alignItems: "center", gap: 13, textAlign: "left", cursor: "pointer" }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)", pointerEvents: "none" }} />
-        <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, color: "#0a0a0a", position: "relative" }}><I.Share size={20} /></span>
-        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+      <button onClick={openInvite} className="tap" style={{ width: "100%", border: 0, borderRadius: 22, padding: "14px 15px", background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", cursor: "pointer" }}>
+        <span style={{ width: 42, height: 42, borderRadius: 14, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}><I.Share size={19} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15.5, fontWeight: 700, color: "#0a0a0a", letterSpacing: "-0.2px" }}>Позови своих</span>
-            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#FEDE34", background: "#0a0a0a", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>Позови своих</span>
+            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#B4820A", background: "rgba(240,195,10,0.14)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
           </div>
-          <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.62)", marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>Пригласи друзей прямо из Telegram — и они появятся в «Твои люди».</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35 }}>Пригласи друзей прямо из Telegram — и они появятся в «Твои люди».</div>
         </div>
-        <span style={{ position: "relative", color: "#0a0a0a", opacity: 0.55, flexShrink: 0 }}><I.ChevronRight size={18} /></span>
+        <I.ChevronRight size={17} color="var(--text-4)" style={{ flexShrink: 0 }} />
       </button>
     </div>
   );
