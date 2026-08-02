@@ -759,6 +759,18 @@ function TeamDetailLive() {
   // Сколько раз круг закрывал дела вместе — за то окно, что реально загружено.
   const marksN = yearRows.length;
   const myMarksN = meId ? yearRows.filter((r) => r.u === meId).length : 0;
+  // МОИ ДНИ в круге (не строки отметок): «твой вклад — 12 дней».
+  const myDaysN = (function () {
+    if (!meId) return 0;
+    const seen = {}; let n = 0;
+    yearRows.forEach((r) => { if (r.u !== meId) return; if (seen[r.day]) return; seen[r.day] = 1; n++; });
+    return n;
+  })();
+  // Цель круга бывает ДВУХ смыслов: «серия вместе» (держим ритм) и «общий счёт» (складываем
+  // километры/страницы). Для серии цифра «0 из 14 дней» бессмысленна — круг держит ритм N дней,
+  // и это и есть его главное число (David 2026-08-02).
+  const goalType = (goalProg && goalProg.type) || t.type || (gTgt > 0 ? "collective" : "streak");
+  const isCount = gTgt > 0 && goalType !== "streak";
   const marksSince = (yearS && yearS.rows && yearS.rows.length) ? (t.createdAt ? bosRoomDateWord(t.createdAt) : "за год") : "за месяц";
 
   /* ── чат: сообщения + отметки + огоньки + вехи, одна лента по времени.
@@ -1145,13 +1157,18 @@ function TeamDetailLive() {
           статистика, и золото на экране одно. */}
       {roomTab === "path" && (<React.Fragment>
 
-      {/* 1 · ГДЕ СЕЙЧАС. Есть цель — цифра и полоса к ней; нет цели — общий счёт отметок. */}
+      {/* 1 · ГЛАВНОЕ ЧИСЛО КРУГА. Круг «на серии» — сколько дней он держится (это и есть его
+          смысл: «круг держит сон до полуночи уже 14 дней»). Круг со счётом — сколько набрали
+          вместе и сколько осталось. «0 из 14 дней» больше не показывается никогда: у серии
+          цель не копится, она держится. */}
       <div style={{ ...card, padding: "15px 14px 13px", marginTop: 10 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", letterSpacing: "-1.3px", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{gTgt > 0 ? gCur : marksN}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>{gTgt > 0 ? ("из " + gTgt + (gUnit ? " " + gUnit : "")) : (marksN === 1 ? "отметка вместе" : "отметок вместе")}</span>
+          <span style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", letterSpacing: "-1.3px", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{isCount ? gCur : streakCap}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>
+            {isCount ? ("из " + gTgt + (gUnit ? " " + gUnit : "")) : (bosRoomDaysWord(circleStreak) + " круг держится вместе")}
+          </span>
         </div>
-        {gTgt > 0 && (
+        {isCount && (
           <div style={{ marginTop: 11 }}>
             <div style={{ height: 6, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.09)" : "rgba(10,10,10,0.07)", overflow: "hidden" }}>
               <div style={{ height: "100%", width: Math.max(2, Math.min(100, Math.round(100 * gCur / gTgt))) + "%", borderRadius: 999, background: bosAccentPaint(t.accent || null, isDark).solid }} />
@@ -1159,25 +1176,43 @@ function TeamDetailLive() {
             <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 6 }}>{gDone ? "цель взята" : ("осталось " + (gTgt - gCur) + (gUnit ? " " + gUnit : ""))}</div>
           </div>
         )}
+        {!isCount && circleStreak === 0 && (
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 5, lineHeight: 1.4 }}>Серия начинается в день, когда весь круг в деле. Сегодня ещё можно.</div>
+        )}
         {/* Паспорт круга одной строкой: с какого дня вместе, сколько людей, открыт ли, банк. */}
-        <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: gTgt > 0 ? 9 : 6, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: isCount ? 9 : 6, lineHeight: 1.45 }}>
           {(t.createdAt ? "вместе с " + bosRoomDateWord(t.createdAt) : (subParts[0] || ""))}
           {subParts.length > 1 ? " · " + subParts.slice(1).join(" · ") : ""}
-          {gTgt <= 0 && myMarksN > 0 ? " · твоих отметок " + myMarksN : ""}
         </div>
       </div>
 
-      {/* 2 · КАК ДЕРЖИМСЯ. Два ОДНОРОДНЫХ факта про круг — и оба про одно: не рвётся ли ритм. */}
-      <BosRoomH2>Как держимся</BosRoomH2>
+      {/* 1б · ТВОЙ ВКЛАД — сколько в этом круге сделал именно ты (David: «видно, как ты
+          поучаствовал»). Дни, а не строки: три привычки в один день — это один день. */}
+      {meId && (myDaysN > 0 || myMarksN > 0) && (
+        <div style={{ ...card, padding: "13px 14px", marginTop: 9, display: "flex", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{myDaysN}</div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>{bosRoomDaysWord(myDaysN) + " твоего вклада"}</div>
+          </div>
+          <div style={{ width: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{(wk7[meId] || 0) + " из 7"}</div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>эта неделя{teamHabits.length > 1 ? " · привычек в круге " + teamHabits.length : ""}</div>
+          </div>
+        </div>
+      )}
+
+      {/* 2 · КАК ДЕРЖАТСЯ ЛЮДИ — уже не про круг целиком, а про тех, кто в нём. */}
+      <BosRoomH2>Как держатся люди</BosRoomH2>
       <div style={{ ...card, padding: "13px 14px", display: "flex", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{streakCap}</div>
-          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>{bosRoomDaysWord(circleStreak) + " подряд весь круг в деле"}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{keepPct + "%"}</div>
+          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>держат ритм — 4+ дня за неделю</div>
         </div>
         <div style={{ width: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)" }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{keepPct + "%"}</div>
-          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>людей держат ритм — 4+ дня за неделю</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", lineHeight: 1.1 }}>{todayN + " из " + membersN}</div>
+          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>в деле сегодня</div>
         </div>
       </div>
 

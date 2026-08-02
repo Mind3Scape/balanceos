@@ -7065,7 +7065,7 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
     : <div style={style}>{body}</div>;
 }
 
-function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
+function CloudTeamsDiscoverLive({ app, query, onCount, navigate, hideHead }) {
   const isDark = app?.themeOverride === "dark";
   const q = ("" + (query || "")).trim();
   const isSearch = !!q;
@@ -7176,7 +7176,7 @@ function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
           целей»). Компакт-сетка 2 в ряд резала имена и подписи в многоточие — по чужому кругу
           нельзя было понять, живой он или пустой. Теперь та же карточка, что на Главной: нить
           дня, сколько людей, обычное время, кнопка «Вступить». */}
-      {shownList.length > 0 && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
+      {shownList.length > 0 && !hideHead && <div style={_dHdr}>{_dHdrIcon}Открытые круги</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {shownList.map((t) => (
           <BosCircleCardLive key={t.id} t={t} joined={!!t.joined} busy={!!busy[t.id]} requested={!!requested[t.id]} onJoin={join}

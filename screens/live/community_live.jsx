@@ -4175,43 +4175,21 @@ function CommunityLive() {
             лежали под ней. ══ */}
         {seg === "circles" && (
           <React.Fragment>
-            {/* ТВОИ КРУГИ — ПОЛНОЦЕННОЙ карточкой (David 2026-08-02), той же самой, что на
-                Главной: нить дня, уровень, непрочитанная фраза. Круг — не строчка в списке. */}
-            {myCircles.length > 0 && (
-              <BosBlock name="my-circles">
-                <CommSectionHeadLive title="Твои круги" />
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* ВСЕ КРУГИ ОДНИМ СПИСКОМ (David 2026-08-02: «нет смысла дублировать твои круги и
+                открытые — это сразу все круги»). Сначала твои — полноценной карточкой, той же,
+                что на Главной; следом чужие открытые той же карточкой с «Вступить». Один
+                заголовок, один список, никакой стены разделов.
+                Челленджи и «Собери свой» СПРЯТАНЫ по решению David — шаблоны отвлекали от живых
+                кругов. Компоненты живы (SEED_CIRCLES / CIRCLE_STARTERS), вернуть = раскомментировать. */}
+            <BosBlock name="circles">
+              <CommSectionHeadLive title="Круги" />
+              {myCircles.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
                   {myCircles.map((t) => <TeamTileLive key={t._id || t.cloudId} team={t} from="community" />)}
                 </div>
-              </BosBlock>
-            )}
-            {/* «Подходит сейчас» УБРАН: он показывал тот же публичный круг, что стоит ниже в
-                «Открытых» — один и тот же круг дважды на одном экране. Причина показа («потому
-                что у тебя 12 дней зарядки») вернётся строкой НА карточке, когда будет чем её
-                считать по-настоящему. Компонент CommunitySuggestLive жив. */}
-            {/* ОТКРЫТЫЕ КРУГИ — настоящие публичные круги других людей, тоже полными карточками. */}
-            <BosBlock name="open-circles"><CloudTeamsDiscoverLive app={app} navigate={navigate} /></BosBlock>
-            {/* ЧЕЛЛЕНДЖИ — готовые круги с призом за финиш; старт создаёт ТВОЙ настоящий круг. */}
-            <CirclesMosaicLive kicker="Готовый челлендж">
-              {SEED_CIRCLES.map((s) => {
-                const mine = (app?.teams || []).find((t) => t.seedId === s.id);
-                return (
-                  <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
-                    onTap={() => {
-                      if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
-                      if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
-                      _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
-                    }} />
-                );
-              })}
-            </CirclesMosaicLive>
-            {/* СОБЕРИ СВОЙ — те же шаблоны, но круг придумываешь ты. */}
-            <CirclesMosaicLive kicker="Собери свой">
-              {CIRCLE_STARTERS.map((s) => (
-                <CircleTileLive key={s.t} emoji={s.i} title={s.t} meta={s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий")}
-                  onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }} />
-              ))}
-            </CirclesMosaicLive>
+              )}
+              <CloudTeamsDiscoverLive app={app} navigate={navigate} hideHead={myCircles.length > 0} />
+            </BosBlock>
             {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
             {/* КАК ВСЁ УСТРОЕНО — лента карточек-гайдов. Она учит, а не зовёт, поэтому стоит
                 последней: сначала живые люди, потом объяснения. */}
