@@ -6986,6 +6986,9 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
   else if (pulse && Array.isArray(pulse.mins) && pulse.mins.length) hours = pulse.mins.map((m) => (typeof bosUtcMinToHour === "function" ? bosUtcMinToHour(m) : m / 60));
   const todayN = Math.max(pulse ? (pulse.todayN | 0) : 0, (joined && times && times.times) ? Object.keys(times.times).length : 0);
   const nowPct = bosThreadPct(new Date().getHours() + new Date().getMinutes() / 60);
+  // Цвет активности карточки: цвет круга, если человек его выбрал, иначе чернила.
+  const _cardPaint = (typeof bosAccentPaint === "function") ? bosAccentPaint(t.accent || t.color, isDark)
+    : { solid: isDark ? "rgba(255,255,255,0.6)" : "rgba(10,10,10,0.55)" };
   const track = isDark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.10)";
   const cap = [];
   // Возраст — первым (David 2026-07-16: человек со стороны хочет видеть, сколько цель живёт).
@@ -7021,17 +7024,29 @@ function BosCircleCardCompactLive({ t, joined, onOpen, onJoin, busy, requested }
       })()}
       {/* marginTop:auto — нить ПРИЖАТА к низу фикс-карточки: линия активности и «живёт N дн»
           всегда на одной высоте, есть описание или нет (David 2026-07-17). */}
+      {/* СТОЛБЦЫ ВМЕСТО ВОЛНЫ (David 2026-08-01: «на карточках кругов всё ещё нет корректных
+          столбцов активности»). Здесь остаётся ЧАСОВАЯ шкала — под столбцами живёт линия дня с
+          точкой «сейчас», как на детальных экранах. Волна была золотой и одинаковой у всех
+          кругов; столбцы говорят, в какие часы круг сегодня двигался, и красятся чернилами
+          (золото — валюта) или цветом круга, если он выбран. */}
       <div style={{ position: "relative", height: 30, marginTop: "auto" }}>
-        {hours.length > 0 && (
-          <svg viewBox="0 0 150 22" preserveAspectRatio="none" style={{ position: "absolute", left: 0, right: 0, bottom: 7, width: "100%", height: 22 }}>
-            <defs><linearGradient id="bosCWaveG" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={BOS_THREAD_GOLD_L} stopOpacity="0.85" /><stop offset="100%" stopColor={BOS_THREAD_GOLD} stopOpacity="0.10" />
-            </linearGradient></defs>
-            <path d={bosThreadWave(hours, 150, 22)} fill="url(#bosCWaveG)" />
-          </svg>
-        )}
+        {hours.length > 0 && (function () {
+          var bins = new Array(24).fill(0);
+          hours.forEach(function (h) { bins[Math.max(0, Math.min(23, Math.floor(h)))]++; });
+          var mx = Math.max.apply(null, bins) || 1;
+          var top = _cardPaint.solid, bot = (typeof bosFadeCol === "function") ? bosFadeCol(top, 0.08) : top;
+          return (
+            <div style={{ position: "absolute", left: 0, right: 0, bottom: 10, height: 20, display: "flex", alignItems: "flex-end", gap: 1 }}>
+              {bins.map(function (v, i) {
+                var hh = v > 0 ? Math.max(3, Math.round(v / mx * 20)) : 0;
+                return <span key={i} style={{ flex: 1, minWidth: 0, height: hh, borderRadius: 999,
+                  background: hh ? ("linear-gradient(180deg," + top + " 0%," + bot + " 100%)") : "transparent" }} />;
+              })}
+            </div>
+          );
+        })()}
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 8, height: 1.5, borderRadius: 2, background: track }} />
-        <div style={{ position: "absolute", left: 0, bottom: 8, height: 1.5, width: nowPct + "%", borderRadius: 2, background: "linear-gradient(90deg," + BOS_THREAD_GOLD_L + "," + BOS_THREAD_GOLD + ")" }} />
+        <div style={{ position: "absolute", left: 0, bottom: 8, height: 1.5, width: nowPct + "%", borderRadius: 2, background: _cardPaint.solid }} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, minHeight: 24 }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: 10.5, fontWeight: 600, color: "var(--text-4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cap.join(" · ") || " "}</span>
