@@ -2913,7 +2913,11 @@ function BosDayThreadLive({ faces = [], hours = [], isDark = false, accent = nul
               return BARS.map(function (v, i) {
                 var h = v > 0 ? Math.max(3, Math.round(v / mx * BH)) : 0;
                 return (
-                  <span key={i} style={{ flex: 1, minWidth: 0, height: h, borderRadius: "2px 2px 1px 1px",
+                  /* Скругление — ПОЛНОЕ (David 2026-08-01: «столбцы у нас были более закруглённые
+                     в макетах, а сейчас больше прямоугольные»). 999px браузер сам зажимает до
+                     половины ширины, поэтому шапка столбика всегда правильный полукруг при любой
+                     ширине карточки. */
+                  <span key={i} style={{ flex: 1, minWidth: 0, height: h, borderRadius: 999,
                     background: h ? ("linear-gradient(180deg," + barTop + " 0%," + barBot + " 100%)") : "transparent" }} />
                 );
               });
@@ -4211,6 +4215,79 @@ function BosWheelMiniLive(props) {
 // колесо, крупный балл, пилюля-статус, фраза о раскладе и строка «слабая · сильная сфера».
 // Балл живёт В ТЕКСТЕ (как в макете у широкого), поэтому в центре колеса его нет — один факт
 // в одном месте. Норма («выше нормы 4 из 6») из фразы ушла: её в продукте пока нет.
+/* СТОЛБЦЫ СФЕР для виджета Главной (David 2026-08-01: «виджет баланса жизни на главной тоже
+   должен быть со столбцами, как в макетах, а не с лепестком»). Шесть столбиков — шесть сфер:
+   светлая подложка = потолок, залитая часть = где сфера сейчас, знак сферы под столбиком.
+   Язык тот же, что у столбцов часов и недели: круглые шапки, целая ширина, никакого золота
+   сверх палитры колеса. */
+function BosSpheresBarsLive(props) {
+  var SPH = props.spheres || [], dark = !!props.dark, mute = !!props.mute;
+  var H = props.h || 54, W = props.w || 112, gap = 6, n = SPH.length || 6;
+  var col = Math.max(6, Math.floor((W - (n - 1) * gap) / n));
+  var track = dark ? "rgba(255,255,255,0.07)" : "#F1EFE9";
+  return (
+    <span style={{ display: "flex", gap: gap, alignItems: "flex-end", flexShrink: 0 }} aria-hidden>
+      {SPH.map(function (s, i) {
+        var v = Math.max(0, Math.min(1, s.v || 0));
+        var fill = mute ? 0 : Math.max(4, Math.round(H * (0.06 + 0.94 * v)));
+        return (
+          <span key={i} style={{ width: col, display: "block" }}>
+            <span style={{ position: "relative", display: "block", width: col, height: H, borderRadius: 999, background: track, overflow: "hidden" }}>
+              {fill > 0 && (
+                <span style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: fill, borderRadius: 999,
+                  background: "linear-gradient(180deg," + bosPetLight(v) + "," + bosPetDeep(v) + ")" }} />
+              )}
+            </span>
+            <span style={{ display: "grid", placeItems: "center", height: 14, marginTop: 5, color: "var(--text-4)" }}>
+              {((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles", { size: 12, color: "var(--text-4)" })) || null}
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+/* СТОЛБЦЫ АКТИВНОСТИ НА МАЛЕНЬКИХ КАРТОЧКАХ (David 2026-08-01: «на маленьких карточках кругов
+   и целей тоже должны быть столбцы активности»). На детальных экранах столбцы показывают ЧАСЫ
+   дня — там рядом живёт линия дня. На карточке часов нет: она показывает ДНИ — две недели
+   активности, самый правый столбик — сегодня. Форма одна на всё приложение: круглые шапки,
+   градиент, растворяющийся вниз. */
+function BosMiniBarsLive(props) {
+  var vals = props.vals || [], H = props.h || 22, col = props.color;
+  var isDark = !!props.isDark;
+  // Тон приглушаем: на маленькой карточке четырнадцать столбиков в полный цвет читались как
+  // чёрная плашка, а не как график. Верх — 0.5 альфы, низ растворяется.
+  var raw = col || (isDark ? "#ffffff" : "#0a0a0a");
+  var top = (typeof bosFadeCol === "function") ? bosFadeCol(raw, 0.5) : raw;
+  var bot = (typeof bosFadeCol === "function") ? bosFadeCol(raw, 0.13) : raw;
+  if (!vals.length) return null;
+  return (
+    <span style={{ display: "flex", alignItems: "flex-end", gap: 2, height: H, width: "100%" }} aria-hidden>
+      {/* Радиус ФИКСИРОВАННЫЙ, а не 999: на карточке столбиков всего четырнадцать, они широкие —
+          полукруглая шапка превратила бы их в таблетки. Скругление сверху, низ почти прямой. */}
+      {vals.map(function (v, i) {
+        var hh = v > 0 ? Math.max(4, Math.round(H * Math.min(1, v))) : 0;
+        return <span key={i} style={{ flex: 1, minWidth: 0, height: hh, borderRadius: "5px 5px 2px 2px",
+          background: hh ? ("linear-gradient(180deg," + top + " 0%," + bot + " 100%)") : "transparent" }} />;
+      })}
+    </span>
+  );
+}
+/* Две недели цели: доля её привычек, закрытых в каждый день. Считается локально из логов. */
+function bosGoalDaysLive(linked, n) {
+  var days = n || 28, out = [], base = new Date(); base.setHours(0, 0, 0, 0);
+  if (!linked || !linked.length) return [];
+  var any = false;
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(base); d.setDate(base.getDate() - i);
+    var k = (typeof bosFieldKey === "function") ? bosFieldKey(d) : null;
+    var done = 0;
+    linked.forEach(function (h) { if (h && h.log && k && h.log[k]) done++; });
+    if (done) any = true;
+    out.push(done / linked.length);
+  }
+  return any ? out : [];
+}
 function BosBalanceWidgetLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate || function () {};
   var data = (typeof bosWheelData === "function") ? bosWheelData(app) : { spheres: [] };
@@ -4232,8 +4309,10 @@ function BosBalanceWidgetLive(props) {
   else if (!weak) line = <span>Заведи первую привычку — сферы начнут наполняться.</span>;
   else if (lone) line = <span>Живёт одна сфера — <b>{weak.l}</b>. Остальные пять ждут первой привычки.</span>;
   else line = <span>Сильнее всего — <b>{strong.l}</b>. Просело <b>{weak.l}</b>: {weak.n} {ruHab(weak.n)}{filled < N ? ", " + (N - filled) + " " + (N - filled === 1 ? "сфера пуста" : (N - filled < 5 ? "сферы пусты" : "сфер пусты")) : ""}.</span>;
-  var terra = dark ? "#E0A070" : "#b0663a";
+  // Знаки сфер — ОДНОГО цвета (David 2026-08-01: «иконки на балансе жизни разных цветов, это
+  // смущает»). Слабую сферу отличает не оттенок иконки, а её место в строке и число рядом.
   var inkQuiet = dark ? "#c8c8cd" : "#57585f";
+  var terra = inkQuiet;
   var ic = function (s, col) { return ((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles", { size: 14, color: col })) || s.e; };
   // Фон и тень даёт ряд доски (SwipeRow), поэтому сама плитка прозрачная — иначе на краю
   // «отъезда» под свайп появлялась бы вторая поверхность.
@@ -4241,7 +4320,7 @@ function BosBalanceWidgetLive(props) {
     <button className="tap bosbw" onClick={function () { navigate("ai"); }}
       style={{ width: "100%", background: "transparent", border: 0, padding: "14px 15px 12px", textAlign: "left",
         color: "var(--text)", display: "flex", alignItems: "center", gap: 14, fontFamily: "inherit" }}>
-      <BosWheelMiniLive spheres={SPH} size={94} dark={dark} mute={locked} />
+      <BosSpheresBarsLive spheres={SPH} dark={dark} mute={locked} h={54} w={112} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 9.5, fontWeight: 800, letterSpacing: 1.3, textTransform: "uppercase", color: "var(--text-4)" }}>Баланс жизни</span>
         {/* Без базы балла ещё нет — не показываем ни числа, ни статуса, чтобы не врать прочерком. */}
@@ -4439,7 +4518,9 @@ function BosBalanceWheelLive(props) {
     var sz = Math.round(14 * (ICON_BOOST[s.id] || 1));
     return (
       <span key={s.id} className="bw-ic" style={{ left: ((p[0] + 148) / 296 * 100) + "%", top: ((p[1] + 150) / 300 * 100) + "%" }}>
-        {((typeof bosIconEl === "function") && bosIconEl(nm, { size: sz, color: covered ? "#fff" : (dark ? "rgba(255,255,255,0.34)" : "rgba(90,70,20,0.34)") })) || s.e}
+        {/* Один цвет на все шесть знаков: на залитом лепестке белый, на пустом — тот же белый
+             приглушённый. Разноцветных знаков в колесе нет (David 2026-08-01). */}
+        {((typeof bosIconEl === "function") && bosIconEl(nm, { size: sz, color: covered ? "#fff" : (dark ? "rgba(255,255,255,0.30)" : "rgba(10,10,10,0.22)") })) || s.e}
       </span>
     );
   });
@@ -6315,8 +6396,17 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
   ) : null;
   const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
   const icon = <span className="bos-ticon" style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIconOf(g, 22, sk.hasColor ? sk.iconInk : g.color, "🎯")}</span>;
+  // Две недели активности цели — над полосой прогресса: полоса говорит «сколько всего»,
+  // столбцы — «как шло». Нет ни одной отметки за две недели → блока нет, пустых столбиков не рисуем.
+  const _gDays = (typeof bosGoalDaysLive === "function") ? bosGoalDaysLive(gp.linked, 28) : [];
+  const actBars = _gDays.length ? (
+    <div style={{ marginBottom: 8 }}>
+      <BosMiniBarsLive vals={_gDays} h={18} isDark={isDark} color={sk.hasColor ? sk.fill : null} />
+    </div>
+  ) : null;
   const progBar = goalStyle.progress ? (
     <div>
+      {actBars}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: sk.lbl, textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: sk.val, fontVariantNumeric: "tabular-nums" }}>{curVal} / {g.target} {g.unit || ""}</span>

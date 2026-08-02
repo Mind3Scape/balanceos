@@ -103,6 +103,38 @@ function LiveTeamCard({ t, navigate, rhythm }) {
     window.addEventListener("bos:chatunread", onClear);
     return () => { try { unsub(); } catch (e) {} window.removeEventListener("bos:chatunread", onClear); };
   }, [t.cloudId]);
+  /* СТОЛБЦЫ АКТИВНОСТИ КРУГА (David 2026-08-01: «на маленьких карточках кругов и целей тоже
+     должны быть столбцы активности»). Две недели: сколько РАЗНЫХ людей закрыли привычки круга
+     в каждый день, делённое на размер круга. Один запрос на карточку, ответ живёт 10 минут в
+     общем кэше — список кругов не начинает молотить сеть. */
+  const [actDays, setActDays] = React.useState(function () {
+    var c = (typeof _bosTeamGet === "function" && t.cloudId) ? _bosTeamGet("act14:" + t.cloudId) : null;
+    return Array.isArray(c) ? c : null;
+  });
+  React.useEffect(() => {
+    if (!_cloud || !window.bosCloud.teamLogsRange) return;
+    var c = (typeof _bosTeamGet === "function") ? _bosTeamGet("act14:" + t.cloudId) : null;
+    if (Array.isArray(c)) { setActDays(c); return; }
+    let on = true;
+    window.bosCloud.teamLogsRange(t.cloudId, 14).then((d) => {
+      if (!on || !d || !Array.isArray(d.rows)) return;
+      var byDay = {};
+      d.rows.forEach((r) => { if (!r || !r.day) return; (byDay[r.day] = byDay[r.day] || {})[r.u] = 1; });
+      var out = [], base = new Date(); base.setHours(0, 0, 0, 0);
+      var den = Math.max(1, (roster && roster.length) || (t.members && t.members.length) || 1), any = false;
+      for (var i = 13; i >= 0; i--) {
+        var dt = new Date(base); dt.setDate(base.getDate() - i);
+        var k = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+        var n = byDay[k] ? Object.keys(byDay[k]).length : 0;
+        if (n) any = true;
+        out.push(Math.min(1, n / den));
+      }
+      var res = any ? out : [];
+      if (typeof _bosTeamPut === "function") _bosTeamPut("act14:" + t.cloudId, res);
+      setActDays(res);
+    }).catch(() => {});
+    return () => { on = false; };
+  }, [t.cloudId, _cloud, roster && roster.length]);
   const _loading = _cloud && roster === null; // cloud roster not back yet → skeleton, never «ты один»
   const members = _cloud ? (roster || []) : (t.members || []);
   const count = members.length;
@@ -136,6 +168,9 @@ function LiveTeamCard({ t, navigate, rhythm }) {
           {!_loading && count > 0 && <span style={chipS}>👥 {count}</span>}
           <span style={chipS}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
         </div>
+        {actDays && actDays.length > 0 && typeof BosMiniBarsLive === "function" && (
+          <div style={{ marginTop: 14 }}><BosMiniBarsLive vals={actDays} h={22} isDark={false} /></div>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
           <span>{t.target ? "К цели" : "Прогресс цели"}</span>
           <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + (_unitLabel ? " " + _unitLabel : "")) : Math.round(gp * 100) + "%"}</span>

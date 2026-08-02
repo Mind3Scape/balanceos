@@ -607,6 +607,16 @@ function BosObsCardLive(props) {
   var stNo = React.useState(function () { try { return JSON.parse(localStorage.getItem(noKey) || "[]"); } catch (e) { return []; } });
   var no = stNo[0], setNo = stNo[1];
 
+  /* ПОКА МОДЕЛЬ МОЛЧИТ — ИДЁМ ЗА ЖИВЫМИ ДАННЫМИ (David 2026-08-01: «виджет подсказок на главной
+     нормально реагирует на то, что я делаю, а на странице ИИ не меняется»). Причина была не в
+     ключе: `items` заводился один раз при открытии экрана и больше не следил за пересчётом
+     локальных наблюдений — отметил привычку, а карточка держит старый текст. Теперь, пока нет
+     ответа модели в кэше дня, карточка идёт за `local`. */
+  React.useEffect(function () {
+    try { var c0 = JSON.parse(localStorage.getItem(cacheKey) || "null"); if (c0 && c0.items && c0.items.length) return; } catch (e) {}
+    setItems(local); setIdx(0);
+  }, [local]);
+
   React.useEffect(function () {
     var dead = false;
     try { var c = JSON.parse(localStorage.getItem(cacheKey) || "null"); if (c && c.items && c.items.length) return; } catch (e) {}
