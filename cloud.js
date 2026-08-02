@@ -1712,13 +1712,15 @@
   function netAcceptSkillEpisode(episodeId) { return _netSkillEpisodeAction(episodeId, "accept"); }
   function netDeclineSkillEpisode(episodeId) { return _netSkillEpisodeAction(episodeId, "decline"); }
   function netCancelSkillEpisode(episodeId) { return _netSkillEpisodeAction(episodeId, "cancel"); }
-  async function _netSkillMarkDone(episodeId, role) {
+  async function _netSkillMarkDone(episodeId, role, earned) {
     episodeId = _netV1Id(episodeId);
     if (!episodeId || ["provider", "recipient"].indexOf(role) < 0) return { ok: false, err: "role" };
-    return _netV1Rpc("bos_skill_mark_done", { p_episode: episodeId, p_role: role });
+    // earned — сколько XP человек заработал (по мнению клиента). Сервер уровня и опыта
+    // не хранит, но с этим числом он хотя бы не даст копилке уйти в минус.
+    return _netV1Rpc("bos_skill_mark_done", { p_episode: episodeId, p_role: role, p_earned: (earned == null ? null : (earned | 0)) });
   }
-  function netMarkSkillProviderDone(episodeId) { return _netSkillMarkDone(episodeId, "provider"); }
-  function netMarkSkillRecipientDone(episodeId) { return _netSkillMarkDone(episodeId, "recipient"); }
+  function netMarkSkillProviderDone(episodeId) { return _netSkillMarkDone(episodeId, "provider", null); }
+  function netMarkSkillRecipientDone(episodeId, earned) { return _netSkillMarkDone(episodeId, "recipient", earned); }
   async function netSkillEpisodeContact(episodeId) {
     episodeId = _netV1Id(episodeId);
     if (!episodeId) return { status: "error", err: "episode", contact: null };
@@ -1888,6 +1890,99 @@
       return (r && !r.error && r.data) ? r.data : null;
     } catch (e) { return null; }
   }
+  // ── «ТВОЙ ВКЛАД В ОКРУЖЕНИЕ» (v868) ─────────────────────────────────────────
+  // Требуют supabase/patch_people_contribution.sql. Пока патч не прогнан, RPC нет →
+  // _netV1Rpc вернёт {ok:false, err:...}, и экран честно скажет об этом, а не
+  // покажет выдуманных людей. Ни один из этих вызовов не «спасает» ответ фолбэком.
+  function _pcRows(r, key) {
+    if (!r || !r.ok) return null;                    // null = не смогли прочитать (не «пусто»)
+    var d = r[key] != null ? r[key] : (r.data && r.data[key]);
+    if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { d = null; } }
+    return Array.isArray(d) ? d : [];
+  }
+  // Мои вклады (максимум два) с честными счётчиками состоявшихся дел и впечатлений.
+  async function netMyContributions() {
+    var r = await _netV1Rpc("bos_my_contributions", {});
+    var rows = _pcRows(r, "contributions");
+    return rows ? { status: "ready", contributions: rows } : { status: "error", err: (r && r.err) || "server", contributions: [] };
+  }
+  // Сохранить вклад. Цена — шаг 10 XP, 0…1000; сервер держит те же границы.
+  async function netSetContribution(o) {
+    o = o || {};
+    return _netV1Rpc("bos_set_contribution", {
+      p_skill_key: _netV1Id(o.skill_key), p_interaction: _netV1Id(o.interaction_key),
+      p_outcome: _netV1Id(o.outcome_key), p_mode: _netV1Id(o.mode),
+      p_duration: o.duration | 0, p_slots: o.slots_week | 0, p_price_xp: o.price_xp | 0,
+      p_offer: _netV1Id(o.id) || null
+    });
+  }
+  async function netDropContribution(offerId) {
+    offerId = _netV1Id(offerId); if (!offerId) return { ok: false, err: "offer" };
+    return _netV1Rpc("bos_drop_contribution", { p_offer: offerId });
+  }
+  // Люди со вкладом: имя, аватар, уровень, дела, впечатления и сами вклады — одним вызовом.
+  async function netPeopleContributions(limit) {
+    var r = await _netV1Rpc("bos_people_contributions", { p_limit: Math.max(1, Math.min(200, limit | 0 || 60)) });
+    var rows = _pcRows(r, "people");
+    return rows ? { status: "ready", people: rows } : { status: "error", err: (r && r.err) || "server", people: [] };
+  }
+  // Впечатления о человеке. Не отзыв и не рейтинг: одна фраза за состоявшееся дело.
+  async function netPersonImpressions(userId, limit) {
+    userId = _netV1Id(userId); if (!userId) return { status: "error", err: "user", impressions: [] };
+    var r = await _netV1Rpc("bos_person_impressions", { p_user: userId, p_limit: Math.max(1, Math.min(50, limit | 0 || 20)) });
+    var rows = _pcRows(r, "impressions");
+    return rows ? { status: "ready", impressions: rows } : { status: "error", err: (r && r.err) || "server", impressions: [] };
+  }
+  // Какие впечатления Я уже оставил — чтобы не просить второй раз за то же дело.
+  // Свои строки читаются напрямую (RLS: from_id = auth.uid()).
+  async function netMyImpressions() {
+    var c = client(); var id = await uid(); if (!c || !id) return { status: "error", keys: [] };
+    try {
+      var r = await c.from("thanks").select("offer_id,week").eq("from_id", id).limit(200);
+      if (!r || r.error || !Array.isArray(r.data)) return { status: "error", keys: [] };
+      return { status: "ready", keys: r.data.map(function (x) { return x.offer_id + "|" + x.week; }) };
+    } catch (e) { return { status: "error", keys: [] }; }
+  }
+  async function netLeaveImpression(episodeId, note) {
+    episodeId = _netV1Id(episodeId); note = String(note || "").trim().slice(0, 140);
+    if (!episodeId) return { ok: false, err: "episode" };
+    if (!note) return { ok: false, err: "empty" };
+    return _netV1Rpc("bos_leave_impression", { p_episode: episodeId, p_note: note });
+  }
+  // ── ПАРТНЁРЫ: заявка → три поручительства от уровня ≥10 → публикация ────────
+  async function netProposePartner(place) {
+    place = place || {};
+    var safe = {
+      name: String(place.name || "").trim().slice(0, 60),
+      what: String(place.what || "").trim().slice(0, 120),
+      about: String(place.about || "").trim().slice(0, 400),
+      address: String(place.address || "").trim().slice(0, 160),
+      cost_xp: Math.max(0, Math.min(2000, place.cost_xp | 0)),
+      emblem: String(place.emblem || "🎁").trim().slice(0, 4)
+    };
+    if (!safe.name || !safe.what || !safe.address) return { ok: false, err: "fields" };
+    return _netV1Rpc("bos_propose_partner", { p_place: safe });
+  }
+  async function netVouchPartner(placeId) {
+    placeId = _netV1Id(placeId); if (!placeId) return { ok: false, err: "place" };
+    return _netV1Rpc("bos_vouch_partner", { p_place: placeId });
+  }
+  async function netUnvouchPartner(placeId) {
+    placeId = _netV1Id(placeId); if (!placeId) return { ok: false, err: "place" };
+    return _netV1Rpc("bos_unvouch_partner", { p_place: placeId });
+  }
+  async function netWithdrawPartner(placeId) {
+    placeId = _netV1Id(placeId); if (!placeId) return { ok: false, err: "place" };
+    return _netV1Rpc("bos_withdraw_partner", { p_place: placeId });
+  }
+  // scope: 'published' | 'pending' (очередь проверки, видна с уровня 10) | 'mine'.
+  async function netPartnerPlaces(scope) {
+    scope = ["published", "pending", "mine"].indexOf(scope) >= 0 ? scope : "published";
+    var r = await _netV1Rpc("bos_partner_places", { p_scope: scope });
+    var rows = _pcRows(r, "places");
+    return rows ? { status: "ready", places: rows, level: (r.level | 0) } : { status: "error", err: (r && r.err) || "server", places: [], level: 0 };
+  }
+
   // ── Э4 · след пользы = «спасибо»-свет (thanks) ──────────────────────────────
   // Оставить след (за реально забронированный вклад; RLS проверяет бронь). Одно на offer+неделю.
   async function netThank(offerId, toId, week, note) {
@@ -2005,6 +2100,11 @@
     netBook: netBook, netOfferTaken: netOfferTaken, netMyBookings: netMyBookings, netOfferBookings: netOfferBookings,
     netRoleConfirmations: netRoleConfirmations, netConfirmRole: netConfirmRole,
     netThank: netThank, netOfferThanks: netOfferThanks, netUserThanks: netUserThanks,
+    netMyContributions: netMyContributions, netSetContribution: netSetContribution, netDropContribution: netDropContribution,
+    netPeopleContributions: netPeopleContributions, netPersonImpressions: netPersonImpressions,
+    netLeaveImpression: netLeaveImpression, netMyImpressions: netMyImpressions,
+    netProposePartner: netProposePartner, netVouchPartner: netVouchPartner, netPartnerPlaces: netPartnerPlaces,
+    netUnvouchPartner: netUnvouchPartner, netWithdrawPartner: netWithdrawPartner,
     upsertReminder: upsertReminder, deleteReminder: deleteReminder, markReminderDone: markReminderDone, saveTz: saveTz,
     signOut: signOut,
     _client: client,

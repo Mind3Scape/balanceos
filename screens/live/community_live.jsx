@@ -269,7 +269,7 @@ var BosBlockBoundary = class extends React.Component {
 };
 function BosBlock(props) { return <BosBlockBoundary name={props.name} fallback={props.fallback || null}>{props.children}</BosBlockBoundary>; }
 // Пороги «лесенки» замочков на странице — легко правимые (David ещё не уверен в точных цифрах).
-var BOS_DISC_GATES = { showcase: 3, people: 10, map: 3 };
+var BOS_DISC_GATES = { showcase: 3, people: 1, map: 3 };   // «Люди» открыты всем (v868)
 // Шторки колоды — обложка «прожита», когда открыты все.
 var BOS_DISC_SHEETS = ["core", "xp", "together", "helpers", "ch", "partners", "people"];
 
@@ -2871,7 +2871,7 @@ function DiscoveryPeopleSheetLive({ app, navigate, isDark }) {
     { lvl: 3, t: "Разбор привычек", d: "твоя первая публикация" },
     { lvl: 5, t: "Практика для группы", d: "собери людей на своё" },
     { lvl: 8, t: "Поддержка по темпу", d: "держи кого-то в ритме" },
-    { lvl: 10, t: "Люди", d: "рынок пользы · наставники · встречи", lock: true, big: true },
+    { lvl: 10, t: "Поручиться за место", d: "твой голос публикует партнёров", lock: true, big: true },
     { lvl: 15, t: "Наставничество · Собрать своих", d: "веди других · живая встреча под твоим флагом", lock: true },
   ];
   const knot = (state) => (
@@ -2921,7 +2921,7 @@ function DiscoveryPeopleSheetLive({ app, navigate, isDark }) {
         <div style={{ height: 6, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden", margin: "6px 0" }}><span style={{ display: "block", height: "100%", width: barW + "%", background: BOS_GOLD, borderRadius: 99 }} /></div>
         <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600 }}>Осталось {left} {left === 1 ? "уровень" : (left >= 2 && left <= 4 ? "уровня" : "уровней")}. Вход не покупается — его проходят.</div>
       </div>
-      <div style={_dSText}>Внутри — <b style={{ color: "var(--text)" }}>рынок пользы</b>: услуги за ✦, наставники, живые встречи с людьми твоего города. Без случайных людей: сюда доходят те, кто держит свой ритм.</div>
+      <div style={_dSText}>Внутри — <b style={{ color: "var(--text)" }}>вклад людей друг в друга</b>: каждый называет одну-две вещи, которые готов сделать для другого, и берёт за это XP. Доверие тут набирается состоявшимися делами и живыми впечатлениями, а не уровнем.</div>
       <div style={_dSKick}>ЧТО ОТКРЫВАЕТСЯ ПО ПУТИ</div>
       <div style={{ padding: "2px 2px 4px" }}>{rows}</div>
       <button className="tap" style={_dGbtn} onClick={() => sheet.open(<DiscoveryXPSheetLive app={app} navigate={navigate} isDark={isDark} />)}>Как копить быстрее</button>
@@ -3029,7 +3029,7 @@ function _DiscCard({ num, iconKey, title, desc, onOpen, onDismiss, isDark, open,
 
 // ═════ ЛЕНТА ═════
 // Что открывается на уровне — для празднующей карточки level-up (fixes «уровень не празднуется»).
-var BOS_LEVEL_UNLOCKS = { 3: "Первая публикация · Разбор привычек", 5: "Карточка «Люди» в ленте", 10: "Нетворк · рынок пользы" };
+var BOS_LEVEL_UNLOCKS = { 3: "Первая публикация · Разбор привычек", 5: "Карточка «Люди» в ленте", 10: "Голос за партнёров" };
 
 // обложка «Суть» → шторка «Суть». Макет «Guide Cards V1 Refined» (David 2026-07-14): тёмная
 // карточка со сдержанной золотой дугой-«горизонтом» сверху и живой золотой кнопкой «начать →».
@@ -3127,7 +3127,10 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
     // прежний pin снят.
     { key: "partners", id: "partners", iconKey: "partners", title: "Партнёры", desc: "Впечатления за твой опыт", show: true },
     // «Люди» до 10 уровня — закрытый круг: чёрная плашка + золотой замок (макет).
-    { key: "people", id: "people", iconKey: userLevel < 10 ? "lock" : "people", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5, locked: userLevel < 10 },
+    // Замка больше нет: вклад описывает кто угодно, а доверие набирается делами,
+    // а не уровнем. Раньше карточка обещала «с 10 уровня», а вкладка при этом
+    // открывалась — человек минуту решал, баг это или он тут нелегально.
+    { key: "people", id: "people", iconKey: "people", title: "Люди", desc: "Чем ты полезен окружению", show: true, locked: false },
   ];
   // Механики, реально попадающие в ряд (кап ≤6) — нумеруем позиционно 01…06, прогресс «N из M».
   const mech = deckDefs.filter((c) => c.show && !dismissed[c.key]).slice(0, 6);
@@ -3643,9 +3646,1004 @@ function HelpFormatsManageSheetLive({ app, offers, onDone }) {
   );
 }
 
-// ── «ТВОЙ ПУТЬ ПОМОЩНИКА» — лесенка надёжности для своих ──
-// Поддержка не превращается в «услугу» автоматически. Она даёт опыт реальных дел;
-// если дело связано с отдельным навыком, оно становится доказательством этого навыка.
+/* ════════════════════════════════════════════════════════════════════════════
+   «ЛЮДИ» · ТВОЙ ВКЛАД В ОКРУЖЕНИЕ (v868, бриф David 2026-08-02)
+
+   Экран отвечает на один вопрос: «чем ты можешь быть полезен окружению — и кто
+   может быть полезен тебе». Три блока и всё:
+     1. Твой вклад     — одна-две вещи, которые ты готов сделать для другого.
+     2. Дела           — заказы: к тебе и от тебя. Нет дел — нет блока.
+     3. Кто рядом      — люди, которые описали свой вклад.
+
+   Что УБРАНО и почему: лесенка «Твой путь помощника» (5 ступеней до первого
+   дела), верстак навыков и подтверждения роли кругом. David: «утверждает не
+   круг, утверждают другие люди — те, кто за XP заказал твою пользу».
+   Подтверждение здесь ровно одно — состоявшееся дело плюс ВПЕЧАТЛЕНИЕ (живая
+   фраза, не отзыв и не звёзды).
+
+   Палитра: чернила рисуют всё, кроме цены. Золото = валюта, поэтому золотое
+   только число XP — и текстом, а не заливкой, чтобы не превратиться в пятно.
+   Данных нет → блока нет; выдуманных людей на экране не бывает.
+   Сервер: supabase/patch_people_contribution.sql. ════════════════════════ */
+
+function bosXPGoldLive(isDark) { return isDark ? "#E9BD32" : "#A87C0A"; }
+function bosDoneWordLive(n) { var a = n % 10, b = n % 100; return (a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "раза" : "раз"; }
+function bosWaitWordLive(n) { var a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "ждёт" : "ждут"; }
+function bosPeopleWordLive(n) { var a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "человек" : ((a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "человека" : "человек"); }
+function bosImprWordLive(n) { var a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "впечатление" : ((a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "впечатления" : "впечатлений"); }
+function bosAgoLive(iso) {
+  if (!iso) return "";
+  var d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (!(d >= 0)) return "";
+  if (d === 0) return "сегодня";
+  if (d === 1) return "вчера";
+  if (d < 7) return d + " дн. назад";
+  if (d < 31) { var w = Math.floor(d / 7); return w + " нед. назад"; }
+  var m = Math.floor(d / 30); return m + " мес. назад";
+}
+// Цена вклада: золотое ЧИСЛО, чернильная единица. Ноль — не «0 XP», а «даром».
+function BosPriceLive({ xp, isDark, size }) {
+  size = size || 14;
+  if (!(xp > 0)) return <span style={{ fontSize: size - 1.5, fontWeight: 700, color: "var(--text-4)" }}>даром</span>;
+  return <span style={{ whiteSpace: "nowrap" }}>
+    <span style={{ fontSize: size, fontWeight: 800, color: bosXPGoldLive(isDark), letterSpacing: "-0.2px" }}>{xp}</span>
+    <span style={{ fontSize: size - 3, fontWeight: 700, color: "var(--text-4)", marginLeft: 3 }}>XP</span>
+  </span>;
+}
+// Строка вклада — общая для списка людей, профиля человека и своей карточки.
+// Одна строка внимания: что человек сделает + за сколько + сколько раз этим уже воспользовались.
+// Полное название вклада всегда несёт навык в хвосте («…по «Продуктовый дизайн»»,
+// «… · Тексты и редактура»). В компактной строке это лишнее: навык и так стоит во
+// второй строке, а хвост разгонял заголовок на три строки с обрубленной кавычкой.
+// Убираем хвост — остаётся действие: «Разобрать задачу», «Сделать первый шаг».
+function bosContribShortTitle(offer) {
+  var t = bosHelpOfferTitleText(offer);
+  var skill = bosNetSkillForOffer(offer).title;
+  t = t.replace(/\s+(?:по|в)\s+«[^»]*»\s*$/, "");
+  if (skill) t = t.replace(new RegExp("\\s*·\\s*" + skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$"), "");
+  return t.trim() || bosHelpOfferTitleText(offer);
+}
+function ContributionRowLive({ offer, isDark, action, muted }) {
+  var done = offer.done_count | 0, skill = bosNetSkillForOffer(offer);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", borderRadius: 17, background: "var(--surface-3)", opacity: muted ? 0.55 : 1 }}>
+      <span style={{ width: 36, height: 36, borderRadius: 12, background: "var(--card)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <BosHelpOfferIconLive offer={offer} size={17} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)", lineHeight: 1.28, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{bosContribShortTitle(offer)}</div>
+        {/* В компактной строке «онлайн/рядом» не пишем — это важно на самой карточке
+            человека, а в списке съедает строку и заставляет обрезать всё остальное. */}
+        <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35 }}>
+          {skill.title} · {offer.when_text || "30 мин"}{done > 0 ? " · " + done + " " + bosDoneWordLive(done) : ""}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 7, flexShrink: 0 }}>
+        <BosPriceLive xp={offer.price_xp | 0} isDark={isDark} />
+        {action || null}
+      </div>
+    </div>
+  );
+}
+
+/* ── 1. ТВОЙ ВКЛАД ─────────────────────────────────────────────────────────
+   Пусто → один вопрос и одна кнопка. Есть → карточки с честными счётчиками.
+   Больше двух не даём: «для начала 1–2 вещи», а не список всего, что пробовал. */
+function MyContributionLive({ app, isDark, rows, onChanged }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var list = rows || [];
+  var edit = function (offer) { s.open(<ContributionSheetLive app={app} offer={offer || null} isDark={isDark} onDone={onChanged} />); };
+  if (!list.length) {
+    return (
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: "18px 16px", boxShadow: "var(--card-shadow)" }}>
+        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "var(--text)", lineHeight: 1.22 }}>Чем ты можешь быть полезен окружению?</div>
+        <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.5, marginTop: 7 }}>
+          Назови одну вещь, которую готов сделать для другого человека на этой неделе.
+        </div>
+        {/* Главный факт — сразу, а не петитом в конце формы: XP тут не зарабатывают.
+            Раньше «люди закажут её за XP» читалось как «тебе заплатят», и правда
+            всплывала только на четвёртом экране. */}
+        <div style={{ marginTop: 11, borderRadius: 15, background: "var(--surface-3)", padding: "11px 12px", fontSize: 12, color: "var(--text-3)", lineHeight: 1.48 }}>
+          XP здесь не зарабатывают: плата заказчика сгорает, помощь остаётся даром. Тебе достаётся другое — <b style={{ color: "var(--text-2)" }}>состоявшиеся дела и живые впечатления людей</b> в твоей карточке. Из них и складывается доверие.
+        </div>
+        {/* Кнопка живая даже когда сервер не готов: увидеть, из чего состоит вклад,
+            полезно и до сохранения, а отказ приходит честной строкой в шторке. */}
+        <button onClick={function () { edit(null); }} className="tap hit44"
+          style={{ width: "100%", minHeight: 48, marginTop: 14, border: 0, borderRadius: 16, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 14.5, fontWeight: 750, cursor: "pointer" }}>
+          Добавить вклад
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {list.map(function (c) {
+        var done = c.done_count | 0, people = c.people_count | 0, impr = c.impressions_count | 0, waiting = c.waiting_count | 0;
+        return (
+          <div key={c.id} style={{ background: "var(--card)", borderRadius: 22, padding: 15, boxShadow: "var(--card-shadow)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}><BosHelpOfferIconLive offer={c} size={19} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 750, color: "var(--text)", lineHeight: 1.24 }}>{bosContribShortTitle(c)}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{bosNetSkillForOffer(c).title} · {bosNetWhenText(c)} · {bosNetSlotsText(c.slots_week)}</div>
+              </div>
+              <div style={{ flexShrink: 0, paddingTop: 2 }}><BosPriceLive xp={c.price_xp | 0} isDark={isDark} size={15} /></div>
+            </div>
+            {/* Счётчики появляются, только когда за ними есть дела. Нулей не рисуем. */}
+            {(done || impr || waiting) ? (
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--line)", fontSize: 12, color: "var(--text-3)" }}>
+                {done ? <span><b style={{ color: "var(--text)", fontWeight: 750 }}>{done}</b> {bosDoneWordLive(done)} воспользовались · {people} {bosPeopleWordLive(people)}</span> : null}
+                {impr ? <span><b style={{ color: "var(--text)", fontWeight: 750 }}>{impr}</b> {bosImprWordLive(impr)}</span> : null}
+                {waiting ? <span style={{ fontWeight: 700, color: "var(--text)" }}>{waiting} {bosWaitWordLive(waiting)} ответа</span> : null}
+              </div>
+            ) : null}
+            <button onClick={function () { edit(c); }} className="tap hit44"
+              style={{ width: "100%", minHeight: 42, marginTop: 12, border: 0, borderRadius: 14, background: "var(--surface-3)", color: "var(--text-2)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Изменить</button>
+          </div>
+        );
+      })}
+      {list.length < 2 ? (
+        <button onClick={function () { edit(null); }} className="tap hit44"
+          style={{ width: "100%", minHeight: 46, border: "1px dashed var(--line)", borderRadius: 18, background: "transparent", color: "var(--text-3)", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+          Добавить второй вклад
+        </button>
+      ) : (
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", textAlign: "center", padding: "2px 12px", lineHeight: 1.42 }}>Два вклада — потолок. Лучше довести эти до состоявшихся дел, чем перечислять всё, что пробовал.</div>
+      )}
+    </div>
+  );
+}
+
+/* Шторка вклада: навык → что человек получит → границы → цена. Один экран,
+   один «Сохранить». Заголовок карточки собирает сервер из словарей — вписать
+   произвольное обещание нельзя. */
+function ContributionSheetLive({ app, offer, isDark, onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _sk = React.useState((offer && offer.skill_key) || null), skillKey = _sk[0], setSkillKey = _sk[1];
+  var _q = React.useState(""), q = _q[0], setQ = _q[1];
+  var _it = React.useState((offer && offer.interaction_key) || "question"), itKey = _it[0], setItKey = _it[1];
+  var _out = React.useState((offer && offer.outcome_key) || "clear_next_step"), outcome = _out[0], setOutcome = _out[1];
+  var initMin = offer && parseInt(offer.when_text, 10); if ([30, 45, 60].indexOf(initMin) < 0) initMin = 30;
+  var _m = React.useState(initMin), mins = _m[0], setMins = _m[1];
+  var _md = React.useState((offer && offer.mode) || "online"), mode = _md[0], setMode = _md[1];
+  var _sl = React.useState((offer && offer.slots_week) || 1), slots = _sl[0], setSlots = _sl[1];
+  var _p = React.useState(offer ? (offer.price_xp | 0) : 100), price = _p[0], setPrice = _p[1];
+  var _b = React.useState(false), busy = _b[0], setBusy = _b[1];
+  var _e = React.useState(""), error = _e[0], setError = _e[1];
+
+  var outcomes = [
+    { key: "clear_next_step", title: "Понятный следующий шаг", descr: "Человек уйдёт с одним конкретным действием." },
+    { key: "three_recommendations", title: "Разбор и три совета", descr: "Короткая обратная связь без обещания результата." },
+    { key: "working_first_result", title: "Первый результат вместе", descr: "Во встрече появится рабочий черновик или практика." }
+  ];
+  var skillDef = skillKey ? bosSkillDef(skillKey) : null;
+  var it = bosNetInteraction(itKey);
+  var preview = !skillDef ? "" : outcome === "three_recommendations" ? ("Разобрать задачу по «" + skillDef.title + "»")
+    : outcome === "working_first_result" ? ("Сделать первый шаг в «" + skillDef.title + "»")
+    : (it.outcome + " · " + skillDef.title);
+  var shownSkills = BOS_SKILL_CATALOG.filter(function (x) { return !q.trim() || (x.title + " " + x.groupTitle).toLowerCase().indexOf(q.trim().toLowerCase()) >= 0; });
+  var chip = function (on) { return { minHeight: 42, border: on ? "1px solid var(--text)" : "1px solid transparent", borderRadius: 13, background: on ? "var(--surface-3)" : "var(--card)", color: "var(--text)", boxShadow: on ? "none" : "var(--card-shadow)", fontSize: 12.5, fontWeight: on ? 780 : 650, padding: "8px 9px", cursor: "pointer" }; };
+
+  var save = async function () {
+    if (busy || !skillKey) return;
+    setBusy(true); setError("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netSetContribution) r = await C.netSetContribution({ id: offer && offer.id, skill_key: skillKey, interaction_key: itKey, outcome_key: outcome, mode: mode, duration: mins, slots_week: slots, price_xp: price }); } catch (e) {}
+    setBusy(false);
+    if (r && r.ok) { if (onDone) onDone(); s.close(); return; }
+    var err = (r && r.err) || "server";
+    // Отдельная строка на каждую причину: «попробуй ещё раз» на неисправимую ошибку —
+    // это бесконечный круг, человек жмёт и жмёт, а сохраниться не может никогда.
+    setError(err === "limit_two" ? "Уже есть два вклада. Измени один из них или поставь на паузу."
+      : /semantics_have_episodes/.test(err) ? "По этому вкладу уже были дела — менять его смысл нельзя. Цену, время и число мест поменять можно; для другого формата поставь этот на паузу и опиши новый."
+      : /contribution_limit_two/.test(err) ? "Уже есть два вклада. Измени один из них или поставь на паузу."
+      : err === "unavailable" ? "Раздел ещё готовится — сохранить пока не выйдет."
+      : err === "auth" ? "Нужен вход, чтобы вклад увидели другие."
+      : "Не удалось сохранить вклад. Попробуй ещё раз.");
+  };
+  var drop = async function () {
+    if (busy || !offer) return;
+    setBusy(true); setError("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netDropContribution) r = await C.netDropContribution(offer.id); } catch (e) {}
+    setBusy(false);
+    if (r && r.ok) { if (onDone) onDone(); s.close(); } else setError("Не удалось поставить на паузу.");
+  };
+
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>
+    {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={_dSTitle}>{offer ? "Изменить вклад" : "Твой вклад в окружение"}</div>
+    <div style={_dSSub}>что ты готов сделать для другого человека</div>
+
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "12px 2px 8px" }}>В чём ты силён</div>
+    {skillDef ? (
+      <button onClick={function () { setSkillKey(null); }} className="tap hit44" style={{ width: "100%", minHeight: 52, border: 0, borderRadius: 16, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)", display: "flex", alignItems: "center", gap: 11, padding: "10px 13px", textAlign: "left", cursor: "pointer" }}>
+        <span style={{ width: 34, height: 34, borderRadius: 11, background: "var(--surface-3)", display: "grid", placeItems: "center" }}>{(function () { var X = I[skillDef.icon] || I.Bulb; return <X size={17} />; })()}</span>
+        <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 750 }}>{skillDef.title}</span><span style={{ display: "block", fontSize: 11, color: "var(--text-4)", marginTop: 2 }}>{skillDef.groupTitle} · нажми, чтобы выбрать другое</span></span>
+      </button>
+    ) : (
+      <React.Fragment>
+        <div style={{ position: "relative" }}><I.Search size={16} color="var(--text-4)" style={{ position: "absolute", left: 13, top: 13 }} />
+          <input value={q} onChange={function (e) { setQ(e.target.value); }} placeholder="Найти: йога, тексты, аналитика…" style={{ width: "100%", height: 43, border: "1px solid var(--line)", borderRadius: 14, background: "var(--card)", color: "var(--text)", padding: "0 12px 0 38px", boxSizing: "border-box", outline: "none", fontFamily: "inherit", fontSize: 13.5 }} /></div>
+        <div style={{ marginTop: 9, background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+          {shownSkills.map(function (x, i) { var X = I[x.icon] || I.Bulb; return (
+            <button key={x.key} onClick={function () { setSkillKey(x.key); }} className="tap hit44" style={{ width: "100%", minHeight: 50, border: 0, borderTop: i ? "1px solid var(--line)" : 0, background: "transparent", color: "var(--text)", display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", textAlign: "left", cursor: "pointer" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 10, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><X size={15} /></span>
+              <span style={{ flex: 1 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{x.title}</span><span style={{ display: "block", fontSize: 10.5, color: "var(--text-4)", marginTop: 1 }}>{x.groupTitle}</span></span>
+              <I.ChevronRight size={15} color="var(--text-4)" />
+            </button>); })}
+          {!shownSkills.length ? <div style={{ padding: "16px 14px", fontSize: 12.5, color: "var(--text-4)" }}>Такого пока нет в каталоге. Каталог расширяется через модерацию — вписать своё от руки нельзя, иначе карточки превратятся в объявления.</div> : null}
+        </div>
+      </React.Fragment>
+    )}
+
+    {skillDef ? <React.Fragment>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "18px 2px 8px" }}>Что человек получит</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        {outcomes.map(function (x) { var on = outcome === x.key; return (
+          <button key={x.key} onClick={function () { setOutcome(x.key); }} className="tap hit44" style={{ minHeight: 52, border: on ? "1px solid var(--text)" : "1px solid transparent", borderRadius: 15, background: on ? "var(--surface-3)" : "var(--card)", color: "var(--text)", boxShadow: on ? "none" : "var(--card-shadow)", padding: "10px 12px", textAlign: "left", cursor: "pointer" }}>
+            <span style={{ display: "block", fontSize: 13.5, fontWeight: 750 }}>{x.title}</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>{x.descr}</span>
+          </button>); })}
+      </div>
+
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "18px 2px 8px" }}>Как это происходит</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+        {BOS_NET_INTERACTIONS.map(function (x) { return <button key={x.key} onClick={function () { setItKey(x.key); }} className="tap hit44" style={chip(itKey === x.key)}>{x.title}</button>; })}
+      </div>
+
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "18px 2px 8px" }}>Границы</div>
+      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: 12 }}>
+        <div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, marginBottom: 6 }}>Сколько времени</div>
+        <div style={{ display: "flex", gap: 6 }}>{[30, 45, 60].map(function (x) { return <button key={x} onClick={function () { setMins(x); }} className="tap hit44" style={Object.assign({ flex: 1 }, chip(mins === x))}>{x} мин</button>; })}</div>
+        <div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, margin: "12px 0 6px" }}>Где</div>
+        <div style={{ display: "flex", gap: 6 }}>{[["online", "Онлайн"], ["nearby", "Рядом"]].map(function (x) { return <button key={x[0]} onClick={function () { setMode(x[0]); }} className="tap hit44" style={Object.assign({ flex: 1 }, chip(mode === x[0]))}>{x[1]}</button>; })}</div>
+        <div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, margin: "12px 0 6px" }}>Сколько раз в неделю ты готов это делать</div>
+        <div style={{ display: "flex", gap: 6 }}>{[1, 2, 3, 4, 5].map(function (x) { return <button key={x} onClick={function () { setSlots(x); }} className="tap hit44" style={Object.assign({ flex: 1 }, chip(slots === x))}>{x}</button>; })}</div>
+      </div>
+
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "18px 2px 8px" }}>Сколько это стоит в XP</div>
+      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "14px 13px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={function () { setPrice(Math.max(0, price - 10)); }} aria-label="Меньше" className="tap hit44" style={{ width: 44, height: 44, border: 0, borderRadius: 14, background: "var(--surface-3)", color: "var(--text)", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>−</button>
+          <div style={{ flex: 1, textAlign: "center" }}><BosPriceLive xp={price} isDark={isDark} size={26} /></div>
+          <button onClick={function () { setPrice(Math.min(1000, price + 10)); }} aria-label="Больше" className="tap hit44" style={{ width: 44, height: 44, border: 0, borderRadius: 14, background: "var(--surface-3)", color: "var(--text)", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>+</button>
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 11 }}>Цена — фильтр внимания, а не заработок: она отсекает случайные просьбы. XP спишутся у заказчика после состоявшегося дела и сгорят — тебе не начислятся. За полчаса обычно ставят 100–200.</div>
+      </div>
+
+      {preview ? (
+        <div style={{ marginTop: 14, borderRadius: 18, background: "var(--surface-3)", padding: 13 }}>
+          <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7, fontWeight: 800 }}>Так это увидят люди</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 9 }}>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 750, lineHeight: 1.25 }}>{preview}</div>
+              {/* Формат встречи пишем ЯВНО: заголовок его не всегда вбирает, и без этой
+                  строки восемь плиток «Как это происходит» выглядели ни на что не влияющими. */}
+              <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>{it.title.toLowerCase()} · {skillDef.title} · {mins} мин · {mode === "online" ? "онлайн" : "рядом"}</div></div>
+            <BosPriceLive xp={price} isDark={isDark} />
+          </div>
+        </div>
+      ) : null}
+
+      {error ? <div role="alert" style={{ marginTop: 12, borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 11, fontSize: 12, lineHeight: 1.4 }}>{error}</div> : null}
+      <button onClick={save} disabled={busy} className="tap hit44" style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 16, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 15, fontWeight: 780, cursor: "pointer" }}>{busy ? "Сохраняем…" : (offer ? "Сохранить" : "Показать людям")}</button>
+      {/* Что именно станет видно — до нажатия, а не после. Модерации тут нет, вклад
+          появляется сразу, и человек должен это знать заранее. */}
+      <div style={{ fontSize: 11, color: "var(--text-4)", lineHeight: 1.45, margin: "10px 4px 0", textAlign: "center" }}>
+        Сразу увидят все, кто откроет «Люди»: имя, уровень и эту карточку. Телеграм откроется только тому, чей заказ ты примешь. Убрать можно в любой момент.
+      </div>
+      {offer ? <button onClick={drop} disabled={busy} className="tap hit44" style={{ width: "100%", minHeight: 44, marginTop: 10, border: 0, borderRadius: 14, background: "transparent", color: "var(--text-4)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Поставить вклад на паузу</button> : null}
+    </React.Fragment> : null}
+  </div>;
+}
+
+/* ── 2. ДЕЛА ───────────────────────────────────────────────────────────────
+   Одна лента вместо двух вкладок «ко мне / от меня»: у дела всегда есть ровно
+   один следующий шаг, и он подписан ролью. Заказчик закрывает дело и сразу
+   оставляет впечатление — это же и есть подтверждение. */
+function PeopleDealsLive({ app, isDark, deals, impressions, onChanged }) {
+  var sheet = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var _busy = React.useState(null), busyId = _busy[0], setBusy = _busy[1];
+  var _err = React.useState(""), err = _err[0], setErr = _err[1];
+  var list = deals || [];
+  if (!list.length) return null;
+  var act = async function (row, action) {
+    if (busyId) return; setBusy(row.id); setErr("");
+    var C = window.bosCloud, fn = action === "accept" ? C.netAcceptSkillEpisode : action === "decline" ? C.netDeclineSkillEpisode
+      : action === "cancel" ? C.netCancelSkillEpisode : action === "provider_done" ? C.netMarkSkillProviderDone : C.netMarkSkillRecipientDone;
+    var earned = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : null;
+    var r = null; try { if (fn) r = (action === "recipient_done") ? await fn(row.id, earned) : await fn(row.id); } catch (e) {}
+    setBusy(null);
+    if (r && r.ok) {
+      // XP списывает сервер ровно один раз — двигаем локальную копилку на ту же величину.
+      if ((r.charged_xp | 0) > 0 && app && typeof app.noteSpentXP === "function") app.noteSpentXP(r.charged_xp | 0);
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+      // Дело закрыто с обеих сторон — сразу предлагаем оставить впечатление.
+      if (action === "recipient_done" && r.lifecycle === "done") sheet.open(<ImpressionSheetLive episode={row} onDone={onChanged} />);
+      else if (onChanged) onChanged();
+    } else {
+      if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
+      var e2 = (r && r.err) || "";
+      setErr(e2 === "full" ? "Места на эту неделю закончились."
+        : e2 === "wait_provider" ? "Сначала отмечает тот, кто помогал. Как только он подтвердит — подтвердишь и ты."
+        : e2 === "insufficient" ? "Не хватает XP, чтобы закрыть это дело."
+        : e2 === "unavailable" ? "Раздел ещё готовится — действие не прошло."
+        : "Не получилось. Попробуй ещё раз.");
+    }
+  };
+  var btn = function (label, onClick, primary, key) {
+    return <button key={key} onClick={onClick} className="tap hit44" style={{ flex: primary ? 1 : "0 0 auto", minHeight: 42, border: 0, borderRadius: 13, background: primary ? "var(--cta, #0a0a0a)" : "var(--surface-3)", color: primary ? "var(--cta-ink, #fff)" : "var(--text-2)", padding: "9px 14px", fontSize: 12.5, fontWeight: 750, cursor: "pointer" }}>{label}</button>;
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {err ? <div role="alert" style={{ borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 10, fontSize: 12 }}>{err}</div> : null}
+      {list.map(function (row) {
+        var o = row.network_offers || row.offer || {}, st = row.status || row.lifecycle || "requested";
+        var mine = !!row._provider, p = row.other_profile;
+        var iDid = mine ? !!row.provider_done_at : !!row.recipient_done_at;
+        var left = mine ? !!row.recipient_done_at : !!row.provider_done_at;
+        var imprKey = (row.offer_id || "") + "|" + (row.week || "");
+        var impressionLeft = (impressions || []).indexOf(imprKey) >= 0;
+        var ago = bosAgoLive(row.created_at);
+        // Порядок закрытия жёсткий: сначала отмечает тот, кто помогал, потом заказчик —
+        // и только его подтверждение списывает XP. Пока исполнитель молчит, у заказчика
+        // нет кнопки, которой он мог бы заплатить за несостоявшееся.
+        var line = st === "requested" ? (mine ? "Ждёт твоего ответа" : "Ждём ответа")
+          : st === "accepted" ? (mine
+              ? (iDid ? "Ты отметил — ждём подтверждения" : "Принято · договоритесь о времени")
+              : (left ? "Помогавший отметил — подтверди, что было" : "Принято · договоритесь о времени"))
+          : st === "done" ? "Состоялось" + (ago ? " · " + ago : "")
+          : st === "declined" ? "Отклонено" : st === "cancelled" ? "Отменено" : st;
+        var actions = [];
+        if (st === "requested" && mine) { actions.push(btn("Принять", function () { act(row, "accept"); }, true, "a")); actions.push(btn("Отказать", function () { act(row, "decline"); }, false, "d")); }
+        if (st === "requested" && !mine) actions.push(btn("Отменить заказ", function () { act(row, "cancel"); }, false, "c"));
+        if (st === "accepted") {
+          actions.push(btn("Связаться", function () { sheet.open(<NetworkEpisodeContactSheetLive episode={row} />); }, false, "k"));
+          if (mine && !iDid) actions.push(btn("Я помог", function () { act(row, "provider_done"); }, true, "done"));
+          if (!mine && left) actions.push(btn((row.price_xp | 0) > 0 ? ("Да, было · −" + row.price_xp + " XP") : "Да, было", function () { act(row, "recipient_done"); }, true, "done"));
+          // Обе стороны могут выйти из принятого дела: иначе пропавший человек навсегда
+          // занимал место в неделе, и починить это было нечем.
+          actions.push(btn(mine ? "Не состоялось" : "Отменить", function () { act(row, "cancel"); }, false, "x"));
+        }
+        if (st === "done" && !mine && !impressionLeft) actions.push(btn("Оставить впечатление", function () { sheet.open(<ImpressionSheetLive episode={row} onDone={onChanged} />); }, true, "i"));
+        return (
+          <div key={row.id} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)", opacity: (st === "declined" || st === "cancelled") ? 0.6 : 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+              {p ? <BosAvatar avatar={p.avatar || "default"} size={38} /> : <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><BosHelpOfferIconLive offer={o} size={17} /></span>}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", color: "var(--text-4)" }}>{mine ? "Тебя попросили" : "Ты заказал"}</div>
+                <div style={{ fontSize: 14, fontWeight: 750, color: "var(--text)", marginTop: 2, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{(p && p.name ? p.name + " · " : "") + bosHelpOfferTitleText(o)}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>
+                  {[o.when_text, (row.price_xp | 0) > 0 ? (row.price_xp + " XP") : "даром", st === "requested" && ago ? ago : null].filter(Boolean).join(" · ")}
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2, fontWeight: 650 }}>{line}</div>
+              </div>
+              {/* Цену держим строкой, а не золотой пилюлей: в делах это условие сделки,
+                  а не витринный ценник, и золото на экране должно оставаться редким. */}
+            </div>
+            {row.request_note ? <div style={{ marginTop: 10, borderRadius: 13, background: "var(--surface-3)", padding: 10, fontSize: 12, color: "var(--text-3)", lineHeight: 1.42 }}>{row.request_note}</div> : null}
+            {actions.length ? <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>{actions}</div> : null}
+            {st === "done" && !mine && impressionLeft ? <div style={{ marginTop: 10, fontSize: 11.5, color: "var(--text-4)" }}>Впечатление оставлено — оно стоит в карточке этого человека.</div> : null}
+            {st === "accepted" && !mine && !left ? <div style={{ marginTop: 9, fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.42 }}>XP спишутся только после того, как помогавший отметит дело, а ты подтвердишь.</div> : null}
+            {st === "accepted" && mine && iDid ? <div style={{ marginTop: 9, fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.42 }}>Дело засчитается, когда человек подтвердит со своей стороны.</div> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Впечатление — одна живая фраза о том, что изменилось. Ни звёзд, ни оценок:
+   оценивать человека нечем, а рассказать о состоявшемся деле — можно. */
+function ImpressionSheetLive({ episode, onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _t = React.useState(""), text = _t[0], setText = _t[1];
+  var _b = React.useState(false), busy = _b[0], setBusy = _b[1];
+  var _e = React.useState(""), err = _e[0], setErr = _e[1];
+  var o = (episode && (episode.network_offers || episode.offer)) || {};
+  var who = (episode && episode.other_profile) || null;
+  var send = async function () {
+    if (busy || !text.trim()) return;
+    setBusy(true); setErr("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netLeaveImpression) r = await C.netLeaveImpression(episode.id, text.trim()); } catch (e) {}
+    setBusy(false);
+    if (r && r.ok) { if (onDone) onDone(); s.close(); }
+    else setErr((r && r.err) === "not_done" ? "Впечатление можно оставить только после состоявшегося дела." : "Не удалось отправить впечатление.");
+  };
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>
+    {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={_dSTitle}>Впечатление</div>
+    <div style={_dSSub}>что изменилось после этого дела</div>
+    <div style={{ marginTop: 12, borderRadius: 18, background: "var(--card)", padding: 13, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 11 }}>
+      {who ? <BosAvatar avatar={who.avatar || "default"} size={40} /> : null}
+      <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 750 }}>{(who && who.name) || "Участник"}</div><div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>{bosHelpOfferTitleText(o)}</div></div>
+    </div>
+    <textarea value={text} maxLength={140} onChange={function (e) { setText(e.target.value); }} autoFocus
+      placeholder="Например: за полчаса разобрали, почему я застревал на первом шаге — теперь знаю, что делать в понедельник."
+      style={{ width: "100%", minHeight: 104, resize: "none", marginTop: 13, border: "1px solid var(--line)", borderRadius: 16, background: "var(--card)", color: "var(--text)", padding: 13, boxSizing: "border-box", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.45, outline: "none" }} />
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, margin: "6px 2px 0", fontSize: 10.5, color: "var(--text-4)" }}><span>Без звёзд и оценок — просто как было</span><span>{text.length}/140</span></div>
+    {/* Раньше «просто как было» звучало как личная записка, а текст вставал в чужой
+        публичный профиль под моим именем. Говорим это ДО отправки. */}
+    <div style={{ fontSize: 11, color: "var(--text-4)", lineHeight: 1.45, margin: "9px 2px 0" }}>Впечатление встанет в карточку этого человека с твоим именем и лицом — его увидят все. Переписать потом нельзя.</div>
+    {err ? <div role="alert" style={{ marginTop: 11, borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 10, fontSize: 12 }}>{err}</div> : null}
+    <button onClick={send} disabled={busy || !text.trim()} className="tap hit44" style={{ width: "100%", minHeight: 49, marginTop: 13, border: 0, borderRadius: 16, background: text.trim() ? "var(--cta, #0a0a0a)" : "var(--surface-3)", color: text.trim() ? "var(--cta-ink, #fff)" : "var(--text-4)", fontSize: 14.5, fontWeight: 780, cursor: "pointer" }}>{busy ? "Отправляем…" : "Оставить впечатление"}</button>
+    {/* Шторка открывается сама сразу после закрытия дела — значит из неё обязан быть
+        выход без текста, иначе это не просьба, а требование. */}
+    <button onClick={s.close} className="tap hit44" style={{ width: "100%", minHeight: 44, marginTop: 8, border: 0, borderRadius: 14, background: "transparent", color: "var(--text-4)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Не сейчас</button>
+  </div>;
+}
+
+/* ── 3. КАРТОЧКА ЧЕЛОВЕКА ──────────────────────────────────────────────────
+   По демо (NetworkPersonCard): лицо + имя + уровень, сразу ДВА «чем готов
+   помочь» с ценой, и строка «помог N раз». Никаких био-простыней и тегов:
+   человека представляет то, что он делает, а не то, что он о себе написал. */
+function PersonCardLive({ person, isDark, navigate, app }) {
+  var sheet = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var offers = (person.offers || []).slice(0, 2);
+  var done = person.done_count | 0, people = person.people_count | 0, impr = person.impressions_count | 0;
+  var balance = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0;
+  var order = function (o) { sheet.open(<OrderHelpSheetLive person={person} offer={o} app={app} isDark={isDark} />); };
+  // Возврат: комната «Сообщества» хранится в общем сторе, а не в параметрах маршрута —
+  // поэтому вкладку восстанавливаем явно, иначе «назад» высаживает в «Круги».
+  var back = function () {
+    try { if (app && app.setCommunityView) app.setCommunityView({ section: "community", commTab: "network", filter: "people" }); } catch (e) {}
+    navigate("community");
+  };
+  return (
+    <div style={{ background: "var(--card)", borderRadius: 23, padding: 15, boxShadow: "var(--card-shadow)" }}>
+      <button onClick={function () { navigate("net-person", { person: person }); }} className="tap"
+        style={{ width: "100%", border: 0, background: "transparent", padding: 0, textAlign: "left", color: "var(--text)", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={46} style={{ flexShrink: 0 }} /> : null}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ fontSize: 16.5, fontWeight: 780, letterSpacing: "-0.3px" }}>{person.name || "Участник"}</span>
+            {(person.level | 0) > 0 ? <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "3px 7px" }}>L{person.level | 0}</span> : null}
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>
+            {done > 0 ? ("помог " + done + " " + bosDoneWordLive(done) + " · " + people + " " + bosPeopleWordLive(people) + (impr > 0 ? " · " + impr + " " + bosImprWordLive(impr) : ""))
+              : "пока без состоявшихся дел"}
+          </div>
+        </div>
+        <I.ChevronRight size={18} color="var(--text-4)" />
+      </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12 }}>
+        {offers.map(function (o) {
+          var full = (o.free_slots | 0) <= 0;
+          return <ContributionRowLive key={o.id} offer={o} isDark={isDark} muted={full}
+            action={full
+              ? <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700 }}>мест нет</span>
+              : (balance < (o.price_xp | 0))
+                ? <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, textAlign: "right", lineHeight: 1.3 }}>не хватает<br />{(o.price_xp | 0) - balance} XP</span>
+                : <button onClick={function () { order(o); }} className="tap" style={{ border: 0, borderRadius: 999, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", padding: "6px 13px", fontSize: 11.5, fontWeight: 780, cursor: "pointer" }}>Заказать</button>} />;
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* Заказ. Одна строка контекста обязательна: пустой запрос «просто поболтать»
+   съедает единственное место человека на неделю. Цена показана до отправки,
+   а списывается только когда дело состоится. */
+function OrderHelpSheetLive({ person, offer, app, isDark }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _n = React.useState(""), note = _n[0], setNote = _n[1];
+  var _b = React.useState(false), busy = _b[0], setBusy = _b[1];
+  var _e = React.useState(""), err = _e[0], setErr = _e[1];
+  var _ok = React.useState(false), sent = _ok[0], setSent = _ok[1];
+  var price = offer.price_xp | 0;
+  var balance = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0;
+  var enough = balance >= price;
+  var send = async function () {
+    if (busy || !note.trim() || !enough) return;
+    setBusy(true); setErr("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netRequestSkillOffer) r = await C.netRequestSkillOffer(offer.id, note.trim()); } catch (e) {}
+    setBusy(false);
+    if (r && r.ok && r.dup) { setErr("Ты уже заказывал это на этой неделе — загляни в «Дела»."); }
+    else if (r && r.ok) { setSent(true); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
+    else setErr((r && r.err) === "full" ? "Места на эту неделю уже заняты — попробуй на следующей."
+      : (r && r.err) === "unavailable" ? "Раздел ещё готовится — заказ не ушёл."
+      : "Не удалось отправить заказ. Проверь соединение.");
+  };
+  if (sent) return <div className="bos-sheet-scroll" style={{ padding: "14px 18px 22px", textAlign: "center", color: "var(--text)" }}>
+    {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", margin: "10px auto 14px" }}><I.Check size={25} color="var(--text)" strokeWidth={2.4} /></div>
+    <div style={{ fontSize: 20, fontWeight: 800 }}>Заказ отправлен</div>
+    <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.5, margin: "8px auto 16px", maxWidth: 300 }}>
+      {(person.name || "Участник")} увидит его в «Делах» и сможет принять или вежливо отказаться. {price > 0 ? "XP спишутся, только когда дело состоится." : "Это бесплатный вклад."}
+    </div>
+    <button onClick={s.close} className="tap hit44" style={{ width: "100%", minHeight: 48, border: 0, borderRadius: 16, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 14.5, fontWeight: 780, cursor: "pointer" }}>Готово</button>
+  </div>;
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>
+    {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={_dSTitle}>Заказать помощь</div>
+    <div style={_dSSub}>{bosNetSkillForOffer(offer).title} · {bosNetWhenText(offer)}</div>
+    <div style={{ marginTop: 12, borderRadius: 18, background: "var(--card)", padding: 13, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 11 }}>
+      {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={42} /> : null}
+      <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 750 }}>{person.name || "Участник"}</div><div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{bosHelpOfferTitleText(offer)}</div></div>
+      <BosPriceLive xp={price} isDark={isDark} size={16} />
+    </div>
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "17px 2px 8px" }}>С чем именно нужна помощь</div>
+    <textarea value={note} maxLength={200} onChange={function (e) { setNote(e.target.value); }}
+      placeholder="Одна конкретная ситуация — так человек поймёт, сможет ли помочь"
+      style={{ width: "100%", minHeight: 92, resize: "none", border: "1px solid var(--line)", borderRadius: 16, background: "var(--card)", color: "var(--text)", padding: 12, boxSizing: "border-box", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.45, outline: "none" }} />
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, margin: "6px 2px 0", fontSize: 10.5, color: "var(--text-4)" }}><span>{price > 0 ? "У тебя " + balance + " XP" : "Этот вклад бесплатный"}</span><span>{note.length}/200</span></div>
+    {/* Три вещи, которые человек узнавал слишком поздно: что XP не достаются
+        помогающему, когда именно они спишутся и что после принятия откроется личка. */}
+    {price > 0 ? <div style={{ marginTop: 11, borderRadius: 15, background: "var(--surface-3)", padding: "11px 12px", fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.48 }}>
+      {price} XP спишутся, только когда вы оба отметите, что дело состоялось. Помогающему они не достаются — сгорают: это плата за внимание, а не гонорар. Пока дела нет, с копилки не уходит ничего.
+    </div> : null}
+    <div style={{ fontSize: 10.8, color: "var(--text-4)", lineHeight: 1.45, margin: "9px 2px 0" }}>Твой текст увидит только {person.name || "этот человек"}. Если он примет заказ, вы откроете друг другу Telegram, чтобы договориться о времени.</div>
+    {!enough ? <div style={{ marginTop: 11, borderRadius: 13, background: "var(--surface-3)", padding: 11, fontSize: 12, color: "var(--text-3)", lineHeight: 1.42 }}>Не хватает {price - balance} XP. Опыт приходит с отмеченными привычками и общими делами в кругах.</div> : null}
+    {err ? <div role="alert" style={{ marginTop: 11, borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 10, fontSize: 12 }}>{err}</div> : null}
+    <button onClick={send} disabled={busy || !note.trim() || !enough} className="tap hit44"
+      style={{ width: "100%", minHeight: 50, marginTop: 13, border: 0, borderRadius: 16, background: (note.trim() && enough) ? "var(--cta, #0a0a0a)" : "var(--surface-3)", color: (note.trim() && enough) ? "var(--cta-ink, #fff)" : "var(--text-4)", fontSize: 14.5, fontWeight: 780, cursor: "pointer" }}>
+      {busy ? "Отправляем…" : "Отправить заказ"}
+    </button>
+  </div>;
+}
+
+/* Профиль человека (маршрут net-person). По демо-профилю: герой → чем помогает
+   → внизу ВПЕЧАТЛЕНИЯ. История вклада не отдельным блоком, а числом в герое —
+   иначе на экране два списка об одном и том же. */
+function PersonScreenLive() {
+  var nav = useNav(), navigate = nav.navigate, params = nav.params;
+  var app = (typeof useApp === "function") ? useApp() : null;
+  var sheet = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var isDark = !!(app && app.themeOverride === "dark");
+  var person = (params && params.person) || { user_id: null, name: "Участник", avatar: "default", level: 0, offers: [] };
+  var _im = React.useState(null), impressions = _im[0], setImpressions = _im[1];
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!(C && C.enabled && C.enabled() && C.netPersonImpressions) || !person.user_id) { setImpressions([]); return; }
+    C.netPersonImpressions(person.user_id, 20).then(function (r) { if (on) setImpressions((r && r.impressions) || []); }).catch(function () { if (on) setImpressions([]); });
+    return function () { on = false; };
+  }, [person.user_id]);
+  var done = person.done_count | 0, people = person.people_count | 0;
+  var offers = person.offers || [];
+  var balance = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0;
+  var order = function (o) { sheet.open(<OrderHelpSheetLive person={person} offer={o} app={app} isDark={isDark} />); };
+  return (
+    <div className="page-in" style={{ padding: "0 0 30px" }}>
+      <div style={{ padding: "0 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6, paddingBottom: 14 }}>
+          <button onClick={back} aria-label="Назад" className="tap hit44" style={{ width: 40, height: 40, border: 0, borderRadius: 999, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)", display: "grid", placeItems: "center", cursor: "pointer" }}><I.ChevronLeft size={19} /></button>
+          <button onClick={function () { sheet.open(<NetworkSafetySheetLive person={{ ownerId: person.user_id, name: person.name, avatar: person.avatar }} onHidden={back} />); }} aria-label="Действия" className="tap hit44" style={{ width: 40, height: 40, border: 0, borderRadius: 999, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text-3)", display: "grid", placeItems: "center", cursor: "pointer" }}><I.More size={18} /></button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={64} style={{ flexShrink: 0 }} /> : null}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.55px", color: "var(--text)" }}>{person.name || "Участник"}</span>
+              {(person.level | 0) > 0 ? <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "3px 8px" }}>L{person.level | 0}</span> : null}
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 4 }}>
+              {/* Число разных людей стоит рядом всегда: «помог 6 раз · 1 человек» —
+                  это совсем другая история, чем «помог 6 раз · 6 человек», и прятать
+                  её нельзя именно тогда, когда человек один. */}
+              {done > 0 ? ("помог " + done + " " + bosDoneWordLive(done) + " · " + people + " " + bosPeopleWordLive(people)) : "пока без состоявшихся дел"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "20px 16px 0" }}>
+        <div className="section-label" style={{ margin: "0 0 10px" }}>Чем готов помочь</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {offers.map(function (o) {
+            var full = (o.free_slots | 0) <= 0;
+            return <div key={o.id} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}><BosHelpOfferIconLive offer={o} size={20} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Навык живёт во второй строке, поэтому из заголовка его хвост убран —
+                      иначе «Разобрать задачу по «Продуктовый дизайн» · Продуктовый дизайн». */}
+                  <div style={{ fontSize: 15.5, fontWeight: 750, color: "var(--text)", lineHeight: 1.24 }}>{bosContribShortTitle(o)}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{bosNetSkillForOffer(o).title} · {bosNetWhenText(o)}{(o.done_count | 0) > 0 ? " · " + o.done_count + " " + bosDoneWordLive(o.done_count | 0) : ""}</div>
+                </div>
+                <div style={{ flexShrink: 0, paddingTop: 2 }}><BosPriceLive xp={o.price_xp | 0} isDark={isDark} size={15} /></div>
+              </div>
+              {o.descr ? <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45, marginTop: 10 }}>{o.descr}</div> : null}
+              {/* Не хватает XP — говорим об этом ЗДЕСЬ, а не после того, как человек
+                  напишет текст заказа в шторке и упрётся в серую кнопку. */}
+              {(function () {
+                var poor = !full && balance < (o.price_xp | 0);
+                var off = full || poor;
+                return <button onClick={function () { if (!off) order(o); }} disabled={off} className="tap hit44"
+                  style={{ width: "100%", minHeight: 44, marginTop: 12, border: 0, borderRadius: 14, background: off ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: off ? "var(--text-4)" : "var(--cta-ink, #fff)", fontSize: 13.5, fontWeight: 780, cursor: off ? "default" : "pointer" }}>
+                  {full ? "Мест на этой неделе нет" : poor ? ("Не хватает " + ((o.price_xp | 0) - balance) + " XP") : ((o.price_xp | 0) > 0 ? ("Заказать за " + o.price_xp + " XP") : "Заказать")}
+                </button>;
+              })()}
+            </div>;
+          })}
+          {!offers.length ? <div style={{ background: "var(--card)", borderRadius: 20, padding: 16, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)" }}>Сейчас нет открытых вкладов.</div> : null}
+        </div>
+      </div>
+
+      {/* ВПЕЧАТЛЕНИЯ. Нет ни одного — блока нет: пустая полка с заголовком врёт
+          не меньше выдуманных отзывов. */}
+      {(impressions && impressions.length) ? (
+        <div style={{ padding: "22px 16px 0" }}>
+          <div className="section-label" style={{ margin: "0 0 10px" }}>Впечатления</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {impressions.map(function (r) {
+              return <div key={r.id} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {typeof BosAvatar === "function" ? <BosAvatar avatar={r.from_avatar || "default"} size={30} /> : null}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 750, color: "var(--text)" }}>{r.from_name || "Участник"}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1 }}>{bosAgoLive(r.created_at)}{r.offer_title ? " · " + r.offer_title : ""}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 10, lineHeight: 1.52 }}>{r.note}</div>
+              </div>;
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ── ЭКРАН «ЛЮДИ» ──────────────────────────────────────────────────────────
+   Собирает три блока и все состояния загрузки/пустоты/недоступного сервера.
+   Выдуманных людей здесь не бывает ни в одном состоянии. */
+function PeopleTabLive({ app, navigate, isDark, query }) {
+  var _mine = React.useState(null), mine = _mine[0], setMine = _mine[1];
+  var _pp = React.useState(null), people = _pp[0], setPeople = _pp[1];
+  var _dl = React.useState([]), deals = _dl[0], setDeals = _dl[1];
+  var _im = React.useState([]), impressions = _im[0], setImpressions = _im[1];
+  var _st = React.useState("loading"), state = _st[0], setState = _st[1]; // loading | ready | offline | outdated
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  var refresh = function () { setTick(function (n) { return n + 1; }); };
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!(C && C.enabled && C.enabled() && C.netMyContributions)) { setState("offline"); setMine([]); setPeople([]); setDeals([]); return; }
+    (async function () {
+      var r = await Promise.all([
+        C.netMyContributions(), C.netPeopleContributions(60),
+        C.netIncomingSkillEpisodes ? C.netIncomingSkillEpisodes({ limit: 40 }) : Promise.resolve({ episodes: [] }),
+        C.netOutgoingSkillEpisodes ? C.netOutgoingSkillEpisodes({ limit: 40 }) : Promise.resolve({ episodes: [] }),
+        C.netMyImpressions ? C.netMyImpressions() : Promise.resolve({ keys: [] })
+      ]);
+      if (!on) return;
+      // Патч не прогнан → RPC нет. Говорим об этом прямо, а не показываем пустоту.
+      if (r[0].status === "error" && (r[0].err === "unavailable" || r[1].err === "unavailable")) { setState("outdated"); setMine([]); setPeople([]); setDeals([]); return; }
+      setMine(r[0].contributions || []);
+      setPeople(r[1].people || []);
+      var ins = ((r[2] && r[2].episodes) || []).map(function (x) { x._provider = true; return x; });
+      var outs = ((r[3] && r[3].episodes) || []).map(function (x) { x._provider = false; return x; });
+      var all = ins.concat(outs);
+      var ids = []; all.forEach(function (x) { var id = x._provider ? x.booker_id : x.owner_id; if (id && ids.indexOf(id) < 0) ids.push(id); });
+      if (C.netProfiles && ids.length) {
+        try { var pr = await C.netProfiles(ids), pm = {}; ((pr && pr.profiles) || []).forEach(function (p) { pm[p.id] = p; });
+          all.forEach(function (x) { x.other_profile = pm[x._provider ? x.booker_id : x.owner_id] || null; }); } catch (e) {}
+      }
+      if (!on) return;
+      // Сначала то, что ждёт МОЕГО шага, потом остальное; закрытые — в хвост.
+      var weight = function (x) {
+        var st = x.status || x.lifecycle;
+        if (st === "requested" && x._provider) return 0;
+        if (st === "accepted" && !(x._provider ? x.provider_done_at : x.recipient_done_at)) return 1;
+        if (st === "done") return 2;
+        if (st === "requested") return 3;
+        return 4;
+      };
+      all.sort(function (a, b) { return weight(a) - weight(b) || String(b.created_at || "").localeCompare(String(a.created_at || "")); });
+      setDeals(all);
+      setImpressions((r[4] && r[4].keys) || []);
+      setState("ready");
+    })().catch(function () { if (on) { setState("offline"); setMine([]); setPeople([]); setDeals([]); } });
+    return function () { on = false; };
+  }, [tick]);
+
+  var balance = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0;
+  var qq = String(query || "").trim().toLowerCase();
+  var shown = (people || []).filter(function (p) {
+    if (!qq) return true;
+    var hay = [p.name].concat((p.offers || []).map(function (o) { return [o.title, o.descr, bosNetSkillForOffer(o).title].join(" "); })).join(" ").toLowerCase();
+    return hay.indexOf(qq) >= 0;
+  });
+
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+      {state === "outdated" ? (
+        <div role="alert" style={{ borderRadius: 16, background: "var(--surface-3)", padding: "12px 13px", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45 }}>
+          <b style={{ color: "var(--text)" }}>Раздел ещё готовится.</b> Посмотреть можно всё, но вклад и заказы пока не сохраняются. Придуманных людей вместо настоящих здесь не будет.
+        </div>
+      ) : null}
+
+      <BosBlock name="my-contribution">
+        <CommSectionHeadLive title="Твой вклад в окружение" />
+        {state === "loading" ? <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)", marginTop: 8 }}>Загружаем…</div>
+          : <div style={{ marginTop: 8 }}><MyContributionLive app={app} isDark={isDark} rows={mine} onChanged={refresh} /></div>}
+      </BosBlock>
+
+      {(deals && deals.length) ? (
+        <BosBlock name="deals">
+          <CommSectionHeadLive title="Дела" />
+          <div style={{ marginTop: 8 }}><PeopleDealsLive app={app} isDark={isDark} deals={deals} impressions={impressions} onChanged={refresh} /></div>
+        </BosBlock>
+      ) : null}
+
+      <BosBlock name="people">
+        {/* Цены на этой полке в XP, поэтому рядом с заголовком стоит копилка: иначе
+            человек узнаёт, что у него ноль, только дописав текст заказа. */}
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, padding: "4px 4px 0" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>Кто может помочь</span>
+          {/* Копилку пишем числом, а не через ценник: у ценника ноль читается как
+              «даром», и строка превращалась в «у тебя даром». */}
+          <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>у тебя <b style={{ fontWeight: 800, color: bosXPGoldLive(isDark) }}>{balance}</b> XP</span>
+        </div>
+        {/* Порядок списка — не «лучшие», а «у кого больше состоявшихся дел». Это
+            накручиваемое число, и оно должно называться своим именем. */}
+        {(people && people.length > 1) ? <div style={{ fontSize: 11, color: "var(--text-4)", padding: "5px 4px 0", lineHeight: 1.4 }}>Сверху — у кого больше состоявшихся дел. Это не оценка человека, а счётчик.</div> : null}
+        {/* Своего поля поиска здесь нет: ищет верхнее, общее для экрана. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+          {state === "loading" ? <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)" }}>Загружаем…</div>
+            : shown.length ? shown.map(function (p) { return <PersonCardLive key={p.user_id} person={p} isDark={isDark} navigate={navigate} app={app} />; })
+            : qq ? <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)", lineHeight: 1.45 }}>Никто пока не описал такой вклад. Попробуй сказать короче — например, «тексты» или «бег».</div>
+            : <PeopleEmptyLive isDark={isDark} />}
+        </div>
+      </BosBlock>
+    </div>
+  );
+}
+
+/* Пустая полка людей. Не фейковый человек, а ОБРАЗЕЦ ФОРМАТА: без лица, имени и
+   кнопки — показывает, из чего состоит карточка, и ничего не обещает. */
+function PeopleEmptyLive({ isDark }) {
+  var sample = { kind: "skill_offer", skill_key: "meditation", interaction_key: "practice", outcome_key: "clear_next_step",
+    title: "Провести короткую практику · Медитация", when_text: "30 мин", mode: "online", price_xp: 100 };
+  return (
+    <div style={{ background: "var(--card)", borderRadius: 22, padding: "17px 15px", boxShadow: "var(--card-shadow)" }}>
+      <div style={{ fontSize: 16, fontWeight: 780, color: "var(--text)", letterSpacing: "-0.3px" }}>Здесь пока никого нет</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5, marginTop: 6 }}>
+        Люди появятся тут, как только опишут свой вклад. Вот из чего будет состоять каждая строка:
+      </div>
+      <div style={{ marginTop: 12, opacity: 0.75, pointerEvents: "none" }}>
+        <ContributionRowLive offer={sample} isDark={isDark} action={<span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-4)" }}>образец</span>} />
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 11 }}>
+        Что человек сделает, за сколько времени и во сколько XP это ему обойдётся. Дальше к строке добавятся состоявшиеся дела и впечатления тех, кто уже заказывал.
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ПАРТНЁРЫ · КАК ТУДА ПОПАДАЮТ ДРУГИЕ (v868, пункт 5 брифа)
+
+   Дверь одна и она без администратора: любой предлагает место → заявку видят
+   люди уровня 10 и выше → трое из них говорят «я там был, всё так» → место
+   публикуется. Три голоса, а не один: одного знакомого привести легко, троих
+   независимых — уже нет. Свою заявку подтвердить нельзя.
+
+   Пока заявка собирает голоса, её видит только автор и проверяющие: витрина не
+   засоряется тем, что ещё никто не проверил.  ═══════════════════════════════ */
+function PartnerAddLive({ app, isDark }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var _mine = React.useState(null), mine = _mine[0], setMine = _mine[1];
+  var _pend = React.useState([]), pending = _pend[0], setPending = _pend[1];
+  var _live = React.useState([]), live = _live[0], setLive = _live[1];
+  var _lvl = React.useState(0), level = _lvl[0], setLevel = _lvl[1];
+  var _busy = React.useState(null), busyId = _busy[0], setBusy = _busy[1];
+  var _err = React.useState(""), err = _err[0], setErr = _err[1];
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  var refresh = function () { setTick(function (n) { return n + 1; }); };
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!(C && C.enabled && C.enabled() && C.netPartnerPlaces)) { setMine([]); setPending([]); setLive([]); return; }
+    Promise.all([C.netPartnerPlaces("mine"), C.netPartnerPlaces("pending"), C.netPartnerPlaces("published")]).then(function (r) {
+      if (!on) return;
+      setMine((r[0] && r[0].places) || []);
+      setPending((r[1] && r[1].places) || []);
+      setLive((r[2] && r[2].places) || []);
+      setLevel((r[0] && r[0].level) | 0);
+    }).catch(function () { if (on) { setMine([]); setPending([]); setLive([]); } });
+    return function () { on = false; };
+  }, [tick]);
+  var vouch = async function (place) {
+    if (busyId) return; setBusy(place.id); setErr("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netVouchPartner) r = await C.netVouchPartner(place.id); } catch (e) {}
+    setBusy(null);
+    if (r && r.ok) { if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } refresh(); }
+    else {
+      var e2 = (r && r.err) || "";
+      setErr(e2 === "level" ? "Поручиться за место можно с 10 уровня."
+        : e2 === "too_new" ? "Аккаунт слишком новый: поручаться можно через две недели после регистрации."
+        : e2 === "same_circle" ? "Вы с автором в одном круге — это не независимый голос."
+        : e2 === "unavailable" ? "Раздел ещё готовится — голос не ушёл."
+        : "Не удалось поручиться. Попробуй позже.");
+    }
+  };
+  var unvouch = async function (place) {
+    if (busyId) return; setBusy(place.id); setErr("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netUnvouchPartner) r = await C.netUnvouchPartner(place.id); } catch (e) {}
+    setBusy(null);
+    if (r && r.ok) refresh(); else setErr("Голос уже не забрать — место опубликовано.");
+  };
+  var withdraw = async function (place) {
+    if (busyId) return; setBusy(place.id); setErr("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netWithdrawPartner) r = await C.netWithdrawPartner(place.id); } catch (e) {}
+    setBusy(null);
+    if (r && r.ok) refresh(); else setErr("Не удалось убрать место.");
+  };
+  var open = function () { s.open(<PartnerProposeSheetLive isDark={isDark} onDone={refresh} />); };
+  var card = function (pl, canVouch) {
+    var n = pl.vouches | 0, vs = pl.vouchers || [];
+    return (
+      <div key={pl.id} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
+          <span style={{ width: 40, height: 40, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{pl.emblem || "🎁"}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 750, color: "var(--text)", lineHeight: 1.25 }}>{pl.name}</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{pl.what}</div>
+          </div>
+          <div style={{ flexShrink: 0, paddingTop: 2 }}><BosPriceLive xp={pl.cost_xp | 0} isDark={isDark} /></div>
+        </div>
+        {/* Описание места показываем: раньше «пара слов» уходили в базу и не попадали
+            ни на один экран — человек писал их в пустоту. */}
+        {pl.about ? <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.48, marginTop: 10 }}>{pl.about}</div> : null}
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 9 }}>{pl.address}</div>
+        {/* Три деления — сколько людей уже поручились. Чернила, не золото: это факт
+            проверки, а не награда. Рядом — их лица: счётчик без имён ничего не значит,
+            а имя и лицо — уже чья-то репутация, поставленная на кон. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 11 }}>
+          <div style={{ display: "flex", gap: 4, flex: 1 }}>
+            {[0, 1, 2].map(function (i) { return <span key={i} style={{ flex: 1, height: 4, borderRadius: 999, background: i < n ? "var(--text)" : "var(--line)" }} />; })}
+          </div>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", flexShrink: 0 }}>{pl.status === "published" ? "опубликовано" : n + " из 3"}</span>
+        </div>
+        {vs.length ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 9 }}>
+            <div style={{ display: "flex" }}>{vs.slice(0, 3).map(function (v, i) { return <span key={i} style={{ marginLeft: i ? -7 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)" }}><BosAvatar avatar={v.avatar || "default"} size={22} /></span>; })}</div>
+            <span style={{ fontSize: 11, color: "var(--text-4)" }}>поручились: {vs.slice(0, 3).map(function (v) { return v.name; }).join(", ")}</span>
+          </div>
+        ) : null}
+        {canVouch ? (
+          <div style={{ display: "flex", gap: 7, marginTop: 11 }}>
+            <button onClick={function () { pl.vouched_by_me ? unvouch(pl) : vouch(pl); }} disabled={busyId === pl.id} className="tap hit44"
+              style={{ flex: 1, minHeight: 44, border: 0, borderRadius: 14, background: pl.vouched_by_me ? "var(--surface-3)" : "var(--cta, #0a0a0a)", color: pl.vouched_by_me ? "var(--text-3)" : "var(--cta-ink, #fff)", fontSize: 13.5, fontWeight: 780, cursor: "pointer" }}>
+              {busyId === pl.id ? "…" : (pl.vouched_by_me ? "Ты поручился · забрать голос" : "Я знаю это место — всё так")}
+            </button>
+          </div>
+        ) : null}
+        {pl.mine ? (
+          <button onClick={function () { withdraw(pl); }} disabled={busyId === pl.id} className="tap hit44"
+            style={{ width: "100%", minHeight: 42, marginTop: 11, border: 0, borderRadius: 14, background: "transparent", color: "var(--text-4)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+            {pl.status === "published" ? "Снять место" : "Отозвать заявку"}
+          </button>
+        ) : null}
+      </div>
+    );
+  };
+  if (mine === null) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+      {err ? <div role="alert" style={{ borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 10, fontSize: 12 }}>{err}</div> : null}
+
+      {/* Места, которые привели сами люди и подтвердили трое побывавших. */}
+      {live.length ? (
+        <React.Fragment>
+          <CommSectionHeadLive title="Привели люди · подтверждено" />
+          {live.map(function (pl) { return card(pl, false); })}
+        </React.Fragment>
+      ) : null}
+
+      {/* Очередь проверки — только тем, кто дошёл до 10 уровня. Ниже её не видно. */}
+      {pending.length ? (
+        <React.Fragment>
+          <CommSectionHeadLive title="На проверке · нужен твой голос" />
+          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, padding: "0 4px" }}>Ручайся только за то, что знаешь: что место существует и описано верно. Твоё имя встанет рядом с заявкой. Три голоса — и место увидят все.</div>
+          {pending.map(function (pl) { return card(pl, true); })}
+        </React.Fragment>
+      ) : null}
+
+      {mine.length ? (
+        <React.Fragment>
+          <CommSectionHeadLive title="Твои заявки" />
+          {mine.map(function (pl) { return card(pl, false); })}
+        </React.Fragment>
+      ) : null}
+
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: "17px 15px", boxShadow: "var(--card-shadow)" }}>
+        {/* Дверь должна узнавать и владельца места, и того, кто просто его любит.
+            Раньше было только «знаешь место?» — владелец студии себя не находил. */}
+        <div style={{ fontSize: 16.5, fontWeight: 780, color: "var(--text)", letterSpacing: "-0.3px" }}>У тебя своё место — или знаешь хорошее?</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5, marginTop: 6 }}>
+          Студия, зал, кофейня. Гость приходит и платит XP из копилки — тебе он не платит ничего и ты ничего не платишь нам. Смысл простой: к тебе приходят люди, которые ведут себя как взрослые.
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5, marginTop: 8 }}>
+          Решает не администратор: трое, кто дошёл до 10 уровня и знает это место, поручаются — и оно появляется у всех. Пока голосов нет, заявку видят только они и ты; отозвать её можно в любой момент.
+        </div>
+        <button onClick={open} className="tap hit44"
+          style={{ width: "100%", minHeight: 46, marginTop: 13, border: 0, borderRadius: 15, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 14, fontWeight: 750, cursor: "pointer" }}>Предложить место</button>
+        {level > 0 && level < 10 ? <div style={{ fontSize: 11, color: "var(--text-4)", textAlign: "center", marginTop: 9, lineHeight: 1.4 }}>Поручаться за чужие места можно с 10 уровня — у тебя {level}.</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function PartnerProposeSheetLive({ isDark, onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _n = React.useState(""), name = _n[0], setName = _n[1];
+  var _w = React.useState(""), what = _w[0], setWhat = _w[1];
+  var _a = React.useState(""), address = _a[0], setAddress = _a[1];
+  var _ab = React.useState(""), about = _ab[0], setAbout = _ab[1];
+  var _c = React.useState(200), cost = _c[0], setCost = _c[1];
+  var _em = React.useState("🎁"), emblem = _em[0], setEmblem = _em[1];
+  var _b = React.useState(false), busy = _b[0], setBusy = _b[1];
+  var _e = React.useState(""), err = _e[0], setErr = _e[1];
+  var _ok = React.useState(false), sent = _ok[0], setSent = _ok[1];
+  var emblems = ["🎁", "🧘", "💃", "🥊", "☕", "🎨", "🏊", "🎸", "📚", "🍵"];
+  var ready = name.trim().length >= 2 && what.trim().length >= 4 && address.trim().length >= 4;
+  var field = { width: "100%", height: 46, border: "1px solid var(--line)", borderRadius: 14, background: "var(--card)", color: "var(--text)", padding: "0 13px", boxSizing: "border-box", outline: "none", fontFamily: "inherit", fontSize: 14 };
+  var label = { fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "16px 2px 8px" };
+  var send = async function () {
+    if (busy || !ready) return;
+    setBusy(true); setErr("");
+    var C = window.bosCloud, r = null;
+    try { if (C && C.netProposePartner) r = await C.netProposePartner({ name: name, what: what, about: about, address: address, cost_xp: cost, emblem: emblem }); } catch (e) {}
+    setBusy(false);
+    if (r && r.ok) { setSent(true); if (onDone) onDone(); }
+    else setErr((r && r.err) === "too_many_pending" ? "У тебя уже три заявки на проверке — дождись их."
+      : (r && r.err) === "unavailable" ? "Раздел ещё готовится — заявка не ушла."
+      : "Не удалось отправить заявку. Проверь поля.");
+  };
+  if (sent) return <div className="bos-sheet-scroll" style={{ padding: "14px 18px 22px", textAlign: "center", color: "var(--text)" }}>
+    {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", margin: "10px auto 14px" }}><I.Check size={25} color="var(--text)" strokeWidth={2.4} /></div>
+    <div style={{ fontSize: 20, fontWeight: 800 }}>Заявка ушла на проверку</div>
+    <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.5, margin: "8px auto 16px", maxWidth: 300 }}>Её увидят люди с 10 уровня. Как только трое поручатся, место появится у всех. Пока голосов нет, заявка лежит в «Твоих заявках» — её видно только тебе и проверяющим, и оттуда же её можно отозвать.</div>
+    <button onClick={s.close} className="tap hit44" style={{ width: "100%", minHeight: 48, border: 0, borderRadius: 16, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 14.5, fontWeight: 780, cursor: "pointer" }}>Готово</button>
+  </div>;
+  return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>
+    {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+    <div style={_dSTitle}>Предложить место</div>
+    <div style={_dSSub}>своё или то, которое ты знаешь</div>
+    <div style={label}>Название</div>
+    <input value={name} maxLength={60} onChange={function (e) { setName(e.target.value); }} placeholder="Студия «Тишина»" style={field} />
+    <div style={label}>Что человек получит</div>
+    <input value={what} maxLength={120} onChange={function (e) { setWhat(e.target.value); }} placeholder="Час осознанности с гидом" style={field} />
+    <div style={label}>Адрес</div>
+    <input value={address} maxLength={160} onChange={function (e) { setAddress(e.target.value); }} placeholder="Москва, ул. Пушкина, 12 · вход со двора" style={field} />
+    <div style={label}>Пара слов · их увидят на карточке</div>
+    <textarea value={about} maxLength={400} onChange={function (e) { setAbout(e.target.value); }} placeholder="Кому подойдёт, что взять с собой, как найти вход"
+      style={{ width: "100%", minHeight: 84, resize: "none", border: "1px solid var(--line)", borderRadius: 14, background: "var(--card)", color: "var(--text)", padding: 12, boxSizing: "border-box", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.45, outline: "none" }} />
+    <div style={label}>Значок</div>
+    <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", padding: "0 1px 3px" }}>
+      {emblems.map(function (e) { var on = emblem === e; return <button key={e} onClick={function () { setEmblem(e); }} className="tap hit44" style={{ width: 46, height: 46, flexShrink: 0, border: on ? "1px solid var(--text)" : "1px solid transparent", borderRadius: 14, background: on ? "var(--surface-3)" : "var(--card)", boxShadow: on ? "none" : "var(--card-shadow)", fontSize: 21, cursor: "pointer" }}>{e}</button>; })}
+    </div>
+    {/* Раньше заголовок читался как счёт владельцу: «сколько с меня». Теперь ясно,
+        чьи это XP и что с них никому ничего не капает. */}
+    <div style={label}>Сколько XP платит гость</div>
+    <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", padding: "14px 13px", display: "flex", alignItems: "center", gap: 12 }}>
+      <button onClick={function () { setCost(Math.max(0, cost - 50)); }} aria-label="Меньше" className="tap hit44" style={{ width: 44, height: 44, border: 0, borderRadius: 14, background: "var(--surface-3)", color: "var(--text)", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>−</button>
+      <div style={{ flex: 1, textAlign: "center" }}><BosPriceLive xp={cost} isDark={isDark} size={24} /></div>
+      <button onClick={function () { setCost(Math.min(2000, cost + 50)); }} aria-label="Больше" className="tap hit44" style={{ width: 44, height: 44, border: 0, borderRadius: 14, background: "var(--surface-3)", color: "var(--text)", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>+</button>
+    </div>
+    <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, margin: "9px 2px 0" }}>Гость списывает это из своей копилки, деньгами не платит. Тебе XP не начисляются — это фильтр, а не выручка: чем выше цена, тем реже к тебе заходят случайно. Обычно ставят 150–400.</div>
+    {err ? <div role="alert" style={{ marginTop: 12, borderRadius: 13, background: "rgba(255,59,48,0.09)", color: "#C8443A", padding: 10, fontSize: 12 }}>{err}</div> : null}
+    <button onClick={send} disabled={busy || !ready} className="tap hit44"
+      style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 16, background: ready ? "var(--cta, #0a0a0a)" : "var(--surface-3)", color: ready ? "var(--cta-ink, #fff)" : "var(--text-4)", fontSize: 14.5, fontWeight: 780, cursor: "pointer" }}>
+      {busy ? "Отправляем…" : "Отправить на проверку"}
+    </button>
+    <div style={{ fontSize: 11, color: "var(--text-4)", lineHeight: 1.45, marginTop: 10, textAlign: "center" }}>Заявку подтверждают трое живых людей, а не администратор. Их имена будут видны рядом с местом.</div>
+  </div>;
+}
+
+// ── «ТВОЙ ПУТЬ ПОМОЩНИКА» — лесенка надёжности для своих (СНЯТА с экрана v868) ──
+// David 2026-08-02: «не путь помощника, а твой вклад в окружение» и «утверждает не
+// круг, утверждают другие люди». Лесенка с подтверждениями круга больше не
+// вызывается — её место занял PeopleTabLive. Код оставлен только как история
+// механики подтверждений; удалять его вместе с AddHelpFormatSheetLive нельзя,
+// пока круговая помощь (circle_support) живёт в комнате круга.
 function HelperPathLive({ app, navigate, isDark }) {
   var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
   var cm = bosUseCircleMembers(app);
@@ -3989,7 +4987,11 @@ function CommunityLive() {
   const [qDeb, setQDeb] = React.useState("");
   const [cloudHits, setCloudHits] = React.useState(null); // null = ждём облако (для пустышки)
   React.useEffect(() => { const t = setTimeout(() => { setQDeb(q.trim()); setCloudHits(null); }, 350); return () => clearTimeout(t); }, [q]);
-  const searching = qDeb.length >= 2;
+  // На комнате «Люди» верхнее поле ищет ЛЮДЕЙ, а не круги: раньше человек вводил там
+  // «тексты», список людей исчезал и ему предлагали собрать круг на другой вкладке —
+  // поле обмануло его собственной вкладкой. Один экран — один поиск, и он ищет то,
+  // что на экране.
+  const searching = qDeb.length >= 2 && seg !== "people";
   const _qq = qDeb.toLowerCase();
   const _hit = (...fs) => fs.some((f) => ("" + (f || "")).toLowerCase().indexOf(_qq) !== -1);
   // Круги ищутся ТОЛЬКО в облаке (CloudTeamsDiscoverLive) — настоящий поиск публичных кругов,
@@ -4069,7 +5071,7 @@ function CommunityLive() {
       {/* ПОИСК по всей ленте: круги (живые + облачные) · партнёры · программы. */}
       <div style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--card, #fff)", borderRadius: 999, padding: "10px 15px", boxShadow: "var(--card-shadow)", margin: "0 2px 10px" }}>
         <I.Search size={16} strokeWidth={2} color="var(--text-4)" style={{ flexShrink: 0 }} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти круг или партнёра" aria-label="Поиск по сообществу"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={seg === "people" ? "Кто нужен: тексты, йога, аналитика…" : "Найти круг или партнёра"} aria-label={seg === "people" ? "Поиск по людям и вкладам" : "Поиск по сообществу"}
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 14.5, color: "var(--text)" }} />
         {q && (
           <button onClick={() => setQ("")} className="tap" aria-label="Очистить" style={{ border: 0, background: "var(--surface-3)", borderRadius: 999, width: 22, height: 22, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0, color: "var(--text-3)" }}>
@@ -4207,40 +5209,17 @@ function CommunityLive() {
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>🪙 {(typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0}</span>
             </div>
             {typeof PartnersGridLive === "function" && <PartnersGridLive app={app} navigate={navigate} from="community" />}
+            {/* КАК СЮДА ПОПАДАЮТ ДРУГИЕ (v868): заявка → три поручительства от уровня ≥10. */}
+            <BosBlock name="partner-add"><PartnerAddLive app={app} isDark={isDark} /></BosBlock>
           </React.Fragment>
         )}
         {/* Чип «Общие цели» — только настоящие публичные круги из облака + «Собери свой».
             Челленджи-шаблоны уехали на СВОЙ чип «Челленджи» (David 2026-07-17). */}
-        {seg === "people" && (
-          <div style={{ marginTop: 0 }}>
-            {userLevel >= 10 || networkPreview ? (
-              // НАСТОЯЩИЙ Нетворк: твоя карточка + реальные дошедшие (без выдуманных людей).
-              <NetworkLive navigate={navigate} app={app} level={userLevel} isDark={isDark} />
-            ) : (
-              <React.Fragment>
-                {/* Э2 · «Твой путь помощника» — валидация видна ДО L10 (свои — без замка): формат →
-                    подтверждения круга → первое дело → следы → Нетворк L10. */}
-                <BosBlock name="helper-path"><div style={{ marginBottom: 12 }}><HelperPathLive app={app} navigate={navigate} isDark={isDark} /></div></BosBlock>
-                {/* Навыки начинают подтверждаться ДО открытия Нетворка. Уровень открывает витрину,
-                    но никогда не подменяет доказанные дела. */}
-                {typeof SkillsWorkbenchLive === "function" ? <BosBlock name="skills-workbench"><div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}><SkillsWorkbenchLive app={app} level={userLevel} /></div></BosBlock> : null}
-                {/* «Основатель» (прыжок на 10) убран — brief 2026-07-11: уровень не покупает доверие. */}
-                {/* Честный замок — реальные пути XP, без выдуманных людей. */}
-                <NetworkLockedLive
-                  navigate={navigate}
-                  live={true}
-                  level={userLevel}
-                  xp={xpInLevel}
-                  xpMax={xpForNext}
-                  levelsLeft={levelsLeft}
-                  weeks={weeksToUnlock}
-                  onUnlock={() => {}}
-                  onSwitchToCommunity={() => setFilter("partners")}
-                />
-              </React.Fragment>
-            )}
-          </div>
-        )}
+        {/* ЛЮДИ (v868) — «Твой вклад в окружение». Замка по уровню больше нет: вклад
+            описывает кто угодно, а доверие набирается делами, а не уровнем.
+            Прежние NetworkLive / HelperPathLive / SkillsWorkbenchLive / NetworkLockedLive
+            сняты с экрана — см. комментарий у PeopleTabLive. */}
+        {seg === "people" && <PeopleTabLive app={app} navigate={navigate} isDark={isDark} query={qDeb} />}
 
         {/* КУРСЫ — там же, где партнёры: обе двери про то, куда деть XP. */}
         {seg === "partners" && (
@@ -4266,6 +5245,7 @@ function CommunityLive() {
               </div>
             </div>
           </div>
+          {/* КУРСЫ ниже; сначала — дверь «как сюда попадают другие места». */}
           {courses.map((c, i) => (
             <button key={i} data-tour={i === 0 ? "course" : undefined} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("course-detail", { course: c }); }} className="tap"
               style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "block", width: "100%" }}>

@@ -1979,13 +1979,26 @@ function NetworkSafetySheetLive({ person, onHidden }) {
     if (block && window.bosCloud && window.bosCloud.netBlockUser && !person.preview) try { await window.bosCloud.netBlockUser(person.ownerId); } catch (e) {}
     s.close(); if (onHidden) onHidden();
   };
-  var report = async function () { if (!reason) return; if (window.bosCloud && window.bosCloud.netReportUser && !person.preview) try { await window.bosCloud.netReportUser(person.ownerId, reason, { source: "network_profile" }); } catch (e) {} setDone(true); };
+  var _err = React.useState(""), sendErr = _err[0], setSendErr = _err[1];
+  // Раньше «Жалоба отправлена» показывалось всегда — даже когда запрос падал в catch.
+  // Рапортовать успех о том, чего не было, здесь нельзя ровно так же, как и везде.
+  var report = async function () {
+    if (!reason) return;
+    setSendErr("");
+    if (person.preview) { setDone(true); return; }
+    var C = window.bosCloud, r = null;
+    if (!(C && C.netReportUser)) { setSendErr("Жалоба не ушла — нет связи с сервером."); return; }
+    try { r = await C.netReportUser(person.ownerId, reason, { source: "network_profile" }); } catch (e) {}
+    if (r && r.ok) setDone(true);
+    else setSendErr("Жалоба не ушла. Проверь соединение и попробуй ещё раз.");
+  };
   return <div className="bos-sheet-scroll" style={{ padding: "2px 16px 18px", color: "var(--text)" }}>{typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}<div style={_dSTitle}>Безопасность</div><div style={_dSSub}>{person.name || "Участник"} · действия видны только тебе и модерации</div>
     {done ? <div style={{ textAlign: "center", padding: "26px 8px 8px" }}><I.Check size={28} color="#A67A00" /><div style={{ fontSize: 18, fontWeight: 800, marginTop: 10 }}>Жалоба отправлена</div><div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 5 }}>Карточку можно также скрыть или заблокировать.</div></div> : <React.Fragment>
       <div style={{ marginTop: 16, borderRadius: 18, background: "var(--card)", boxShadow: "var(--card-shadow)", overflow: "hidden" }}><button onClick={function () { hide(false); }} className="tap hit44" style={{ width: "100%", minHeight: 52, border: 0, background: "transparent", color: "var(--text)", display: "flex", alignItems: "center", gap: 11, padding: "10px 13px", textAlign: "left" }}><I.Eye size={18} /><span style={{ flex: 1, fontSize: 13.5, fontWeight: 700 }}>Больше не показывать карточку</span></button><button onClick={function () { hide(true); }} className="tap hit44" style={{ width: "100%", minHeight: 52, border: 0, borderTop: "1px solid var(--line)", background: "transparent", color: "#C8443A", display: "flex", alignItems: "center", gap: 11, padding: "10px 13px", textAlign: "left" }}><I.Ban size={18} /><span style={{ flex: 1, fontSize: 13.5, fontWeight: 700 }}>Заблокировать друг друга</span></button></div>
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "18px 2px 8px" }}>Пожаловаться</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>{reasons.map(function (r) { var on = reason === r[0]; return <button key={r[0]} onClick={function () { setReason(r[0]); }} className="tap hit44" style={{ minHeight: 47, border: on ? "1px solid #D7A719" : "1px solid transparent", borderRadius: 14, background: on ? "rgba(254,222,52,0.20)" : "var(--card)", color: "var(--text)", textAlign: "left", padding: "10px 12px", fontSize: 12.5, fontWeight: on ? 750 : 650, boxShadow: on ? "none" : "var(--card-shadow)" }}>{r[1]}</button>; })}</div>
     </React.Fragment>}
+    {sendErr ? <div role="alert" style={{ marginTop: 12, borderRadius: 13, background: "rgba(255,59,48,0.10)", color: "#C8443A", padding: 10, fontSize: 11.5 }}>{sendErr}</div> : null}
     <button onClick={done ? s.close : report} disabled={!done && !reason} className="tap hit44" style={{ width: "100%", minHeight: 48, marginTop: 14, border: 0, borderRadius: 16, background: done ? "#0a0a0a" : (reason ? "#0a0a0a" : "var(--surface-3)"), color: (done || reason) ? "#fff" : "var(--text-4)", fontSize: 14, fontWeight: 800 }}>{done ? "Готово" : "Отправить жалобу"}</button>
   </div>;
 }

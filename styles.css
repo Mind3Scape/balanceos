@@ -606,6 +606,21 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
   --card-shadow: none;
 }
 
+/* СВЕТЛАЯ ШТОРКА тоже рендерится ВНЕ обёртки .theme-light, поэтому карточные токены
+   до неё не доезжали: var(--card) внутри неё превращался в «нет цвета», и белые
+   карточки в шторках пропадали — текст лежал прямо на сером фоне панели. Тёмная
+   тема свои значения уже получала строкой выше (.bos-sheet.is-dark), здесь тот же
+   приём для светлой. Специфичность .bos-sheet.is-dark (два класса) выше, поэтому
+   тёмная шторка по-прежнему выигрывает независимо от порядка правил. */
+.bos-sheet {
+  --card: #ffffff;
+  --card-2: #e8e8e8;
+  --card-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  --card-fade: #ffffff;
+  --card-track: rgba(255,255,255,0.55);
+  --card-fill: #0a0a0a;
+}
+
 /* Dark overrides — make light components readable on dark */
 .theme-dark .bos-card,
 .theme-dark .habit-row {
