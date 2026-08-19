@@ -718,3 +718,120 @@ function FigFavoritesRoomLive() {
     </div>
   );
 }
+
+/* ── РЕЗУЛЬТАТЫ ПОИСКА (кадр «Все / Запрос»): разделы Группы · Люди · Места и события ·
+      Курсы теми же атомами, что и комнаты. Группы ищутся в облаке (searchTeams) и среди
+      своих; люди — среди людей твоих групп; места/курсы — по витрине. ── */
+function FigSearchResultsLive({ app, navigate, isDark, query, seg }) {
+  const q = ("" + (query || "")).trim().toLowerCase();
+  const people = useFigPeople(app);
+  const teams = (app && app.teams) || [];
+  const [cloudHits, setCloudHits] = React.useState(null);
+  const [asked, setAsked] = React.useState({});
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: null };
+  React.useEffect(function () {
+    var on = true;
+    if (!q || !(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.searchTeams)) { setCloudHits([]); return; }
+    var t = setTimeout(function () {
+      window.bosCloud.searchTeams(q).then(function (r) { if (on) setCloudHits(Array.isArray(r) ? r : []); }).catch(function () { if (on) setCloudHits([]); });
+    }, 250);
+    return function () { on = false; clearTimeout(t); };
+  }, [q]);
+
+  const myIds = {}; teams.forEach(function (t) { if (t.cloudId) myIds[t.cloudId] = true; });
+  const gMine = teams.filter(function (t) { return ("" + t.name).toLowerCase().indexOf(q) >= 0; });
+  const gCloud = (cloudHits || []).filter(function (t) { return !myIds[t.id]; });
+  const pHits = people.filter(function (p) { return ("" + p.name).toLowerCase().indexOf(q) >= 0; });
+  const places = figShowcaseRead("places", FIG_SHOWCASE_PLACES).filter(function (x) { return ("" + x.title + (x.city || "")).toLowerCase().indexOf(q) >= 0; });
+  const courses = figShowcaseRead("courses", FIG_SHOWCASE_COURSES).filter(function (x) { return ("" + x.title + (x.partner || "")).toLowerCase().indexOf(q) >= 0; });
+  const openShowcase = function (item, kind) { if (openSheet) openSheet(<FigShowcaseDetailSheetLive item={item} kind={kind} />); };
+  const wantG = seg === "all" || seg === "circles";
+  const wantP = seg === "all" || seg === "people";
+  const wantPl = seg === "all" || seg === "places";
+  const wantC = seg === "all" || seg === "courses";
+  const nothing = (!wantG || (!gMine.length && !gCloud.length)) && (!wantP || !pHits.length) && (!wantPl || !places.length) && (!wantC || !courses.length);
+
+  const join = function (t) {
+    if (!window.bosCloud.requestJoin) return;
+    window.bosCloud.requestJoin(t.id).then(function (res) {
+      if (res && res.pending) setAsked(function (o) { var n = Object.assign({}, o); n[t.id] = true; return n; });
+      else if (res) navigate("team-detail", { team: { cloudId: t.id, name: t.name, emblem: t.emblem, vis: t.vis, joined: true, members: [] }, from: "community" });
+    }).catch(function () {});
+  };
+
+  return (
+    <div className="fig-swap" style={{ paddingTop: 4 }}>
+      {wantG && (gMine.length > 0 || gCloud.length > 0) && (
+        <React.Fragment>
+          <FigSectionHead title="Группы" sub={figPlural(gMine.length + gCloud.length, "группа", "группы", "групп")} />
+          <div style={{ padding: "0 16px 4px" }}>
+            <FigCard>
+              {gMine.map(function (t, i) {
+                return <FigGroupRow key={"m" + (t.cloudId || t._id)} first={i === 0}
+                  group={{ name: t.name, avatar: t.emblem ? (("" + t.emblem).indexOf("url:") === 0 ? t.emblem : "emoji:" + t.emblem) : null,
+                    category: "Твоя группа" }}
+                  onOpen={function () { navigate("team-detail", { team: t, from: "community" }); }} />;
+              })}
+              {gCloud.map(function (t, i) {
+                return (
+                  <div key={"c" + t.id} style={{ position: "relative" }}>
+                    <FigGroupRow first={gMine.length === 0 && i === 0}
+                      group={{ name: t.name, avatar: t.emblem ? (("" + t.emblem).indexOf("url:") === 0 ? t.emblem : "emoji:" + t.emblem) : null,
+                        category: "Открытая группа" }}
+                      onOpen={function () { navigate("team-detail", { team: { cloudId: t.id, name: t.name, emblem: t.emblem, vis: t.vis, joined: false, members: [] }, from: "community" }); }}
+                      onMenu={null} />
+                    <span style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)" }}>
+                      <button onClick={function () { join(t); }} disabled={!!asked[t.id]} className="tap"
+                        style={{ height: 34, padding: "0 14px", borderRadius: 999, border: 0, cursor: asked[t.id] ? "default" : "pointer",
+                          background: "var(--surface-3)", color: "var(--text)", fontSize: 15, opacity: asked[t.id] ? 0.6 : 1 }}>
+                        {asked[t.id] ? "Заявка отправлена" : "Вступить"}
+                      </button>
+                    </span>
+                  </div>
+                );
+              })}
+            </FigCard>
+          </div>
+        </React.Fragment>
+      )}
+      {wantP && pHits.length > 0 && (
+        <React.Fragment>
+          <FigSectionHead title="Люди" sub={figPlural(pHits.length, "человек", "человека", "человек")} />
+          <div style={{ padding: "0 16px 4px" }}>
+            <FigCard>
+              {pHits.map(function (p, i) {
+                return <FigFriendRow key={p.id} first={i === 0}
+                  person={{ name: p.name, avatar: p.avatar, level: p.level, lvlPct: p.lvlPct,
+                    status: p.teams && p.teams.length ? ("вместе в «" + p.teams[0].name + "»") : null }}
+                  onOpen={function () { navigate("person-profile", { person: { user_id: p.id, name: p.name, avatar: p.avatar, level: p.level }, from: "community" }); }} />;
+              })}
+            </FigCard>
+          </div>
+        </React.Fragment>
+      )}
+      {wantPl && places.length > 0 && (
+        <React.Fragment>
+          <FigSectionHead title="Места и события" />
+          <FigRail>
+            {places.map(function (p) {
+              return <FigPlaceCard key={p.id} item={p} onOpen={function () { openShowcase(p, "place"); }} onAct={function () { openShowcase(p, "place"); }} />;
+            })}
+          </FigRail>
+        </React.Fragment>
+      )}
+      {wantC && courses.length > 0 && (
+        <React.Fragment>
+          <FigSectionHead title="Курсы" />
+          <FigRail>
+            {courses.map(function (c) {
+              return <FigCourseCard key={c.id} item={c} onOpen={function () { openShowcase(c, "course"); }} onAct={function () { openShowcase(c, "course"); }} />;
+            })}
+          </FigRail>
+        </React.Fragment>
+      )}
+      {nothing && cloudHits !== null && (
+        <FigEmpty title="Ничего не найдено" text="Попробуй другое слово — или собери свою группу через «+»." />
+      )}
+    </div>
+  );
+}

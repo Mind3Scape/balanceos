@@ -5107,8 +5107,10 @@ function CommunityLive() {
       {/* ПОИСК по всей ленте: круги (живые + облачные) · партнёры · программы. */}
       {/* Поле по макету: не белая карточка с тенью, а серая заливка 44px — стандартное
           поле поиска iOS (в макете Text Field Search 361×44). */}
+      {/* Поиск по кадру: при вводе справа появляется «Отмена» (Close Button 63×44). */}
       <FigSearchField value={q} onChange={setQ}
-        placeholder={seg === "people" ? "Кто нужен: тексты, йога, аналитика…" : "Поиск"} />
+        placeholder={seg === "people" ? "Кто нужен: тексты, йога, аналитика…" : "Поиск"}
+        onCancel={searching ? () => setQ("") : null} />
 
       {/* ЧИПЫ-ФИЛЬТРЫ одной ленты (вместо двух рядов вкладок — David: «двойное меню не
           вариант»). Активный — CTA-пилюля, остальные — стеклянные чипы. Чип не комната,
@@ -5124,54 +5126,10 @@ function CommunityLive() {
 
       {/* Живой пульс переехал в шапку (вправо от «Сообщество») — отдельной строки под пилюлями больше нет. */}
 
-      {/* РЕЗУЛЬТАТЫ ПОИСКА — те же карточки, что в ленте; тап ведёт туда же. */}
-      {searching && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12, padding: "0 12px" }}>
-          <CloudTeamsDiscoverLive app={app} navigate={navigate} query={qDeb} onCount={setCloudHits} />
-          {pHits.length > 0 && (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎁 Партнёры</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {pHits.map((p) => (
-                  <button key={p.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: "community" }); }} className="tap"
-                    style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
-                    <span style={{ width: 44, height: 44, borderRadius: 14, background: (typeof bosMixHex === "function" && isDark) ? bosMixHex(p.accent, "#101014", 0.48) : p.accent, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIconOf(p, 24, null)}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, fontWeight: 600 }}>{p.name}</div>
-                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.what} · {p.cost} XP</div>
-                    </div>
-                    <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0 }} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {cHits.length > 0 && (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎓 Курсы</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {cHits.map((c) => (
-                  <button key={c.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("course-detail", { course: c }); }} className="tap"
-                    style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
-                    <span style={{ width: 44, height: 44, borderRadius: 14, background: c.accent, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{c.i}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, fontWeight: 600 }}>{c.t}</div>
-                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.lvl} · {c.price}</div>
-                    </div>
-                    <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0 }} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {nothingFound && (
-            <div style={{ background: "var(--card)", borderRadius: 22, padding: "26px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
-              <div style={{ fontSize: 30, lineHeight: 1 }}>🔭</div>
-              <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", marginTop: 9 }}>Ничего не нашлось</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 5, lineHeight: 1.45 }}>Попробуй другое слово — или собери свой круг на «Привычках» через «+».</div>
-            </div>
-          )}
-        </div>
+      {/* РЕЗУЛЬТАТЫ ПОИСКА — кадр «Запрос»: разделы теми же атомами макета. Чип сужает
+          поиск до своего раздела. */}
+      {searching && typeof FigSearchResultsLive === "function" && (
+        <FigSearchResultsLive app={app} navigate={navigate} isDark={isDark} query={qDeb} seg={seg} />
       )}
 
       {/* ЛЕНТА — секции живут вместе; чип просто сужает её. Порядок «Все»: партнёры
