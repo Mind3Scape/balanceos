@@ -254,7 +254,8 @@ function FigCommunityAllLive({ app, navigate, isDark, onSeg, lowCircles }) {
                   {page.map(function (g, i) {
                     return <FigGroupRow key={g.key} group={g} first={i === 0}
                       onOpen={function () { openGroup(g.team); }}
-                      onChat={function () { openChat(g.team); }} />;
+                      onChat={function () { openChat(g.team); }}
+                      onMenu={openSheet ? function () { openSheet(<FigGroupMenuSheetLive team={g.team} />); } : null} />;
                   })}
                 </FigCard>
               );
@@ -600,6 +601,7 @@ function FigCatalogGroupCard({ item, joined, requested, onOpen, onJoin }) {
 }
 
 function FigGroupsRoomLive({ app, navigate, isDark, query }) {
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: null };
   const teams = (app && app.teams) || [];
   const levels = useFigTeamLevels(teams);
   const [cloudList, setCloudList] = React.useState(null);
@@ -643,7 +645,8 @@ function FigGroupsRoomLive({ app, navigate, isDark, query }) {
                 var g = dress(t);
                 return <FigGroupRow key={g.key} group={g} first={i === 0}
                   onOpen={function () { navigate("team-detail", { team: t, from: "community" }); }}
-                  onChat={function () { navigate("team-detail", { team: t, from: "community", tab: "chat" }); }} />;
+                  onChat={function () { navigate("team-detail", { team: t, from: "community", tab: "chat" }); }}
+                  onMenu={openSheet ? function () { openSheet(<FigGroupMenuSheetLive team={t} />); } : null} />;
               })}
             </FigCard>
           </div>
@@ -859,6 +862,62 @@ function FigSearchResultsLive({ app, navigate, isDark, query, seg }) {
       {nothing && cloudHits !== null && (
         <FigEmpty title="Ничего не найдено" text="Попробуй другое слово — или собери свою группу через «+»." />
       )}
+    </div>
+  );
+}
+
+/* ── «…» У СТРОКИ ГРУППЫ (кадр «Группа Меню» — те же двери, что в комнате): В избранное ·
+      Уведомления · Поделиться · Выйти из группы. Переиспользует настоящие шторки комнаты. ── */
+function FigGroupMenuSheetLive({ team, onChanged }) {
+  const { open: openSheet, close } = useSheet();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  // Шторка может жить вне NavCtx (стенды) — не падаем, просто без навигации.
+  const _nav = (typeof useNav === "function" ? useNav() : null) || {};
+  const navigate = _nav.navigate || function () {};
+  const k = team.cloudId || team._id || team.id;
+  const [fav, setFav] = React.useState(function () { try { return localStorage.getItem("bos:favteam:" + k) === "1"; } catch (e) { return false; } });
+  const flipFav = function () {
+    var next = !fav; setFav(next);
+    try { localStorage.setItem("bos:favteam:" + k, next ? "1" : "0"); } catch (e) {}
+    if (window.tgHaptic) { try { window.tgHaptic(next ? "success" : "light"); } catch (e) {} }
+    onChanged && onChanged();
+  };
+  const Row = function (p) {
+    return (
+      <button onClick={p.go} className="tap" style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 12, padding: "0 14px", minHeight: 52, textAlign: "left",
+        color: p.red ? "var(--accent-red)" : "var(--text)", borderTop: p.first ? 0 : "0.5px solid var(--line-2)" }}>
+        <span style={{ width: 26, display: "grid", placeItems: "center" }}>{p.icon}</span>
+        <span style={{ flex: 1, fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px" }}>{p.label}</span>
+      </button>
+    );
+  };
+  return (
+    <div style={{ padding: "6px 16px 12px", color: "var(--text)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 2px 12px" }}>
+        {typeof FigGroupFace === "function"
+          ? <FigGroupFace avatar={team.emblem && ("" + team.emblem).indexOf("url:") === 0 ? team.emblem : (team.emblem ? "emoji:" + team.emblem : null)} name={team.name} size={40} />
+          : null}
+        <span style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 590, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{team.name}</span>
+      </div>
+      <div style={{ borderRadius: 18, background: "var(--surface-2, var(--surface-3))", overflow: "hidden" }}>
+        <Row first icon={<I.Star size={19} strokeWidth={2} color={fav ? "var(--accent-orange)" : "currentColor"} />}
+          label={fav ? "Убрать из избранного" : "В избранное"} go={flipFav} />
+        {typeof CircleNotifySheetLive === "function" && (
+          <Row icon={<I.Bell size={19} strokeWidth={2} />} label="Уведомления"
+            go={function () { openSheet(<CircleNotifySheetLive team={team} />); }} />
+        )}
+        {typeof TeamShareSheetLive === "function" && (
+          <Row icon={<I.Share size={19} strokeWidth={2} />} label="Поделиться"
+            go={function () { openSheet(<TeamShareSheetLive team={team} />); }} />
+        )}
+      </div>
+      <div style={{ borderRadius: 18, background: "var(--surface-2, var(--surface-3))", overflow: "hidden", marginTop: 10 }}>
+        {typeof bosExitFlowLive === "function" && (
+          <Row first red icon={<I.Logout size={19} strokeWidth={2} />} label="Выйти из группы"
+            go={function () { bosExitFlowLive({ app: app, team: team, isOwner: false, navigate: navigate, openSheet: openSheet, returnTo: "community" }); }} />
+        )}
+      </div>
     </div>
   );
 }
