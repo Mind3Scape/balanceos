@@ -600,8 +600,40 @@ function FigCatalogGroupCard({ item, joined, requested, onOpen, onJoin }) {
   );
 }
 
+/* Шторка «Фильтры» каталога (кадр «Фильтры» 477): сортировка — настоящая, по данным
+   каталога; категории и местоположение честно ждут teams.category/city в бэкенде. */
+function FigGroupsFilterSheetLive({ sort, onSort }) {
+  const { close } = useSheet();
+  const Row = function (p) {
+    return (
+      <button onClick={function () { onSort(p.id); close(); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }}
+        className="tap" style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 10, padding: "0 14px", minHeight: 52, textAlign: "left",
+          color: "var(--text)", borderTop: p.first ? 0 : "0.5px solid var(--line-2)" }}>
+        <span style={{ flex: 1, fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px" }}>{p.label}</span>
+        {sort === p.id && <I.Check size={17} strokeWidth={2.6} color="var(--accent)" />}
+      </button>
+    );
+  };
+  return (
+    <div style={{ padding: "6px 16px 12px", color: "var(--text)" }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center", marginBottom: 10 }}>Фильтры</div>
+      <div style={{ fontSize: 13, fontWeight: 590, color: "var(--text-2)", padding: "0 2px 6px", textTransform: "uppercase", letterSpacing: "0.4px" }}>Сортировка</div>
+      <div style={{ borderRadius: 18, background: "var(--surface-2, var(--surface-3))", overflow: "hidden" }}>
+        <Row first id="new" label="Сначала новые" />
+        <Row id="big" label="Сначала большие" />
+        <Row id="name" label="По алфавиту" />
+      </div>
+      <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 14, background: "var(--surface-3)", fontSize: 13, lineHeight: "18px", color: "var(--text-2)" }}>
+        Категории и местоположение появятся, когда группы получат рубрику и город в бэкенде.
+      </div>
+    </div>
+  );
+}
+
 function FigGroupsRoomLive({ app, navigate, isDark, query }) {
   const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: null };
+  const [sort, setSort] = React.useState("new");
   const teams = (app && app.teams) || [];
   const levels = useFigTeamLevels(teams);
   const [cloudList, setCloudList] = React.useState(null);
@@ -617,7 +649,12 @@ function FigGroupsRoomLive({ app, navigate, isDark, query }) {
   const q = ("" + (query || "")).trim().toLowerCase();
   const myIds = {}; teams.forEach(function (t) { if (t.cloudId) myIds[t.cloudId] = true; });
   const mine = teams.filter(function (t) { return !q || ("" + t.name).toLowerCase().indexOf(q) >= 0; });
-  const others = (cloudList || []).filter(function (t) { return !myIds[t.id] && (!q || ("" + t.name).toLowerCase().indexOf(q) >= 0); });
+  const others = (cloudList || []).filter(function (t) { return !myIds[t.id] && (!q || ("" + t.name).toLowerCase().indexOf(q) >= 0); })
+    .slice().sort(function (a, b) {
+      if (sort === "big") return (((b.team_members || [])[0] || {}).count || 0) - (((a.team_members || [])[0] || {}).count || 0);
+      if (sort === "name") return String(a.name).localeCompare(String(b.name), "ru");
+      return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+    });
 
   const dress = function (t) {
     var L = levels[t.cloudId] || null;
@@ -657,7 +694,9 @@ function FigGroupsRoomLive({ app, navigate, isDark, query }) {
       )}
 
       <FigSectionHead title="Вам может понравиться"
-        sub={cloudList === null ? null : (others.length ? figPlural(others.length, "группа", "группы", "групп") : null)} />
+        sub={cloudList === null ? null : (others.length ? figPlural(others.length, "группа", "группы", "групп") : null)}
+        action={sort === "new" ? "Новые" : sort === "big" ? "Большие" : "А-Я"}
+        onAction={openSheet ? function () { openSheet(<FigGroupsFilterSheetLive sort={sort} onSort={setSort} />); } : null} />
       {cloudList === null ? (
         <div style={{ padding: "0 16px", fontSize: 15, color: "var(--text-2)" }}>Загружаю каталог…</div>
       ) : others.length === 0 ? (
