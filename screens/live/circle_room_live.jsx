@@ -1756,44 +1756,56 @@ function TeamDetailLive() {
           <div style={{ ...card, padding: "14px 16px 12px", marginTop: 4 }}>
             <button onClick={() => { const nx = !actOpen; setActOpen(nx); if (nx) setPathSeen(true); }} className="tap" data-haptic="selection"
               style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8, color: "var(--text)" }}>
-              <span style={{ flex: 1, textAlign: "left", fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>
+              {/* Заголовок карточки в узле — 17/590, не 20/700. */}
+              <span style={{ flex: 1, textAlign: "left", fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px" }}>
                 {isToday ? "Активность дня" : ("Активность " + selDate.getDate() + " " + MON[selDate.getMonth()])}
               </span>
               <I.ChevronRight size={18} color="var(--text-3)"
                 style={{ transform: actOpen ? "rotate(90deg)" : "none", transition: "transform .24s cubic-bezier(0.34,1.4,0.44,1)" }} />
             </button>
 
+            {/* ЛЕНТА СУТОК — по узлу «Daily activity»: 4 полосы 34 с линиями 0.5, лица 17
+                парой с «+N» 12/590, «сейчас» — синий чип 20×20 #007BFF@0.10 в текущей полосе,
+                под лентой подписи часов 13/590 @0.30. */}
             {isToday && (
               <React.Fragment>
-                <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 10,
-                  border: "0.5px solid var(--line-2)", borderRadius: 8, overflow: "hidden", minHeight: 52 }}>
-                  <span aria-hidden style={{ position: "absolute", top: 0, bottom: 0, width: 2, background: "var(--text)", borderRadius: 2,
-                    left: ((new Date().getHours() + new Date().getMinutes() / 60) / 24 * 100).toFixed(2) + "%" }} />
-                  {slots.map((people, i) => (
-                    <span key={i} style={{ minHeight: 52, display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
-                      borderLeft: i ? "0.5px solid var(--line-2)" : 0, padding: "6px 4px" }}>
-                      {people.slice(0, 2).map((p, j) => (
-                        <span key={p.id} style={{ marginLeft: j ? -8 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)", lineHeight: 0 }}>
-                          <BuddyFaceLive avatar={p.avatar} name={p.name} size={24} />
-                        </span>
-                      ))}
-                      {people.length > 2 && <span style={{ fontSize: 13, color: "var(--text-2)", marginLeft: 3 }}>{"+" + (people.length - 2)}</span>}
-                    </span>
-                  ))}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 8,
+                  border: "0.5px solid var(--line-2)", borderRadius: 8, height: 34, boxSizing: "border-box" }}>
+                  {slots.map((people, i) => {
+                    const nowSlot = Math.floor(new Date().getHours() / 6) === i;
+                    return (
+                      <span key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
+                        borderLeft: i ? "0.5px solid var(--line-2)" : 0, padding: "0 4px", overflow: "hidden" }}>
+                        {nowSlot && (
+                          <span aria-hidden style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: "grid", placeItems: "center",
+                            background: "rgba(0,123,255,0.10)" }}>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent-blue)" }} />
+                          </span>
+                        )}
+                        {people.slice(0, 2).map((p, j) => (
+                          <span key={p.id} style={{ marginLeft: j ? -7 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)", lineHeight: 0 }}>
+                            <BuddyFaceLive avatar={p.avatar} name={p.name} size={17} />
+                          </span>
+                        ))}
+                        {people.length > 2 && <span style={{ fontSize: 12, fontWeight: 590, color: "var(--text-2)", marginLeft: 2 }}>{"+" + (people.length - 2)}</span>}
+                      </span>
+                    );
+                  })}
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0 0" }}>
                   {["00:00", "06:00", "12:00", "18:00", "00:00"].map((h, i) => (
-                    <span key={i} style={{ fontSize: 13, color: "var(--text-3)" }}>{h}</span>
+                    <span key={i} style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", color: "var(--text-3)" }}>{h}</span>
                   ))}
                 </div>
               </React.Fragment>
             )}
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "var(--text-2)" }}>
-                <I.Users size={16} strokeWidth={2} />{marks.length + " " + (marks.length === 1 ? "отметился" : "отметились")}
+            {/* Подпись 13/400 из узла: «N отметились · последняя HH:MM». */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
+                <I.Users size={13} strokeWidth={2} />{marks.length + " " + (marks.length === 1 ? "отметился" : "отметились")}
               </span>
-              {lastAt && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{"последняя " + bosRoomHHMM(_pt(lastAt))}</span>}
+              {lastAt && <span style={{ fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>{"последняя " + bosRoomHHMM(_pt(lastAt))}</span>}
             </div>
 
             {/* РАСКРЫТИЕ = КАЛЕНДАРЬ (David: «нажал на активность дня — она должна раскрыться
