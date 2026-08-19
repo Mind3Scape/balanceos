@@ -1900,7 +1900,7 @@ function TeamDetailLive() {
       {!(roomTab === "tasks" && taskGroups.length > 0) && (
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (
-          {/* Пустое состояние — заголовок 20/590 из кадра «Пустое»: «Тут пока ничего нет». */}
+          /* Пустое состояние — заголовок 20/590 из кадра «Пустое». */
           <div style={{ padding: "20px 6px 18px", textAlign: "center" }}>
             <div style={{ fontSize: 20, fontWeight: 590, lineHeight: "25px", letterSpacing: "-0.45px", color: "var(--text)" }}>Тут пока ничего нет</div>
             <div style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", marginTop: 4 }}>

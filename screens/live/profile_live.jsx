@@ -298,30 +298,48 @@ function ProfileLive() {
         </React.Fragment>
       )}
 
-      {/* УСЛУГИ — мои форматы помощи. Пусто → раздела нет. */}
+      {/* УСЛУГИ — строки Service Row из узла: 84 высотой, значок 44 r11 в цветной подложке
+          10 %, заголовок в две строки 17/400, «когда» 15/400, цена «N XP» 17/590 справа.
+          «N выполнено» из кадра появится, когда бэкенд начнёт считать закрытые брони. */}
       {myOffers && myOffers.length > 0 && (
         <React.Fragment>
           <div style={{ padding: "22px 4px 8px" }}>
-            <span onClick={() => navigate("community", { from: "profile" })} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", cursor: "pointer" }}>
-              Услуги <I.ChevronRight size={17} color="var(--text-3)" />
-            </span>
+            <span style={{ fontSize: 22, fontWeight: 700, lineHeight: "28px", letterSpacing: "-0.26px", color: "var(--text)" }}>Услуги</span>
           </div>
-          <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden" }}>
-            {myOffers.slice(0, 4).map((o, i) => (
-              <button key={o.id || i} onClick={() => openSheet(<AddHelpFormatSheetLive app={app} offer={o} onDone={() => { closeSheet(); loadOffers(); }} />)} className="tap"
-                style={{ width: "100%", border: 0, borderTop: i ? "0.5px solid var(--line-2)" : 0, background: "transparent", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", textAlign: "left", color: "var(--text)" }}>
-                <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 22, background: "var(--surface-3)" }}>{o.emoji || "\u2728"}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 17, fontWeight: 590, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.title || "Формат помощи"}</span>
-                  <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.when_text || ""}</span>
-                </span>
-                <I.ChevronRight size={17} color="var(--text-3)" style={{ flexShrink: 0 }} />
-              </button>
-            ))}
+          <div style={{ background: "var(--card)", borderRadius: 24, overflow: "hidden" }}>
+            {myOffers.slice(0, 6).map((o, i) => {
+              const tintPal = ["#453BD6", "#1CDDBD", "#FF9736", "#FC4436", "#007BFF", "#9A36FF"];
+              const tint = tintPal[i % tintPal.length];
+              return (
+                <button key={o.id || i} onClick={() => openSheet(<AddHelpFormatSheetLive app={app} offer={o} onDone={() => { closeSheet(); loadOffers(); }} />)} className="tap"
+                  style={{ position: "relative", width: "100%", border: 0, background: "transparent", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 8, padding: "0 16px", minHeight: 84, textAlign: "left", color: "var(--text)" }}>
+                  {i > 0 && <span aria-hidden style={{ position: "absolute", left: 68, right: 0, top: 0, height: 1, background: "var(--line-2)" }} />}
+                  <span style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 21,
+                    background: "color-mix(in srgb, " + tint + " 12%, transparent)" }}>{o.emoji || "\u2728"}</span>
+                  <span style={{ flex: 1, minWidth: 0, padding: "10px 0" }}>
+                    <span style={{ fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px",
+                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{o.title || "Формат помощи"}</span>
+                    {o.when_text ? <span style={{ display: "block", fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.when_text}</span> : null}
+                  </span>
+                  <span style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", flexShrink: 0 }}>
+                    {(o.price_xp || 0) > 0 ? ((typeof bosNumSpace === "function" ? bosNumSpace(o.price_xp) : o.price_xp) + " XP") : "Даром"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </React.Fragment>
       )}
+
+      {/* ОТЗЫВЫ — раздел из кадра. Таблицы отзывов пока нет — говорим прямо. */}
+      <div style={{ padding: "22px 4px 8px" }}>
+        <span style={{ fontSize: 22, fontWeight: 700, lineHeight: "28px", letterSpacing: "-0.26px", color: "var(--text)" }}>Отзывы</span>
+      </div>
+      <div style={{ background: "var(--card)", borderRadius: 24, padding: "18px 16px", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+        Отзывы появятся вместе с бэкендом: после купленной услуги человек сможет поставить оценку и написать пару слов — они соберутся здесь.
+      </div>
 
       {/* ДРУЗЬЯ — живые люди с твоей орбиты. */}
       {typeof CircleFriendsStripLive === "function" && <div style={{ marginTop: 8 }}><CircleFriendsStripLive app={app} navigate={navigate} /></div>}
