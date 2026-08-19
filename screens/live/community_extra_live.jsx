@@ -1428,12 +1428,18 @@ function ChatsLive() {
           })}
         </div>
       ) : (
+        /* Пустое — анатомия узла «Empty States»: по фону + стеклянная кнопка 50. */
+        typeof FigEmpty === "function" ? (
+          <FigEmpty title="Чатов пока нет" text="Вступи в группу — её разговор появится здесь."
+            action="Найти группу" onAction={() => navigate("community", { from: "chats" })} />
+        ) : (
         <div style={{ background: "var(--card)", borderRadius: 16, padding: "32px 22px", textAlign: "center" }}>
           <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)" }}>Чатов пока нет</div>
           <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 5, lineHeight: 1.35 }}>Вступи в группу — её разговор появится здесь.</div>
           <button onClick={() => navigate("community", { from: "chats" })} className="tap"
             style={{ marginTop: 18, border: 0, borderRadius: 999, padding: "13px 24px", fontSize: 17, fontWeight: 590, cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)" }}>Найти группу</button>
         </div>
+        )
       )}
     </div>
   );

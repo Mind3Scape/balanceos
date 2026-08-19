@@ -525,14 +525,17 @@ function bosNumSpace(n) {
 }
 
 /* Честная пустая комната: заголовок, объяснение, одно действие. Ни одной выдуманной цифры. */
+/* Пустое состояние по узлу «Empty States» (кадр «Мои сообщества / Пустое»): НЕ карточка —
+   сообщение прямо на фоне (заголовок + описание по центру, поле 32) и стеклянная
+   кнопка 50 r1000 #767680 (24% тьма / 12% свет), а не чёрная CTA. */
 function FigEmpty({ title, text, action, onAction, icon }) {
   return (
-    <div style={{ margin: "0 16px", borderRadius: 24, background: "var(--surface)", padding: "28px 20px", display: "grid", justifyItems: "center", gap: 8, textAlign: "center" }}>
-      {icon ? <span style={{ marginBottom: 4, color: "var(--text-3)" }}>{icon}</span> : null}
+    <div style={{ padding: "48px 32px 40px", display: "grid", justifyItems: "center", gap: 8, textAlign: "center" }}>
+      {icon ? <span style={{ marginBottom: 6, color: "var(--text-3)" }}>{icon}</span> : null}
       <div style={{ fontSize: 22, fontWeight: 700, lineHeight: "28px", letterSpacing: "-0.26px", color: "var(--text)" }}>{title}</div>
-      {text ? <div style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", maxWidth: 280 }}>{text}</div> : null}
-      {action ? <button onClick={onAction} className="tap" style={{ marginTop: 8, height: 44, padding: "0 22px", borderRadius: 999, border: 0,
-        cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)", fontSize: 17, fontWeight: 590 }}>{action}</button> : null}
+      {text ? <div style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", maxWidth: 300 }}>{text}</div> : null}
+      {action ? <button onClick={onAction} className="tap" style={{ marginTop: 16, height: 50, padding: "0 24px", borderRadius: 999, border: 0,
+        cursor: "pointer", background: "var(--fig-fill, rgba(118,118,128,0.12))", color: "var(--text)", fontSize: 17, fontWeight: 400, letterSpacing: "-0.43px" }}>{action}</button> : null}
     </div>
   );
 }
