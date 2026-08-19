@@ -341,6 +341,14 @@ function ProfileLive() {
         Отзывы появятся вместе с бэкендом: после купленной услуги человек сможет поставить оценку и написать пару слов — они соберутся здесь.
       </div>
 
+      {/* РЕКОМЕНДУЕМЫЕ АККАУНТЫ — раздел из кадра; ждёт интересов/подписок в бэкенде. */}
+      <div style={{ padding: "22px 4px 8px" }}>
+        <span style={{ fontSize: 22, fontWeight: 700, lineHeight: "28px", letterSpacing: "-0.26px", color: "var(--text)" }}>Рекомендуемые аккаунты</span>
+      </div>
+      <div style={{ background: "var(--card)", borderRadius: 24, padding: "18px 16px", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+        Появятся, когда профили начнут хранить интересы и подписки — тогда здесь будут люди «под твой баланс».
+      </div>
+
       {/* ДРУЗЬЯ — живые люди с твоей орбиты. */}
       {typeof CircleFriendsStripLive === "function" && <div style={{ marginTop: 8 }}><CircleFriendsStripLive app={app} navigate={navigate} /></div>}
 

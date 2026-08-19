@@ -727,6 +727,7 @@ function FigGroupsRoomLive({ app, navigate, isDark, query }) {
 function FigFavoritesRoomLive() {
   const { navigate, back } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
+  const [sort, setSort] = React.useState("act");   // act = по активности (XP), name = по имени
   const teams = (app && app.teams) || [];
   const levels = useFigTeamLevels(teams);
   const favs = teams.filter(function (t) {
@@ -772,10 +773,15 @@ function FigFavoritesRoomLive() {
                 onOpen={function () { navigate("team-detail", { team: t, from: "favorites" }); }} />;
             })}
           </FigRail>
-          <FigSectionHead title="В избранном" sub={figPlural(favs.length, "группа", "группы", "групп")} />
+          <FigSectionHead title="В избранном" sub={figPlural(favs.length, "группа", "группы", "групп")}
+            action={sort === "act" ? "По активности" : "По имени"}
+            onAction={function () { setSort(sort === "act" ? "name" : "act"); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} />
           <div style={{ padding: "0 16px" }}>
             <FigCard>
-              {favs.map(function (t, i) {
+              {favs.slice().sort(function (a, b) {
+                if (sort === "name") return String(a.name).localeCompare(String(b.name), "ru");
+                return (((levels[b.cloudId] || {}).level) || 0) - (((levels[a.cloudId] || {}).level) || 0);
+              }).map(function (t, i) {
                 return <FigGroupRow key={t.cloudId || t._id} group={dress(t)} first={i === 0}
                   onOpen={function () { navigate("team-detail", { team: t, from: "favorites" }); }}
                   onChat={function () { navigate("team-detail", { team: t, from: "favorites", tab: "chat" }); }} />;
