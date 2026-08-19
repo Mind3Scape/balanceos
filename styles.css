@@ -1354,6 +1354,12 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   box-shadow: none;
 }
 .bos-tabbar.fig.dark .bos-tab-lens { background: rgba(118,118,128,0.24); }
+/* Чат-режим комнаты: мессенджер с композером у дна — нижнее меню и кромка прячутся,
+   странице возвращается короткий нижний отступ. */
+.bos-page:has(.fig-chatmode) ~ .bos-tabbar,
+.bos-page:has(.fig-chatmode) ~ .bos-tabedge { display: none; }
+.page-stack > .bos-page:has(.fig-chatmode) { padding-bottom: 30px; }
+
 /* Прогрессивное размытие нижней кромки под пилюлей — узел «Scroll Edge Effect - Soft»:
    контент тает в блюр к нижнему краю, как в iOS 26. Лежит ПОД таб-баром (z 19 < 20). */
 .bos-tabedge {

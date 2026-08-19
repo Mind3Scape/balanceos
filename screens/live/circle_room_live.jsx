@@ -1461,6 +1461,8 @@ function TeamDetailLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      {/* Маркер чат-режима: по нему CSS (:has) прячет таб-бар — мессенджер живёт без меню. */}
+      {chatMode && <span className="fig-chatmode" aria-hidden style={{ display: "none" }} />}
       {chatMode && (
         <div className="fig-swap" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0 8px" }}>
           <button onClick={() => { if (_cameChat) navigate(from || "chats"); else setRoomTab("day"); }} className="tap" aria-label="Назад"

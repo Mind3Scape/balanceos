@@ -52,6 +52,13 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
    («бекграунды не дотягиваются до конца», David 19.08). Плюс html/body ниже красим теми же
    значениями — иначе за нижней кромкой видно чужой цвет. */
 const FIG_ROUTES = new Set(["community", "profile", "team-detail", "chats", "team-overview", "team-history", "team-members", "team-admins", "team-admin-add", "team-admin-rights", "person-profile", "favorites", "notifications"]);
+/* ВО ВСЕХ кадрах редизайна (группа, обзор, участники, профили, уведомления) внизу стоит
+   Tab Bar — навигация живёт ПОВЕРХ нижнего меню, а не «проваливается» внутрь. Поэтому в
+   live таб-бар виден на каждом fig-маршруте; подсвечивается родная дверь семейства
+   (групповые и профильные экраны — «Сообщество»). Исключение — чат-режим комнаты:
+   мессенджер с композером у дна, меню прячется (CSS :has по маркеру .fig-chatmode). */
+const LIVE_TAB_SHOW = new Set([...LIVE_TAB_ROUTES, ...FIG_ROUTES]);
+const LIVE_TAB_OF = { chats: "chats", home: "home", ai: "ai", habits: "home" };
 
 const ROOT_BG = {
   mood: "#f2f3f6", "ai-chat": "#fafafa",
@@ -254,7 +261,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v881";
+const APP_VERSION = "v882";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -825,7 +832,7 @@ function PhoneApp() {
   // Сумма непрочитанных сообщений всех групп → красный счётчик на значке «Чаты»
   // (узел Notifications Badge). Хук живёт в shared_live (там же кэш peek'ов).
   const chatsUnread = (typeof useBosChatsUnread === "function") ? useBosChatsUnread(app) : 0;
-  const tabSet = isLive ? LIVE_TAB_ROUTES : TAB_ROUTES;
+  const tabSet = isLive ? LIVE_TAB_SHOW : TAB_ROUTES;
   // navigate — стабильный useCallback, поэтому актуальный режим/набор вкладок читаем через ref.
   const tabSetRef = useRef(tabSet); tabSetRef.current = tabSet;
   const isLiveRef = useRef(isLive); isLiveRef.current = isLive;
@@ -1121,7 +1128,8 @@ function PhoneApp() {
         {/* No fake status bar. iOS draws the real one in an installed PWA; in a
             browser or Telegram the OS / Telegram owns the top bar, so we stay clean. */}
         {!drag && topInTabs && (
-          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} fig={isLive} badges={isLive ? { chats: chatsUnread } : null} />
+          <TabBar key="tabbar" active={isLive ? (LIVE_TAB_OF[top.route] || (LIVE_TAB_ROUTES.has(top.route) ? top.route : "community")) : top.route}
+            dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} fig={isLive} badges={isLive ? { chats: chatsUnread } : null} />
         )}
         {destTab && (
           <TabBar key="tabbar-drag" active={destTab} dark={themeFor(destTab)}
