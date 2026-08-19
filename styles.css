@@ -767,6 +767,20 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
   --line:    rgba(255,255,255,0.08);
 }
 
+/* ЭКРАНЫ РЕДИЗАЙНА (.fig): вторичный/третичный текст = системные цвета iOS из узлов
+   (#3C3C43@0.60 и @0.30 в светлой, #EBEBF5@0.70 и @0.30 в тёмной). Наши базовые --text-2/3
+   ярче узла, и все fig-кадры выглядели «звонче» макета. Перебиваем и на потомках тоже —
+   выше стоит правило «.theme-dark, .theme-dark *», которое кладёт переменные прямо на
+   каждый элемент, и простое наследование его не победило бы. */
+.bos-page.fig, .bos-page.fig * {
+  --text-2: rgba(60,60,67,0.6);
+  --text-3: rgba(60,60,67,0.3);
+}
+.theme-dark .bos-page.fig, .theme-dark .bos-page.fig *, .bos-page.fig.theme-dark, .bos-page.fig.theme-dark * {
+  --text-2: rgba(235,235,245,0.7);
+  --text-3: rgba(235,235,245,0.3);
+}
+
 /* System-screen surfaces — shared light/dark card, input, text and chip tokens.
    System screens (profile / settings / notifications / support / ai-chat / etc.)
    need to look right in BOTH light and dark themes. These classes scope to the

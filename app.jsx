@@ -51,7 +51,7 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
    оставалась в старой палитре, и в Телеграме под контентом торчала полоса прежнего фона
    («бекграунды не дотягиваются до конца», David 19.08). Плюс html/body ниже красим теми же
    значениями — иначе за нижней кромкой видно чужой цвет. */
-const FIG_ROUTES = new Set(["community", "profile", "team-detail", "chats", "team-overview", "team-history", "team-members", "team-admins", "team-admin-add", "team-admin-rights", "person-profile", "favorites", "notifications"]);
+const FIG_ROUTES = new Set(["community", "profile", "team-detail", "chats", "team-overview", "team-history", "team-members", "team-admins", "team-admin-add", "team-admin-rights", "person-profile", "favorites", "notifications", "team-report"]);
 /* ВО ВСЕХ кадрах редизайна (группа, обзор, участники, профили, уведомления) внизу стоит
    Tab Bar — навигация живёт ПОВЕРХ нижнего меню, а не «проваливается» внутрь. Поэтому в
    live таб-бар виден на каждом fig-маршруте; подсвечивается родная дверь семейства
@@ -65,7 +65,7 @@ const ROOT_BG = {
   community: "#F2F2F7", profile: "#F2F2F7", "team-detail": "#F2F2F7", chats: "#F2F2F7",
   "team-overview": "#F2F2F7", "team-history": "#F2F2F7", "team-members": "#F2F2F7",
   "team-admins": "#F2F2F7", "team-admin-add": "#F2F2F7", "team-admin-rights": "#F2F2F7",
-  "person-profile": "#F2F2F7", favorites: "#F2F2F7", notifications: "#F2F2F7",
+  "person-profile": "#F2F2F7", favorites: "#F2F2F7", notifications: "#F2F2F7", "team-report": "#F2F2F7",
 };
 // В ТЁМНОЙ теме светлые подложки выше НЕЛЬЗЯ применять — html/body/шапка Telegram на миг
 // красились белым при переходе («белое мигание», David). Тёмные аналоги:
@@ -74,7 +74,7 @@ const ROOT_BG_DARK = {
   community: "#000000", profile: "#000000", "team-detail": "#000000", chats: "#000000",
   "team-overview": "#000000", "team-history": "#000000", "team-members": "#000000",
   "team-admins": "#000000", "team-admin-add": "#000000", "team-admin-rights": "#000000",
-  "person-profile": "#000000", favorites: "#000000", notifications: "#000000",
+  "person-profile": "#000000", favorites: "#000000", notifications: "#000000", "team-report": "#000000",
 };
 
 const SCREENS = {
@@ -169,6 +169,8 @@ const LIVE_SCREENS = {
   "team-admin-rights": () => CircleAdminRightsLive,
   // Профиль другого человека (кадры «Гость / Профиль», «Друг»).
   "person-profile": () => PersonProfileLive,
+  // Жалоба — полноэкранный поток из кадров (список причин → подпричины → форма).
+  "team-report": () => CircleReportScreenLive,
   // Любимые группы (кадр «Любимые группы»).
   favorites: () => FigFavoritesRoomLive,
   levels: () => LevelsLive,
@@ -261,7 +263,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v882";
+const APP_VERSION = "v883";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.

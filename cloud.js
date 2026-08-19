@@ -703,6 +703,25 @@
       return { pending: false, joined: true };
     } catch (e) { return null; }
   }
+  /* ЖАЛОБА (экран «Пожаловаться»). Пишем строку в reports (sql/patch_reports.sql):
+     политика там insert-only — читать жалобы из клиента нельзя, поэтому НИКАКОГО .select()
+     после insert (RETURNING упёрся бы в отсутствие select-политики и уронил бы честную
+     запись). Ошибка вставки настоящая → возвращаем false, экран покажет «не удалось». */
+  async function sendReport(r) {
+    var c = client(); var id = await uid(); if (!c || !id || !r) return false;
+    try {
+      var res = await c.from("reports").insert({
+        from_uid: id,
+        kind: String(r.kind || "team"),
+        target_id: r.targetId ? String(r.targetId) : null,
+        reason: String(r.reason || ""),
+        sub_reason: r.subReason ? String(r.subReason) : null,
+        text: String(r.text || "").slice(0, 200),
+      });
+      return !res.error;
+    } catch (e) { return false; }
+  }
+
   // E: owner approves / rejects a pending request.
   /* АДМИНИСТРАТОРЫ ГРУППЫ. team_members.role — текст; владелец пишет 'admin'/'member'
      напрямую. Права по способностям (bos_admin_rights) храним в teams.goal.adminRights —
@@ -2134,7 +2153,7 @@
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal, pendingDeletes: pendingDeletes,
     createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
-    joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, setMemberRole: setMemberRole, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
+    joinViaLink: joinViaLink, requestJoin: requestJoin, sendReport: sendReport, approveMember: approveMember, setMemberRole: setMemberRole, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
     teamMembers: teamMembers, teamMembersStrict: teamMembersStrict, teamMemberIdsStrict: teamMemberIdsStrict, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday, myCircleDays: myCircleDays,
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,

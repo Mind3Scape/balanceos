@@ -1383,6 +1383,7 @@ function bosBlockedSet() {
 }
 function PersonMenuSheetLive({ person, name, onBlocked }) {
   const { open: openSheet, close } = useSheet();
+  const { navigate } = useNav();
   const pid = person.user_id || person.id;
   const blocked = bosBlockedSet().has(pid);
   const doBlock = function () {
@@ -1418,9 +1419,9 @@ function PersonMenuSheetLive({ person, name, onBlocked }) {
   return (
     <div style={{ padding: "6px 16px 12px", color: "var(--text)" }}>
       <div style={{ borderRadius: 18, background: "var(--surface-2, var(--surface-3))", overflow: "hidden" }}>
-        {typeof CircleReportSheetLive === "function" && (
+        {typeof CircleReportScreenLive === "function" && (
           <Row first red icon={<I.Warning size={19} />} label="Пожаловаться"
-            go={function () { openSheet(<CircleReportSheetLive kind="user" targetId={pid} />); }} />
+            go={function () { close(); navigate("team-report", { kind: "user", targetId: pid, from: "person-profile" }); }} />
         )}
         <Row red icon={<I.Ban size={19} strokeWidth={2} />} label={blocked ? "Разблокировать" : "Заблокировать"} go={doBlock} />
       </div>

@@ -58,11 +58,11 @@ function BosFlatCheckLive({ on, isDark, onToggle, label }) {
       {/* Цвет с токенов, а не прибитыми #fff/#0a0a0a: внутри .fig кружок должен слушаться
           палитры редизайна, снаружи — прежней. Размер 24 (в макете Circle 22; 22 на живом
           экране читается мелко рядом со значком 52, 24 — ближайший, что не рвёт ритм). */}
-      <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center",
+      <span style={{ width: 22, height: 22, borderRadius: "50%", display: "grid", placeItems: "center",
         background: on ? "var(--accent-blue)" : "transparent",
-        boxShadow: on ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.25)" : "rgba(10,10,10,0.18)"),
+        boxShadow: on ? "none" : "inset 0 0 0 1.5px " + (isDark ? "#48484A" : "rgba(60,60,67,0.29)"),
         transition: "background .15s" }}>
-        {on ? <I.Check size={13} strokeWidth={3} color="#fff" /> : null}
+        {on ? <I.Check size={14} strokeWidth={2.6} color="#fff" /> : null}
       </span>
     </button>
   );
@@ -99,24 +99,28 @@ function BosRoomH2({ children, extra }) {
   );
 }
 
-/* ЖАЛОБА — два шага из макета (кадры 719:27255 «Жалоба» и 719:29291 «Пожаловаться»).
-   Шаг 1: заголовок 34/700, подпись «Выберите причину», карточка из 11 строк со шевронами.
-   Шаг 2: название причины, блок «Запрещается:» списком, поле «Описание жалобы» с счётчиком
-   «0 из 200» и КРАСНАЯ кнопка «Отправить жалобу».
+/* ЖАЛОБА — ПОЛНОЭКРАННЫЙ ПОТОК по кадрам (рендеры «Жалоба» ×2 и «Пожаловаться»):
+   шаг 1 — «Жалоба» 34/700, «Выберите причину», карточка из 11 строк со шевронами (таб-бар виден);
+   шаг 2 — та же рамка, ПОДПРИЧИНЫ выбранной причины (нарисованы пока только у «Ненависти»);
+   шаг 3 — «Пожаловаться», причина 24/700, блок «Запрещается:» списком, «Описание жалобы»
+   с полем на 200 знаков и КРАСНАЯ кнопка. На шаге формы таб-бара в кадре нет — прячем его
+   тем же маркером, что у чат-режима.
 
-   Формулировки причин и текст правил взяты из макета ДОСЛОВНО (вычитаны из кадров и узлов).
-   Правила расписаны дизайнерами пока только для первой причины — для остальных блок не
-   показываем, вместо него нельзя писать отсебятину.
+   Формулировки — из кадров ДОСЛОВНО. Правила расписаны дизайнерами только для первой
+   подпричины; у остальных блока нет, и отсебятину не пишем.
 
-   Отправка: пишем в таблицу reports, если она уже заведена; если её нет — жалоба не
-   исчезает молча, человек видит честное «не удалось отправить». Ничего не имитируем. */
+   Отправка: пишем в таблицу reports (patch_reports.sql); если её ещё нет — человек видит
+   честное «не удалось отправить», ничего не имитируем. */
 var BOS_REPORT_REASONS = [
-  { id: "hate", t: "Ненависть и преследование", head: "Разжигание ненависти словами или действиями", rules: [
-    "Разжигание ненависти на основе расы, этнической принадлежности или религии.",
-    "Не допускается использование оскорбительных слов и выражений.",
-    "Запрещено подстрекательство к насилию или агрессии.",
-    "Не разрешается распространение ненавистнических материалов или контента.",
-    "Запрещается манипуляция с фактами для разжигания ненависти.",
+  { id: "hate", t: "Ненависть и преследование", subs: [
+    { id: "hate-speech", head: "Разжигание ненависти словами или действиями", rules: [
+      "Разжигание ненависти на основе расы, этнической принадлежности или религии.",
+      "Не допускается использование оскорбительных слов и выражений.",
+      "Запрещено подстрекательство к насилию или агрессии.",
+      "Не разрешается распространение ненавистнических материалов или контента.",
+      "Запрещается манипуляция с фактами для разжигания ненависти.",
+    ] },
+    { id: "hate-humiliation", head: "Принижение достоинства и издевательства" },
   ] },
   { id: "members", t: "Неподобающее поведение участников" },
   { id: "virus", t: "Распространение вирусов" },
@@ -130,83 +134,120 @@ var BOS_REPORT_REASONS = [
   { id: "spam", t: "Спам" },
 ];
 
-/* kind/targetId позволяют жаловаться не только на группу: person-profile шлёт kind:"user". */
-function CircleReportSheetLive({ team, isDark, kind, targetId }) {
-  const { close } = useSheet();
+/* kind/targetId позволяют жаловаться не только на группу: профиль человека шлёт kind:"user". */
+function CircleReportScreenLive() {
+  const nav = useNav();
+  const { params } = nav;
+  const team = params && params.team;
+  const kind = (params && params.kind) || "team";
+  const targetId = (params && params.targetId) || (team && team.cloudId);
+  const app = useApp();
+  const isDark = !!(app && app.themeOverride === "dark");
   const [reason, setReason] = React.useState(null);
+  const [sub, setSub] = React.useState(null);
   const [text, setText] = React.useState("");
   const [state, setState] = React.useState("idle"); // idle | sending | sent | error
   const LIMIT = 200;
-
-  const send = async () => {
+  const glassBtn = {
+    background: "var(--fig-fill, rgba(118,118,128,0.12))",
+    WebkitBackdropFilter: "blur(20px) saturate(180%)", backdropFilter: "blur(20px) saturate(180%)",
+  };
+  const goBack = () => {
     if (state === "sending") return;
+    if (reason && (sub || !reason.subs)) { setSub(null); if (!reason.subs) setReason(null); return; }
+    if (reason) { setReason(null); return; }
+    if (typeof nav.back === "function") nav.back(); else nav.navigate((params && params.from) || "community");
+  };
+  const chosen = sub || (reason && !reason.subs ? reason : null);
+  const send = async () => {
+    if (state === "sending" || state === "sent") return;
     setState("sending");
     let ok = false;
     try {
       if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sendReport) {
-        ok = await window.bosCloud.sendReport({ kind: kind || "team", targetId: targetId || (team && team.cloudId), reason: reason.id, text: text.slice(0, LIMIT) });
+        ok = await window.bosCloud.sendReport({
+          kind: kind, targetId: targetId, reason: reason ? reason.id : "",
+          subReason: sub ? sub.id : null, text: text.slice(0, LIMIT),
+        });
       }
     } catch (e) { ok = false; }
     setState(ok ? "sent" : "error");
     if (window.tgHaptic) { try { window.tgHaptic(ok ? "success" : "error"); } catch (e) {} }
-    if (ok) setTimeout(close, 900);
+    if (ok) setTimeout(goBack, 900);
   };
+  const backBtn = (
+    <div style={{ paddingTop: 6, paddingBottom: 8 }}>
+      <button onClick={goBack} className="tap" aria-label="Назад"
+        style={{ ...glassBtn, width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+        <I.ChevronLeft size={20} strokeWidth={2.4} />
+      </button>
+    </div>
+  );
+  const listCard = (rows) => (
+    <div style={{ background: "var(--card)", borderRadius: 26, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+      {rows.map((r, i) => (
+        <button key={r.id} onClick={r.on} className="tap"
+          style={{ position: "relative", width: "100%", border: 0, background: "transparent", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 12, padding: "15px 16px", textAlign: "left", color: "var(--text)", fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px" }}>
+          {i > 0 && <span aria-hidden style={{ position: "absolute", top: 0, left: 16, right: 0, height: isDark ? "1px" : "0.5px", background: isDark ? "#2C2C2E" : "var(--line-2)" }} />}
+          <span style={{ flex: 1 }}>{r.t}</span>
+          <I.ChevronRight size={17} color="var(--text-3)" style={{ flexShrink: 0 }} />
+        </button>
+      ))}
+    </div>
+  );
 
-  if (!reason) {
+  // Шаги 1–2: список причин / подпричин (таб-бар остаётся, как в кадрах)
+  if (!chosen) {
+    const rows = !reason
+      ? BOS_REPORT_REASONS.map((r) => ({ id: r.id, t: r.t, on: () => (r.subs ? setReason(r) : (setReason(r))) }))
+      : reason.subs.map((x) => ({ id: x.id, t: x.head, on: () => setSub(x) }));
     return (
-      <div style={{ padding: "2px 0 8px" }}>
-        <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.8px", color: "var(--text)", padding: "4px 4px 6px" }}>Жалоба</div>
-        <div style={{ fontSize: 17, color: "var(--text-2)", padding: "0 4px 12px" }}>Выберите причину</div>
-        <div style={{ background: "var(--surface-2)", borderRadius: 14, overflow: "hidden" }}>
-          {BOS_REPORT_REASONS.map((r, i) => (
-            <button key={r.id} onClick={() => setReason(r)} className="tap"
-              style={{ width: "100%", border: 0, borderTop: i ? "0.5px solid var(--line-2)" : 0, background: "transparent", cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", textAlign: "left", color: "var(--text)", fontSize: 17, lineHeight: 1.25 }}>
-              <span style={{ flex: 1 }}>{r.t}</span>
-              <I.ChevronRight size={17} color="var(--text-3)" style={{ flexShrink: 0 }} />
-            </button>
-          ))}
-        </div>
+      <div className="page-in" style={{ padding: "0 16px 40px" }}>
+        {backBtn}
+        <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "-0.8px", color: "var(--text)", padding: "10px 0 20px" }}>Жалоба</div>
+        <div style={{ fontSize: 20, fontWeight: 590, lineHeight: "25px", letterSpacing: "-0.45px", color: "var(--text-2)", padding: "0 0 14px" }}>Выберите причину</div>
+        {listCard(rows)}
+        <div style={{ height: 110 }} />
       </div>
     );
   }
 
+  // Шаг 3: форма «Пожаловаться» — в кадре без таб-бара (маркер прячет его, как в чат-режиме)
   return (
-    <div style={{ padding: "2px 0 8px" }}>
-      <button onClick={() => setReason(null)} className="tap" aria-label="Назад"
-        style={{ width: 36, height: 36, borderRadius: "50%", border: 0, background: "var(--surface-2)", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)", marginBottom: 8 }}>
-        <I.ChevronLeft size={20} strokeWidth={2.4} />
-      </button>
-      <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.8px", color: "var(--text)", padding: "0 4px 10px" }}>Пожаловаться</div>
-      <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", padding: "0 4px 8px", lineHeight: 1.25 }}>{reason.head || reason.t}</div>
+    <div className="page-in" style={{ padding: "0 16px 40px" }}>
+      <span className="fig-chatmode" aria-hidden style={{ display: "none" }} />
+      {backBtn}
+      <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "-0.8px", color: "var(--text)", padding: "10px 0 16px" }}>Пожаловаться</div>
+      <div style={{ fontSize: 24, fontWeight: 700, lineHeight: "30px", letterSpacing: "-0.45px", color: "var(--text)", paddingBottom: 12 }}>{chosen.head || chosen.t}</div>
 
-      {reason.rules && (
-        <div style={{ padding: "0 4px 14px" }}>
-          <div style={{ fontSize: 17, color: "var(--text-2)", marginBottom: 4 }}>Запрещается:</div>
-          {reason.rules.map((x, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, fontSize: 17, color: "var(--text-2)", lineHeight: 1.32, padding: "1px 0" }}>
-              <span aria-hidden style={{ flexShrink: 0 }}>·</span><span>{x}</span>
+      {chosen.rules && (
+        <div style={{ paddingBottom: 16 }}>
+          <div style={{ fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text-2)", marginBottom: 4 }}>Запрещается:</div>
+          {chosen.rules.map((x, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, fontSize: 17, color: "var(--text-2)", lineHeight: "23px", letterSpacing: "-0.43px", padding: "2px 0 2px 8px" }}>
+              <span aria-hidden style={{ flexShrink: 0, fontSize: 13, lineHeight: "23px" }}>•</span><span>{x}</span>
             </div>
           ))}
         </div>
       )}
 
-      <div style={{ fontSize: 17, fontWeight: 590, color: "var(--text)", padding: "4px 4px 8px" }}>Описание жалобы</div>
-      <textarea value={text} onChange={(e) => setText(e.target.value.slice(0, LIMIT))} rows={5}
+      <div style={{ fontSize: 20, fontWeight: 590, lineHeight: "25px", letterSpacing: "-0.45px", color: "var(--text-2)", padding: "8px 0 12px" }}>Описание жалобы</div>
+      <textarea value={text} onChange={(e) => setText(e.target.value.slice(0, LIMIT))} rows={9}
         placeholder="Расскажите о проблеме подробнее"
-        style={{ width: "100%", boxSizing: "border-box", border: 0, outline: "none", resize: "none", borderRadius: 14,
-          background: "var(--surface-2)", color: "var(--text)", fontSize: 17, lineHeight: 1.3, padding: "14px 16px", fontFamily: "inherit" }} />
-      <div style={{ textAlign: "right", fontSize: 15, color: "var(--text-3)", padding: "6px 4px 0" }}>{text.length + " из " + LIMIT}</div>
+        style={{ width: "100%", boxSizing: "border-box", border: 0, outline: "none", resize: "none", borderRadius: 16, minHeight: 240,
+          background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)", fontSize: 17, lineHeight: "22px", padding: "16px", fontFamily: "inherit" }} />
+      <div style={{ textAlign: "right", fontSize: 15, lineHeight: "20px", color: "var(--text-2)", padding: "8px 0 0" }}>{text.length + " из " + LIMIT}</div>
 
       {state === "error" && (
-        <div style={{ fontSize: 15, color: "var(--accent-red)", padding: "8px 4px 0", lineHeight: 1.35 }}>
+        <div style={{ fontSize: 15, color: "var(--accent-red)", padding: "10px 0 0", lineHeight: 1.35 }}>
           Не удалось отправить — приём жалоб на сервере ещё не включён. Ничего не потеряно: попробуй позже.
         </div>
       )}
 
       <button onClick={send} disabled={state === "sending" || state === "sent"} className="tap"
-        style={{ width: "100%", marginTop: 16, height: 50, borderRadius: 999, border: 0, cursor: "pointer",
-          background: "var(--accent-red)", color: "#fff", fontSize: 17, fontWeight: 590, opacity: state === "sending" ? 0.6 : 1 }}>
+        style={{ width: "100%", marginTop: 24, height: 56, borderRadius: 999, border: 0, cursor: "pointer",
+          background: "#FC4436", color: "#fff", fontSize: 17, fontWeight: 590, opacity: state === "sending" ? 0.6 : 1 }}>
         {state === "sent" ? "Жалоба отправлена" : "Отправить жалобу"}
       </button>
     </div>
@@ -349,28 +390,23 @@ function CircleHabitWeekLive({ habit, rangeRows, membersN, isDark }) {
         const doneN = Object.keys(users).length;
         const frac = membersN > 0 ? Math.max(0, Math.min(1, doneN / membersN)) : 0;
         const due = !mask || mask[bosDowOfKey(k)];
-        let ring = null, ink = "var(--text)";
-        if (future) { ink = "var(--text-3)"; }
-        else if (today) { ring = frac > 0 ? "var(--accent-blue)" : null; }
-        else if (frac >= 1) { ring = "var(--accent)"; ink = "var(--accent)"; }
-        else if (frac > 0) { ring = "var(--accent-orange)"; }
-        else if (due) { ring = "var(--accent-red)"; ink = "var(--accent-red)"; }
-        else { ink = "var(--text-3)"; }
-        const R = 17, C = 2 * Math.PI * R;
+        // Состояние дня → цвет из легенды узла. У цветного дня цифра 590 и диск-подложка @0.18,
+        // у нейтрального — цифра 400 в тонком кольце @0.17, будущее приглушено.
+        let tone = null;
+        if (!future && !today) {
+          if (frac >= 1) tone = "#0EBE65";
+          else if (frac > 0) tone = "#FFB366";
+          else if (due) tone = "#FC4436";
+        } else if (today && frac >= 1) tone = "#0EBE65";
+        const dim = isDark ? "rgba(235,235,245,0.7)" : "var(--text-2)";
+        const thin = isDark ? "rgba(255,255,255,0.17)" : "rgba(60,60,67,0.18)";
         return (
           <span key={k} style={{ position: "relative", width: 38, height: 38, justifySelf: "center", display: "grid", placeItems: "center" }}>
-            {ring && (
-              <svg viewBox="0 0 38 38" width="38" height="38" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
-                <circle cx="19" cy="19" r={R} fill="none" stroke={ring} strokeWidth="2.5" strokeLinecap="round"
-                  strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - (today ? frac : Math.max(frac, 0.999)))).toFixed(1)} />
-              </svg>
-            )}
-            {!ring && !future && (
-              <span aria-hidden style={{ position: "absolute", inset: 2, borderRadius: "50%", boxShadow: "inset 0 0 0 1.5px var(--line-2)" }} />
-            )}
             <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
-              fontSize: 20, fontWeight: 400, lineHeight: "24px",
-              background: today ? "var(--surface-3)" : "transparent", color: ink }}>{d.getDate()}</span>
+              fontSize: 20, fontWeight: tone ? 590 : 400, lineHeight: "24px", letterSpacing: tone ? 0 : "-0.45px",
+              background: tone ? tone + "2E" : "transparent",
+              boxShadow: tone ? "none" : (future || (!due && !today) ? "none" : "inset 0 0 0 1px " + thin),
+              color: tone || (future || (!due && !today) ? dim : "var(--text)") }}>{d.getDate()}</span>
           </span>
         );
       })}
@@ -398,18 +434,21 @@ function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub
     <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", minHeight: 82, boxSizing: "border-box" }}>
       {/* Разделитель НЕ на всю ширину: в макете он начинается под текстом, за значком
           (значок 52 + зазор 8 = 60). Линия во всю ширину резала бы строку пополам. */}
-      {!first && <span aria-hidden style={{ position: "absolute", top: 0, left: 60, right: 0, height: "0.5px", background: "var(--line-2)" }} />}
+      {!first && <span aria-hidden style={{ position: "absolute", top: 0, left: 60, right: 0, height: isDark ? "1px" : "0.5px", background: isDark ? "#1A1A1A" : "var(--line-2)" }} />}
       <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
         <span style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 26, overflow: "hidden",
+          opacity: struck ? 0.4 : 1,
           background: iconColor ? iconColor + "26" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)")),
           boxShadow: iconColor ? "none" : bosTileGlass(isDark) }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Длинное имя не режется, а медленно проезжает (David: «нельзя прочитать»). */}
           {typeof FigMarquee === "function"
-            ? <FigMarquee style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px",
-                color: struck ? "var(--text-3)" : "var(--text)", textDecoration: struck ? "line-through" : "none" }}>{name}</FigMarquee>
-            : <div style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                color: struck ? "var(--text-3)" : "var(--text)", textDecoration: struck ? "line-through" : "none" }}>{name}</div>}
+            ? <FigMarquee style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px", letterSpacing: "-0.43px",
+                color: struck ? (isDark ? "rgba(235,235,245,0.3)" : "rgba(60,60,67,0.3)") : "var(--text)",
+                textDecoration: struck ? "line-through" : "none", textDecorationColor: struck ? "#404040" : undefined, textDecorationThickness: struck ? "1.5px" : undefined }}>{name}</FigMarquee>
+            : <div style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px", letterSpacing: "-0.43px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                color: struck ? (isDark ? "rgba(235,235,245,0.3)" : "rgba(60,60,67,0.3)") : "var(--text)",
+                textDecoration: struck ? "line-through" : "none", textDecorationColor: struck ? "#404040" : undefined, textDecorationThickness: struck ? "1.5px" : undefined }}>{name}</div>}
           {metaLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{metaLine}</div> : null}
           {countLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: subGold ? BOS_ROOM_GOLD_INK : "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{countLine}</div> : null}
         </div>
@@ -1308,7 +1347,7 @@ function TeamDetailLive() {
           а не общий экран уведомлений. */
       onNotify={() => openSheet(<CircleNotifySheetLive team={t} />)}
       onEdit={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)}
-      onReport={() => openSheet(<CircleReportSheetLive team={t} isDark={isDark} />)}
+      onReport={() => navigate("team-report", { team: t, from: "team-detail" })}
       /* Выход и удаление — единый путь по кадрам макета: алерт (частная/публичная свой
           текст) → «что оставить себе» → Undo Bar на 6 секунд. Прежний onLeave звал
           bosConfirmExitTeam с ПОЗИЦИОННЫМИ аргументами при объектной сигнатуре — то есть
@@ -1505,7 +1544,7 @@ function TeamDetailLive() {
         <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, paddingTop: 6 }}>
           {!_inTG ? (
             <button onClick={() => navigate(from)} className="tap" aria-label="Назад"
-              style={{ ...glass, width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              style={{ ...glass, width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
               <I.ChevronLeft size={20} strokeWidth={2.4} />
             </button>
           ) : <span />}
@@ -1515,14 +1554,17 @@ function TeamDetailLive() {
                 на экране нет вовсе, а маршрут терять нельзя. */}
             {_role === "admin" && _live && (
               <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" aria-label="Редактировать группу"
-                style={{ ...glass, position: "relative", width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
-                <I.Pencil size={16} strokeWidth={2} />
+                style={{ ...glass, position: "relative", width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+                <I.Pencil size={18} strokeWidth={2} />
                 {redCount > 0 && <span style={{ position: "absolute", top: -3, right: -3, minWidth: 16, height: 16, borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px" }}>{redCount}</span>}
               </button>
             )}
             <button ref={moreRef} onClick={openRoomMenu} className="tap" aria-label="Ещё" aria-haspopup="dialog"
-              style={{ ...glass, width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              style={{ ...glass, position: "relative", width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+              {unreadN > 0 && (
+                <span style={{ position: "absolute", top: 0, right: 0, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: "#FC4436", color: "#fff", fontSize: 12, fontWeight: 590, lineHeight: "16px", display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>{unreadN > 99 ? "99+" : unreadN}</span>
+              )}
             </button>
           </div>
         </div>
@@ -1532,25 +1574,46 @@ function TeamDetailLive() {
             же счёт, что в шторке уровня. Цвет кольца и бейджа — цвет круга, чтобы шапка
             читалась одним пятном. Дуга нарисована с 12 часов по часовой (rotate -90). */}
         <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12, paddingBottom: 24 }}>
-          <span style={{ position: "relative", width: 104, height: 104, flexShrink: 0, display: "grid", placeItems: "center" }}>
+          <span style={{ position: "relative", width: 106, height: 106, flexShrink: 0, display: "grid", placeItems: "center" }}>
             {circleLvl && (
-              <svg viewBox="0 0 104 104" width="104" height="104" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
-                <circle cx="52" cy="52" r="50" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.08)"} strokeWidth="3" />
-                <circle cx="52" cy="52" r="50" fill="none" stroke={heroTint} strokeWidth="3" strokeLinecap="round"
-                  strokeDasharray={314.16} strokeDashoffset={(314.16 * (1 - circleLvl.frac)).toFixed(1)} />
+              <svg viewBox="0 0 106 106" width="106" height="106" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+                <defs>
+                  <linearGradient id="bosLvlArcG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#9A36FF" /><stop offset="1" stopColor="#CC35FF" />
+                  </linearGradient>
+                </defs>
+                <circle cx="53" cy="53" r="51.5" fill="none" stroke="rgba(120,120,128,0.32)" strokeWidth="3" />
+                <circle cx="53" cy="53" r="51.5" fill="none" stroke={circleLvl.level >= 5 ? "url(#bosLvlArcG)" : "#8A8A8A"} strokeWidth="3" strokeLinecap="round"
+                  strokeDasharray={323.58} strokeDashoffset={(323.58 * (1 - circleLvl.frac)).toFixed(1)} />
               </svg>
             )}
             <span style={{ width: 96, height: 96, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 46, overflow: "hidden",
               background: isDark ? "#0d0d10" : "#ffffff", boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 46, null, "\ud83d\udc65")}</span>
           </span>
-          {circleLvl && (
-            <span onClick={openLevelSheet} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 10, cursor: "pointer" }}>
-              <span aria-hidden style={{ width: 14, height: 14, borderRadius: "50%", background: heroTint, display: "inline-block" }} />
-              <span style={{ fontSize: 13, fontWeight: 590, color: heroTint }}>{"Lvl. " + circleLvl.level}</span>
-            </span>
-          )}
+          {circleLvl && (() => {
+            const _hiLvl = circleLvl.level >= 5;
+            const _lvlInk = _hiLvl ? "#B336FF" : (isDark ? "rgba(235,235,245,0.7)" : "var(--text-2)");
+            return (
+              <span onClick={openLevelSheet} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 3, marginTop: 10, cursor: "pointer" }}>
+                <svg viewBox="0 0 16 16" width="16" height="16" style={{ transform: "rotate(-90deg)" }} aria-hidden>
+                  <defs>
+                    <linearGradient id="bosLvlPillG" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stopColor="#9A36FF" /><stop offset="1" stopColor="#CC35FF" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="8" cy="8" r="6" fill="none" stroke={_hiLvl ? "url(#bosLvlPillG)" : _lvlInk} strokeOpacity={_hiLvl ? 0.35 : 0.35} strokeWidth="3" />
+                  <circle cx="8" cy="8" r="6" fill="none" stroke={_hiLvl ? "url(#bosLvlPillG)" : _lvlInk} strokeWidth="3"
+                    strokeDasharray={37.7} strokeDashoffset={(37.7 * (1 - circleLvl.frac)).toFixed(1)} />
+                </svg>
+                <span style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", letterSpacing: "-0.08px",
+                  color: _hiLvl ? "transparent" : _lvlInk,
+                  backgroundImage: _hiLvl ? "linear-gradient(180deg,#9A36FF,#CC35FF)" : "none",
+                  WebkitBackgroundClip: _hiLvl ? "text" : "border-box", backgroundClip: _hiLvl ? "text" : "border-box" }}>{"Lvl. " + circleLvl.level}</span>
+              </span>
+            );
+          })()}
           <div style={{ textAlign: "center", maxWidth: 320, marginTop: 6 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", lineHeight: 1.25 }}>{t.name}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.26px", color: "var(--text)", lineHeight: "28px" }}>{t.name}</div>
             {/* ПОДПИСЬ по роли: у админа в макете стоит вид группы («Публичная группа»),
                 у участника и гостя — «15 участников · 89 дней вместе». */}
             <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", marginTop: 2 }}>
@@ -1567,25 +1630,24 @@ function TeamDetailLive() {
         <div style={{ position: "relative", display: "flex", justifyContent: "center", gap: 10, paddingBottom: 24 }}>
           {_isGuest ? (
             <button onClick={joinThisCircle} disabled={joinState === "sending" || joinState === "pending"} className="tap" data-haptic="selection"
-              style={{ width: 230, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: joinState === "pending" ? "var(--surface-3)" : "var(--cta)",
-                color: joinState === "pending" ? "var(--text-2)" : "var(--cta-ink)",
-                fontSize: 17, fontWeight: 590, cursor: joinState === "pending" ? "default" : "pointer", opacity: joinState === "sending" ? 0.6 : 1 }}>
-              {joinState === "pending" ? "Заявка отправлена" : (<React.Fragment><I.Plus size={20} strokeWidth={2.4} />Вступить</React.Fragment>)}
+              style={{ ...(joinState === "pending" ? glass : null), height: 50, padding: "0 20px 0 15px", borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                background: joinState === "pending" ? undefined : "var(--cta)",
+                color: joinState === "pending" ? "var(--text)" : "var(--cta-ink)",
+                fontSize: 17, fontWeight: 510, cursor: joinState === "pending" ? "default" : "pointer", opacity: joinState === "sending" ? 0.6 : 1 }}>
+              {joinState === "pending"
+                ? (<React.Fragment><I.Hourglass size={19} />Заявка</React.Fragment>)
+                : (<React.Fragment><I.Plus size={20} strokeWidth={2.4} />Вступить</React.Fragment>)}
             </button>
           ) : _role === "admin" ? (
             <button onClick={() => openSheet(<CircleAddSheetLive isDark={isDark} onHabit={openAddHabit} onTask={() => openSheet(<CircleTaskComposeSheetLive isDark={isDark} onAdd={addTeamTaskCloud} />)} />)}
               className="tap" data-haptic="selection"
-              style={{ ...glass, width: 200, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 590, cursor: "pointer" }}>
+              style={{ ...glass, height: 50, padding: "0 20px 0 15px", borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 510, cursor: "pointer" }}>
               <I.Plus size={20} strokeWidth={2.4} />Создать
             </button>
           ) : (
             <button onClick={() => setRoomTab("chat")} className="tap" data-haptic="selection"
-              style={{ ...glass, position: "relative", width: 160, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 590, cursor: "pointer" }}>
-              <I.MessageCircle size={20} strokeWidth={2} />Чат
-              {unreadN > 0 && (
-                <span style={{ position: "absolute", top: 4, right: 10, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
-              )}
+              style={{ ...glass, width: 160, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 510, cursor: "pointer" }}>
+              <I.ChatDots size={21} />Чат
             </button>
           )}
 
@@ -1595,13 +1657,12 @@ function TeamDetailLive() {
             <button onClick={() => openSheet(<CircleAddSheetLive isDark={isDark} onHabit={openAddHabit} onTask={() => openSheet(<CircleTaskComposeSheetLive isDark={isDark} onAdd={addTeamTaskCloud} />)} />)}
               className="tap" data-haptic="selection" aria-label="Добавить привычку или дело"
               style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
-              <I.Plus size={22} strokeWidth={2.2} />
+              <I.ListPlus size={24} />
             </button>
           ) : (
             <button onClick={() => setRoomTab("chat")} className="tap" data-haptic="selection" aria-label="Чат группы"
-              style={{ ...glass, position: "relative", width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
-              <I.MessageCircle size={20} strokeWidth={2} />
-              {unreadN > 0 && <span style={{ position: "absolute", top: -2, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>}
+              style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <I.ChatDots size={21} />
             </button>
           )}
 
@@ -1613,14 +1674,33 @@ function TeamDetailLive() {
           </button>
         </div>
 
-        {/* Описание с «Ещё» и строка места — блок Content из макета (2 строки, потом обрез). */}
-        {t.desc && (
+        {/* Описание — блок «Content» из узла: 280 по центру, две строки 15/400, конец второй
+            строки гаснет маской, и «Ещё» стоит ПОВЕРХ угасания (Fade Mask + кнопка). */}
+        {t.desc ? (
           <div style={{ position: "relative", paddingBottom: 24, textAlign: "center" }}>
-            <div style={{ fontSize: 15, lineHeight: 1.33, color: "var(--text-2)", display: "-webkit-box", WebkitLineClamp: descOpen ? 99 : 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.desc}</div>
-            {t.desc.length > 90 && (
-              <button onClick={() => setDescOpen(!descOpen)} className="tap"
-                style={{ border: 0, background: "transparent", color: "var(--text)", fontSize: 15, fontWeight: 590, cursor: "pointer", padding: "2px 0 0" }}>{descOpen ? "Свернуть" : "Ещё"}</button>
+            <div style={{ position: "relative", maxWidth: 280, margin: "0 auto" }}>
+              <div style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)",
+                display: "-webkit-box", WebkitLineClamp: descOpen ? 99 : 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                WebkitMaskImage: (!descOpen && t.desc.length > 90)
+                  ? "linear-gradient(#000,#000), linear-gradient(to left, transparent, #000 96px)"
+                  : "none",
+                WebkitMaskSize: "100% 20px, 100% 20px", WebkitMaskPosition: "top, bottom", WebkitMaskRepeat: "no-repeat" }}>{t.desc}</div>
+              {t.desc.length > 90 && !descOpen && (
+                <button onClick={() => setDescOpen(true)} className="tap"
+                  style={{ position: "absolute", right: 0, bottom: 0, border: 0, background: "transparent", color: "var(--text-2)", fontSize: 15, lineHeight: "20px", cursor: "pointer", padding: 0 }}>Ещё</button>
+              )}
+            </div>
+            {descOpen && (
+              <button onClick={() => setDescOpen(false)} className="tap"
+                style={{ border: 0, background: "transparent", color: "var(--text-2)", fontSize: 15, cursor: "pointer", padding: "2px 0 0" }}>Свернуть</button>
             )}
+          </div>
+        ) : (
+          <div style={{ paddingBottom: 24, textAlign: "center" }}>
+            <button onClick={() => openSheet(<CircleAboutSheetLive team={t} membersN={membersN} ageDays={ageDays} isDark={isDark} />)} className="tap"
+              style={{ border: 0, background: "transparent", display: "inline-flex", alignItems: "center", gap: 3, color: "var(--text-2)", fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", cursor: "pointer", padding: 0 }}>
+              <I.Info size={16} strokeWidth={1.8} />О группе
+            </button>
           </div>
         )}
       </div>)}
@@ -1725,7 +1805,7 @@ function TeamDetailLive() {
                 disabled={future} className={future ? undefined : "tap"}
                 style={{ border: 0, background: "transparent", padding: 0, cursor: future ? "default" : "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-3)", letterSpacing: "0.2px" }}>{dowName}</span>
+                <span style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", color: isDark ? "rgba(235,235,245,0.3)" : "rgba(60,60,67,0.3)" }}>{dowName}</span>
                 <span style={{ position: "relative", width: 38, height: 38, display: "grid", placeItems: "center" }}>
                   {!future && (
                     <svg viewBox="0 0 40 40" width="40" height="40" style={{ position: "absolute", inset: -1 }} aria-hidden>
@@ -1792,7 +1872,7 @@ function TeamDetailLive() {
         const slots = [0, 1, 2, 3].map((i) => marks.filter((x) => x.hr != null && x.hr >= i * 6 && x.hr < (i + 1) * 6));
         const lastAt = isToday && marks.length ? marks[marks.length - 1].at : null;
         return (
-          <div style={{ ...card, padding: "14px 16px 12px", marginTop: 4 }}>
+          <div style={{ ...card, borderRadius: 24, padding: "14px 16px 12px", marginTop: 4 }}>
             <button onClick={() => { const nx = !actOpen; setActOpen(nx); if (nx) setPathSeen(true); }} className="tap" data-haptic="selection"
               style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8, color: "var(--text)" }}>
               {/* Заголовок карточки в узле — 17/590, не 20/700. */}
@@ -1809,12 +1889,12 @@ function TeamDetailLive() {
             {isToday && (
               <React.Fragment>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 8,
-                  border: "0.5px solid var(--line-2)", borderRadius: 8, height: 34, boxSizing: "border-box" }}>
+                  border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.17)" : "rgba(60,60,67,0.18)"), borderRadius: 8, height: 34, boxSizing: "border-box" }}>
                   {slots.map((people, i) => {
                     const nowSlot = Math.floor(new Date().getHours() / 6) === i;
                     return (
                       <span key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
-                        borderLeft: i ? "0.5px solid var(--line-2)" : 0, padding: "0 4px", overflow: "hidden" }}>
+                        borderLeft: i ? "0.5px solid " + (isDark ? "rgba(255,255,255,0.17)" : "rgba(60,60,67,0.18)") : 0, padding: "0 4px", overflow: "hidden" }}>
                         {nowSlot && (
                           <span aria-hidden style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: "grid", placeItems: "center",
                             background: "rgba(0,123,255,0.10)" }}>
@@ -1833,7 +1913,7 @@ function TeamDetailLive() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0 0" }}>
                   {["00:00", "06:00", "12:00", "18:00", "00:00"].map((h, i) => (
-                    <span key={i} style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", color: "var(--text-3)" }}>{h}</span>
+                    <span key={i} style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", color: isDark ? "rgba(235,235,245,0.3)" : "rgba(60,60,67,0.3)" }}>{h}</span>
                   ))}
                 </div>
               </React.Fragment>
@@ -1918,9 +1998,9 @@ function TeamDetailLive() {
       {/* Шапка дней недели над карточкой — только на «Привычках», как в макете: недели
           лежат под каждой строкой, и одна общая подпись сверху объясняет все семь колонок. */}
       {roomTab === "habits" && teamHabits.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", padding: "4px 12px 6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", padding: "4px 16px 6px" }}>
           {["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"].map((n) => (
-            <span key={n} style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center", letterSpacing: "0.2px" }}>{n}</span>
+            <span key={n} style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", color: isDark ? "rgba(235,235,245,0.3)" : "rgba(60,60,67,0.3)", textAlign: "center" }}>{n}</span>
           ))}
         </div>
       )}
@@ -1929,41 +2009,29 @@ function TeamDetailLive() {
         <React.Fragment>
           {taskGroups.sort((a, b) => b.ord - a.ord).map((g) => (
             <React.Fragment key={g.key}>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", padding: "16px 4px 8px" }}>{g.label}</div>
-              <div style={{ ...card, padding: "3px 12px" }}>{g.rows}</div>
+              <div style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text-2)", padding: "16px 16px 9px" }}>{g.label}</div>
+              <div style={{ ...card, borderRadius: 26, padding: "0 16px" }}>{g.rows}</div>
             </React.Fragment>
           ))}
         </React.Fragment>
       )}
 
       {!(roomTab === "tasks" && taskGroups.length > 0) && (
-      <div style={{ ...card, padding: "3px 12px" }}>
-        {dayList.length ? dayList : (
-          /* Пустое состояние — заголовок 20/590 из кадра «Пустое». */
-          <div style={{ padding: "20px 6px 18px", textAlign: "center" }}>
+        dayList.length ? (
+          <div style={{ ...card, borderRadius: 26, padding: "0 16px" }}>{dayList}</div>
+        ) : (
+          /* Пустое состояние по кадру «Пустое»: сообщение по фону, без карточки и подписи. */
+          <div style={{ padding: "24px 32px", textAlign: "center" }}>
             <div style={{ fontSize: 20, fontWeight: 590, lineHeight: "25px", letterSpacing: "-0.45px", color: "var(--text)" }}>Тут пока ничего нет</div>
-            <div style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", marginTop: 4 }}>
-              {roomTab !== "tasks"
-                ? (_isOwner ? "Дай группе первую привычку — общий ритм начинается с неё." : "Ведущий ещё не добавил привычек — загляни позже.")
-                : (_isOwner ? "Дело — разовый шаг: сделал, отметил, готово." : "Ведущий может дать группе разовое дело.")}
-            </div>
           </div>
-        )}
-        {_isOwner && (
-          <button onClick={() => openSheet(<CircleAddSheetLive isDark={isDark} onHabit={openAddHabit} onTask={() => openSheet(<CircleTaskComposeSheetLive isDark={isDark} onAdd={addTeamTaskCloud} />)} />)}
-            className="tap" style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: "11px 2px", borderTop: dayList.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") : 0, color: "var(--text-3)" }}>
-            <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.14)" : "rgba(10,10,10,0.10)") }}><I.Plus size={16} strokeWidth={2.4} /></span>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Привычка или дело</span>
-          </button>
-        )}
-      </div>
+        )
       )}
 
       {/* Легенда цветов — в макете стоит под карточкой «Привычек» и расшифровывает кольца. */}
       {roomTab === "habits" && teamHabits.length > 0 && (
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", padding: "10px 4px 0" }}>
-          {[["var(--accent-red)", "пропуск"], ["var(--accent-orange)", "не до конца"], ["var(--accent)", "выполнено"]].map(([c, l]) => (
-            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--text-2)" }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "8px 16px 0" }}>
+          {[["#FC4436", "пропуск"], ["#FFB366", "не до конца"], ["#0EBE65", "выполнено"]].map(([c, l]) => (
+            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
               <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />{l}
             </span>
           ))}
@@ -1974,13 +2042,13 @@ function TeamDetailLive() {
           галочка синяя залитая. Пусто — секции нет. */}
       {doneList.length > 0 && (
         <React.Fragment>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", padding: "18px 4px 8px" }}>Вы выполнили</div>
-          <div style={{ ...card, padding: "3px 12px" }}>{doneList}</div>
+          <div style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text-2)", padding: "18px 16px 9px" }}>Вы выполнили</div>
+          <div style={{ ...card, borderRadius: 26, padding: "0 16px" }}>{doneList}</div>
         </React.Fragment>
       )}
 
       {/* Подвал из макета — объясняет связь комнаты с Главной. */}
-      <div style={{ padding: "12px 4px 0", fontSize: 13, lineHeight: 1.35, color: "var(--text-3)" }}>
+      <div style={{ padding: "8px 16px 0", fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
         На главной странице отображаются задачи, привычки и цели, которые вы принимаете
       </div>
 
