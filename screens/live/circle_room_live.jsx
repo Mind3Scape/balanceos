@@ -262,7 +262,7 @@ function CircleMenuSheetLive({ team, role, isDark, unreadN, onAbout, onShare, on
           ? big(<I.PlusCircle size={28} />, "Вступить", run(onJoin))
           : big(<I.Heart size={28} filled={fav} color={fav ? "var(--accent-red)" : undefined} />, "В избранное", toggleFav)}
         {big(<I.Bell size={28} />, "Уведомления", run(onNotify), isGuest)}
-        {big(<I.Share size={28} />, "Поделится", run(onShare))}
+        {big(<I.Share size={28} />, "Поделиться", run(onShare))}
       </div>
 
       <div style={CARD}>

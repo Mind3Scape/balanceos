@@ -49,17 +49,23 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
    оставалась в старой палитре, и в Телеграме под контентом торчала полоса прежнего фона
    («бекграунды не дотягиваются до конца», David 19.08). Плюс html/body ниже красим теми же
    значениями — иначе за нижней кромкой видно чужой цвет. */
-const FIG_ROUTES = new Set(["community", "profile", "team-detail", "chats"]);
+const FIG_ROUTES = new Set(["community", "profile", "team-detail", "chats", "team-overview", "team-history", "team-members", "team-admins", "team-admin-add", "team-admin-rights", "person-profile", "favorites", "notifications"]);
 
 const ROOT_BG = {
   mood: "#f2f3f6", "ai-chat": "#fafafa",
   community: "#F2F2F7", profile: "#F2F2F7", "team-detail": "#F2F2F7", chats: "#F2F2F7",
+  "team-overview": "#F2F2F7", "team-history": "#F2F2F7", "team-members": "#F2F2F7",
+  "team-admins": "#F2F2F7", "team-admin-add": "#F2F2F7", "team-admin-rights": "#F2F2F7",
+  "person-profile": "#F2F2F7", favorites: "#F2F2F7", notifications: "#F2F2F7",
 };
 // В ТЁМНОЙ теме светлые подложки выше НЕЛЬЗЯ применять — html/body/шапка Telegram на миг
 // красились белым при переходе («белое мигание», David). Тёмные аналоги:
 const ROOT_BG_DARK = {
   "ai-chat": "#0f0f12", mood: "#0a0b0e",
   community: "#000000", profile: "#000000", "team-detail": "#000000", chats: "#000000",
+  "team-overview": "#000000", "team-history": "#000000", "team-members": "#000000",
+  "team-admins": "#000000", "team-admin-add": "#000000", "team-admin-rights": "#000000",
+  "person-profile": "#000000", favorites: "#000000", notifications: "#000000",
 };
 
 const SCREENS = {
@@ -154,6 +160,8 @@ const LIVE_SCREENS = {
   "team-admin-rights": () => CircleAdminRightsLive,
   // Профиль другого человека (кадры «Гость / Профиль», «Друг»).
   "person-profile": () => PersonProfileLive,
+  // Любимые группы (кадр «Любимые группы»).
+  favorites: () => FigFavoritesRoomLive,
   levels: () => LevelsLive,
   "course-detail": () => CourseDetailLive,
   "partner-detail": () => PartnerDetailLive,

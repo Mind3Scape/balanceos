@@ -233,7 +233,7 @@ function FigCommunityAllLive({ app, navigate, isDark, onSeg, lowCircles }) {
       {favGroups.length > 0 && (
         <React.Fragment>
           <FigSectionHead title="Любимые группы" sub={figPlural(favGroups.length, "группа", "группы", "групп")}
-            onPress={function () { onSeg("circles"); }} />
+            onPress={function () { navigate("favorites", { from: "community" }); }} />
           <FigRail pad={12} gap={0}>
             {favGroups.map(function (g, i) {
               return <FigFavGroup key={g.key} group={g} rank={i + 1} onOpen={function () { openGroup(g.team); }} />;
@@ -647,6 +647,73 @@ function FigGroupsRoomLive({ app, navigate, isDark, query }) {
               onJoin={function () { join(t); }} />;
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ── «ЛЮБИМЫЕ ГРУППЫ» — отдельная страница (кадр 654:17039): Топ-5 по активности лентой
+      столбиков 116 + «В избранном» строками. Топ считается по НАСТОЯЩЕЙ активности —
+      XP группы (bos_team_xp), а не порядком добавления. ── */
+function FigFavoritesRoomLive() {
+  const { navigate, back } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const teams = (app && app.teams) || [];
+  const levels = useFigTeamLevels(teams);
+  const favs = teams.filter(function (t) {
+    var k = t.cloudId || t._id || t.id;
+    try { return k && localStorage.getItem("bos:favteam:" + k) === "1"; } catch (e) { return false; }
+  });
+  const dress = function (t) {
+    var L = levels[t.cloudId] || null;
+    return { key: t.cloudId || t._id, team: t, name: t.name,
+      avatar: (t.emblem && ("" + t.emblem).indexOf("url:") === 0) ? t.emblem : (t.emblem ? "emoji:" + t.emblem : null),
+      category: t.category || (t.vis === "public" ? "Открытая группа" : "Приватная группа"),
+      level: L ? L.level : null, lvlPct: L ? L.pct : 0 };
+  };
+  // Топ по уровню группы (реальная активность в XP).
+  const top = favs.slice().sort(function (a, b) {
+    var la = (levels[a.cloudId] || {}).level || 0, lb = (levels[b.cloudId] || {}).level || 0;
+    return lb - la;
+  }).slice(0, 5);
+  const glass = { background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(30px) saturate(1.8)", backdropFilter: "blur(30px) saturate(1.8)" };
+  return (
+    <div className="page-in" style={{ padding: "0 0 24px" }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "0 16px", height: 44 }}>
+        <button onClick={back} className="tap" aria-label="Назад"
+          style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
+          <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
+        </button>
+      </div>
+      <div style={{ padding: "10px 16px 0" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "0.4px", color: "var(--text)" }}>Любимые группы</div>
+        <div style={{ fontSize: 15, fontWeight: 590, lineHeight: "20px", color: "#8A8A8A" }}>{figPlural(favs.length, "группа", "группы", "групп")}</div>
+      </div>
+      {favs.length === 0 ? (
+        <div style={{ padding: "16px 16px 0" }}>
+          <FigEmpty title="Избранного пока нет" text="Отметь группу звёздочкой в её меню — и она поселится здесь."
+            action="К группам" onAction={function () { navigate("community", { from: "favorites" }); }} />
+        </div>
+      ) : (
+        <React.Fragment>
+          <FigSectionHead title="Топ 5 по активности" sub={figPlural(top.length, "группа", "группы", "групп")} />
+          <FigRail pad={12} gap={0}>
+            {top.map(function (t, i) {
+              return <FigFavGroup key={t.cloudId || t._id} group={dress(t)} rank={i + 1}
+                onOpen={function () { navigate("team-detail", { team: t, from: "favorites" }); }} />;
+            })}
+          </FigRail>
+          <FigSectionHead title="В избранном" sub={figPlural(favs.length, "группа", "группы", "групп")} />
+          <div style={{ padding: "0 16px" }}>
+            <FigCard>
+              {favs.map(function (t, i) {
+                return <FigGroupRow key={t.cloudId || t._id} group={dress(t)} first={i === 0}
+                  onOpen={function () { navigate("team-detail", { team: t, from: "favorites" }); }}
+                  onChat={function () { navigate("team-detail", { team: t, from: "favorites", tab: "chat" }); }} />;
+              })}
+            </FigCard>
+          </div>
+        </React.Fragment>
       )}
     </div>
   );
