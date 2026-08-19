@@ -143,6 +143,10 @@ const LIVE_SCREENS = {
   "team-habit": () => CircleHabitDetailLive,
   // Человек в круге — тоже страница (кадр 3), не шторка.
   "team-person": () => CirclePersonDetailLive,
+  // Обзор группы — календарь Д·Н·М + сетка часов (кадры «… / Обзор»).
+  "team-overview": () => CircleOverviewLive,
+  // История группы — лента событий по дням (кадры «… / История»).
+  "team-history": () => CircleHistoryLive,
   levels: () => LevelsLive,
   "course-detail": () => CourseDetailLive,
   "partner-detail": () => PartnerDetailLive,
@@ -1104,7 +1108,7 @@ function PhoneApp() {
             onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} tabs={isLive ? liveTabs : undefined} fig={isLive} />
         )}
         <div className="bos-version">{app.mode === "live" ? APP_VERSION : DEMO_VERSION}</div>
-        <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
+        <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark} fig={FIG_ROUTES.has(top.route)}>{sheet}</BottomSheet>
         <FreshOnboarding app={app} dark={topDark} />
         <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} onAdvance={advanceGuide} onDismiss={dismissGuide} lastScreen={app.tourScreen === "ai"} />
         {/* «Швейцар» приветственных поп-апов (David: «не больше одного за раз, остальные в

@@ -227,7 +227,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, ac
 const SheetCtx = React.createContext({ open: () => {}, close: () => {} });
 const useSheet = () => React.useContext(SheetCtx);
 
-function BottomSheet({ open, onClose, children, dark = false }) {
+function BottomSheet({ open, onClose, children, dark = false, fig = false }) {
   const [render, setRender] = useState(open);
   const [shown, setShown] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -277,7 +277,10 @@ function BottomSheet({ open, onClose, children, dark = false }) {
   return (
     <div className="bos-sheet-root">
       <div className="bos-sheet-backdrop" onClick={onClose} style={{ opacity: shown ? 1 : 0 }} />
-      <div className={"bos-sheet " + (dark ? "is-dark " : "") + (shown ? "is-up" : "")}
+      {/* fig — шторка из экрана, переехавшего на палитру макетов: тогда и она берёт
+          новые токены. Без этого кнопка «Выбрать из галереи» в шторке аватара красилась
+          старым серым --cta и выглядела неактивной. */}
+      <div className={"bos-sheet " + (dark ? "is-dark " : "") + (fig ? "fig " : "") + (shown ? "is-up" : "")}
         style={shown ? { transform: "translateY(" + dragY + "px)", transition: drag.current ? "none" : undefined } : undefined}>
         <div className="bos-sheet-handle" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
           <div className="bos-sheet-grab" />

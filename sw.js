@@ -36,6 +36,7 @@ const PRECACHE = [
   "build/screens/live/profile_live.js?v=v877",
   "build/screens/live/community_live.js?v=v877",
   "build/screens/live/circle_room_live.js?v=v877",
+  "build/screens/live/circle_overview_live.js?v=v877",
   "build/screens/live/habit_standard_live.js?v=v877",
   "build/screens/live/home_extra_live.js?v=v877",
   "build/screens/live/habits_extra_live.js?v=v877",

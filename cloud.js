@@ -1299,6 +1299,27 @@
   // «Обычно в …» ОДНОЙ привычки: времена её отметок за 14 дней. Раньше чип брал час пик
   // ВСЕГО круга (bos_circle_pulse) — у всех привычек выходило одно и то же время
   // (David: «как такое может быть, если все тыкают привычки в разное время?»).
+  /* ВРЕМЕНА ВСЕХ ОТМЕТОК КРУГА — для сетки «Обзора» (день × четырёхчасовые полосы).
+     teamLogsRange отдаёт только дату, teamHabitTimes — время, но по ОДНОЙ привычке и без
+     автора. Здесь и то и другое сразу: кто, какая привычка, когда. */
+  async function teamLogTimes(teamId, days) {
+    var c = client(); if (!c || !teamId) return null;
+    try {
+      var th = await c.from("team_habits").select("id").eq("team_id", teamId);
+      var ids = ((th && th.data) || []).map(function (r) { return r.id; });
+      if (!ids.length) return { rows: [] };
+      var since = new Date(); since.setDate(since.getDate() - Math.max(0, (days || 42) - 1));
+      var out = [], from = 0, PAGE = 1000;
+      while (from < 15000) {
+        var lg = await c.from("team_habit_logs").select("user_id,team_habit_id,day,created_at").in("team_habit_id", ids).gte("day", _localDay(since)).order("day", { ascending: false }).range(from, from + PAGE - 1);
+        if (lg.error || !Array.isArray(lg.data)) return from === 0 ? null : { rows: out };
+        lg.data.forEach(function (r) { out.push({ u: r.user_id, h: r.team_habit_id, day: r.day, at: r.created_at }); });
+        if (lg.data.length < PAGE) break;
+        from += PAGE;
+      }
+      return { rows: out };
+    } catch (e) { return null; }
+  }
   async function teamHabitTimes(habitId, days) {
     var c = client(); if (!c || !habitId) return null;
     try {
@@ -2105,7 +2126,7 @@
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, sharedHabitMemberIdsStrict: sharedHabitMemberIdsStrict, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes, circlePulse: circlePulse,
-    teamLogsRange: teamLogsRange, teamMyHabitYear: teamMyHabitYear, teamHabitYearOf: teamHabitYearOf, teamDayFeed: teamDayFeed, teamHabitTimes: teamHabitTimes, teamXP: teamXP, teamCheersToday: teamCheersToday, sendTeamCheer: sendTeamCheer,
+    teamLogsRange: teamLogsRange, teamMyHabitYear: teamMyHabitYear, teamHabitYearOf: teamHabitYearOf, teamDayFeed: teamDayFeed, teamHabitTimes: teamHabitTimes, teamLogTimes: teamLogTimes, teamXP: teamXP, teamCheersToday: teamCheersToday, sendTeamCheer: sendTeamCheer,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, uploadAvatar: uploadAvatar, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,

@@ -1562,7 +1562,9 @@ function TeamDetailLive() {
             </button>
           )}
 
-          <button onClick={() => { setRoomTab("path"); setPathSeen(true); }} className="tap" data-haptic="selection" aria-label="Путь круга"
+          {/* Календарь в шапке ведёт в «Обзор» — отдельную страницу с календарём Д·Н·М и
+              сеткой часов (кадры «… / Обзор»). Раньше он просто переключал вкладку «Путь». */}
+          <button onClick={() => navigate("team-overview", { team: t, from: "team-detail" })} className="tap" data-haptic="selection" aria-label="Обзор группы"
             style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
             <I.Calendar size={20} strokeWidth={2} />
           </button>
@@ -1664,10 +1666,15 @@ function TeamDetailLive() {
             const today = back === 0;
             const future = back < 0;
             const sel = back === selBack;   // залит ВЫБРАННЫЙ день, а не всегда сегодня
-            // Цвет кольца как в макете: весь круг в деле — зелёный, часть — бирюза,
-            // сегодня — синий (день ещё идёт, счёт не окончательный).
-            const ring = today ? "var(--accent-blue)" : (frac >= 1 ? "var(--accent)" : "var(--accent-teal)");
-            const R = 17, C = 2 * Math.PI * R;
+            /* КОЛЬЦО ДНЯ — по узлу макета это ПОЛНАЯ окружность 40×40 толщиной 1.5,
+               окрашенная состоянием, а не дуга-прогресс (я сначала рисовал дугу — «примерно»):
+                 #0EBE65 зелёный — отметился весь круг
+                 #1CDDBD бирюза  — отметилась часть
+                 #8A8A8A серый   — в этот день никто
+                 #007BFF синий   — сегодня (день ещё идёт, счёт не окончательный) */
+            const ring = today ? "var(--accent-blue)"
+              : (doneN === 0 ? "#8A8A8A" : (frac >= 1 ? "var(--accent)" : "var(--accent-teal)"));
+            const R = 19.25;
             return (
               <button key={k} onClick={() => { if (!future) { setSelBack(back); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } } }}
                 disabled={future} className={future ? undefined : "tap"}
@@ -1675,14 +1682,13 @@ function TeamDetailLive() {
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-3)", letterSpacing: "0.2px" }}>{dowName}</span>
                 <span style={{ position: "relative", width: 38, height: 38, display: "grid", placeItems: "center" }}>
-                  {frac > 0 && (
-                    <svg viewBox="0 0 38 38" width="38" height="38" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
-                      <circle cx="19" cy="19" r={R} fill="none" stroke={ring} strokeWidth="2.5" strokeLinecap="round"
-                        strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - frac)).toFixed(1)} />
+                  {!future && (
+                    <svg viewBox="0 0 40 40" width="40" height="40" style={{ position: "absolute", inset: -1 }} aria-hidden>
+                      <circle cx="20" cy="20" r={R} fill="none" stroke={ring} strokeWidth="1.5" />
                     </svg>
                   )}
                   <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
-                    fontSize: 20, fontWeight: today ? 590 : 400, lineHeight: "24px",
+                    fontSize: 20, fontWeight: (today || sel) ? 590 : 400, lineHeight: "24px", letterSpacing: (today || sel) ? 0 : "-0.45px",
                     background: sel ? "var(--cta)" : "transparent",
                     color: sel ? "var(--cta-ink)" : (future ? "var(--text-3)" : "var(--text)"),
                     transition: "background .2s, color .2s" }}>{d.getDate()}</span>

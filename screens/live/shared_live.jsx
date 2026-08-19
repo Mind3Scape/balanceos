@@ -9349,7 +9349,7 @@ function AvatarPickerSheetLive({ dark = false }) {
   return (
     <div style={{ padding: "2px 16px 8px", color: C.text }}>
       <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Аватар</div>
-      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Выбери лицо — Эмодзи или Мемоджи. Сменить можно когда угодно.</div>
+      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Эмодзи, мемоджи или своё фото из галереи. Сменить можно когда угодно.</div>
       <div style={{ display: "flex", gap: 6, background: C.field, borderRadius: 999, padding: 4, margin: "14px auto 12px", width: "fit-content" }}>
         {[["emoji", "Эмодзи"], ["memoji", "Мемоджи"], ["photo", "Фото"]].map(function (m) {
           return <button key={m[0]} onClick={() => setTab(m[0])} className="tap" data-no-haptic style={{ border: 0, borderRadius: 999, padding: "7px 22px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", background: tab === m[0] ? C.btn : "transparent", color: tab === m[0] ? C.btnFg : C.sub }}>{m[1]}</button>;
