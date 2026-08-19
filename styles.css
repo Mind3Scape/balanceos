@@ -1133,3 +1133,131 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   .ai-rise, .bw-pet, .bw-pet-tr, .aiobs-text .aiw { animation: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
   .aiobs-text .aicaret { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ПАЛИТРА РЕДИЗАЙНА — Figma «Balance», файл UXHBB4X0Qsg325VXopNQPv,
+   снято 2026-08-19. Значения взяты из макета как есть, не на глаз.
+
+   Дизайнер собрал макет на семантике Apple: не «серый №4», а «подпись»,
+   «третий план», «разделитель». Поэтому слой ПЕРЕОПРЕДЕЛЯЕТ уже живущие
+   токены (--bg, --surface, --text-N, --line, --accent), а не заводит
+   рядом второй словарь: всё, что уже сидит на var(--…), перекрашивается
+   само, без правки каждого компонента.
+
+   ОБЛАСТЬ ДЕЙСТВИЯ. Пока слой ВКЛЮЧАЕТСЯ КЛАССОМ `.fig` на экране, а не
+   висит глобально: Главная ещё не перерисована (David 19.08 — «дизайнер
+   её ещё сделает»), и глобальная перекраска оставила бы её в новом цвете
+   со старой раскладкой. Когда Главная приедет — снять `.fig` и перенести
+   значения прямо в :root / .theme-dark. Это одно движение, слой к нему
+   и готовился.
+
+   Светлая пара НЕ придумана мной: в файле живёт коллекция переменных с
+   двумя режимами (404:0 светлый, 404:1 тёмный), страница «Главная» стоит
+   на светлом — оттуда и сняты значения левой колонки.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.fig {
+  /* ── поверхности ── */
+  --bg: #F2F2F7;            /* фон сгруппированного списка */
+  --surface: #FFFFFF;       /* карточка */
+  --surface-2: #F2F2F7;
+  --surface-3: rgba(118,118,128,0.12);   /* заливка под чипом/полем */
+  --surface-4: #FFFFFF;
+  --card: #FFFFFF;
+  --card-2: #F2F2F7;
+  --card-fade: #FFFFFF;
+  --card-fill: #000000;
+  --card-shadow: none;      /* в макете карточки без тени — их держит фон */
+
+  /* ── текст (метки Apple) ── */
+  --text: #000000;
+  --text-2: rgba(60,60,67,0.60);   /* подпись */
+  --text-3: rgba(60,60,67,0.30);   /* третий план */
+  --text-4: rgba(60,60,67,0.30);
+  --text-5: rgba(60,60,67,0.18);
+  --ink: #000000;
+
+  /* ── линии ── */
+  --line: rgba(60,60,67,0.29);
+  --line-2: rgba(60,60,67,0.18);
+
+  /* ── главная кнопка ── */
+  --cta: #000000;
+  --cta-ink: #FFFFFF;
+
+  /* ── акценты: одни и те же в обеих темах ──
+     Зелёный занял место золота: в макете это и валюта (XP), и «получилось». */
+  --accent: #0EBE65;
+  --accent-green: #0EBE65;
+  --accent-red: #FC4436;
+  --accent-orange: #FFB366;
+  --accent-blue: #007BFF;
+  --accent-blue-2: #0091FF;
+  --accent-teal: #1CDDBD;
+  --accent-yellow: #FFB366;   /* золота в макете нет — старые ссылки уводим в оранжевый */
+
+  /* ── стекло ──
+     В Figma это BACKGROUND_BLUR радиусом 100 (крупный хром: док, шапка) и 10
+     (мелкие кнопки поверх фото). CSS-блюр по ощущению вдвое сильнее фигмовского,
+     поэтому 100 → 50px, 10 → 6px; сверял глазами по рендеру, не по формуле. */
+  --glass-bg: rgba(255,255,255,0.72);
+  --glass-line: rgba(255,255,255,0.60);
+  --glass-blur: 50px;
+  --glass-blur-sm: 6px;
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.10);
+}
+
+.fig.theme-dark,
+.fig .bos-sheet.is-dark,
+.bos-sheet.fig.is-dark {
+  --bg: #000000;
+  --surface: #1C1C1E;
+  --surface-2: #2C2C2E;
+  --surface-3: rgba(118,118,128,0.24);
+  --surface-4: #1C1C1E;
+  --card: #1C1C1E;
+  --card-2: #2C2C2E;
+  --card-fade: #000000;
+  --card-fill: #FFFFFF;
+  --card-shadow: none;
+
+  --text: #FFFFFF;
+  --text-2: rgba(235,235,245,0.70);
+  --text-3: rgba(235,235,245,0.30);
+  --text-4: rgba(235,235,245,0.30);
+  --text-5: rgba(235,235,245,0.18);
+  --ink: #FFFFFF;
+
+  --line: rgba(235,235,245,0.18);
+  --line-2: rgba(235,235,245,0.10);
+
+  --cta: #FFFFFF;
+  --cta-ink: #000000;
+
+  --glass-bg: rgba(28,28,30,0.72);
+  --glass-line: rgba(255,255,255,0.14);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.40);
+}
+
+/* Само стекло. Держим ОДНО правило на всё приложение, чтобы «примерное стекло»
+   везде было одинаково примерным. `backdrop-filter` в вебвью Телеграма на iOS
+   работает; saturate поднимает цвет фона, который блюр съедает — без него
+   стекло выглядит выцветшим. -webkit- нужен для Safari/WKWebView. */
+.fig .glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 0.5px solid var(--glass-line);
+  box-shadow: var(--glass-shadow);
+}
+.fig .glass-sm {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur-sm)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-sm)) saturate(180%);
+  border: 0.5px solid var(--glass-line);
+}
+/* Запасной вид там, где размытия нет (старый Android-вебвью, режим экономии):
+   без него «стекло» превращается в полупрозрачную кляксу с нечитаемым текстом. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .fig .glass, .fig .glass-sm { background: var(--surface); }
+}
