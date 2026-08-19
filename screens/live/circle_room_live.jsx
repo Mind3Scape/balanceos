@@ -30,6 +30,7 @@ function bosRoomMarksWord(n) {
 function bosRoomHHMM(ts) {
   try { var d = (typeof bosParseTs === "function") ? bosParseTs(ts) : new Date(ts); var m = d.getMinutes(); return d.getHours() + ":" + (m < 10 ? "0" + m : m); } catch (e) { return ""; }
 }
+function bosRoomMembersWord(n) { return (n % 10 === 1 && n % 100 !== 11) ? "участник" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "участника" : "участников"); }
 function bosRoomPeopleWord(n) { return (n % 10 === 1 && n % 100 !== 11) ? "человек" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "человека" : "человек"); }
 function bosRoomDaysWord(n) { return (n % 10 === 1 && n % 100 !== 11) ? "день" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "дня" : "дней"); }
 /* «Четверо уже в деле» вместо «4 отметились» (словарь v5: факт вместо отчёта). Собирательные
@@ -426,9 +427,22 @@ function CircleHabitWeekLive({ habit, rangeRows, membersN, isDark }) {
 
    Кружок = отметить; тело строки = аккордеон статистики (onOpen). Шеврона нет намеренно
    (David: рука и так тянется тапнуть) — строка раскрывается сама. */
-function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub, subGold, on, onToggle, onOpen, isDark, first, inert, struck, adopt, onAdopt }) {
-  // Вторая подпись: сначала честный счёт по кругу, если он есть; иначе — то, что передали.
+function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub, subGold, on, onToggle, onOpen, isDark, first, inert, struck, adopt, onAdopt, faces }) {
+  // Вторая подпись: у выполненной строки в узле — лица 17 внахлёст + «Выполнили»,
+  // у невыполненной — честный счёт «N из M выполнили»; иначе — то, что передали.
   const countLine = (totalN > 0) ? (doneN + " из " + totalN + " выполнили") : (sub || null);
+  const facesLine = (faces && faces.length) ? (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)" }}>
+      <span style={{ display: "inline-flex", alignItems: "center" }}>
+        {faces.slice(0, 2).map((p, j) => (
+          <span key={p.id || j} style={{ marginLeft: j ? -7 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)", lineHeight: 0 }}>
+            <BuddyFaceLive avatar={p.avatar} name={p.name} size={17} />
+          </span>
+        ))}
+      </span>
+      <span>Выполнили</span>
+    </div>
+  ) : null;
   const metaLine = [tag, time].filter(Boolean).join(" \u00b7 ");
   return (
     <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", minHeight: 82, boxSizing: "border-box" }}>
@@ -450,7 +464,7 @@ function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub
                 color: struck ? (isDark ? "rgba(235,235,245,0.3)" : "rgba(60,60,67,0.3)") : "var(--text)",
                 textDecoration: struck ? "line-through" : "none", textDecorationColor: struck ? "#404040" : undefined, textDecorationThickness: struck ? "1.5px" : undefined }}>{name}</div>}
           {metaLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{metaLine}</div> : null}
-          {countLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: subGold ? BOS_ROOM_GOLD_INK : "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{countLine}</div> : null}
+          {facesLine || (countLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: subGold ? BOS_ROOM_GOLD_INK : "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{countLine}</div> : null)}
         </div>
       </div>
       {/* Гостю — «взять себе» (галочка с плюсом), как в кадре «Гость»: он не отмечает чужой
@@ -672,7 +686,11 @@ function TeamDetailLive() {
   const membersN = members.length;
   const rosterById = {}; members.forEach((m) => { rosterById[m.id] = m; });
   const _meMember = (meId && Array.isArray(cloudRoster)) ? cloudRoster.find((m) => m.id === meId) : null;
-  const _isOwner = _meMember ? (_meMember.role === "owner") : !t.joined;
+  /* joined === false — команда пришла ИЗ КАТАЛОГА, я в ней не состою. Прежнее «!t.joined»
+     превращало такого гостя во ВЛАДЕЛЬЦА (false → true): чужая группа открывалась с
+     «+ Создать» и карточкой состава вместо «Вступить» — тот самый сломанный «стук»
+     (David 19.08). Отсутствие флага (undefined) — мой локальный круг, как и раньше. */
+  const _isOwner = _meMember ? (_meMember.role === "owner") : (t.joined === false ? false : !t.joined);
   // ТРИ РОЛИ ИЗ МАКЕТА: «Админ» (владелец), «Участник» (в составе), «Гость» (ещё не вступил).
   // Раньше экран знал только _isOwner, и гость видел ровно то же, что участник, — включая
   // кружки отметки, которых у него быть не может. Гостем считаем ТОЛЬКО в живом режиме:
@@ -1324,7 +1342,7 @@ function TeamDetailLive() {
   // порядке: сначала СКОЛЬКО НАС, потом СКОЛЬКО МЫ ВМЕСТЕ. Видимость и банк уехали:
   // видимость видна по кнопке вступления, банк живёт на вкладке «Цели».
   const subParts = [];
-  if (membersN) subParts.push(membersN + " " + bosRoomPeopleWord(membersN));
+  if (membersN) subParts.push(membersN + " " + bosRoomMembersWord(membersN));
   if (ageDays) subParts.push(ageDays + " " + ((ageDays % 10 === 1 && ageDays % 100 !== 11) ? "день" : (ageDays % 10 >= 2 && ageDays % 10 <= 4 && (ageDays % 100 < 12 || ageDays % 100 > 14)) ? "дня" : "дней") + " вместе");
   const card = { background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)" };
   const bubbleOther = isDark ? "rgba(255,255,255,0.07)" : "#fff";
@@ -1422,9 +1440,10 @@ function TeamDetailLive() {
     const _hRow = (
       <CircleDayRowLive first={_bucket.length === 0} isDark={isDark}
         icon={bosIconOf(h, 26, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
-        name={h.name} struck={done && roomTab !== "habits"}
-        tag={roomTab === "habits" ? _tagHabits : (done ? ("Выполнено" + (_at ? " в " + bosRoomHHMM(_pt(_at)) : "")) : "Привычка")}
+        name={h.name} struck={done && roomTab !== "habits" && !_isGuest}
+        tag={roomTab === "habits" ? _tagHabits : (done && !_isGuest ? ("Выполнено" + (_at ? " в " + bosRoomHHMM(_pt(_at)) : "")) : "Привычка")}
         doneN={_pastDay ? _doneCountOn(h.id) : facesH.length} totalN={membersN}
+        faces={(!_pastDay && done) ? facesH : null}
         on={done} inert={!_live || _pastDay}
         adopt={_isGuest} onAdopt={joinThisCircle}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
@@ -1470,8 +1489,9 @@ function TeamDetailLive() {
       <CircleDayRowLive first={_tBucket.length === 0} isDark={isDark}
         icon={<I.Flag size={24} strokeWidth={2} color="var(--text-2)" />} name={tk.text}
         struck={_tDone} tag={_tDone ? "Выполнено" : "Задача"}
-        doneN={facesT.length} totalN={membersN}
+        doneN={facesT.length} totalN={membersN} faces={_tDone ? facesT : null}
         on={_tDone} inert={!_live}
+        adopt={_isGuest} onAdopt={joinThisCircle}
         onToggle={() => toggleMyTeamTask(tk)} />
     );
     // На вкладке «Задачи» строка едет в группу своей даты, а не в общий список.
@@ -1483,8 +1503,9 @@ function TeamDetailLive() {
         <CircleDayRowLive first={grp.rows.length === 0} isDark={isDark}
           icon={<I.Flag size={24} strokeWidth={2} color="var(--text-2)" />} name={tk.text}
           struck={_tDone} tag={_tDone ? "Выполнено" : null}
-          doneN={facesT.length} totalN={membersN}
+          doneN={facesT.length} totalN={membersN} faces={_tDone ? facesT : null}
           on={_tDone} inert={!_live}
+          adopt={_isGuest} onAdopt={joinThisCircle}
           onToggle={() => toggleMyTeamTask(tk)} />
       );
       grp.rows.push(_isOwner
