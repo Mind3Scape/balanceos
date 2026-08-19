@@ -1284,3 +1284,70 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   min-height: 100%;
 }
 .bos-page.fig > .page-in { min-height: 100%; }
+
+/* ═══ ТАБ-БАР ПО МАКЕТУ ═══════════════════════════════════════════════════════════
+   Замеры из узла «Tab Bar» (393×95): подложка 351×62, скругление полное, заливка
+   #999999 @17 % со стеклом; вкладка 91×54, у активной таблетка #767680 @24 %;
+   ПОДПИСЬ 10/590 — активная #FFFFFF, прочие #8A8A8A. Значок в поле 68×28.
+   Раньше подписей не было вовсе и вкладки были только значками — David 19.08:
+   «вкладки ты не переставил нижние, как они должны быть». */
+.bos-page.fig ~ .bos-tabbar,
+.bos-tabbar.fig {
+  height: 62px;
+  left: 21px; right: 21px; bottom: 24px;
+  background: rgba(153,153,153,0.17);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.14);
+  padding: 0 4px;
+}
+.bos-tabbar.fig .tab {
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 999px;
+  height: 54px;
+  /* Неактивная — ровно #8A8A8A из макета (одинаково читается в обеих темах).
+     Активная — цвет темы: в тёмной это и есть #FFFFFF макета, в светлой чернила.
+     Прибитый белый делал подпись нечитаемой на светлом фоне. */
+  color: #8A8A8A;
+  transition: color .2s;
+}
+.bos-tabbar.fig .tab.active { color: var(--text); }
+.bos-tabbar.fig .tab-label {
+  font-size: 10px;
+  font-weight: 590;
+  letter-spacing: -0.1px;
+  line-height: 12px;
+}
+/* Бегунок-таблетка: тот же приём, что в сегменте — слой едет с пружиной, а не
+   перекрашивается на месте. */
+.bos-tabbar.fig .bos-tab-lens-track { top: 4px; bottom: 4px; height: auto; }
+.bos-tabbar.fig .bos-tab-lens {
+  background: rgba(118,118,128,0.24);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+/* ═══ ДВИЖЕНИЕ ═══════════════════════════════════════════════════════════════════
+   David 19.08: «анимации ты не делаешь красивые». Верно — переключения были мгновенной
+   подменой. Три приёма, все дешёвые и общие:
+   1) содержимое вкладки въезжает снизу с лёгким проявлением (не «прыжком»);
+   2) раскрытие блока разворачивается по высоте, а не появляется скачком;
+   3) кривая одна на всё — пружинистая, как в iOS.
+   Уважаем «уменьшить движение»: при prefers-reduced-motion всё гаснет. */
+@keyframes bosFigIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.fig-swap { animation: bosFigIn .28s cubic-bezier(0.22,0.9,0.3,1) both; }
+
+@keyframes bosFigExpand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+.fig-expand { animation: bosFigExpand .24s cubic-bezier(0.22,0.9,0.3,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fig-swap, .fig-expand { animation: none; }
+  .bos-tabbar.fig .bos-tab-lens-track { transition: none; }
+}

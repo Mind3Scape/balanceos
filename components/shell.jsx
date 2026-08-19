@@ -83,7 +83,7 @@ const useNav = () => React.useContext(NavCtx);
 // Bottom tab bar. `tabs` — необязательный список {id, icon}: live передаёт свой состав
 // (без «Привычек», с «Я»), демо живёт на прежнем дефолте. Ширина линзы следует за
 // числом вкладок инлайном (CSS-дефолт рассчитан на 4).
-function TabBar({ active, dark = false, onTab, style, tabs: tabsProp }) {
+function TabBar({ active, dark = false, onTab, style, tabs: tabsProp, fig = false }) {
   const tabs = (tabsProp && tabsProp.length) ? tabsProp : [
     { id: "home", icon: "Home" },
     { id: "habits", icon: "Bolt" },
@@ -92,7 +92,7 @@ function TabBar({ active, dark = false, onTab, style, tabs: tabsProp }) {
   ];
   const idx = Math.max(0, tabs.findIndex(t => t.id === active));
   return (
-    <div className={"bos-tabbar " + (dark ? "dark" : "")} style={style}>
+    <div className={"bos-tabbar " + (dark ? "dark " : "") + (fig ? "fig" : "")} style={style}>
       {/* Liquid-glass selection lens: the TRACK springs between tabs (translateX), while the
           inner droplet replays a stretch-and-settle morph on every change (key→remount) — the
           «жидкое стекло» cue. Two layers so position and morph never fight over `transform`. */}
@@ -101,9 +101,11 @@ function TabBar({ active, dark = false, onTab, style, tabs: tabsProp }) {
       </span>
       {tabs.map(t => (
         <button key={t.id} className={"tab tap " + (active === t.id ? "active" : "")}
-          data-haptic="selection"
+          data-haptic="selection" aria-label={t.label || t.id}
           onClick={() => onTab(t.id)}>
-          {React.createElement(I[t.icon], { size: 24, filled: active === t.id })}
+          {React.createElement(I[t.icon], { size: fig ? 22 : 24, filled: active === t.id })}
+          {/* Подпись — только в раскладке макета: там у каждой вкладки имя 10/590. */}
+          {fig && t.label ? <span className="tab-label">{t.label}</span> : null}
         </button>
       ))}
     </div>

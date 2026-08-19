@@ -1328,3 +1328,83 @@ function ContactDetailLive() {
     </div>
   );
 }
+
+/* ═══ ЭКРАН «ЧАТЫ» ═══════════════════════════════════════════════════════════════════
+   Четвёртая дверь из макета (Главная · Сообщество · Чаты · Balance AI). Раньше её не
+   было вовсе — вкладку нельзя ставить в док, если за ней пустота.
+
+   Что показываем: разговоры групп, в которых я состою. Это НЕ новая сущность — чат
+   круга уже живёт вкладкой внутри комнаты, здесь он просто собран в один список.
+   Непрочитанное считает тот же bosTeamUnreadPeek, что и карточки в «Сообществе».
+
+   Личных переписок в базе нет — их и не показываем. Появятся — встанут в этот же
+   список, разметка готова. */
+function ChatsLive() {
+  const { navigate } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = app?.themeOverride === "dark";
+  const teams = ((app && app.teams) || []).filter(Boolean);
+  const [unread, setUnread] = React.useState({});
+
+  React.useEffect(() => {
+    let on = true;
+    if (typeof bosTeamUnreadPeek !== "function") return undefined;
+    teams.forEach((t) => {
+      if (!t.cloudId) return;
+      bosTeamUnreadPeek(t.cloudId).then((u) => {
+        if (!on || !u) return;
+        setUnread((m) => (m[t.cloudId] === (u.count || 0) ? m : { ...m, [t.cloudId]: u.count || 0 }));
+      }).catch(() => {});
+    });
+    return () => { on = false; };
+  }, [teams.map((t) => t.cloudId).join(",")]);
+
+  const openChat = (t) => navigate("team-detail", { team: t, from: "chats", tab: "chat" });
+  const totalUnread = Object.keys(unread).reduce((a, k) => a + (unread[k] || 0), 0);
+
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      {/* Шапка в языке «Сообщества»: заголовок 28/700 и живая подпись под ним. */}
+      <div style={{ padding: "6px 4px 14px" }}>
+        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.8px", color: "var(--text)", lineHeight: 1.1 }}>Чаты</div>
+        <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 3 }}>
+          {teams.length === 0 ? "Пока не с кем" : (totalUnread > 0 ? (totalUnread + " новых") : "Всё прочитано")}
+        </div>
+      </div>
+
+      {teams.length > 0 ? (
+        <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden" }}>
+          {teams.map((t, i) => {
+            const n = unread[t.cloudId] || 0;
+            return (
+              <button key={t._id || t.cloudId || i} onClick={() => openChat(t)} className="tap" data-haptic="selection"
+                style={{ width: "100%", border: 0, borderTop: i ? "0.5px solid var(--line-2)" : 0, background: "transparent", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", textAlign: "left", color: "var(--text)" }}>
+                <span style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 26, overflow: "hidden", background: "var(--surface-3)" }}>
+                  {typeof bosIconOf === "function" ? bosIconOf(t, 26, null, "\u{1F465}") : "\u{1F465}"}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 17, fontWeight: 590, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                  <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {n > 0 ? (n + (n === 1 ? " новое сообщение" : " новых сообщений")) : "Разговор группы"}
+                  </span>
+                </span>
+                {n > 0 && (
+                  <span style={{ minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: "var(--accent-red)", color: "#fff",
+                    fontSize: 13, fontWeight: 590, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n > 99 ? "99+" : n}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ background: "var(--card)", borderRadius: 16, padding: "32px 22px", textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)" }}>Чатов пока нет</div>
+          <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 5, lineHeight: 1.35 }}>Вступи в группу — её разговор появится здесь.</div>
+          <button onClick={() => navigate("community", { from: "chats" })} className="tap"
+            style={{ marginTop: 18, border: 0, borderRadius: 999, padding: "13px 24px", fontSize: 17, fontWeight: 590, cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)" }}>Найти группу</button>
+        </div>
+      )}
+    </div>
+  );
+}

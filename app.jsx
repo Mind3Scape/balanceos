@@ -21,18 +21,24 @@ const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
 // «Привычки» в live больше не вкладка (все карточки живут на главной, navigate("habits") → home),
 // «Я» — четвёртая справа, прячется тумблером в настройках (bos:profileTab). Демо живёт на старом
 // TAB_ROUTES/дефолте TabBar — его не трогаем.
-const LIVE_TAB_ROUTES = new Set(["home", "community", "ai", "profile"]);
+const LIVE_TAB_ROUTES = new Set(["home", "community", "chats", "ai", "profile"]);
 // Иконки-семья «система колец» (солнце · орбита · искры · ты-в-кольце) ОТКАЧЕНА до
 // согласования (David: «перерисуй и согласуй прежде чем делать») — черновые Sun/OrbitPeople/
 // PersonRing остались в icons.jsx; после отмашки по новому макету просто заменить имена тут.
 // Порядок вкладок (David 2026-07-04): Главная → ИИ → Сообщество → Я (сначала мой день,
 // потом помощник по нему, потом люди/экосистема, потом Я). ИИ и Сообщество поменяны местами.
+/* СОСТАВ ПО МАКЕТУ (узел «Tab Bar»): Главная · Сообщество · Чаты · Balance AI, у каждой
+   ПОДПИСЬ. Было: Главная · ИИ · Сообщество · Я, только значки и другой порядок.
+   «Я» из нижнего ряда ушло — в макете профиля в доке нет; вход в свой профиль теперь
+   аватаром в шапке «Сообщества» (маршрут profile жив, ничего не потеряно).
+   «Чаты» — новая дверь; экран для неё сделан рядом (ChatsLive), пустой двери нет. */
 const LIVE_TABS_BASE = [
-  { id: "home", icon: "Home" },
-  { id: "ai", icon: "Sparkles" },
-  { id: "community", icon: "Group" },
+  { id: "home", icon: "Home", label: "Главная" },
+  { id: "community", icon: "Group", label: "Сообщество" },
+  { id: "chats", icon: "MessageCircle", label: "Чаты" },
+  { id: "ai", icon: "Sparkles", label: "Balance AI" },
 ];
-const LIVE_TAB_PROFILE = { id: "profile", icon: "Person" };
+const LIVE_TAB_PROFILE = { id: "profile", icon: "Person", label: "Я" };
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
 
 // Root (html/body) background per screen — matches each screen's own base
@@ -43,17 +49,17 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
    оставалась в старой палитре, и в Телеграме под контентом торчала полоса прежнего фона
    («бекграунды не дотягиваются до конца», David 19.08). Плюс html/body ниже красим теми же
    значениями — иначе за нижней кромкой видно чужой цвет. */
-const FIG_ROUTES = new Set(["community", "profile", "team-detail"]);
+const FIG_ROUTES = new Set(["community", "profile", "team-detail", "chats"]);
 
 const ROOT_BG = {
   mood: "#f2f3f6", "ai-chat": "#fafafa",
-  community: "#F2F2F7", profile: "#F2F2F7", "team-detail": "#F2F2F7",
+  community: "#F2F2F7", profile: "#F2F2F7", "team-detail": "#F2F2F7", chats: "#F2F2F7",
 };
 // В ТЁМНОЙ теме светлые подложки выше НЕЛЬЗЯ применять — html/body/шапка Telegram на миг
 // красились белым при переходе («белое мигание», David). Тёмные аналоги:
 const ROOT_BG_DARK = {
   "ai-chat": "#0f0f12", mood: "#0a0b0e",
-  community: "#000000", profile: "#000000", "team-detail": "#000000",
+  community: "#000000", profile: "#000000", "team-detail": "#000000", chats: "#000000",
 };
 
 const SCREENS = {
@@ -107,6 +113,7 @@ const LIVE_SCREENS = {
   home: () => HomeLive,
   habits: () => HabitsLive,
   community: () => CommunityLive,
+  chats: () => ChatsLive,
   "team-detail": () => TeamDetailLive,
   profile: () => ProfileLive,
   ai: () => AILive,
@@ -226,7 +233,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v875";
+const APP_VERSION = "v876";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -789,7 +796,9 @@ function PhoneApp() {
   // Если её убрали с доски, вкладка «Я» показывается принудительно, что бы ни стояло в тумблере.
   const heroHidden = !!(app.homeLayout && Array.isArray(app.homeLayout.order) && app.homeLayout.order.indexOf("w:hero") < 0);
   const liveTabs = React.useMemo(
-    () => (profTabPref || heroHidden) ? LIVE_TABS_BASE.concat([LIVE_TAB_PROFILE]) : LIVE_TABS_BASE,
+    // Состав из макета — четыре двери. Прежний тумблер «вкладка Я» больше не добавляет
+    // пятую: пять вкладок не помещаются в раскладку 91px и ломают её.
+    () => LIVE_TABS_BASE,
     [profTabPref, heroHidden]
   );
   const tabSet = isLive ? LIVE_TAB_ROUTES : TAB_ROUTES;
@@ -1088,11 +1097,11 @@ function PhoneApp() {
         {/* No fake status bar. iOS draws the real one in an installed PWA; in a
             browser or Telegram the OS / Telegram owns the top bar, so we stay clean. */}
         {!drag && topInTabs && (
-          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} />
+          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} fig={isLive} />
         )}
         {destTab && (
           <TabBar key="tabbar-drag" active={destTab} dark={themeFor(destTab)}
-            onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} tabs={isLive ? liveTabs : undefined} />
+            onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} tabs={isLive ? liveTabs : undefined} fig={isLive} />
         )}
         <div className="bos-version">{app.mode === "live" ? APP_VERSION : DEMO_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>

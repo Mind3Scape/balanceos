@@ -1312,6 +1312,11 @@ function TeamDetailLive() {
     } catch (e) { setJoinState("idle"); }
   }, [t.cloudId, joinState, from]);
   const [goalFilter, setGoalFilter] = React.useState("all");   // Все · Для каждого · Общие
+  // ВЫБРАННЫЙ ДЕНЬ недели: 0 = сегодня, N = N дней назад. Раньше неделя была картинкой —
+  // тапнуть по дню было нельзя, и это правильно раздражало. Для прошлых дней отметки берём
+  // из rangeRows (там {u,h,day} за 31 день); времени отметки там нет — значит и не пишем его.
+  const [selBack, setSelBack] = React.useState(0);
+  const [actOpen, setActOpen] = React.useState(false);   // «Активность дня» раскрывается
   const [strategyOpen, setStrategyOpen] = React.useState(false);
   // РЕДИЗАЙН (Figma 19.08): «Привычки» и «Задачи» поднялись из подвкладок в ВЕРХНИЕ сегменты,
   // а «Сегодня» показывает и то и другое одним списком — в макете внутри одной таблицы стоят
@@ -1330,8 +1335,16 @@ function TeamDetailLive() {
     dayRows.forEach((r) => { if (r.u === meId && r.h === habitId && (!best || r.at < best)) best = r.at; });
     return best;
   };
+  const _selKey = bosRoomDayKey(selBack);
+  const _pastDay = selBack > 0;
+  // Отметка за ПРОШЛЫЙ день: смотрим в rangeRows (мой id + эта привычка + этот день).
+  const _doneOn = (habitId) => rangeRows.some((r) => r.u === meId && r.h === habitId && r.day === _selKey);
+  const _doneCountOn = (habitId) => {
+    const u = {}; rangeRows.forEach((r) => { if (r.h === habitId && r.day === _selKey) u[r.u] = true; });
+    return Object.keys(u).length;
+  };
   if (_showHabits) teamHabits.forEach((h, i) => {
-    const done = myDone(h);
+    const done = _pastDay ? _doneOn(h.id) : myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const opened = openHabit === h.id;
     // Гость ничего не отмечает — у него в макете вместо кружка «взять себе». Значит и
@@ -1349,8 +1362,8 @@ function TeamDetailLive() {
         icon={bosIconOf(h, 26, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
         name={h.name} struck={done && roomTab !== "habits"}
         tag={roomTab === "habits" ? _tagHabits : (done ? ("Выполнено" + (_at ? " в " + bosRoomHHMM(_pt(_at)) : "")) : "Привычка")}
-        doneN={facesH.length} totalN={membersN}
-        on={done} inert={!_live}
+        doneN={_pastDay ? _doneCountOn(h.id) : facesH.length} totalN={membersN}
+        on={done} inert={!_live || _pastDay}
         adopt={_isGuest} onAdopt={joinThisCircle}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
         onOpen={() => setOpenHabit(opened ? null : h.id)} />
@@ -1587,15 +1600,29 @@ function TeamDetailLive() {
           способ на него посмотреть.
           Материал: жёлоб высотой 32 с внутренним полем 2 (в макете Segmented control 361×32,
           padding 2) — стандартный сегмент iOS вместо нашей прежней карточки 34. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, padding: 2, borderRadius: 9, marginTop: 8,
-        background: "var(--surface-3)" }}>
+      {/* Замеры из узла «Segmented control» (393×42, жёлоб 361×32, поле 2, элемент 89×28):
+            жёлоб  — СКРУГЛЁН ПОЛНОСТЬЮ (r=1000 в макете), заливка #999999 @17 %, стекло;
+            активный — таблетка #767680 @24 %, текст #FFFFFF;
+            прочие  — без заливки, текст #8A8A8A;
+            начертание 13/590 У ВСЕХ (не 590/400, как я сделал сначала).
+          Бегунок ЕДЕТ: отдельный слой с translateX и пружиной — в прежней версии активный
+          сегмент просто перекрашивался, и переключение читалось как подмена, а не движение. */}
+      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", padding: 2, marginTop: 8,
+        height: 32, boxSizing: "border-box", borderRadius: 999,
+        background: "rgba(153,153,153,0.17)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)", backdropFilter: "blur(20px) saturate(180%)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.10)" }}>
+        <span aria-hidden style={{ position: "absolute", top: 2, bottom: 2, left: 2, width: "calc((100% - 4px) / 4)",
+          borderRadius: 999, background: "rgba(118,118,128,0.24)",
+          transform: "translateX(" + (["day", "habits", "tasks", "goals"].indexOf(roomTab) < 0 ? 0 : ["day", "habits", "tasks", "goals"].indexOf(roomTab)) * 100 + "%)",
+          transition: "transform .34s cubic-bezier(0.34,1.4,0.44,1)" }} />
         {[["day", "Сегодня"], ["habits", "Привычки"], ["tasks", "Задачи"], ["goals", "Цели"]].map(([id, label]) => {
           const on = roomTab === id;
           return (
             <button key={id} onClick={() => { setRoomTab(id); if (id === "habits" || id === "tasks") setListTab(id); try { window.scrollTo(0, 0); } catch (e) {} }} className="tap" data-haptic="selection"
-              style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 7, height: 28, padding: 0, cursor: "pointer", fontSize: 13, fontWeight: on ? 590 : 400, letterSpacing: "-0.1px",
-                background: on ? "var(--surface)" : "transparent", color: "var(--text)",
-                boxShadow: on ? "0 3px 8px rgba(0,0,0,0.12)" : "none", transition: "background .15s" }}>
+              style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 999, height: 28, padding: 0, cursor: "pointer",
+                background: "transparent", fontSize: 13, fontWeight: 590, letterSpacing: "-0.1px",
+                color: on ? "#FFFFFF" : "#8A8A8A", transition: "color .2s" }}>
               {label}
             </button>
           );
@@ -1605,7 +1632,7 @@ function TeamDetailLive() {
       {/* Выпадающее меню у кнопки УБРАНО: в макете это шторка снизу (CircleMenuSheetLive),
           она открывается прямо из обработчика «⋯». */}
 
-      {(roomTab === "day" || roomTab === "habits" || roomTab === "tasks") && (<React.Fragment>
+      {(roomTab === "day" || roomTab === "habits" || roomTab === "tasks") && (<div key={"tab-" + roomTab} className="fig-swap">
       {/* ДЕНЬ (v5, кадр 05): здесь остаётся ТОЛЬКО сегодняшнее действие. Уровень, счёт и
           календарь уехали в «Путь», список людей — в «Люди», имя круга живёт в шапке. Первым —
           факт дня словами, под ним нить: кто и в котором часу уже закрыл своё. */}
@@ -1627,12 +1654,16 @@ function TeamDetailLive() {
             const frac = membersN > 0 ? Math.max(0, Math.min(1, doneN / membersN)) : 0;
             const today = back === 0;
             const future = back < 0;
+            const sel = back === selBack;   // залит ВЫБРАННЫЙ день, а не всегда сегодня
             // Цвет кольца как в макете: весь круг в деле — зелёный, часть — бирюза,
             // сегодня — синий (день ещё идёт, счёт не окончательный).
             const ring = today ? "var(--accent-blue)" : (frac >= 1 ? "var(--accent)" : "var(--accent-teal)");
             const R = 17, C = 2 * Math.PI * R;
             return (
-              <span key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <button key={k} onClick={() => { if (!future) { setSelBack(back); setActOpen(false); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } } }}
+                disabled={future} className={future ? undefined : "tap"}
+                style={{ border: 0, background: "transparent", padding: 0, cursor: future ? "default" : "pointer",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-3)", letterSpacing: "0.2px" }}>{dowName}</span>
                 <span style={{ position: "relative", width: 38, height: 38, display: "grid", placeItems: "center" }}>
                   {frac > 0 && (
@@ -1643,10 +1674,11 @@ function TeamDetailLive() {
                   )}
                   <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
                     fontSize: 20, fontWeight: today ? 590 : 400, lineHeight: "24px",
-                    background: today ? "var(--cta)" : "transparent",
-                    color: today ? "var(--cta-ink)" : (future ? "var(--text-3)" : "var(--text)") }}>{d.getDate()}</span>
+                    background: sel ? "var(--cta)" : "transparent",
+                    color: sel ? "var(--cta-ink)" : (future ? "var(--text-3)" : "var(--text)"),
+                    transition: "background .2s, color .2s" }}>{d.getDate()}</span>
                 </span>
-              </span>
+              </button>
             );
           })}
         </div>
@@ -1657,25 +1689,46 @@ function TeamDetailLive() {
           сегодняшняя отметка попала в него, и «+N», если не влезли. Под лентой — часовая
           шкала, ниже слева «N отметились», справа «последняя HH:MM».
           Ничего не выдумано: firstByUser собран из team_habit_logs за сегодня. */}
-      {roomTab === "day" && !threadOff && (
-        <div style={{ ...card, padding: "14px 16px 12px", marginTop: 4 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)" }}>Активность дня</div>
-          {(() => {
-            const marks = members
-              .filter((m) => firstByUser[m.id])
+      {/* АКТИВНОСТЬ ДНЯ. Слушается ВЫБРАННОГО дня недели и РАСКРЫВАЕТСЯ по тапу —
+          обоих взаимодействий раньше не было, карточка была картинкой.
+
+          Сегодня: лента суток по часам (есть время первой отметки), метка «сейчас»,
+                   в раскрытом виде — кто и во сколько.
+          Прошлый день: времени в данных нет (rangeRows хранит только день), поэтому
+                   ленту не рисуем и время НЕ ВЫДУМЫВАЕМ — показываем, сколько человек
+                   закрыло день, а в раскрытом виде их поимённо. */}
+      {roomTab === "day" && !threadOff && (() => {
+        const selKey = bosRoomDayKey(selBack);
+        const isToday = selBack === 0;
+        const selDate = new Date(); selDate.setHours(0, 0, 0, 0); selDate.setDate(selDate.getDate() - selBack);
+        const MON = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+        const marks = isToday
+          ? members.filter((m) => firstByUser[m.id])
               .map((m) => ({ id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, hr: _hr(firstByUser[m.id]), at: firstByUser[m.id] }))
-              .sort((a, b) => a.hr - b.hr);
-            const slots = [0, 1, 2, 3].map((i) => marks.filter((x) => x.hr >= i * 6 && x.hr < (i + 1) * 6));
-            const lastAt = marks.length ? marks[marks.length - 1].at : null;
-            return (
+              .sort((a, b) => a.hr - b.hr)
+          : Object.keys(byDay[selKey] || {}).map((u) => rosterById[u]).filter(Boolean)
+              .map((m) => ({ id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, hr: null, at: null }));
+        const slots = [0, 1, 2, 3].map((i) => marks.filter((x) => x.hr != null && x.hr >= i * 6 && x.hr < (i + 1) * 6));
+        const lastAt = isToday && marks.length ? marks[marks.length - 1].at : null;
+        return (
+          <div style={{ ...card, padding: "14px 16px 12px", marginTop: 4 }}>
+            <button onClick={() => setActOpen(!actOpen)} className="tap" data-haptic="selection"
+              style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8, color: "var(--text)" }}>
+              <span style={{ flex: 1, textAlign: "left", fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>
+                {isToday ? "Активность дня" : ("Активность " + selDate.getDate() + " " + MON[selDate.getMonth()])}
+              </span>
+              <I.ChevronRight size={18} color="var(--text-3)"
+                style={{ transform: actOpen ? "rotate(90deg)" : "none", transition: "transform .24s cubic-bezier(0.34,1.4,0.44,1)" }} />
+            </button>
+
+            {isToday && (
               <React.Fragment>
                 <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 10,
                   border: "0.5px solid var(--line-2)", borderRadius: 8, overflow: "hidden", minHeight: 52 }}>
-                  {/* Метка «сейчас» — вертикальная черта по текущему часу, как в макете. */}
                   <span aria-hidden style={{ position: "absolute", top: 0, bottom: 0, width: 2, background: "var(--text)", borderRadius: 2,
                     left: ((new Date().getHours() + new Date().getMinutes() / 60) / 24 * 100).toFixed(2) + "%" }} />
                   {slots.map((people, i) => (
-                    <span key={i} style={{ minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
+                    <span key={i} style={{ minHeight: 52, display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
                       borderLeft: i ? "0.5px solid var(--line-2)" : 0, padding: "6px 4px" }}>
                       {people.slice(0, 2).map((p, j) => (
                         <span key={p.id} style={{ marginLeft: j ? -8 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)", lineHeight: 0 }}>
@@ -1686,24 +1739,38 @@ function TeamDetailLive() {
                     </span>
                   ))}
                 </div>
-                {/* Пять меток, крайняя справа — конец суток: в макете шкала подписана
-                    00:00 06:00 12:00 18:00 00:00, то есть закрывает сутки с обеих сторон. */}
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
                   {["00:00", "06:00", "12:00", "18:00", "00:00"].map((h, i) => (
                     <span key={i} style={{ fontSize: 13, color: "var(--text-3)" }}>{h}</span>
                   ))}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "var(--text-2)" }}>
-                    <I.Users size={16} strokeWidth={2} />{marks.length + " " + (marks.length === 1 ? "отметился" : "отметились")}
-                  </span>
-                  {lastAt && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{"последняя " + bosRoomHHMM(_pt(lastAt))}</span>}
-                </div>
               </React.Fragment>
-            );
-          })()}
-        </div>
-      )}
+            )}
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "var(--text-2)" }}>
+                <I.Users size={16} strokeWidth={2} />{marks.length + " " + (marks.length === 1 ? "отметился" : "отметились")}
+              </span>
+              {lastAt && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{"последняя " + bosRoomHHMM(_pt(lastAt))}</span>}
+            </div>
+
+            {/* Раскрытие: поимённо. Для сегодня — со временем, для прошлого дня — без:
+                времени за прошлые дни в данных нет, и подставлять его нельзя. */}
+            {actOpen && (
+              <div className="fig-expand" style={{ marginTop: 10, paddingTop: 8, borderTop: "0.5px solid var(--line-2)" }}>
+                {marks.length === 0 && <div style={{ fontSize: 15, color: "var(--text-3)", padding: "4px 0" }}>В этот день круг не отмечался.</div>}
+                {marks.map((p) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
+                    <BuddyFaceLive avatar={p.avatar} name={p.name} size={28} />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 17, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                    {p.at && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{bosRoomHHMM(_pt(p.at))}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ЗАЯВКИ — владельцу, прямо у двери. */}
       {_isOwner && pending.length > 0 && (
@@ -1717,6 +1784,14 @@ function TeamDetailLive() {
               <button onClick={() => rejectReq(p.id)} className="tap" style={{ border: 0, borderRadius: 999, padding: "6px 11px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text-2)" }}>Нет</button>
             </div>
           ))}
+        </div>
+      )}
+
+      {roomTab === "day" && selBack > 0 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 4px 0" }}>
+          <span style={{ fontSize: 15, color: "var(--text-2)" }}>Прошедший день — только посмотреть</span>
+          <button onClick={() => { setSelBack(0); setActOpen(false); }} className="tap"
+            style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 15, fontWeight: 590, color: "var(--text)", padding: 0 }}>К сегодня</button>
         </div>
       )}
 
@@ -1831,7 +1906,7 @@ function TeamDetailLive() {
           </div>
         </div>
       )}
-      </React.Fragment>)}
+      </div>)}
 
       {/* ЦЕЛИ — кадр «Группа / Участник / Цели» (1205:45515).
 
@@ -1844,7 +1919,7 @@ function TeamDetailLive() {
           В ДАННЫХ у круга цель ОДНА (goalProg / t.target) — список целей не выдумываем.
           Верхние чипы «Все · Для каждого · Общие» из макета оставлены: они настоящие,
           просто пока фильтруют одну цель. */}
-      {roomTab === "goals" && (<React.Fragment>
+      {roomTab === "goals" && (<div key="tab-goals" className="fig-swap">
         {(() => {
           const hasGoal = gTgt > 0 || t.goal || stake > 0;
           const kind = goalType === "collective" ? "Общая" : "Для каждого";
@@ -1967,7 +2042,7 @@ function TeamDetailLive() {
         <div style={{ padding: "12px 4px 0", fontSize: 13, lineHeight: 1.35, color: "var(--text-3)" }}>
           На главной странице отображаются задачи, привычки и цели, которые вы принимаете
         </div>
-      </React.Fragment>)}
+      </div>)}
 
       {/* ПУТЬ — читается сверху вниз одной историей: ГДЕ круг сейчас → КАК он держится →
           КАК шёл (календарь) → КТО как. Уровень живёт отдельной строкой: он валюта, а не
