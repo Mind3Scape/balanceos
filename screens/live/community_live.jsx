@@ -5070,87 +5070,59 @@ function CommunityLive() {
       try { const st = bosCircleStrikes(t, app?.habits, null); return st && st.miss >= 2; } catch (e) { return false; }
     });
   }, [myCircles, app?.habits]);
-  const [lowOpen, setLowOpen] = React.useState(false);
   const addBtnRef = React.useRef(null);
+  const notifN = (typeof useFigNotifCount === "function") ? useFigNotifCount(app) : 0;
   const [createOpen, setCreateOpen] = React.useState(false);
   const _grpWord = (n) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "группа" : (a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "группы" : "групп"; };
 
   return (
-    <div className="page-in" style={{ padding: "0 12px 24px" }}>
+    <div className="page-in" style={{ padding: "0 0 24px" }}>
       {/* ШАПКА ПО МАКЕТУ (кадр «Мои сообщества», Toolbar-Top 71). Было: заголовок и пульс в
           одну строку, кнопок нет вовсе. Стало: заголовок 28/700, под ним живой пульс, справа
           колокольчик и «+» — тот же стеклянный блок, что на Главной, чтобы рука искала их в
           одном месте на обоих экранах. */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, padding: "6px 4px 12px" }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.8px", color: "var(--text)", lineHeight: 1.1 }}>Сообщество</div>
-          {pulseN > 0 && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-              <span aria-hidden style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-              <span style={{ fontSize: 15, color: "var(--text-2)", whiteSpace: "nowrap" }}>{pulseN} {_pulseWord(pulseN)}</span>
-            </div>
-          )}
-        </div>
-        <div className="glass" style={{ display: "flex", alignItems: "center", height: 44, borderRadius: 999, flexShrink: 0, overflow: "hidden" }}>
-          <button onClick={() => navigate("notifications", { from: "community" })} className="tap" aria-label="Уведомления"
-            style={{ width: 44, height: 44, borderRadius: 999, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
-            <I.Bell size={19} strokeWidth={2} />
-          </button>
-          <button ref={addBtnRef} onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Создать" aria-haspopup="menu" aria-expanded={createOpen}
-            style={{ width: 44, height: 44, borderRadius: 999, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
-            <I.Plus size={19} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
-          </button>
-        </div>
-      </div>
+      <FigToolbar
+        title="Сообщество"
+        subtitle={pulseN > 0 ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
+            <span style={{ fontSize: 15, fontWeight: 510, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", whiteSpace: "nowrap" }}>{pulseN + " " + _pulseWord(pulseN)}</span>
+          </span>
+        ) : null}
+        right={<React.Fragment>
+          <FigRoundButton label="Создать" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }}
+            icon={<span ref={addBtnRef} style={{ display: "grid", placeItems: "center" }}>
+              <I.Plus size={20} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
+            </span>} />
+          <FigRoundButton label="Уведомления" onClick={() => navigate("notifications", { from: "community" })}
+            badge={notifN} icon={<I.Bell size={20} strokeWidth={2} />} />
+        </React.Fragment>}
+      />
       {typeof CreateMenuLive === "function" && <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />}
 
       {/* ПОИСК по всей ленте: круги (живые + облачные) · партнёры · программы. */}
       {/* Поле по макету: не белая карточка с тенью, а серая заливка 44px — стандартное
           поле поиска iOS (в макете Text Field Search 361×44). */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface-3)", borderRadius: 12, padding: "0 12px", height: 44, margin: "0 2px 10px" }}>
-        <I.Search size={17} strokeWidth={2.2} color="var(--text-3)" style={{ flexShrink: 0 }} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={seg === "people" ? "Кто нужен: тексты, йога, аналитика…" : "Поиск"} aria-label={seg === "people" ? "Поиск по людям и вкладам" : "Поиск по сообществу"}
-          style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, color: "var(--text)" }} />
-        {q && (
-          <button onClick={() => setQ("")} className="tap" aria-label="Очистить" style={{ border: 0, background: "var(--surface-3)", borderRadius: 999, width: 22, height: 22, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0, color: "var(--text-3)" }}>
-            <I.X size={12} strokeWidth={2.6} />
-          </button>
-        )}
-      </div>
+      <FigSearchField value={q} onChange={setQ}
+        placeholder={seg === "people" ? "Кто нужен: тексты, йога, аналитика…" : "Поиск"} />
 
       {/* ЧИПЫ-ФИЛЬТРЫ одной ленты (вместо двух рядов вкладок — David: «двойное меню не
           вариант»). Активный — CTA-пилюля, остальные — стеклянные чипы. Чип не комната,
           а фокус той же ленты: «Все» показывает всё подряд. Во время поиска уступают
           месту результатам. */}
+      {/* ЧИПЫ ПО МАКЕТУ (Badge Line 36, r999, зазор 8, боковые 16, текст 17/400 ls-0.43).
+          Состав ровно как в кадре: Все · Группы · Люди · Места и события · Курсы. Лента
+          шире экрана (507 при 393) — значит задумана прокручиваемой, и это не «не влезло». */}
       {!searching && (
-      /* ЧИПЫ ПО МАКЕТУ (Badge Line 36px, зазор 8, боковые 16). Было: три равных сегмента в
-          одном жёлобе. Стало: отдельные чипы-таблетки, которые ЕДУТ ГОРИЗОНТАЛЬНО — в макете
-          строка чипов шире экрана (507 при ширине 393), значит она задумана прокручиваемой,
-          и новые разделы можно дописывать, не сжимая остальные.
-          «Все» — новая комната-обзор. «Круги» переименованы в «Группы» по макету; в остальном
-          приложении слово пока прежнее — сквозное переименование отдельным заходом. */
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 2px 2px", margin: "0 -12px 0", paddingLeft: 14, paddingRight: 14, scrollbarWidth: "none" }}>
-        {[["all", "Все"], ["circles", "Группы"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
-          const on = seg === id;
-          return (
-            <button key={id} onClick={() => setFilter(id)} className="tap" data-haptic="selection"
-              data-tour={id === "people" ? "network" : undefined}
-              style={{ flexShrink: 0, border: 0, cursor: "pointer", borderRadius: 999, height: 36, padding: "0 16px",
-                fontSize: 15, fontWeight: on ? 590 : 400, letterSpacing: "-0.2px", transition: "background 0.16s, color 0.16s",
-                background: on ? "var(--cta)" : "var(--surface-3)",
-                color: on ? "var(--cta-ink)" : "var(--text)" }}>
-              {t}
-            </button>
-          );
-        })}
-      </div>
+        <FigChips value={seg} onChange={setFilter}
+          items={[["all", "Все"], ["circles", "Группы"], ["people", "Люди"], ["places", "Места и события"], ["courses", "Курсы"]]} />
       )}
 
       {/* Живой пульс переехал в шапку (вправо от «Сообщество») — отдельной строки под пилюлями больше нет. */}
 
       {/* РЕЗУЛЬТАТЫ ПОИСКА — те же карточки, что в ленте; тап ведёт туда же. */}
       {searching && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12, padding: "0 12px" }}>
           <CloudTeamsDiscoverLive app={app} navigate={navigate} query={qDeb} onCount={setCloudHits} />
           {pHits.length > 0 && (
             <div>
@@ -5201,8 +5173,22 @@ function CommunityLive() {
       {/* ЛЕНТА — секции живут вместе; чип просто сужает её. Порядок «Все»: партнёры
           (ради чего копишь XP — решение David «на самом верху») → круги → люди →
           программы партнёров. Во время поиска лента уступает результатам. */}
-      {!searching && (
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+      {/* КОМНАТЫ ПО МАКЕТУ. «Все» — кадр «Мои сообщества», «Места и события» и «Курсы» —
+          свои кадры. Остальные чипы пока ведут в прежние комнаты, их черёд следующий. */}
+      {!searching && seg === "all" && typeof FigCommunityAllLive === "function" && (
+        <FigCommunityAllLive app={app} navigate={navigate} isDark={isDark} onSeg={setFilter} lowCircles={lowCircles} />
+      )}
+      {!searching && seg === "places" && typeof FigPlacesRoomLive === "function" && (
+        <FigPlacesRoomLive navigate={navigate} query={qDeb}
+          onAdd={(done) => _openSheet(<FigShowcaseAddSheetLive kind="places" onDone={done} />)} />
+      )}
+      {!searching && seg === "courses" && typeof FigCoursesRoomLive === "function" && (
+        <FigCoursesRoomLive navigate={navigate} query={qDeb}
+          onAdd={(done) => _openSheet(<FigShowcaseAddSheetLive kind="courses" onDone={done} />)} />
+      )}
+
+      {!searching && seg !== "all" && seg !== "places" && seg !== "courses" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14, padding: "0 12px" }}>
         {/* ══ КРУГИ — комната «с кем делать». Читается сверху вниз: сначала ТВОИ круги живыми
             карточками, потом чужие открытые, потом готовые челленджи и «собери свой», и только в
             самом низу — как всё устроено. Раньше здесь первым шла лента гайдов, а живые люди
@@ -5210,111 +5196,6 @@ function CommunityLive() {
         {/* ══ ВСЕ — обзорная комната (кадр «Мои сообщества»). Читается сверху вниз: сначала то,
             что просит внимания (мало активности), потом твои группы, потом люди, потом то,
             куда можно пойти. Каждый блок — короткий, с переходом в свою комнату. ══ */}
-        {seg === "all" && (
-          <React.Fragment>
-            {/* МАЛО АКТИВНОСТИ. Считается тем же счётчиком залётов, что решает вылет из круга,
-                только порог мягче (2 пропуска против 3). Нет таких кругов — блока нет:
-                пустую плашку «всё хорошо» не рисуем, она бы только занимала экран. */}
-            {lowCircles.length > 0 && (
-              <BosBlock name="low-activity">
-                <CommSectionHeadLive title="Мало активности" />
-                <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden" }}>
-                  <button onClick={() => setLowOpen(!lowOpen)} className="tap" data-haptic="selection"
-                    style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", textAlign: "left", color: "var(--text)" }}>
-                    <span style={{ display: "inline-flex", flexShrink: 0 }}>
-                      {lowCircles.slice(0, 3).map((t, i) => (
-                        <span key={t._id || t.cloudId || i} style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, overflow: "hidden",
-                          background: "var(--surface-3)", boxShadow: "0 0 0 2px var(--card)", marginLeft: i ? -10 : 0 }}>{bosIconOf(t, 16, null, "\ud83d\udc65")}</span>
-                      ))}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 17, fontWeight: 590 }}>{lowCircles.length + " " + _grpWord(lowCircles.length)}</span>
-                      <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", marginTop: 1 }}>Ты давно не участвовал в этих группах</span>
-                    </span>
-                    <I.ChevronRight size={17} color="var(--text-3)" style={{ flexShrink: 0, transition: "transform .2s", transform: lowOpen ? "rotate(90deg)" : "none" }} />
-                  </button>
-                  {lowOpen && lowCircles.map((t) => (
-                    <button key={"lo" + (t._id || t.cloudId)} onClick={() => navigate("team-detail", { team: t, from: "community" })} className="tap"
-                      style={{ width: "100%", border: 0, borderTop: "0.5px solid var(--line-2)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", textAlign: "left", color: "var(--text)" }}>
-                      <span style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, overflow: "hidden", background: "var(--surface-3)", flexShrink: 0 }}>{bosIconOf(t, 16, null, "\ud83d\udc65")}</span>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
-                      <I.ChevronRight size={16} color="var(--text-3)" style={{ flexShrink: 0 }} />
-                    </button>
-                  ))}
-                </div>
-              </BosBlock>
-            )}
-
-            {/* МОИ ГРУППЫ — компактными строками, как в макете (аватар 44, имя, подпись,
-                кнопка чата). Полные карточки живут в комнате «Группы» — здесь обзор. */}
-            {myCircles.length > 0 && (
-              <BosBlock name="my-groups">
-                <CommSectionHeadLive title="Мои группы" note={myCircles.length + " " + _grpWord(myCircles.length)} onAll={() => setFilter("circles")} />
-                <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden" }}>
-                  {myCircles.slice(0, 4).map((t, i) => (
-                    <div key={t._id || t.cloudId} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderTop: i ? "0.5px solid var(--line-2)" : 0 }}>
-                      <button onClick={() => navigate("team-detail", { team: t, from: "community" })} className="tap"
-                        style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", cursor: "pointer", textAlign: "left", padding: 0, color: "var(--text)" }}>
-                        <span style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 22, overflow: "hidden", background: "var(--surface-3)", flexShrink: 0 }}>{bosIconOf(t, 22, null, "\ud83d\udc65")}</span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: "block", fontSize: 17, fontWeight: 590, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
-                          <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {t.vis === "public" ? "Открытая" : "Приватная"}
-                          </span>
-                        </span>
-                      </button>
-                      <button onClick={() => navigate("team-detail", { team: t, from: "community", tab: "chat" })} className="tap" aria-label={"Чат «" + t.name + "»"}
-                        style={{ width: 34, height: 34, borderRadius: "50%", border: 0, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
-                        <I.MessageCircle size={19} strokeWidth={2} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </BosBlock>
-            )}
-
-            {/* ДРУЗЬЯ — живые люди из твоих же кругов. Компонент сам прячется, если их нет. */}
-            {typeof CircleFriendsStripLive === "function" && (
-              <BosBlock name="friends">
-                <CircleFriendsStripLive app={app} navigate={navigate} />
-              </BosBlock>
-            )}
-
-            {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
-
-            {/* Групп нет — говорим про ГРУППЫ, а не «тут ничего нет»: курсы ниже есть, и общая
-                фраза противоречила бы собственному экрану. */}
-            {myCircles.length === 0 && (
-              <div style={{ background: "var(--card)", borderRadius: 16, padding: "32px 22px", textAlign: "center", marginTop: 4 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)" }}>Групп пока нет</div>
-                <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 5, lineHeight: 1.35 }}>Вступи в группу или собери свою — и она появится здесь.</div>
-                <button onClick={() => setFilter("circles")} className="tap"
-                  style={{ marginTop: 18, border: 0, borderRadius: 999, padding: "13px 24px", fontSize: 17, fontWeight: 590, cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)" }}>Каталог групп</button>
-              </div>
-            )}
-            {/* КУРСЫ — витрина без оплаты (решение David 19.08). Горизонтальная лента, как в
-                макете; цена показана, но кнопки «купить» нет — карточка ведёт на разбор курса. */}
-            <BosBlock name="courses">
-              <CommSectionHeadLive title="Курсы" desc="Программы, которые ведут вживую" onAll={() => setFilter("partners")} />
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -12px", padding: "0 14px 4px", scrollbarWidth: "none" }}>
-                {courses.map((c) => (
-                  <button key={c.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("course-detail", { course: c }); }} className="tap"
-                    style={{ flexShrink: 0, width: 240, border: 0, borderRadius: 16, overflow: "hidden", background: "var(--card)", cursor: "pointer", textAlign: "left", padding: 0, color: "var(--text)" }}>
-                    <span style={{ display: "grid", placeItems: "center", height: 108, fontSize: 40, background: c.accent }}>{c.i}</span>
-                    <span style={{ display: "block", padding: "10px 12px 12px" }}>
-                      <span style={{ display: "block", fontSize: 17, fontWeight: 590, letterSpacing: "-0.3px" }}>{c.t}</span>
-                      <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", marginTop: 1 }}>{c.lvl + " \u00b7 " + c.length}</span>
-                      <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", marginTop: 6 }}>{"Старт " + c.cohort}</span>
-                      <span style={{ display: "block", fontSize: 17, fontWeight: 590, marginTop: 6 }}>{c.price}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </BosBlock>
-
-          </React.Fragment>
-        )}
-
         {seg === "circles" && (
           <React.Fragment>
             {/* ВСЕ КРУГИ ОДНИМ СПИСКОМ (David 2026-08-02: «нет смысла дублировать твои круги и

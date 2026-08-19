@@ -31,6 +31,7 @@ const FILES = [
   // (XP / levels / achievements); MUST load before every live screen that reads it.
   "screens/live/economy_live.jsx",
   "screens/live/shared_live.jsx",
+  "screens/live/fig_kit.jsx",
   "screens/live/home_live.jsx",
   "screens/live/habits_live.jsx",
   "screens/live/profile_live.jsx",
@@ -41,6 +42,7 @@ const FILES = [
   "screens/live/habits_extra_live.jsx",
   "screens/live/profile_extra_live.jsx",
   "screens/live/community_extra_live.jsx",
+  "screens/live/community_fig_live.jsx",
   "screens/live/extra_live.jsx",
   "app.jsx",
 ];

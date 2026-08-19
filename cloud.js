@@ -1044,6 +1044,28 @@
     } catch (e) { return null; }
   }
 
+  /* Заливка АВАТАРКИ (своё лицо или обложка группы). Отдельная корзина `avatars`:
+     публичная, маленькие квадраты. Если корзины ещё нет (бэкенд не докатили) —
+     тихо падаем в `chat-photos`, которая уже живёт: лучше рабочая аватарка не в той
+     папке, чем «не получилось». Возвращает публичную ссылку или null. */
+  async function uploadAvatar(blob, ext) {
+    var c = client(); var id = await uid(); if (!c || !id || !blob) return null;
+    var name = id + "/" + Date.now() + "." + (ext || "jpg");
+    var opts = { contentType: blob.type || "image/jpeg", upsert: true, cacheControl: "31536000" };
+    for (var i = 0; i < 2; i++) {
+      var bucket = i === 0 ? "avatars" : "chat-photos";
+      var path = i === 0 ? name : ("avatars/" + name);
+      try {
+        var up = await c.storage.from(bucket).upload(path, blob, opts);
+        if (up.error) continue;
+        var pub = c.storage.from(bucket).getPublicUrl(path);
+        var url = (pub && pub.data && pub.data.publicUrl) || null;
+        if (url) return url;
+      } catch (e) {}
+    }
+    return null;
+  }
+
   // ── ОБЩИЕ ПРИВЫЧКИ (habit buddy: одна привычка — двое, видят отметки друг друга) ──
   // НЕ команда (никакого чата). Создатель пишет shared_habits + себя в members; друг по
   // ссылке hb_<code> вступает; обе стороны пишут свои отметки в shared_habit_logs → общий
@@ -2085,7 +2107,7 @@
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress, teamTodayTimes: teamTodayTimes, circlePulse: circlePulse,
     teamLogsRange: teamLogsRange, teamMyHabitYear: teamMyHabitYear, teamHabitYearOf: teamHabitYearOf, teamDayFeed: teamDayFeed, teamHabitTimes: teamHabitTimes, teamXP: teamXP, teamCheersToday: teamCheersToday, sendTeamCheer: sendTeamCheer,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
-    loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
+    loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, uploadAvatar: uploadAvatar, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
     netSkillsCatalog: netSkillsCatalog, loadMySkills: loadMySkills, claimSkill: claimSkill, netProfiles: netProfiles,
     netSkillOffers: netSkillOffers, netMySkillOffers: netMySkillOffers,

@@ -100,7 +100,7 @@ function TeamCreateLive() {
           Дефолт-серый/чёрный → нейтральная плитка; выбрал Apple-цвет → плитка заливается им. */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={(e, g) => { setEmblem(e); setEmblemIcon(g); }} current={emblem} currentGlyph={emblemIcon} accent={accent} />)} className="tap" aria-label="Сменить значок"
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive photo onPick={(e, g) => { setEmblem(e); setEmblemIcon(g); }} current={emblem} currentGlyph={emblemIcon} accent={accent} />)} className="tap" aria-label="Сменить значок"
             style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent, emblemIcon)}</button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
@@ -365,7 +365,7 @@ function TeamSettingsLive() {
           + единый цвет-пикер (David: создание и редактирование = одна логика; «как в привычках»). */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={(e, g) => { setEmblem(e); setEmblemIcon(g); }} current={emblem} currentGlyph={emblemIcon} accent={accent} />)} className="tap" aria-label="Сменить значок"
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive photo onPick={(e, g) => { setEmblem(e); setEmblemIcon(g); }} current={emblem} currentGlyph={emblemIcon} accent={accent} />)} className="tap" aria-label="Сменить значок"
             style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent, emblemIcon)}</button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />

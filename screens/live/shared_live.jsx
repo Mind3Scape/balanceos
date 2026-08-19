@@ -2517,6 +2517,7 @@ function BuddyFaceLive({ avatar, name, size }) {
   var disc = { width: size, height: size, borderRadius: "50%", flexShrink: 0,
     background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
     boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.07)" };
+  if (a.indexOf("url:") === 0) return <div style={Object.assign({}, disc, { background: "url(" + JSON.stringify(a.slice(4)) + ") center/cover no-repeat", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (/^m\d+$/.test(a)) return <div style={Object.assign({}, disc, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (a.indexOf("emoji:") === 0) return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.54), lineHeight: 1 })}>{a.slice(6)}</div>;
   // No custom avatar → the person's first initial on the SAME grey disc, so it's never a blank
@@ -9121,6 +9122,13 @@ function bosDeSF(val) {
    ВАЖНО для вызывающих: результат идёт в РАЗМЕТКУ ({...} как ребёнок). Если нужен значок
    В СТРОКЕ (склейка текста, пуш, share) — берите bosDeSF(val), а не bosIcon. */
 function bosIcon(val, size, color, glyph) {
+  // Своё фото вместо значка (обложка группы). Рисуем квадратом со скруглением по размеру —
+  // так фото садится в те же 40/44/56 px гнёзда, где раньше стоял эмодзи.
+  if (val && ("" + val).indexOf("url:") === 0) {
+    var _s = size || 20;
+    return React.createElement("span", { style: { display: "inline-block", width: _s, height: _s, borderRadius: Math.max(6, Math.round(_s * 0.28)),
+      background: "url(" + JSON.stringify(("" + val).slice(4)) + ") center/cover no-repeat", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" } });
+  }
   if (glyph && typeof BOS_GLYPHS !== "undefined" && BOS_GLYPHS[glyph] && typeof BosGlyph !== "undefined") {
     return React.createElement(BosGlyph, { id: glyph, size: size || 20, color: color || undefined });
   }
@@ -9222,7 +9230,84 @@ function BosIconPickerLive({ emoji, glyph, onPick, accent, isDark = false, reset
 
 /* Шторка выбора значка — для круга (эмблема) и общей привычки круга. Внутри тот же
    BosIconPickerLive, поэтому переключатель «Эмодзи · Иконки» одинаковый во всём приложении. */
-function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, currentGlyph, embedded = false }) {
+/* ══ СВОЁ ФОТО ВМЕСТО АВАТАРКИ ═══════════════════════════════════════════════════════
+   David: «дай людям подгружать свои аватарки из галереи — и себе, и группе».
+   Путь короткий и честный: выбрал файл → обрезали КВАДРАТОМ ПО ЦЕНТРУ (аватарка всегда
+   круг, значит квадрат — единственная честная рамка) → ужали до 512 → залили в облако →
+   вернули «url:<ссылка>». Эту строку понимают BosAvatar, BuddyFaceLive и bosIcon, поэтому
+   фото появляется СРАЗУ везде: в шапке, в списках, в круге, в чате.
+   Без облака (демо, оффлайн) не притворяемся, что получилось — говорим прямо. */
+function bosSquarePhoto(file, side) {
+  side = side || 512;
+  return new Promise(function (resolve, reject) {
+    var draw = function (src, w0, h0) {
+      var m = Math.min(w0, h0);
+      var cv = document.createElement("canvas");
+      cv.width = side; cv.height = side;
+      var ctx = cv.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, side, side);
+      ctx.drawImage(src, (w0 - m) / 2, (h0 - m) / 2, m, m, 0, 0, side, side);
+      cv.toBlob(function (b) { b ? resolve(b) : reject(new Error("blob")); }, "image/jpeg", 0.86);
+    };
+    if (typeof createImageBitmap === "function") {
+      createImageBitmap(file, { imageOrientation: "from-image" })
+        .catch(function () { return createImageBitmap(file); })
+        .then(function (bmp) { draw(bmp, bmp.width, bmp.height); try { bmp.close && bmp.close(); } catch (e) {} })
+        .catch(function () { fallback(); });
+    } else fallback();
+    function fallback() {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () { try { draw(img, img.naturalWidth, img.naturalHeight); } finally { URL.revokeObjectURL(url); } };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    }
+  });
+}
+
+/* Кнопка «Загрузить фото» + скрытый выбор файла. onDone("url:…") — когда ссылка готова.
+   Состояний три и все видимые: покой · «загружаю» · честная ошибка. */
+function BosPhotoPickLive({ onDone, label, sub, round = true, preview }) {
+  const ref = React.useRef(null);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const onFile = (e) => {
+    const f = e.target.files && e.target.files[0];
+    try { e.target.value = ""; } catch (_) {}
+    if (!f) return;
+    setErr(""); setBusy(true);
+    bosSquarePhoto(f, 512).then((blob) => {
+      const C = window.bosCloud;
+      if (!C || !C.uploadAvatar) throw new Error("no-cloud");
+      return C.uploadAvatar(blob, "jpg");
+    }).then((url) => {
+      setBusy(false);
+      if (!url) { setErr("Не удалось загрузить — попробуй ещё раз"); if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (_) {} } return; }
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (_) {} }
+      onDone && onDone("url:" + url);
+    }).catch(() => { setBusy(false); setErr("Не удалось загрузить — попробуй ещё раз"); });
+  };
+  return (
+    <div style={{ display: "grid", placeItems: "center", gap: 10 }}>
+      <input ref={ref} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
+      {preview !== undefined && (
+        <div style={{ width: 96, height: 96, borderRadius: round ? "50%" : 26, background: preview ? ("url(" + JSON.stringify(preview) + ") center/cover no-repeat") : "var(--surface-3)",
+          display: "grid", placeItems: "center", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)", opacity: busy ? 0.55 : 1, transition: "opacity .2s" }}>
+          {!preview && <I.Camera size={28} color="var(--text-3)" strokeWidth={1.6} />}
+        </div>
+      )}
+      <button onClick={() => { if (!busy && ref.current) ref.current.click(); }} disabled={busy} className="tap"
+        style={{ border: 0, borderRadius: 999, padding: "12px 22px", cursor: busy ? "default" : "pointer",
+          background: "var(--cta)", color: "var(--cta-ink)", fontSize: 15, fontWeight: 600, opacity: busy ? 0.6 : 1 }}>
+        {busy ? "Загружаю…" : (label || "Выбрать из галереи")}
+      </button>
+      {sub && !err && <div style={{ fontSize: 13, color: "var(--text-2)", textAlign: "center", lineHeight: 1.4 }}>{sub}</div>}
+      {err && <div style={{ fontSize: 13, color: "var(--accent-red, #FC4436)", textAlign: "center" }}>{err}</div>}
+    </div>
+  );
+}
+
+function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, currentGlyph, embedded = false, photo = false }) {
   const { close } = useSheet();
   // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
   // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
@@ -9234,6 +9319,13 @@ function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, currentGlyph, em
   return (
     <div style={{ padding: "2px 4px 10px", color: "var(--text)" }}>
       <div style={{ textAlign: "center", fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Выбери значок</div>
+      {photo && (
+        <div style={{ padding: "0 12px 14px", borderBottom: "0.5px solid var(--line-2)", marginBottom: 12 }}>
+          <BosPhotoPickLive round={false} preview={("" + (current || "")).indexOf("url:") === 0 ? ("" + current).slice(4) : ""}
+            label="Своё фото из галереи" sub="Обрежем квадратом по центру"
+            onDone={(v) => { if (onPick) onPick(v, null); if (!embedded) close(); }} />
+        </div>
+      )}
       <BosIconPickerLive emoji={current} glyph={currentGlyph} accent={accent === "#0a0a0a" ? null : accent} onPick={pick} />
     </div>
   );
@@ -9249,7 +9341,7 @@ function AvatarPickerSheetLive({ dark = false }) {
   const { close } = useSheet();
   const C = (typeof sheetColors === "function") ? sheetColors(dark) : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", field: "#f4f4f6", btn: "#0a0a0a", btnFg: "#fff" };
   const cur = "" + (app?.avatar || "");
-  const [tab, setTab] = React.useState(cur.indexOf("emoji:") === 0 ? "emoji" : "memoji");
+  const [tab, setTab] = React.useState(cur.indexOf("url:") === 0 ? "photo" : (cur.indexOf("emoji:") === 0 ? "emoji" : "memoji"));
   const [cat, setCat] = React.useState(0);
   const pick = (val) => { try { app && app.setAvatar && app.setAvatar(val); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const CATS = (typeof BOS_EMOJI_CATS !== "undefined") ? BOS_EMOJI_CATS : [];
@@ -9259,7 +9351,7 @@ function AvatarPickerSheetLive({ dark = false }) {
       <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Аватар</div>
       <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Выбери лицо — Эмодзи или Мемоджи. Сменить можно когда угодно.</div>
       <div style={{ display: "flex", gap: 6, background: C.field, borderRadius: 999, padding: 4, margin: "14px auto 12px", width: "fit-content" }}>
-        {[["emoji", "Эмодзи"], ["memoji", "Мемоджи"]].map(function (m) {
+        {[["emoji", "Эмодзи"], ["memoji", "Мемоджи"], ["photo", "Фото"]].map(function (m) {
           return <button key={m[0]} onClick={() => setTab(m[0])} className="tap" data-no-haptic style={{ border: 0, borderRadius: 999, padding: "7px 22px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", background: tab === m[0] ? C.btn : "transparent", color: tab === m[0] ? C.btnFg : C.sub }}>{m[1]}</button>;
         })}
       </div>
@@ -9279,6 +9371,13 @@ function AvatarPickerSheetLive({ dark = false }) {
           </div>
         </>
       ) : (
+        tab === "photo" ? (
+        <div style={{ padding: "16px 0 6px" }}>
+          <BosPhotoPickLive preview={cur.indexOf("url:") === 0 ? cur.slice(4) : ""}
+            label={cur.indexOf("url:") === 0 ? "Другое фото" : "Выбрать из галереи"}
+            sub="Обрежем квадратом по центру — аватарка круглая" onDone={pick} />
+        </div>
+      ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 13, maxHeight: 296, overflowY: "auto", padding: "2px 2px 4px" }}>
           {MEMO.map(function (m) {
             var val = m === "default" ? null : m;
@@ -9292,7 +9391,7 @@ function AvatarPickerSheetLive({ dark = false }) {
             );
           })}
         </div>
-      )}
+      ))}
       <button onClick={close} className="tap" style={{ width: "100%", marginTop: 16, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Готово</button>
     </div>
   );

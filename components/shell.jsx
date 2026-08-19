@@ -925,6 +925,9 @@ const BOS_FACE_AVATARS = ["😀", "😃", "😄", "😁", "😊", "🙂", "😉"
 function bosRandomFaceAvatar() { return "emoji:" + BOS_FACE_AVATARS[Math.floor(Math.random() * BOS_FACE_AVATARS.length)]; }
 function bosAvatarBg(avatar) {
   if (!avatar || avatar === "default") return "url(./assets/sphere.png) center/cover no-repeat";
+  // «url:<ссылка>» — человек загрузил СВОЁ фото из галереи. Одна форма записи на всё
+  // приложение: и лицо человека (profiles.avatar), и обложка группы (teams.emblem).
+  if (("" + avatar).indexOf("url:") === 0) return "url(" + JSON.stringify(("" + avatar).slice(4)) + ") center/cover no-repeat";
   if (("" + avatar).indexOf("emoji:") === 0) return "linear-gradient(150deg,#eef1f6,#d3d9e4)";
   if (/^m\d+$/.test(avatar)) return "url(./assets/people/" + avatar + ".png) center/cover no-repeat";
   return "url(./assets/sphere.png) center/cover no-repeat";
@@ -932,6 +935,9 @@ function bosAvatarBg(avatar) {
 function BosAvatar({ avatar, size, style, bare }) {
   size = size || 44;
   var isEmoji = avatar && ("" + avatar).indexOf("emoji:") === 0;
+  var isPhoto = avatar && ("" + avatar).indexOf("url:") === 0;
+  if (isPhoto) return <div style={Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0,
+    background: bosAvatarBg(avatar), backgroundSize: "cover", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" }, style || {})} />;
   // `bare`: when an emoji avatar sits ON a glossy mood orb, float the glyph on a
   // TRANSPARENT disc (no grey plate) so the sphere shows through — the emoji reads as
   // a face on the orb. Without `bare` (normal list/header chips) the soft disc stays.
@@ -953,6 +959,7 @@ function BosOrbFace({ avatar, size, tint, style }) {
   size = size || 80;
   var isEmoji = avatar && ("" + avatar).indexOf("emoji:") === 0;
   var isMemoji = avatar && /^m\d+$/.test(avatar);
+  if (avatar && ("" + avatar).indexOf("url:") === 0) return <div style={Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden" }, style || {}, { background: bosAvatarBg(avatar), backgroundSize: "cover", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" })} />;
   var t0 = (tint && tint[0]) || "#ffd97a", t2 = (tint && tint[2]) || "#d97757";
   var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden" }, style || {});
   if (isMemoji) return <div style={Object.assign(base, { background: "url(./assets/people/" + avatar + ".png) center/cover no-repeat", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" })} />;
