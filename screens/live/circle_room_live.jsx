@@ -1900,18 +1900,14 @@ function TeamDetailLive() {
       {!(roomTab === "tasks" && taskGroups.length > 0) && (
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (
-          <div style={{ padding: "18px 6px", textAlign: "center" }}>
-            {roomTab !== "tasks" ? (
-              <React.Fragment>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>{_isOwner ? "Дай кругу первую привычку" : "Ведущий ещё не добавил привычек"}</div>
-                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>{_isOwner ? "Общий ритм — то, что круг делает каждый день" : "Загляни позже — здесь появится список дня"}</div>
-              </React.Fragment>
-            ) : (
-              <React.Fragment>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>{_isOwner ? "Разовых дел пока нет" : "Дел пока нет"}</div>
-                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>{_isOwner ? "Дело — разовый шаг: сделал, отметил, готово" : "Ведущий может дать кругу разовое дело"}</div>
-              </React.Fragment>
-            )}
+          {/* Пустое состояние — заголовок 20/590 из кадра «Пустое»: «Тут пока ничего нет». */}
+          <div style={{ padding: "20px 6px 18px", textAlign: "center" }}>
+            <div style={{ fontSize: 20, fontWeight: 590, lineHeight: "25px", letterSpacing: "-0.45px", color: "var(--text)" }}>Тут пока ничего нет</div>
+            <div style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", marginTop: 4 }}>
+              {roomTab !== "tasks"
+                ? (_isOwner ? "Дай группе первую привычку — общий ритм начинается с неё." : "Ведущий ещё не добавил привычек — загляни позже.")
+                : (_isOwner ? "Дело — разовый шаг: сделал, отметил, готово." : "Ведущий может дать группе разовое дело.")}
+            </div>
           </div>
         )}
         {_isOwner && (
