@@ -556,6 +556,9 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
    ───────────────────────────────────────── */
 
 .theme-light {
+  /* Заливка полей/таблеток макета (iOS systemFill): в кадрах #767680@24% (тёмная тема),
+     светлый двойник — 12%. Одна переменная, чтобы поля поиска/сегменты совпадали везде. */
+  --fig-fill: rgba(118,118,128,0.12);
   background: var(--bg);
   color: var(--text);
   --card: #ffffff;
@@ -567,6 +570,7 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
 }
 
 .theme-dark {
+  --fig-fill: rgba(118,118,128,0.24);
   background: var(--d-bg);
   color: var(--d-text);
   --card: rgba(255,255,255,0.06);

@@ -483,7 +483,8 @@ function FigRoundButton({ icon, onClick, label, badge, style }) {
   );
 }
 
-/* ПОЛЕ ПОИСКА (Text Field Search): 44 высотой, r26, заливка --surface-3, лупа и текст 17/510.
+/* ПОЛЕ ПОИСКА (Text Field Search): 44 высотой, r26, заливка #767680 (24% в тёмной кадра,
+   12% — её светлый двойник), лупа и текст 17/510.
    Справа — кнопка фильтров, если раздел их поддерживает. */
 function FigSearchField({ value, onChange, placeholder, onFilter, filterOn, onCancel, autoFocus, style }) {
   var ref = React.useRef(null);
@@ -491,7 +492,7 @@ function FigSearchField({ value, onChange, placeholder, onFilter, filterOn, onCa
   return (
     <div style={Object.assign({ display: "flex", alignItems: "center", gap: 12, padding: "0 16px 10px" }, style || {})}>
       <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, height: 44, borderRadius: 26,
-        background: "var(--surface-3)", padding: "0 10px 0 12px" }}>
+        background: "var(--fig-fill, rgba(118,118,128,0.12))", padding: "0 10px 0 12px" }}>
         <I.Search size={17} strokeWidth={2.2} color="var(--text-2)" style={{ flexShrink: 0 }} />
         <input ref={ref} value={value} onChange={function (e) { onChange(e.target.value); }} placeholder={placeholder || "Поиск"}
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 510,

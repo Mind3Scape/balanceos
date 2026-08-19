@@ -110,8 +110,47 @@ function CircleOverviewLive() {
     return weeks;
   }, [mode, sel, cursor]);
 
-  /* ── СЕТКА ЧАСОВ: 6 полос по 4 часа × колонки дней ── */
+  /* ── СЕТКА ЧАСОВ ──
+     Неделя: 6 полос по 4 часа × 7 колонок (жёлоб 52×200 из кадра «Неделя»), точки-отметки.
+     День:   12 полос по 2 часа (кадр «День»: ряд 36.4, подписи 02:00–22:00 на границах),
+             в полосе — ЧИПЫ АКТИВНОСТИ: значок + имя привычки + лица отметившихся. */
   const gridDays = mode === "day" ? [selDate] : weekRows[0];
+  // Привычки круга — чтобы чип активности звался именем привычки.
+  const [habitMap, setHabitMap] = React.useState({});
+  React.useEffect(function () {
+    if (!_live || !window.bosCloud.teamHabitsFull) return;
+    var on = true;
+    window.bosCloud.teamHabitsFull(t.cloudId).then(function (hs) {
+      if (!on || !hs) return;
+      var o = {};
+      hs.forEach(function (h) { o[h.id] = h; });
+      setHabitMap(o);
+    }).catch(function () {});
+    return function () { on = false; };
+  }, [_live, t.cloudId]);
+  const memberById = React.useMemo(function () {
+    var o = {};
+    (members || []).forEach(function (m) { if (m && m.id) o[m.id] = m; });
+    return o;
+  }, [members]);
+  // Слот 2 часа → чипы по привычкам: {name, emoji, users[]}.
+  const daySlotChips = function (d, slot2h) {
+    var k = figDayKey(d);
+    var marks = (byDay[k] && byDay[k].marks) || [];
+    var byH = {};
+    marks.forEach(function (m) {
+      if (!m.at) return;
+      var dt = (typeof bosParseTs === "function") ? bosParseTs(m.at) : new Date(m.at);
+      if (Math.floor(dt.getHours() / 2) !== slot2h) return;
+      var g = byH[m.h] || (byH[m.h] = { users: {} });
+      g.users[m.u] = true;
+    });
+    return Object.keys(byH).map(function (hid) {
+      var h = habitMap[hid] || {};
+      return { id: hid, name: h.name || "Привычка", emoji: (typeof bosDeSF === "function" ? bosDeSF(h.emoji) : h.emoji) || "✓",
+        users: Object.keys(byH[hid].users) };
+    });
+  };
   const slotDots = function (d, slot) {
     var k = figDayKey(d);
     var marks = (byDay[k] && byDay[k].marks) || [];
@@ -144,8 +183,8 @@ function CircleOverviewLive() {
         style={{ width: "100%", border: 0, background: "transparent", cursor: props.onClick ? "pointer" : "default",
           display: "flex", alignItems: "center", gap: 8, padding: "0 16px", minHeight: 52, textAlign: "left",
           color: "var(--text)", position: "relative" }}>
-        {!props.first && <span aria-hidden style={{ position: "absolute", left: 52, right: 0, top: 0, height: 1, background: "var(--line-2)" }} />}
-        <span style={{ width: 36, display: "grid", placeItems: "start center", color: "var(--text-2)" }}>{props.icon}</span>
+        {!props.first && <span aria-hidden style={{ position: "absolute", left: 68, right: 0, top: 0, height: 1, background: "var(--line-2)" }} />}
+        <span style={{ width: 44, display: "grid", placeItems: "start center", color: "var(--text-2)" }}>{props.icon}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px" }}>{props.title}</span>
         {props.detail != null && <span style={{ fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text-2)", flexShrink: 0 }}>{props.detail}</span>}
         {props.onClick && <I.ChevronRight size={15} strokeWidth={2.6} color="var(--text-3)" style={{ flexShrink: 0 }} />}
@@ -161,7 +200,6 @@ function CircleOverviewLive() {
           style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
           <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
         </button>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
       </div>
       <div style={{ padding: "10px 16px 0" }}>
         <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "0.4px", color: "var(--text)" }}>Обзор</div>
@@ -192,12 +230,36 @@ function CircleOverviewLive() {
           </span>
         </div>
 
-        {/* Блок дней: линии сверху и снизу, левый жёлоб 55 под колонку часов */}
-        <div style={{ borderTop: "1px solid var(--line-2)", borderBottom: "1px solid var(--line-2)", padding: "8px 0 12px 55px" }}>
+        {/* Блок дней. НЕДЕЛЯ: жёлоб 55 слева — колонки дней над колонками сетки часов
+            (кадр «Неделя», Date Header 306 при жёлобе 52). ДЕНЬ: одиночная ячейка
+            выбранного дня слева (кадр «День»: Date Header 38 + Day). МЕСЯЦ: во всю ширину. */}
+        {mode === "day" ? (
+          <div style={{ borderTop: "1px solid var(--line-2)", padding: "8px 0 4px" }}>
+            {(function () {
+              var d = selDate;
+              var isToday = sel === figDayKey(today);
+              var ring = ringOf(sel, isToday, false);
+              return (
+                <div style={{ width: 38, display: "grid", justifyItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", color: "var(--text-3)" }}>
+                    {["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"][d.getDay()]}
+                  </span>
+                  <span style={{ position: "relative", width: 38, height: 38, display: "grid", placeItems: "center" }}>
+                    {ring && <svg width="40" height="40" viewBox="0 0 40 40" style={{ position: "absolute" }} aria-hidden>
+                      <circle cx="20" cy="20" r="19.25" fill="none" stroke={ring} strokeWidth="1.5" />
+                    </svg>}
+                    <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
+                      background: "var(--cta)", color: "var(--cta-ink)", fontSize: 20, fontWeight: 590, lineHeight: "24px" }}>{d.getDate()}</span>
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+        ) : (
+        <div style={{ borderTop: "1px solid var(--line-2)", borderBottom: "1px solid var(--line-2)", padding: mode === "week" ? "8px 0 12px 55px" : "8px 0 12px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", height: 20, alignItems: "center", marginBottom: 4 }}>
             {["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"].map(function (n, i) {
-              return <span key={n} style={{ textAlign: "center", fontSize: 13, fontWeight: 590, lineHeight: "18px", color: "var(--text-3)",
-                opacity: mode === "day" && gridDays[0].getDay() !== i ? 0.35 : 1 }}>{n}</span>;
+              return <span key={n} style={{ textAlign: "center", fontSize: 13, fontWeight: 590, lineHeight: "18px", color: "var(--text-3)" }}>{n}</span>;
             })}
           </div>
           <div className="fig-month" key={mode + "-" + sel.slice(0, 7)} style={{ display: "grid", gap: 7 }}>
@@ -207,7 +269,7 @@ function CircleOverviewLive() {
                 <div key={wi} style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(7, 1fr)", height: 38, alignItems: "center" }}>
                   {/* Подсветка ВЫБРАННОГО ПЕРИОДА: в режиме недели — вся строка таблеткой. */}
                   {mode === "week" && (
-                    <span aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 2, height: 34, borderRadius: 999, background: "var(--surface-3)" }} />
+                    <span aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 2, height: 34, borderRadius: 999, background: "var(--fig-fill, rgba(118,118,128,0.12))" }} />
                   )}
                   {wk.map(function (d, di) {
                     const k = figDayKey(d);
@@ -238,9 +300,10 @@ function CircleOverviewLive() {
             })}
           </div>
         </div>
+        )}
 
-        {/* СЕТКА ЧАСОВ: слева время, дальше колонки дней по 6 полос в 4 часа. */}
-        {mode !== "month" && (
+        {/* СЕТКА ЧАСОВ НЕДЕЛИ: 6 полос по 4 часа × 7 колонок с точками (жёлоб 52×200). */}
+        {mode === "week" && (
           <div style={{ display: "flex", height: 198 }}>
             {/* Колонка часов: подписи стоят НА ГРАНИЦАХ полос — поэтому сверху пустой
                 отступ 18, а дальше пять полос по 33 (в макете 18 + 5×33 + 18 = 201). */}
@@ -271,6 +334,54 @@ function CircleOverviewLive() {
           </div>
         )}
 
+        {/* СЕТКА СУТОК ДНЯ (кадр «День»): 12 полос по 2 часа, ряд 36.4, подписи 02:00–22:00
+            на границах рядов. В полосе — чипы активности: значок + имя привычки + лица
+            отметившихся и «+N». Серый чип = задача/привычка; синий и фиолетовый (личная
+            цель / цель группы) появятся вместе с событиями целей в бэкенде — см. легенду. */}
+        {mode === "day" && (
+          <div style={{ display: "flex", borderTop: "1px solid var(--line-2)" }}>
+            <div style={{ width: 52, flexShrink: 0, position: "relative", borderRight: "1px solid var(--line-2)" }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(function (b) {
+                return <span key={b} style={{ position: "absolute", top: (b * 36.4 - 9) + "px", left: 0, fontSize: 13, fontWeight: 590, lineHeight: "18px", color: "var(--text-3)" }}>{String(b * 2).padStart(2, "0") + ":00"}</span>;
+              })}
+              <span aria-hidden style={{ display: "block", height: 12 * 36.4 }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(function (slot) {
+                var chips = daySlotChips(selDate, slot);
+                return (
+                  <div key={slot} style={{ height: 36.4, boxSizing: "border-box", borderTop: slot ? "1px solid var(--line-2)" : 0,
+                    display: "flex", alignItems: "center", gap: 2, padding: "0 2px", overflow: "hidden" }}>
+                    {chips.slice(0, 2).map(function (c) {
+                      var extra = c.users.length - 2;
+                      return (
+                        <span key={c.id} style={{ flex: 1, minWidth: 0, maxWidth: chips.length === 1 ? "100%" : "50%", height: 24, borderRadius: 6,
+                          background: "var(--fig-fill, rgba(118,118,128,0.12))", display: "inline-flex", alignItems: "center", gap: 3, padding: "0 5px", boxSizing: "border-box" }}>
+                          <span style={{ fontSize: 12, lineHeight: "16px", flexShrink: 0 }}>{c.emoji}</span>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 590, lineHeight: "16px", color: "var(--text)",
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                            {c.users.slice(0, 2).map(function (uid, ui) {
+                              var m = memberById[uid] || {};
+                              return (
+                                <span key={uid} style={{ marginLeft: ui ? -7 : 0, display: "inline-flex", borderRadius: "50%", boxShadow: "0 0 0 1.5px var(--bg)" }}>
+                                  {typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={m.avatar} name={m.name || "?"} size={17} /> : null}
+                                </span>
+                              );
+                            })}
+                            {extra > 0 && <span style={{ marginLeft: 3, fontSize: 12, fontWeight: 590, lineHeight: "16px", color: "var(--text-2)" }}>{"+" + extra}</span>}
+                          </span>
+                        </span>
+                      );
+                    })}
+                    {chips.length > 2 && <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 590, color: "var(--text-2)", padding: "0 2px" }}>{"+" + (chips.length - 2)}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Строка режима 52: чипы Д · Н · М и «Сегодня». */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 5, minHeight: 52, borderTop: "1px solid var(--line-2)" }}>
           <span style={{ display: "flex", gap: 8 }}>
@@ -279,23 +390,34 @@ function CircleOverviewLive() {
               return (
                 <button key={m[0]} onClick={function () { setMode(m[0]); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }}
                   className="tap" style={{ height: 34, minWidth: 37, padding: "0 12px", borderRadius: 999, border: 0, cursor: "pointer",
-                    background: on ? "var(--cta)" : "var(--surface-3)", color: on ? "var(--cta-ink)" : "var(--text)",
+                    background: on ? "var(--cta)" : "var(--fig-fill, rgba(118,118,128,0.12))", color: on ? "var(--cta-ink)" : "var(--text)",
                     fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", transition: "background .18s, color .18s" }}>{m[1]}</button>
               );
             })}
           </span>
-          <button onClick={function () { setSel(figDayKey(today)); setCursor(new Date(today.getFullYear(), today.getMonth(), 1)); }}
-            className="tap" style={{ height: 34, padding: "0 14px", borderRadius: 999, border: 0, cursor: "pointer",
-              background: "var(--surface-3)", color: "var(--text-2)", fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px" }}>Сегодня</button>
+          {(function () {
+            var onToday = sel === figDayKey(today) && (mode !== "month" || cursor.getMonth() === today.getMonth());
+            return (
+              <button onClick={function () { if (onToday) return; setSel(figDayKey(today)); setCursor(new Date(today.getFullYear(), today.getMonth(), 1)); }}
+                className={onToday ? undefined : "tap"} style={{ height: 34, padding: "0 14px", borderRadius: 999, border: 0, cursor: onToday ? "default" : "pointer",
+                  background: "var(--fig-fill, rgba(118,118,128,0.12))", color: onToday ? "var(--text-3)" : "var(--text)",
+                  fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", transition: "color .18s" }}>Сегодня</button>
+            );
+          })()}
         </div>
 
-        {/* Легенда 76. Про цели говорим честно: их событий в базе пока нет. */}
+        {/* Легенда из узла (Grouped Table Footer 76): три вида чипов. В макете опечатка
+            «выполненая» — пишем правильно. Синие и фиолетовые чипы оживут вместе с
+            событиями целей в бэкенде (goal_events) — легенда уже готова. */}
         <div style={{ padding: "8px 0 6px", display: "grid", gap: 4 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 6, background: "rgba(120,120,128,0.36)" }} />выполненная задача или привычка
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 6, background: "rgba(118,118,128,0.5)" }} />выполненная задача или привычка
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-3)" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 6, background: "rgba(0,123,255,0.88)", opacity: 0.4 }} />цели — когда включим их события в бэкенде
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 6, background: "#007BFF" }} />выполненная персональная цель
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 6, background: "#6236FF" }} />выполненная общая цель группы
           </span>
         </div>
       </div>
@@ -312,9 +434,9 @@ function CircleOverviewLive() {
       <div style={{ padding: "0 16px" }}>
         <div style={card}>
           <Row first icon={<I.Flame size={19} strokeWidth={2} />} title="Серия"
-            detail={streak.cur ? (streak.cur + " " + (streak.cur === 1 ? "день" : (streak.cur < 5 ? "дня" : "дней")) + (streak.best > streak.cur ? " · рекорд " + streak.best : "")) : "пока нет"} />
+            detail={streak.cur ? (streak.cur + " " + (streak.cur === 1 ? "день" : (streak.cur < 5 ? "дня" : "дней")) + " · рекорд " + Math.max(streak.best, streak.cur)) : "пока нет"} />
           <Row icon={<I.Calendar size={19} strokeWidth={2} />} title="Вместе"
-            detail={togetherDays ? (togetherDays + " " + (togetherDays === 1 ? "день" : (togetherDays % 10 >= 2 && togetherDays % 10 <= 4 && (togetherDays % 100 < 12 || togetherDays % 100 > 14) ? "дня" : "дней"))) : "—"} />
+            detail={togetherDays ? (togetherDays + " " + ((togetherDays % 10 === 1 && togetherDays % 100 !== 11) ? "день" : (togetherDays % 10 >= 2 && togetherDays % 10 <= 4 && (togetherDays % 100 < 12 || togetherDays % 100 > 14) ? "дня" : "дней"))) : "—"} />
         </div>
       </div>
     </div>
