@@ -798,12 +798,41 @@ function NotificationsLive() {
   const shown = Object.assign({}, base, { reminders: dueRem });
   const _bud = (shown && shown.buddies) || [];
   const isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !_bud.length && !shown.chats.length && !dueRem.length;
+  // ЧИПЫ-ФИЛЬТРЫ из кадра «Уведомления»: Все · Группы · Люди · Места и события · Курсы.
+  // Группы = заявки/вступившие/приняли/чаты; Люди = приглашённые и напарники; двум последним
+  // разделам не с чего слать уведомления, пока их нет в бэкенде, — говорим это прямо.
+  const [nTab, setNTab] = React.useState("all");
+  const shownTab = React.useMemo(() => {
+    if (nTab === "groups") return Object.assign({}, shown, { invited: [], buddies: [], reminders: [] });
+    if (nTab === "people") return Object.assign({}, shown, { requests: [], joined: [], accepted: [], chats: [], reminders: [] });
+    return shown;
+  }, [shown, nTab]);
+  const tabEmpty = nTab === "places" || nTab === "courses" ||
+    (nTab === "groups" && !shown.requests.length && !shown.joined.length && !shown.accepted.length && !shown.chats.length) ||
+    (nTab === "people" && !shown.invited.length && !_bud.length);
+  const totalN = shown ? (shown.requests.length + shown.joined.length + shown.invited.length + shown.accepted.length + _bud.length + shown.chats.length) : 0;
   const canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || _bud.length || shown.chats.length) ? true : false;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Уведомления" onBack={() => navigate(params?.from || "profile")} right={
-        canClear ? <button onClick={clearAll} className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button> : null
-      }/>
+      {/* ШАПКА ПО КАДРУ: назад-стекло, крупный заголовок 34/700 lh41, под ним серый счёт. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, margin: "0 -4px" }}>
+        <button onClick={() => navigate(params?.from || "profile")} className="tap" aria-label="Назад"
+          style={{ width: 44, height: 44, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center",
+            color: "var(--text)", background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(30px) saturate(1.8)", backdropFilter: "blur(30px) saturate(1.8)" }}>
+          <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
+        </button>
+        {canClear && <button onClick={clearAll} className="tap" style={{ background: "transparent", border: 0, cursor: "pointer", fontSize: 15, color: "var(--text-2)" }}>Очистить</button>}
+      </div>
+      <div style={{ padding: "8px 0 0" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "0.4px", color: "var(--text)" }}>Уведомления</div>
+        <div style={{ fontSize: 15, fontWeight: 590, lineHeight: "20px", letterSpacing: "-0.23px", color: "#8A8A8A", marginTop: 0 }}>
+          {loading ? "загружаю…" : (totalN ? totalN + " " + (totalN % 10 === 1 && totalN % 100 !== 11 ? "событие" : (totalN % 10 >= 2 && totalN % 10 <= 4 && (totalN % 100 < 12 || totalN % 100 > 14) ? "события" : "событий")) : "тихо")}
+        </div>
+      </div>
+      {typeof FigChips === "function" && (
+        <FigChips value={nTab} onChange={setNTab} style={{ margin: "10px -16px 0", paddingBottom: 6 }}
+          items={[["all", "Все"], ["groups", "Группы"], ["people", "Люди"], ["places", "Места и события"], ["courses", "Курсы"]]} />
+      )}
       {(loading && !dueRem.length) ? (
         <div className="bos-acc-in" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[0, 1].map((i) => (
@@ -816,6 +845,15 @@ function NotificationsLive() {
             </div>
           ))}
         </div>
+      ) : (nTab !== "all" && tabEmpty) ? (
+        <div className="fig-swap bos-sys-text-3" style={{ textAlign: "center", padding: "48px 20px", fontSize: 14 }}>
+          <div style={{ fontWeight: 600, color: "var(--text-2)", fontSize: 15 }}>
+            {nTab === "places" ? "Про места и события пока нечего сообщить" : nTab === "courses" ? "Про курсы пока нечего сообщить" : "Здесь пока пусто"}
+          </div>
+          <div style={{ marginTop: 6, lineHeight: 1.5 }}>
+            {nTab === "places" || nTab === "courses" ? "Уведомления появятся вместе с этим разделом в бэкенде." : "События этого раздела появятся здесь."}
+          </div>
+        </div>
       ) : isEmpty ? (
         <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "60px 20px", fontSize: 14 }}>
           <div style={{ fontSize: 34, marginBottom: 10 }}>🔔</div>
@@ -823,7 +861,7 @@ function NotificationsLive() {
           <div style={{ marginTop: 6, lineHeight: 1.5 }}>Здесь появятся заявки в твои круги,<br />новые люди и сообщения.</div>
         </div>
       ) : (
-        <NotifFeedLive data={shown} busy={busy}
+        <NotifFeedLive data={shownTab} busy={busy}
           onApprove={approve} onReject={reject}
           onOpenTeam={openTeam} onOpenChat={openChat}
           onOpenAccepted={openAccepted} onOpenFriends={openFriends} onOpenBuddy={openBuddy}
