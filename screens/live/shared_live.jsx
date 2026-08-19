@@ -3284,8 +3284,14 @@ function bosChatReadTs(raw) {
   return isNaN(t) ? 0 : t;
 }
 function bosTeamUnreadCacheGet(cloudId) { var c = _bosTeamUnreadCache[cloudId]; return (c && Date.now() - c.at < 60000) ? c : null; }
+/* ГРУППА «БЕЗ ЗВУКА» (шторка «Уведомления» из меню группы): счётчики непрочитанного этой
+   группы гаснут везде разом. Хранится локально — bos:mute:<id>. */
+function bosTeamMuted(cloudId) {
+  try { return !!cloudId && localStorage.getItem("bos:mute:" + cloudId) === "1"; } catch (e) { return false; }
+}
 async function bosTeamUnreadPeek(cloudId) {
   if (!cloudId || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.unreadMessages)) return null;
+  if (bosTeamMuted(cloudId)) return { at: Date.now(), count: 0, muted: true };
   var cached = bosTeamUnreadCacheGet(cloudId);
   if (cached) return cached;
   try {

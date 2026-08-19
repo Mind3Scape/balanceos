@@ -1293,7 +1293,9 @@ function TeamDetailLive() {
       onJoin={joinThisCircle}
       onAbout={() => openSheet(<CircleAboutSheetLive team={t} membersN={membersN} ageDays={ageDays} isDark={isDark} />)}
       onShare={() => openSheet(<TeamShareSheetLive team={t} />)}
-      onNotify={() => navigate("notifications", { from: "team-detail" })}
+      /* «Уведомления» из меню — шторка настроек ЭТОЙ группы (кадр «Уведомления»),
+          а не общий экран уведомлений. */
+      onNotify={() => openSheet(<CircleNotifySheetLive team={t} />)}
       onEdit={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)}
       onReport={() => openSheet(<CircleReportSheetLive team={t} isDark={isDark} />)}
       /* Выход и удаление — единый путь по кадрам макета: алерт (частная/публичная свой

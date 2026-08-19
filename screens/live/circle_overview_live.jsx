@@ -1186,3 +1186,55 @@ function PersonProfileLive() {
     </div>
   );
 }
+
+/* ═══ ШТОРКА «УВЕДОМЛЕНИЯ» ГРУППЫ (кадр «Уведомления» из меню группы, лист 314) ═══
+   Два честных тумблера:
+     «Сообщения чата»    — значок непрочитанного этой группы (гаснет везде разом);
+     «Напоминания дня»   — пуш «день горит» от бота ДЛЯ ЭТОЙ группы.
+   Хранится локально (bos:mute:<id> и bos:mute-push:<id>); пуш-настройка начнёт влиять
+   на бот-рассылку, когда бэкенд станет читать её при отправке — заметка оставлена. */
+function CircleNotifySheetLive({ team }) {
+  const { close } = useSheet();
+  const id = team && team.cloudId;
+  const [chatOn, setChatOn] = React.useState(function () { try { return localStorage.getItem("bos:mute:" + id) !== "1"; } catch (e) { return true; } });
+  const [pushOn, setPushOn] = React.useState(function () { try { return localStorage.getItem("bos:mute-push:" + id) !== "1"; } catch (e) { return true; } });
+  const flip = function (key, cur, set) {
+    var next = !cur; set(next);
+    try { localStorage.setItem(key + id, next ? "0" : "1"); } catch (e) {}
+    try { window.dispatchEvent(new Event("bos:notifSeenChanged")); } catch (e) {}
+    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+  };
+  const Row = function (p) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 52, padding: "0 14px",
+        borderTop: p.first ? 0 : "0.5px solid var(--line-2)" }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>{p.title}</span>
+          {p.sub && <span style={{ display: "block", fontSize: 13, lineHeight: "18px", color: "var(--text-2)" }}>{p.sub}</span>}
+        </span>
+        <button onClick={p.onFlip} className="tap" data-no-haptic aria-pressed={p.on}
+          style={{ width: 51, height: 31, borderRadius: 999, border: 0, cursor: "pointer", flexShrink: 0, position: "relative",
+            background: p.on ? "#30D158" : "var(--surface-3)", transition: "background .2s" }}>
+          <span aria-hidden style={{ position: "absolute", top: 2, left: p.on ? 22 : 2, width: 27, height: 27, borderRadius: "50%",
+            background: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)", transition: "left .22s cubic-bezier(0.34,1.3,0.44,1)" }} />
+        </button>
+      </div>
+    );
+  };
+  return (
+    <div style={{ padding: "6px 16px 12px", color: "var(--text)" }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Уведомления</div>
+      <div style={{ fontSize: 13, color: "var(--text-2)", textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>
+        {"Только для «" + ((team && team.name) || "группы") + "»"}
+      </div>
+      <div style={{ marginTop: 12, borderRadius: 18, background: "var(--surface-2, var(--surface-3))", overflow: "hidden" }}>
+        <Row first title="Сообщения чата" sub="Значок непрочитанного у этой группы"
+          on={chatOn} onFlip={function () { flip("bos:mute:", chatOn, setChatOn); }} />
+        <Row title="Напоминания дня" sub="Пуш от бота, когда день группы горит"
+          on={pushOn} onFlip={function () { flip("bos:mute-push:", pushOn, setPushOn); }} />
+      </div>
+      <button onClick={close} className="tap" style={{ width: "100%", marginTop: 14, height: 50, borderRadius: 999, border: 0,
+        cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)", fontSize: 17, fontWeight: 590 }}>Готово</button>
+    </div>
+  );
+}
