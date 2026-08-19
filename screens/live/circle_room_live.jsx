@@ -1323,7 +1323,10 @@ function TeamDetailLive() {
   // и Group Task Today Row, и Group Habit Today Row. listTab оставлен: по нему всё ещё
   // считается «N из M», и это запасной путь, если сегменты откатим.
   const _showHabits = roomTab === "day" || roomTab === "habits";
-  const _showTasks = roomTab === "day" || roomTab === "tasks";
+  // Дела круга живут БЕЗ ИСТОРИИ (у команды один список, а не список на каждый день).
+  // Значит на прошлом дне показывать сегодняшние дела нельзя — это выглядело бы так,
+  // будто они были и тогда. На прошлом дне остаются только привычки: у них есть журнал.
+  const _showTasks = (roomTab === "day" && selBack === 0) || roomTab === "tasks";
   // ДВА СПИСКА вместо одного — так в макете: сверху карточка с тем, что ещё не сделано,
   // ниже заголовок «Вы выполнили» и вторая карточка с зачёркнутыми строками. Раньше
   // выполненное лежало вперемешку и глаз не находил, что осталось.
@@ -1350,7 +1353,10 @@ function TeamDetailLive() {
     // Гость ничего не отмечает — у него в макете вместо кружка «взять себе». Значит и
     // делить список на «сделано / не сделано» ему незачем: всё идёт одним списком.
     const _bucket = (_isGuest || roomTab === "habits") ? dayList : (done ? doneList : dayList);
-    const _at = done ? myMarkAt(h.id) : null;
+    // Время отметки есть ТОЛЬКО у сегодняшнего дня: журнал прошлых дней хранит дату без
+    // часа. Значит на прошлом дне «Выполнено в 6:58» было бы неправдой — пишем просто
+    // «Выполнено».
+    const _at = (done && !_pastDay) ? myMarkAt(h.id) : null;
     // Подпись строки. На «Привычках» макет показывает РАСПИСАНИЕ («Ежедневно · 18:00»,
     // «Пн-Ср-Пт»), на «Сегодня» — просто «Привычка». Расписание собираем из маски дней.
     const _mask = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
@@ -1646,7 +1652,10 @@ function TeamDetailLive() {
               всегда справа и неделя никогда не читалась бы как неделя. */}
           {[0, 1, 2, 3, 4, 5, 6].map((dow) => {
             const now = new Date(); now.setHours(0, 0, 0, 0);
-            const d = new Date(now); d.setDate(now.getDate() - now.getDay() + dow);
+            // Неделя строится вокруг ВЫБРАННОГО дня: выбрал 5 августа в календаре — лента
+            // переехала на ту неделю. Иначе календарь и лента показывали бы разные недели.
+            const piv = new Date(now); piv.setDate(now.getDate() - selBack);
+            const d = new Date(piv); d.setDate(piv.getDate() - piv.getDay() + dow);
             const back = Math.round((now - d) / 86400000);
             const k = bosRoomDayKey(back);
             const dowName = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"][dow];
@@ -1660,7 +1669,7 @@ function TeamDetailLive() {
             const ring = today ? "var(--accent-blue)" : (frac >= 1 ? "var(--accent)" : "var(--accent-teal)");
             const R = 17, C = 2 * Math.PI * R;
             return (
-              <button key={k} onClick={() => { if (!future) { setSelBack(back); setActOpen(false); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } } }}
+              <button key={k} onClick={() => { if (!future) { setSelBack(back); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } } }}
                 disabled={future} className={future ? undefined : "tap"}
                 style={{ border: 0, background: "transparent", padding: 0, cursor: future ? "default" : "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
@@ -1699,6 +1708,27 @@ function TeamDetailLive() {
                    закрыло день, а в раскрытом виде их поимённо. */}
       {roomTab === "day" && !threadOff && (() => {
         const selKey = bosRoomDayKey(selBack);
+        /* ТОЧКИ КАЛЕНДАРЯ. По каждому дню считаем, СКОЛЬКО ЧЕЛОВЕК отметилось хотя бы раз:
+             все участники → зелёная · часть → оранжевая · никто, но день был по расписанию →
+             красная · нечего было делать → пусто. Расписание берём из масок привычек круга,
+             поэтому выходной круга не красится «пропуском». */
+        const calMarks = (() => {
+          const byDayU = {};
+          yearRows.forEach((r) => { (byDayU[r.day] || (byDayU[r.day] = {}))[r.u] = true; });
+          const masks = teamHabits.map((h) => (typeof bosDaysMask === "function" ? bosDaysMask(h.days) : null));
+          const out = {};
+          const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+          for (let i = 0; i < 366; i++) {
+            const d = new Date(t0); d.setDate(t0.getDate() - i);
+            const k = bosRoomDayKey(i);
+            const n = Object.keys(byDayU[k] || {}).length;
+            if (n > 0) { out[k] = n >= Math.max(1, membersN) ? "full" : "part"; continue; }
+            const dow = (typeof bosDowOfKey === "function") ? bosDowOfKey(k) : d.getDay();
+            const due = masks.some((m) => !m || m[dow]);
+            if (due && teamHabits.length && i > 0) out[k] = "miss";
+          }
+          return out;
+        })();
         const isToday = selBack === 0;
         const selDate = new Date(); selDate.setHours(0, 0, 0, 0); selDate.setDate(selDate.getDate() - selBack);
         const MON = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
@@ -1712,7 +1742,7 @@ function TeamDetailLive() {
         const lastAt = isToday && marks.length ? marks[marks.length - 1].at : null;
         return (
           <div style={{ ...card, padding: "14px 16px 12px", marginTop: 4 }}>
-            <button onClick={() => setActOpen(!actOpen)} className="tap" data-haptic="selection"
+            <button onClick={() => { const nx = !actOpen; setActOpen(nx); if (nx) setPathSeen(true); }} className="tap" data-haptic="selection"
               style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8, color: "var(--text)" }}>
               <span style={{ flex: 1, textAlign: "left", fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>
                 {isToday ? "Активность дня" : ("Активность " + selDate.getDate() + " " + MON[selDate.getMonth()])}
@@ -1754,10 +1784,33 @@ function TeamDetailLive() {
               {lastAt && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{"последняя " + bosRoomHHMM(_pt(lastAt))}</span>}
             </div>
 
-            {/* Раскрытие: поимённо. Для сегодня — со временем, для прошлого дня — без:
-                времени за прошлые дни в данных нет, и подставлять его нельзя. */}
+            {/* РАСКРЫТИЕ = КАЛЕНДАРЬ (David: «нажал на активность дня — она должна раскрыться
+                в календаре»). Сначала месяц с честной точкой под каждым днём, под ним — кто
+                отметился в выбранный день. Тап по числу переносит весь экран на этот день.
+                Для сегодня время есть, для прошлых дней в данных его нет — и мы его не выдумываем. */}
             {actOpen && (
               <div className="fig-expand" style={{ marginTop: 10, paddingTop: 8, borderTop: "0.5px solid var(--line-2)" }}>
+                {typeof FigMonthCalendar === "function" && (
+                  <FigMonthCalendar value={selKey} marks={calMarks}
+                    onPick={(k) => {
+                      const p = k.split("-");
+                      const d = new Date(+p[0], +p[1] - 1, +p[2]);
+                      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+                      setSelBack(Math.max(0, Math.round((t0 - d) / 86400000)));
+                    }}
+                    footer={<React.Fragment>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-2)" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--accent)" }} />все</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--accent-orange)" }} />часть</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 6, height: 6, borderRadius: 3, background: "var(--accent-red)" }} />пропуск</span>
+                      </span>
+                      {selBack > 0 && (
+                        <button onClick={() => setSelBack(0)} className="tap"
+                          style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 15, fontWeight: 590, color: "var(--text)", padding: 0 }}>Сегодня</button>
+                      )}
+                    </React.Fragment>} />
+                )}
+                <div style={{ height: 8 }} />
                 {marks.length === 0 && <div style={{ fontSize: 15, color: "var(--text-3)", padding: "4px 0" }}>В этот день круг не отмечался.</div>}
                 {marks.map((p) => (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>

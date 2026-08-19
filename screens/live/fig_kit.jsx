@@ -508,3 +508,108 @@ function FigEmpty({ title, text, action, onAction, icon }) {
     </div>
   );
 }
+
+/* ═══ КАЛЕНДАРЬ МЕСЯЦА — тот самый «другой календарь» из макетов ═══════════════════════
+   В кадрах «Обзор группы» (Неделя · Месяц · День · Участники) стоит узел
+   «Date and time - Pickers»: блок Date 361×325 + строка Time 361×52 с верхней линией
+   #FFFFFF@0.17. Это стандартный встроенный календарь iOS, и раскладка 325 = 44 шапка +
+   24 строка дней недели + 6 рядов по ~43. Здесь он собран ровно по этим числам.
+
+   Наш слой поверх Apple: КАЖДЫЙ ДЕНЬ ОКРАШЕН ПРАВДОЙ. Точка под числом — насколько
+   день закрыт: зелёная (все отметки), оранжевая (часть), красная (день был по плану и
+   пропущен), пусто (нечего было делать). Ровно та же грамматика, что в неделе группы —
+   человек не учит два языка.
+
+   value  — выбранный день «YYYY-MM-DD»
+   marks  — { "YYYY-MM-DD": "full" | "part" | "miss" }
+   onPick — тап по дню (будущее не отдаём: отмечать вперёд нельзя)
+   ═════════════════════════════════════════════════════════════════════════════════════ */
+const FIG_MONTHS_RU = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+/* Неделя начинается с ВОСКРЕСЕНЬЯ — так в макете (кадр «Сегодня» группы: ВС ПН ВТ …),
+   и так же устроена недельная лента в комнате. Два разных начала недели на одном экране
+   были бы прямой ошибкой чтения. Подписи 13/590 вторичным цветом — из того же узла. */
+const FIG_DOW_RU = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
+function figDayKey(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function FigMonthCalendar({ value, marks, onPick, minKey, footer }) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const todayKey = figDayKey(today);
+  const sel = value || todayKey;
+  const selD = (function () { var p = ("" + sel).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); })();
+  const [cursor, setCursor] = React.useState(function () { return new Date(selD.getFullYear(), selD.getMonth(), 1); });
+  const [slide, setSlide] = React.useState(0);   // −1 назад · +1 вперёд — для въезда сетки
+  React.useEffect(function () { setCursor(new Date(selD.getFullYear(), selD.getMonth(), 1)); }, [sel.slice(0, 7)]);
+
+  const go = function (delta) {
+    setSlide(delta);
+    setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 1));
+    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+  };
+  // Сетка 6×7 от понедельника: в России неделя начинается с понедельника.
+  const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const shift = first.getDay();
+  const start = new Date(first); start.setDate(first.getDate() - shift);
+  const cells = [];
+  for (var i = 0; i < 42; i++) { var d = new Date(start); d.setDate(start.getDate() + i); cells.push(d); }
+  const nextMonthStart = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  const canNext = nextMonthStart <= today;
+  const canPrev = !minKey || figDayKey(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1)) >= ("" + minKey).slice(0, 7) + "-01";
+  const dotColor = { full: "var(--accent)", part: "var(--accent-orange)", miss: "var(--accent-red)" };
+
+  return (
+    <div style={{ width: "100%" }}>
+      {/* ШАПКА 44: месяц и год слева, стрелки справа — как в системном календаре. */}
+      <div style={{ display: "flex", alignItems: "center", height: 44 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px", color: "var(--text)" }}>
+          {FIG_MONTHS_RU[cursor.getMonth()] + " " + cursor.getFullYear()}
+        </span>
+        <button onClick={function () { if (canPrev) go(-1); }} disabled={!canPrev} className={canPrev ? "tap" : undefined} aria-label="Прошлый месяц"
+          style={{ width: 40, height: 44, border: 0, background: "transparent", cursor: canPrev ? "pointer" : "default", display: "grid", placeItems: "center", opacity: canPrev ? 1 : 0.3 }}>
+          <I.ChevronRight size={18} strokeWidth={2.6} color="var(--text)" style={{ transform: "rotate(180deg)" }} />
+        </button>
+        <button onClick={function () { if (canNext) go(1); }} disabled={!canNext} className={canNext ? "tap" : undefined} aria-label="Следующий месяц"
+          style={{ width: 40, height: 44, border: 0, background: "transparent", cursor: canNext ? "pointer" : "default", display: "grid", placeItems: "center", opacity: canNext ? 1 : 0.3 }}>
+          <I.ChevronRight size={18} strokeWidth={2.6} color="var(--text)" />
+        </button>
+      </div>
+      {/* СТРОКА ДНЕЙ НЕДЕЛИ 24 */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", height: 24, alignItems: "center" }}>
+        {FIG_DOW_RU.map(function (n) {
+          return <span key={n} style={{ textAlign: "center", fontSize: 13, fontWeight: 590, lineHeight: "18px", color: "var(--text-3)" }}>{n}</span>;
+        })}
+      </div>
+      {/* СЕТКА 6×7. Месяц въезжает с той стороны, откуда его позвали. */}
+      <div key={cursor.getFullYear() + "-" + cursor.getMonth()} className="fig-month"
+        style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridAutoRows: 43,
+          animation: "figMonth" + (slide < 0 ? "Prev" : "Next") + " .26s cubic-bezier(0.22,0.9,0.3,1) both" }}>
+        {cells.map(function (d, i) {
+          var k = figDayKey(d);
+          var out = d.getMonth() !== cursor.getMonth();
+          var future = d > today;
+          var isSel = k === sel;
+          var isToday = k === todayKey;
+          var mk = marks && marks[k];
+          return (
+            <button key={i} onClick={function () { if (!future && onPick) { onPick(k); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } } }}
+              disabled={future} className={future ? undefined : "tap"} data-no-haptic
+              style={{ border: 0, background: "transparent", padding: 0, cursor: future ? "default" : "pointer",
+                display: "grid", placeItems: "center", position: "relative" }}>
+              <span style={{ width: 36, height: 36, borderRadius: "50%", display: "grid", placeItems: "center",
+                fontSize: 20, fontWeight: isToday ? 700 : 400, letterSpacing: "-0.4px",
+                background: isSel ? "var(--cta)" : "transparent",
+                color: isSel ? "var(--cta-ink)" : (future || out) ? "var(--text-3)" : (isToday ? "var(--accent)" : "var(--text)"),
+                transition: "background .2s, color .2s" }}>{d.getDate()}</span>
+              {mk && !isSel && <span aria-hidden style={{ position: "absolute", bottom: 3, width: 5, height: 5, borderRadius: "50%", background: dotColor[mk] || "var(--text-3)" }} />}
+            </button>
+          );
+        })}
+      </div>
+      {/* СТРОКА ПОД КАЛЕНДАРЁМ 52 с верхней линией — в макете это блок «Time». */}
+      {footer ? (
+        <div style={{ minHeight: 52, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 5,
+          borderTop: "1px solid var(--line-2)", marginTop: 4 }}>{footer}</div>
+      ) : null}
+    </div>
+  );
+}

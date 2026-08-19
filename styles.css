@@ -1351,3 +1351,10 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   .fig-swap, .fig-expand { animation: none; }
   .bos-tabbar.fig .bos-tab-lens-track { transition: none; }
 }
+
+/* Календарь месяца: сетка въезжает с той стороны, откуда позвали месяц. */
+@keyframes figMonthNext { from { opacity:0; transform: translateX(14px);} to { opacity:1; transform:none;} }
+@keyframes figMonthPrev { from { opacity:0; transform: translateX(-14px);} to { opacity:1; transform:none;} }
+/* Горизонтальные ленты макета — без видимой полосы прокрутки. */
+.fig-rail::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) { .fig-month { animation: none !important; } }
