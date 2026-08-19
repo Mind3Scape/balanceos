@@ -55,11 +55,14 @@ function BosFlatCheckLive({ on, isDark, onToggle, label }) {
   return (
     <button onClick={onToggle} className="tap" aria-label={label || "Отметить"}
       style={{ width: 42, height: 42, margin: "-7px -7px -7px 0", borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer", padding: 0, background: "transparent" }}>
-      <span style={{ width: 28, height: 28, borderRadius: "50%", display: "grid", placeItems: "center",
-        background: on ? (isDark ? "#fff" : "#0a0a0a") : "transparent",
+      {/* Цвет с токенов, а не прибитыми #fff/#0a0a0a: внутри .fig кружок должен слушаться
+          палитры редизайна, снаружи — прежней. Размер 24 (в макете Circle 22; 22 на живом
+          экране читается мелко рядом со значком 52, 24 — ближайший, что не рвёт ритм). */}
+      <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center",
+        background: on ? "var(--accent-blue)" : "transparent",
         boxShadow: on ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.25)" : "rgba(10,10,10,0.18)"),
         transition: "background .15s" }}>
-        {on ? <I.Check size={14} strokeWidth={3} color={isDark ? "#0a0a0a" : "#fff"} /> : null}
+        {on ? <I.Check size={13} strokeWidth={3} color="#fff" /> : null}
       </span>
     </button>
   );
@@ -96,34 +99,94 @@ function BosRoomH2({ children, extra }) {
   );
 }
 
-/* Строка списка привычек/дел. Кружок = отметить; тело строки = аккордеон статистики (onOpen).
-   Шеврона нет намеренно (David: рука и так тянется тапнуть) — строка раскрывается сама. */
-function CircleDayRowLive({ icon, iconColor, name, tag, sub, subGold, faces, on, onToggle, onOpen, isDark, first, inert }) {
+/* НЕДЕЛЯ ОДНОЙ ПРИВЫЧКИ — нижняя половина «Group Habit Card» (361×140) из макета.
+   Семь кружков календарной недели ВС..СБ; в каждом — число и дуга «сколько круга закрыло
+   этот день». Цвета ровно те, что подписаны легендой в макете:
+     зелёный  — выполнено (весь круг закрыл день),
+     оранжевый — не до конца (закрыла часть),
+     красный  — пропуск (свой день по расписанию прошёл, не закрыл никто),
+     серый    — день не по расписанию либо ещё впереди.
+   Сегодня — залитый серый кружок с синей дугой: день ещё идёт, счёт не окончательный.
+   Данные настоящие: rangeRows = team_habit_logs за 31 день, {u, h, day}. */
+function CircleHabitWeekLive({ habit, rangeRows, membersN, isDark }) {
+  const mask = (typeof bosDaysMask === "function") ? bosDaysMask(habit.days) : null;
+  const now = new Date(); now.setHours(0, 0, 0, 0);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 2px", borderTop: first ? 0 : "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.05)") }}>
-      <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
-        <span style={{ width: 34, height: 34, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 16,
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", padding: "8px 0 4px" }}>
+      {[0, 1, 2, 3, 4, 5, 6].map((dow) => {
+        const d = new Date(now); d.setDate(now.getDate() - now.getDay() + dow);
+        const back = Math.round((now - d) / 86400000);
+        const k = bosRoomDayKey(back);
+        const future = back < 0;
+        const today = back === 0;
+        const users = {};
+        (rangeRows || []).forEach((r) => { if (r.h === habit.id && r.day === k) users[r.u] = true; });
+        const doneN = Object.keys(users).length;
+        const frac = membersN > 0 ? Math.max(0, Math.min(1, doneN / membersN)) : 0;
+        const due = !mask || mask[bosDowOfKey(k)];
+        let ring = null, ink = "var(--text)";
+        if (future) { ink = "var(--text-3)"; }
+        else if (today) { ring = frac > 0 ? "var(--accent-blue)" : null; }
+        else if (frac >= 1) { ring = "var(--accent)"; ink = "var(--accent)"; }
+        else if (frac > 0) { ring = "var(--accent-orange)"; }
+        else if (due) { ring = "var(--accent-red)"; ink = "var(--accent-red)"; }
+        else { ink = "var(--text-3)"; }
+        const R = 17, C = 2 * Math.PI * R;
+        return (
+          <span key={k} style={{ position: "relative", width: 38, height: 38, justifySelf: "center", display: "grid", placeItems: "center" }}>
+            {ring && (
+              <svg viewBox="0 0 38 38" width="38" height="38" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+                <circle cx="19" cy="19" r={R} fill="none" stroke={ring} strokeWidth="2.5" strokeLinecap="round"
+                  strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - (today ? frac : Math.max(frac, 0.999)))).toFixed(1)} />
+              </svg>
+            )}
+            {!ring && !future && (
+              <span aria-hidden style={{ position: "absolute", inset: 2, borderRadius: "50%", boxShadow: "inset 0 0 0 1.5px var(--line-2)" }} />
+            )}
+            <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
+              fontSize: 20, fontWeight: 400, lineHeight: "24px",
+              background: today ? "var(--surface-3)" : "transparent", color: ink }}>{d.getDate()}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/* СТРОКА СПИСКА привычек и дел — по макету Figma («Group Habit Today Row», 361×82).
+
+   Было: значок 34, имя 13.5 полужирным, подпись 10px и стопка лиц справа. Стало по макету:
+   значок 52 со скруглением 16, имя 17 обычным начертанием и ДВЕ подписи по 15 —
+   «Привычка · 18:00» и «4 из 15 выполнили».
+
+   Лица из строки УБРАНЫ намеренно: макет заменил их числом. Три кружка показывали, что
+   кто-то отметился, но не сколько человек всего, — «4 из 15» отвечает на оба вопроса разом
+   и не врёт при большом круге. Сами лица никуда не делись: они в аккордеоне под строкой.
+
+   Кружок = отметить; тело строки = аккордеон статистики (onOpen). Шеврона нет намеренно
+   (David: рука и так тянется тапнуть) — строка раскрывается сама. */
+function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub, subGold, on, onToggle, onOpen, isDark, first, inert, struck }) {
+  // Вторая подпись: сначала честный счёт по кругу, если он есть; иначе — то, что передали.
+  const countLine = (totalN > 0) ? (doneN + " из " + totalN + " выполнили") : (sub || null);
+  const metaLine = [tag, time].filter(Boolean).join(" \u00b7 ");
+  return (
+    <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "10px 0", minHeight: 82, boxSizing: "border-box" }}>
+      {/* Разделитель НЕ на всю ширину: в макете он начинается под текстом, за значком
+          (значок 52 + зазор 8 = 60). Линия во всю ширину резала бы строку пополам. */}
+      {!first && <span aria-hidden style={{ position: "absolute", top: 0, left: 60, right: 0, height: "0.5px", background: "var(--line-2)" }} />}
+      <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
+        <span style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 26, overflow: "hidden",
           background: iconColor ? iconColor + "26" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)")),
           boxShadow: iconColor ? "none" : bosTileGlass(isDark) }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-            {tag ? <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 0.6, color: "var(--text-4)", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", borderRadius: 999, padding: "2px 7px", textTransform: "uppercase", flexShrink: 0 }}>{tag}</span> : null}
-          </div>
-          {sub ? <div style={{ fontSize: 10, color: subGold ? BOS_ROOM_GOLD_INK : "var(--text-4)", fontWeight: subGold ? 700 : 400, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div> : null}
+          <div style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            color: struck ? "var(--text-3)" : "var(--text)", textDecoration: struck ? "line-through" : "none" }}>{name}</div>
+          {metaLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{metaLine}</div> : null}
+          {countLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: subGold ? BOS_ROOM_GOLD_INK : "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{countLine}</div> : null}
         </div>
-        {faces && faces.length ? (
-          <span style={{ display: "flex", flexShrink: 0 }}>
-            {faces.slice(0, 3).map((f, i) => (
-              <span key={f.id || i} style={{ marginLeft: i ? -6 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px " + (isDark ? "#1c1c20" : "#fff"), lineHeight: 0 }}>
-                <BuddyFaceLive avatar={f.avatar} name={f.name} size={19} />
-              </span>
-            ))}
-          </span>
-        ) : null}
       </div>
       {inert
-        ? <span aria-hidden style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.18)" : "rgba(10,10,10,0.12)") }} />
+        ? <span aria-hidden style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.18)" : "rgba(10,10,10,0.12)") }} />
         : <BosFlatCheckLive on={on} isDark={isDark} onToggle={onToggle} label={"Отметить «" + name + "»"} />}
     </div>
   );
@@ -968,11 +1031,13 @@ function TeamDetailLive() {
     return pal[h % pal.length];
   }, [t.accent, t.cloudId, t.id, t.name]);
   const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: (goalProg && goalProg.desc) || t.desc || "", joined: t.joined, threadOff: threadOff, habitIds: [] };
+  // Подпись строго по макету: «15 участников · 89 дней вместе». Было «живёт N дней ·
+  // M человек · открытый · банк» — четыре факта в строку, в макете их два и в другом
+  // порядке: сначала СКОЛЬКО НАС, потом СКОЛЬКО МЫ ВМЕСТЕ. Видимость и банк уехали:
+  // видимость видна по кнопке вступления, банк живёт на вкладке «Цели».
   const subParts = [];
-  if (ageDays) subParts.push("живёт " + ageDays + " " + ((ageDays % 10 === 1 && ageDays % 100 !== 11) ? "день" : (ageDays % 10 >= 2 && ageDays % 10 <= 4 && (ageDays % 100 < 12 || ageDays % 100 > 14)) ? "дня" : "дней"));
   if (membersN) subParts.push(membersN + " " + bosRoomPeopleWord(membersN));
-  if (t.vis === "public") subParts.push("открытый");
-  if (stake > 0) subParts.push("банк " + bank + " XP");
+  if (ageDays) subParts.push(ageDays + " " + ((ageDays % 10 === 1 && ageDays % 100 !== 11) ? "день" : (ageDays % 10 >= 2 && ageDays % 10 <= 4 && (ageDays % 100 < 12 || ageDays % 100 > 14)) ? "дня" : "дней") + " вместе");
   const card = { background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)" };
   const bubbleOther = isDark ? "rgba(255,255,255,0.07)" : "#fff";
 
@@ -987,28 +1052,50 @@ function TeamDetailLive() {
   // считается «N из M», и это запасной путь, если сегменты откатим.
   const _showHabits = roomTab === "day" || roomTab === "habits";
   const _showTasks = roomTab === "day" || roomTab === "tasks";
-  const dayList = [];
-  // Строки БЕЗ подписей «N из M · ты в 12:52» (David 2026-07-16: «грязь, захламляет» —
-  // лица уже показывают, кто прокликал, а раскрытие даёт подробности).
+  // ДВА СПИСКА вместо одного — так в макете: сверху карточка с тем, что ещё не сделано,
+  // ниже заголовок «Вы выполнили» и вторая карточка с зачёркнутыми строками. Раньше
+  // выполненное лежало вперемешку и глаз не находил, что осталось.
+  const dayList = [];   // ещё не отмечено
+  const doneList = [];  // «Вы выполнили»
+  // Время МОЕЙ отметки по конкретной привычке — из сегодняшней ленты логов (u=я, h=привычка).
+  const myMarkAt = (habitId) => {
+    let best = null;
+    dayRows.forEach((r) => { if (r.u === meId && r.h === habitId && (!best || r.at < best)) best = r.at; });
+    return best;
+  };
   if (_showHabits) teamHabits.forEach((h, i) => {
     const done = myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const opened = openHabit === h.id;
+    const _bucket = (roomTab === "habits") ? dayList : (done ? doneList : dayList);
+    const _at = done ? myMarkAt(h.id) : null;
+    // Подпись строки. На «Привычках» макет показывает РАСПИСАНИЕ («Ежедневно · 18:00»,
+    // «Пн-Ср-Пт»), на «Сегодня» — просто «Привычка». Расписание собираем из маски дней.
+    const _mask = (typeof bosDaysMask === "function") ? bosDaysMask(h.days) : null;
+    const _DOW = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+    const _schedule = _mask ? _DOW.filter((_, i) => _mask[i]).join("-") : "Ежедневно";
+    const _tagHabits = [_schedule, h.time].filter(Boolean).join(" \u00b7 ");
     const _hRow = (
-      <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
-        icon={bosIconOf(h, 18, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
-        name={h.name} faces={facesH}
+      <CircleDayRowLive first={_bucket.length === 0} isDark={isDark}
+        icon={bosIconOf(h, 26, h.color)} iconColor={h.color && h.color !== "#0a0a0a" ? h.color : null}
+        name={h.name} struck={done && roomTab !== "habits"}
+        tag={roomTab === "habits" ? _tagHabits : (done ? ("Выполнено" + (_at ? " в " + bosRoomHHMM(_pt(_at)) : "")) : "Привычка")}
+        doneN={facesH.length} totalN={membersN}
         on={done} inert={!_live}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
         onOpen={() => setOpenHabit(opened ? null : h.id)} />
     );
     // Свайп влево (владелец) → «Изменить · Удалить»; остальным — обычная строка.
-    dayList.push(_isOwner
+    _bucket.push(_isOwner
       ? <SwipeRow key={"h" + (h.id || i)} rowBg="var(--card)" dark={isDark} actionWidth={54} actionSize={32} actions={_habitSwipe(h)}>{_hRow}</SwipeRow>
       : <div key={"h" + (h.id || i)}>{_hRow}</div>);
+    // Неделя под строкой — только на вкладке «Привычки» (в макете она есть именно там).
+    if (roomTab === "habits") _bucket.push(
+      <CircleHabitWeekLive key={"hw" + (h.id || i)} habit={h} rangeRows={rangeRows} membersN={membersN} isDark={isDark} />
+    );
     // АККОРДЕОН (David 2026-07-16: «не на отдельную вкладку — привычка раскрывается вниз,
     // и видно всё, что в неё входит, как в макетах»): тап по строке → статистика тут же.
-    if (opened) dayList.push(
+    if (opened) _bucket.push(
       <div key={"hx" + (h.id || i)} style={{ padding: "0 2px 13px" }}>
         <HabitStandardSheetLive bare mode="circle" habit={h} team={t} members={members} meId={meId} levels={levels}
           rangeRows={rangeRows} dayRows={dayRows} done={done}
@@ -1019,15 +1106,18 @@ function TeamDetailLive() {
   });
   if (_showTasks) _teamTasks.forEach((tk, i) => {
     const facesT = (Array.isArray(tk.doneUsers) ? tk.doneUsers : []).map((u) => rosterById[u]).filter(Boolean);
+    const _tDone = !!tk.doneByMe;
+    const _tBucket = _tDone ? doneList : dayList;
     const _tRow = (
-      <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
-        icon={<I.Flag size={16} strokeWidth={2.2} color="var(--text-2)" />} name={tk.text}
-        faces={facesT}
-        on={!!tk.doneByMe} inert={!_live}
+      <CircleDayRowLive first={_tBucket.length === 0} isDark={isDark}
+        icon={<I.Flag size={24} strokeWidth={2} color="var(--text-2)" />} name={tk.text}
+        struck={_tDone} tag={_tDone ? "Выполнено" : "Задача"}
+        doneN={facesT.length} totalN={membersN}
+        on={_tDone} inert={!_live}
         onToggle={() => toggleMyTeamTask(tk)} />
     );
     // Свайп влево (владелец) → «Удалить» (David: «фото завтрака не удалить»); метки «дело» нет — вкладка сама говорит.
-    dayList.push(_isOwner
+    _tBucket.push(_isOwner
       ? <SwipeRow key={"t" + tk.id} rowBg="var(--card)" dark={isDark} actionWidth={54} actionSize={32} actions={_taskSwipe(tk)}>{_tRow}</SwipeRow>
       : <div key={"t" + tk.id}>{_tRow}</div>);
   });
@@ -1071,14 +1161,31 @@ function TeamDetailLive() {
           </div>
         </div>
 
-        {/* Аватар 96 + имя. Отступы из макета: аватар→имя 16, имя→кнопки 24. */}
-        <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: 12, paddingBottom: 24 }}>
-          <span style={{ width: 96, height: 96, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 46, flexShrink: 0, overflow: "hidden",
-            background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-            boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 46, null, "\ud83d\udc65")}</span>
-          <div style={{ textAlign: "center", maxWidth: 300 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", lineHeight: 1.2 }}>{t.name}</div>
-            <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 4 }}>{subParts.join(" \u00b7 ")}</div>
+        {/* Аватар 96 с КОЛЬЦОМ УРОВНЯ по контуру и бейджем «Lvl. N» под ним — так в макете.
+            Кольцо — не украшение: это доля до следующего уровня круга (circleLvl.frac), тот
+            же счёт, что в шторке уровня. Цвет кольца и бейджа — цвет круга, чтобы шапка
+            читалась одним пятном. Дуга нарисована с 12 часов по часовой (rotate -90). */}
+        <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12, paddingBottom: 24 }}>
+          <span style={{ position: "relative", width: 104, height: 104, flexShrink: 0, display: "grid", placeItems: "center" }}>
+            {circleLvl && (
+              <svg viewBox="0 0 104 104" width="104" height="104" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+                <circle cx="52" cy="52" r="50" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.08)"} strokeWidth="3" />
+                <circle cx="52" cy="52" r="50" fill="none" stroke={heroTint} strokeWidth="3" strokeLinecap="round"
+                  strokeDasharray={314.16} strokeDashoffset={(314.16 * (1 - circleLvl.frac)).toFixed(1)} />
+              </svg>
+            )}
+            <span style={{ width: 96, height: 96, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 46, overflow: "hidden",
+              background: isDark ? "#0d0d10" : "#ffffff", boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 46, null, "\ud83d\udc65")}</span>
+          </span>
+          {circleLvl && (
+            <span onClick={openLevelSheet} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 10, cursor: "pointer" }}>
+              <span aria-hidden style={{ width: 14, height: 14, borderRadius: "50%", background: heroTint, display: "inline-block" }} />
+              <span style={{ fontSize: 13, fontWeight: 590, color: heroTint }}>{"Lvl. " + circleLvl.level}</span>
+            </span>
+          )}
+          <div style={{ textAlign: "center", maxWidth: 320, marginTop: 6 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", lineHeight: 1.25 }}>{t.name}</div>
+            <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", marginTop: 2 }}>{subParts.join(" \u00b7 ")}</div>
           </div>
         </div>
 
@@ -1091,10 +1198,23 @@ function TeamDetailLive() {
               <span style={{ position: "absolute", top: 4, right: 10, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
             )}
           </button>
-          <button onClick={() => setRoomTab("people")} className="tap" data-haptic="selection" aria-label="Люди круга"
-            style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
-            <I.Users size={20} strokeWidth={2} />
-          </button>
+          {/* В макете вторая кнопка — «добавить» (список с плюсом), не «люди». Люди уехали
+              в меню «⋯». Точной иконки «список с плюсом» в нашем наборе Phosphor нет —
+              рисовать её руками нельзя (правило David), поэтому пока чистый плюс; добавить
+              ListPlus в набор можно отдельно, генератором. Не владельцу кнопка не нужна —
+              добавлять в круг может только ведущий, показываем ему «Люди». */}
+          {_isOwner ? (
+            <button onClick={() => openSheet(<CircleAddSheetLive isDark={isDark} onHabit={openAddHabit} onTask={() => openSheet(<CircleTaskComposeSheetLive isDark={isDark} onAdd={addTeamTaskCloud} />)} />)}
+              className="tap" data-haptic="selection" aria-label="Добавить привычку или дело"
+              style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <I.Plus size={22} strokeWidth={2.2} />
+            </button>
+          ) : (
+            <button onClick={() => setRoomTab("people")} className="tap" data-haptic="selection" aria-label="Люди круга"
+              style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <I.Users size={20} strokeWidth={2} />
+            </button>
+          )}
           <button onClick={() => { setRoomTab("path"); setPathSeen(true); }} className="tap" data-haptic="selection" aria-label="Путь круга"
             style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
             <I.Calendar size={20} strokeWidth={2} />
@@ -1137,6 +1257,7 @@ function TeamDetailLive() {
           редактирование целей»): та же форма __isTeam, что в кабинете (save=updateTeam). */}
       <CircleRoomMenuLive open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={moreRef} isDark={isDark} items={[
         _isOwner ? { icon: <I.Pencil size={17} strokeWidth={1.9} />, label: "Редактировать", go: () => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />) } : null,
+        { icon: <I.Users size={18} strokeWidth={1.9} />, label: "Люди круга", go: () => setRoomTab("people") },
         { icon: <I.Share size={18} strokeWidth={1.9} />, label: "Позвать в круг", go: () => openSheet(<TeamShareSheetLive team={t} />) },
         circleLvl ? { icon: (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="8.4" strokeDasharray="39 14" transform="rotate(-90 12 12)" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
@@ -1147,16 +1268,100 @@ function TeamDetailLive() {
       {/* ДЕНЬ (v5, кадр 05): здесь остаётся ТОЛЬКО сегодняшнее действие. Уровень, счёт и
           календарь уехали в «Путь», список людей — в «Люди», имя круга живёт в шапке. Первым —
           факт дня словами, под ним нить: кто и в котором часу уже закрыл своё. */}
+      {/* НЕДЕЛЯ ДНЕЙ — в макете идёт сразу под сегментами: ВС..СБ и числа, у каждого дня
+          кольцо-доля «сколько круга отметилось в тот день», сегодня — залитый круг.
+          Данные настоящие: rangeRows (логи за 31 день) уже собраны в byDay выше. */}
       {roomTab === "day" && (
-      <div style={{ ...card, padding: "13px 13px 9px", marginTop: 10 }}>
-        <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px" }}>{dayTitle}</div>
-        {daySub && <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>{daySub}</div>}
-        {!threadOff && _live && (
-          <div style={{ padding: "4px 2px 0" }}>
-            <BosDayThreadLive faces={threadFaces.length <= 6 ? threadFaces : []} hours={threadFaces.length > 6 ? Object.keys(firstByUser).map((u) => _hr(firstByUser[u])) : []} accent={t.accent || null} isDark={isDark} />
-          </div>
-        )}
-      </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", padding: "6px 0 10px" }}>
+          {/* Неделя КАЛЕНДАРНАЯ: ВС..СБ той недели, в которой сегодня — в макете «сегодня»
+              стоит четвёртым (среда), а не последним. «Последние 7 дней» давали бы сегодня
+              всегда справа и неделя никогда не читалась бы как неделя. */}
+          {[0, 1, 2, 3, 4, 5, 6].map((dow) => {
+            const now = new Date(); now.setHours(0, 0, 0, 0);
+            const d = new Date(now); d.setDate(now.getDate() - now.getDay() + dow);
+            const back = Math.round((now - d) / 86400000);
+            const k = bosRoomDayKey(back);
+            const dowName = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"][dow];
+            const doneN = back >= 0 ? Object.keys(byDay[k] || {}).length : 0;
+            const frac = membersN > 0 ? Math.max(0, Math.min(1, doneN / membersN)) : 0;
+            const today = back === 0;
+            const future = back < 0;
+            // Цвет кольца как в макете: весь круг в деле — зелёный, часть — бирюза,
+            // сегодня — синий (день ещё идёт, счёт не окончательный).
+            const ring = today ? "var(--accent-blue)" : (frac >= 1 ? "var(--accent)" : "var(--accent-teal)");
+            const R = 17, C = 2 * Math.PI * R;
+            return (
+              <span key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-3)", letterSpacing: "0.2px" }}>{dowName}</span>
+                <span style={{ position: "relative", width: 38, height: 38, display: "grid", placeItems: "center" }}>
+                  {frac > 0 && (
+                    <svg viewBox="0 0 38 38" width="38" height="38" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+                      <circle cx="19" cy="19" r={R} fill="none" stroke={ring} strokeWidth="2.5" strokeLinecap="round"
+                        strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - frac)).toFixed(1)} />
+                    </svg>
+                  )}
+                  <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
+                    fontSize: 20, fontWeight: today ? 590 : 400, lineHeight: "24px",
+                    background: today ? "var(--cta)" : "transparent",
+                    color: today ? "var(--cta-ink)" : (future ? "var(--text-3)" : "var(--text)") }}>{d.getDate()}</span>
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* АКТИВНОСТЬ ДНЯ — карточка из макета вместо прежнего «Четверо уже в деле» + нити.
+          Лента суток разбита на 4 отрезка по 6 часов; в отрезке — лица тех, чья ПЕРВАЯ
+          сегодняшняя отметка попала в него, и «+N», если не влезли. Под лентой — часовая
+          шкала, ниже слева «N отметились», справа «последняя HH:MM».
+          Ничего не выдумано: firstByUser собран из team_habit_logs за сегодня. */}
+      {roomTab === "day" && !threadOff && (
+        <div style={{ ...card, padding: "14px 16px 12px", marginTop: 4 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)" }}>Активность дня</div>
+          {(() => {
+            const marks = members
+              .filter((m) => firstByUser[m.id])
+              .map((m) => ({ id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, hr: _hr(firstByUser[m.id]), at: firstByUser[m.id] }))
+              .sort((a, b) => a.hr - b.hr);
+            const slots = [0, 1, 2, 3].map((i) => marks.filter((x) => x.hr >= i * 6 && x.hr < (i + 1) * 6));
+            const lastAt = marks.length ? marks[marks.length - 1].at : null;
+            return (
+              <React.Fragment>
+                <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 10,
+                  border: "0.5px solid var(--line-2)", borderRadius: 8, overflow: "hidden", minHeight: 52 }}>
+                  {/* Метка «сейчас» — вертикальная черта по текущему часу, как в макете. */}
+                  <span aria-hidden style={{ position: "absolute", top: 0, bottom: 0, width: 2, background: "var(--text)", borderRadius: 2,
+                    left: ((new Date().getHours() + new Date().getMinutes() / 60) / 24 * 100).toFixed(2) + "%" }} />
+                  {slots.map((people, i) => (
+                    <span key={i} style={{ minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
+                      borderLeft: i ? "0.5px solid var(--line-2)" : 0, padding: "6px 4px" }}>
+                      {people.slice(0, 2).map((p, j) => (
+                        <span key={p.id} style={{ marginLeft: j ? -8 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)", lineHeight: 0 }}>
+                          <BuddyFaceLive avatar={p.avatar} name={p.name} size={24} />
+                        </span>
+                      ))}
+                      {people.length > 2 && <span style={{ fontSize: 13, color: "var(--text-2)", marginLeft: 3 }}>{"+" + (people.length - 2)}</span>}
+                    </span>
+                  ))}
+                </div>
+                {/* Пять меток, крайняя справа — конец суток: в макете шкала подписана
+                    00:00 06:00 12:00 18:00 00:00, то есть закрывает сутки с обеих сторон. */}
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+                  {["00:00", "06:00", "12:00", "18:00", "00:00"].map((h, i) => (
+                    <span key={i} style={{ fontSize: 13, color: "var(--text-3)" }}>{h}</span>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: "var(--text-2)" }}>
+                    <I.Users size={16} strokeWidth={2} />{marks.length + " " + (marks.length === 1 ? "отметился" : "отметились")}
+                  </span>
+                  {lastAt && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{"последняя " + bosRoomHHMM(_pt(lastAt))}</span>}
+                </div>
+              </React.Fragment>
+            );
+          })()}
+        </div>
       )}
 
       {/* ЗАЯВКИ — владельцу, прямо у двери. */}
@@ -1174,16 +1379,19 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* Заголовок списка со счётом. Переключатель «Привычки · Дела» отсюда УБРАН: обе
-          вкладки поднялись в верхние сегменты, и два ряда сегментов подряд читались бы
-          как ошибка вёрстки. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 4px 8px" }}>
-        <span style={{ fontSize: 17, fontWeight: 590, color: "var(--text)", letterSpacing: "-0.3px" }}>
-          {roomTab === "tasks" ? "Задачи" : roomTab === "habits" ? "Привычки" : "Сегодня"}
-        </span>
-        {roomTab !== "tasks" && teamHabits.length > 0 && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{_myDoneCount + " из " + teamHabits.length}</span>}
-        {roomTab === "tasks" && _teamTasks.length > 0 && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{_teamTasks.filter((x) => x.doneByMe).length + " из " + _teamTasks.length}</span>}
-      </div>
+      {/* Заголовка «Сегодня N из M» здесь НЕТ: в макете первая карточка идёт сразу под
+          «Активностью дня», а счёт живёт в самих строках («4 из 15 выполнили»). Лишняя
+          подпись только повторяла то, что и так написано в каждой строке. */}
+
+      {/* Шапка дней недели над карточкой — только на «Привычках», как в макете: недели
+          лежат под каждой строкой, и одна общая подпись сверху объясняет все семь колонок. */}
+      {roomTab === "habits" && teamHabits.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", padding: "4px 12px 6px" }}>
+          {["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"].map((n) => (
+            <span key={n} style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center", letterSpacing: "0.2px" }}>{n}</span>
+          ))}
+        </div>
+      )}
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (
           <div style={{ padding: "18px 6px", textAlign: "center" }}>
@@ -1207,6 +1415,31 @@ function TeamDetailLive() {
             <span style={{ fontSize: 13, fontWeight: 600 }}>Привычка или дело</span>
           </button>
         )}
+      </div>
+
+      {/* Легенда цветов — в макете стоит под карточкой «Привычек» и расшифровывает кольца. */}
+      {roomTab === "habits" && teamHabits.length > 0 && (
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", padding: "10px 4px 0" }}>
+          {[["var(--accent-red)", "пропуск"], ["var(--accent-orange)", "не до конца"], ["var(--accent)", "выполнено"]].map(([c, l]) => (
+            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--text-2)" }}>
+              <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />{l}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* ВЫ ВЫПОЛНИЛИ — вторая карточка из макета. Заголовок 20/700, строки зачёркнуты,
+          галочка синяя залитая. Пусто — секции нет. */}
+      {doneList.length > 0 && (
+        <React.Fragment>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", padding: "18px 4px 8px" }}>Вы выполнили</div>
+          <div style={{ ...card, padding: "3px 12px" }}>{doneList}</div>
+        </React.Fragment>
+      )}
+
+      {/* Подвал из макета — объясняет связь комнаты с Главной. */}
+      <div style={{ padding: "12px 4px 0", fontSize: 13, lineHeight: 1.35, color: "var(--text-3)" }}>
+        На главной странице отображаются задачи, привычки и цели, которые вы принимаете
       </div>
 
       {/* КОГДА ВСЁ НЕ ТАК (кадр 09): три состояния, в которых человек уходит навсегда, — в
