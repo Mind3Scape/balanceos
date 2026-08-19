@@ -1364,11 +1364,12 @@ function ChatsLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* Шапка в языке «Сообщества»: заголовок 28/700 и живая подпись под ним. */}
-      <div style={{ padding: "6px 4px 14px" }}>
-        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.8px", color: "var(--text)", lineHeight: 1.1 }}>Чаты</div>
-        <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 3 }}>
-          {teams.length === 0 ? "Пока не с кем" : (totalUnread > 0 ? (totalUnread + " новых") : "Всё прочитано")}
+      {/* Шапка в грамматике макета: 34/700 lh41 + серый счёт 15/590, как на всех новых
+          экранах (Уведомления, Обзор, История). */}
+      <div style={{ padding: "6px 0 12px" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "0.4px", color: "var(--text)" }}>Чаты</div>
+        <div style={{ fontSize: 15, fontWeight: 590, lineHeight: "20px", letterSpacing: "-0.23px", color: "#8A8A8A" }}>
+          {teams.length === 0 ? "пока не с кем" : (totalUnread > 0 ? (totalUnread + " новых") : "всё прочитано")}
         </div>
       </div>
 
@@ -1389,10 +1390,12 @@ function ChatsLive() {
                     {n > 0 ? (n + (n === 1 ? " новое сообщение" : " новых сообщений")) : "Разговор группы"}
                   </span>
                 </span>
-                {n > 0 && (
+                {typeof bosTeamMuted === "function" && bosTeamMuted(t.cloudId) ? (
+                  <span aria-label="Без звука" style={{ color: "var(--text-3)", flexShrink: 0, fontSize: 15 }}>🔕</span>
+                ) : n > 0 ? (
                   <span style={{ minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: "var(--accent-red)", color: "#fff",
                     fontSize: 13, fontWeight: 590, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n > 99 ? "99+" : n}</span>
-                )}
+                ) : null}
               </button>
             );
           })}
