@@ -83,6 +83,28 @@ function ProfileLive() {
   }, []);
   const orbitPeople = livePeople;
 
+  // МОИ УСЛУГИ — в макете раздел «Услуги». Это не новая сущность: у нас уже есть форматы
+  // помощи из «Людей» (netMyOffers), они и есть услуги. Нет облака / нет форматов — раздела нет.
+  const [myOffers, setMyOffers] = React.useState(null);
+  const loadOffers = React.useCallback(() => {
+    try {
+      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers) {
+        window.bosCloud.netMyOffers().then((r) => setMyOffers(Array.isArray(r) ? r : [])).catch(() => setMyOffers([]));
+      } else setMyOffers([]);
+    } catch (e) { setMyOffers([]); }
+  }, []);
+  React.useEffect(() => { loadOffers(); }, [loadOffers]);
+  const [profMenu, setProfMenu] = React.useState(false);
+  const profMoreRef = React.useRef(null);
+  // Цвет кольца уровня — устойчивый по имени, как у круга: у каждого своё лицо.
+  const meTint = React.useMemo(() => {
+    const pal = (typeof BOS_TEAM_PALETTE !== "undefined" && BOS_TEAM_PALETTE.length) ? BOS_TEAM_PALETTE : ["#7FB3F2"];
+    const key = String((app && app.userName) || "me");
+    let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return pal[h % pal.length];
+  }, [app && app.userName]);
+  const myTeams = (app && app.teams) || [];
+
   // Publish MY public ORBIT (level + habit icons + people count) so my system shows REAL to others in
   // «Вселенная» — their orbits with my habits/people, как у меня (David). World-readable; no-ops until
   // David adds the pub_orbit column. Only emoji+colour leave the device (no habit names). Re-publishes
@@ -126,87 +148,158 @@ function ProfileLive() {
     </button>
   );
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* Правый-верх: «Вселенная» (зум-аут к другим системам) + карандаш-правки (как на стр. Привычки).
-          David: кнопке вселенной «снизу по центру между блоками не место» → ушла в шапку. */}
-      <PageHeader onBack={() => navigate("home")} title="" right={
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* «Вселенная» — спираль-кнопка РАСШИРЕНА в пилюлю с подписью (David: «у спирали добавь
-              подпись вселенная, продли до кнопки в том же стиле»); то же стекло, что у карандаша. */}
-          <button onClick={openUniverse} className="tap" aria-label="Вселенная" title="Вселенная"
-            style={{ height: 40, borderRadius: 999, border: 0, padding: "0 15px", gap: 7, display: "flex", alignItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none") }}>
-            <I.Galaxy size={18} strokeWidth={1.8} />
-            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>Вселенная</span>
-          </button>
-          {typeof EditGlassButtonLive === "function" ? <EditGlassButtonLive onClick={openAvatar} /> : null}
-        </div>
-      } />
+    <div className="page-in fig" style={{ padding: "0 16px 24px", background: "var(--bg)", minHeight: "100%" }}>
+      {/* ЭКРАН «Я» ПО МАКЕТУ (кадр «Профиль» 1706:20283).
 
-      <div style={{ textAlign: "center", marginTop: 4 }}>
-        {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
-        {/* Центр = аватар с золотым кольцом + ЦИФРОЙ уровня (как на главной); карандаш ушёл наверх-вправо. */}
-        {/* При входе во Вселенную прячем СТРАНИЧНУЮ орбиту (overlay рисует её идентичную копию ровно
-            на этом же месте) → нет «двойной орбиты», переход читается как одно целое. */}
-        <div ref={orbitRef} style={{ opacity: universeOpen ? 0 : 1, transition: "opacity 0.2s ease" }}>
-          <OrbitField avatar={app?.avatar} name={app?.userName} habits={_visHabits} people={orbitPeople} levelPct={lvlPct} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
+          Было: орбита с привычками, строка уровня, достижения и меню настроек списком.
+          Стало по макету: шапка-визитка (аватар с кольцом уровня, бейдж, имя, счётчики,
+          кнопка «Добавить услугу», описание) и разделы «Группы · Услуги · Друзья».
+
+          КУДА ДЕЛИСЬ НАСТРОЙКИ. В макете на профиле их нет вовсе — есть «⋯» в шапке.
+          Уровень, Достижения, Вселенная, Настройки, Уведомления и Поддержка переехали
+          ровно туда, ни один маршрут не потерян.
+
+          ЧЕГО В МАКЕТЕ НЕТ У НАС. «в сети», рейтинг «★ 5.0 (12)», «Подписки/Подписчики»,
+          «Отзывы» и «Рекомендуемые аккаунты» — под ними НЕТ данных ни в одной таблице.
+          Пустые плашки вместо них не рисуем: счётчики показывают то, что правда есть. */}
+
+      <div style={{ position: "relative", margin: "0 -16px", padding: "0 16px" }}>
+        <div aria-hidden style={{ position: "absolute", inset: "0 0 auto", height: 420, pointerEvents: "none",
+          background: "linear-gradient(180deg, " + meTint + (isDark ? "8C" : "A6") + " 0%, "
+            + meTint + (isDark ? "3D" : "4D") + " 36%, " + meTint + "14 60%, transparent 84%)" }} />
+
+        {/* Панель: назад слева, карандаш и «⋯» справа — ровно как в макете. */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, paddingTop: 6 }}>
+          <button onClick={() => navigate("home")} className="tap" aria-label="Назад"
+            style={{ ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}), width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+            <I.ChevronLeft size={20} strokeWidth={2.4} />
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={openAvatar} className="tap" aria-label="Изменить"
+              style={{ ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}), width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <I.Pencil size={16} strokeWidth={2} />
+            </button>
+            <button ref={profMoreRef} onClick={() => setProfMenu(true)} className="tap" aria-label="Ещё" aria-haspopup="menu" aria-expanded={profMenu}
+              style={{ ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}), width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+            </button>
+          </div>
         </div>
-        <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 6, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
+
+        {/* Аватар 96 с кольцом уровня + бейдж «Lvl. N» + имя. */}
+        <div ref={orbitRef} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12, opacity: universeOpen ? 0 : 1, transition: "opacity .2s" }}>
+          <span style={{ position: "relative", width: 104, height: 104, display: "grid", placeItems: "center" }}>
+            <svg viewBox="0 0 104 104" width="104" height="104" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+              <circle cx="52" cy="52" r="50" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.08)"} strokeWidth="3" />
+              <circle cx="52" cy="52" r="50" fill="none" stroke={meTint} strokeWidth="3" strokeLinecap="round"
+                strokeDasharray={314.16} strokeDashoffset={(314.16 * (1 - Math.max(0, Math.min(100, lvlPct)) / 100)).toFixed(1)} />
+            </svg>
+            <span style={{ width: 96, height: 96, borderRadius: "50%", overflow: "hidden", display: "grid", placeItems: "center", background: isDark ? "#0d0d10" : "#fff" }}>
+              <BuddyFaceLive avatar={app?.avatar} name={app?.userName || "Ты"} size={96} />
+            </span>
+          </span>
+          <span onClick={() => navigate("levels", { from: "profile" })} className="tap"
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 10, cursor: "pointer" }}>
+            <span aria-hidden style={{ width: 14, height: 14, borderRadius: "50%", background: meTint }} />
+            <span style={{ fontSize: 13, fontWeight: 590, color: meTint }}>{"Lvl. " + lvlNum}</span>
+          </span>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", marginTop: 6, lineHeight: 1.25 }}>{app?.userName || "Ты"}</div>
+        </div>
+
+        {/* СЧЁТЧИКИ. В макете «Подписок · Подписчиков · Друзья»; подписок у нас нет ни в
+            одной таблице, поэтому показываем три ПРАВДИВЫХ числа: группы, люди, XP. */}
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", marginTop: 18 }}>
+          {[[myTeams.length, "Группы", () => navigate("community", { from: "profile" })],
+            [orbitPeople.length, "Люди", () => navigate("friends", { from: "profile" })],
+            [_xp, "XP", () => navigate("levels", { from: "profile" })]].map(([n, label, go], i) => (
+            <button key={label} onClick={go} className="tap"
+              style={{ border: 0, background: "transparent", cursor: "pointer", padding: "2px 0", textAlign: "center",
+                borderLeft: i ? "0.5px solid var(--line-2)" : 0 }}>
+              <span style={{ display: "block", fontSize: 20, fontWeight: 590, color: "var(--text)" }}>{n}</span>
+              <span style={{ display: "block", fontSize: 13, color: "var(--text-2)", marginTop: 1 }}>{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* «Добавить услугу» — тёмная кнопка во всю ширину из макета. Ведёт в существующую
+            форму формата помощи: услуга у нас уже есть, просто звалась иначе. */}
+        <button onClick={() => openSheet(<AddHelpFormatSheetLive app={app} onDone={() => { closeSheet(); loadOffers(); }} />)} className="tap" data-haptic="selection"
+          style={{ position: "relative", width: "100%", marginTop: 18, height: 50, borderRadius: 999, border: 0, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+            background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.06)", color: "var(--text)", fontSize: 17, fontWeight: 590 }}>
+          <I.Plus size={20} strokeWidth={2.2} />Добавить услугу
+        </button>
       </div>
 
       {universeOpen && typeof UniverseFieldLive === "function" && <UniverseFieldLive app={app} people={orbitPeople} from={universeFrom} onClose={() => setUniverseOpen(false)} />}
 
-      {/* Уровень (золотая ВЕРХУШКА — перенесена с главной) + Достижения + Друзья — ЕДИНЫЙ блок в стиле
-          «Настройки/Уведомления/Поддержка» (David: «друзья/достижения/уровни одним блоком, уровень
-          интегрировать как верхушку красивее; старый верхний стат-блок убрать»). */}
-      <div className="bos-sys-card" style={{ marginTop: 16, padding: 0, overflow: "hidden" }}>
-        {/* Уровень — теперь РАВНОВЫСОКАЯ строка как остальные: прогресс свёрнут в тонкое ЗОЛОТОЕ
-            КОЛЬЦО вокруг иконки (язык орбит/колец приложения), без тяжёлого баннера и широкой полосы.
-            Иконка — монохромный SVG в кружке, как у Достижений/Друзей и нижнего меню. */}
-        <button onClick={() => navigate("levels", { from: "profile" })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
-          <span style={{ position: "relative", width: 40, height: 40, flexShrink: 0, display: "grid", placeItems: "center" }}>
-            <svg width="40" height="40" viewBox="0 0 40 40" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", transformBox: "fill-box", transformOrigin: "center" }}>
-              <circle cx="20" cy="20" r="18" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)"} strokeWidth="2.5" />
-              <circle cx="20" cy="20" r="18" fill="none" stroke="url(#bosLvlRing)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="113.1" strokeDashoffset={113.1 * (1 - Math.max(0, Math.min(100, lvlPct)) / 100)} />
-              <defs><linearGradient id="bosLvlRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
-            </svg>
-            <span className="bos-sys-chip-bg" style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center" }}><I.Sparkles size={15} color="var(--text)" /></span>
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Уровень {lvlNum}</div>
-            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>До {lvlNum + 1} уровня — {lvlPct}% · {_xp} XP</div>
+      {/* ГРУППЫ */}
+      {myTeams.length > 0 && (
+        <React.Fragment>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 4px 8px" }}>
+            <span onClick={() => navigate("community", { from: "profile" })} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", cursor: "pointer" }}>
+              Группы <I.ChevronRight size={17} color="var(--text-3)" />
+            </span>
+            <span style={{ fontSize: 15, color: "var(--text-2)" }}>{myTeams.length + " " + (myTeams.length % 10 === 1 && myTeams.length % 100 !== 11 ? "группа" : (myTeams.length % 10 >= 2 && myTeams.length % 10 <= 4 && (myTeams.length % 100 < 12 || myTeams.length % 100 > 14) ? "группы" : "групп"))}</span>
           </div>
-          <I.ChevronRight size={18} className="bos-sys-text-2" />
-        </button>
-        <button onClick={() => navigate("achievements", { from: "profile" })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
-          {chip(I.Trophy)}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Достижения</div>
-            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{_achEarnedN + " из " + _achTotal + (_achEarnedN === 0 ? " · открой первую" : "")}</div>
+          <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden" }}>
+            {myTeams.slice(0, 4).map((t, i) => (
+              <button key={t._id || t.cloudId || i} onClick={() => navigate("team-detail", { team: t, from: "profile" })} className="tap"
+                style={{ width: "100%", border: 0, borderTop: i ? "0.5px solid var(--line-2)" : 0, background: "transparent", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", textAlign: "left", color: "var(--text)" }}>
+                <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 22, overflow: "hidden", background: "var(--surface-3)" }}>{bosIconOf(t, 22, null, "\ud83d\udc65")}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 17, fontWeight: 590, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                  <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.vis === "public" ? "Открытая" : "Приватная"}</span>
+                </span>
+                <I.ChevronRight size={17} color="var(--text-3)" style={{ flexShrink: 0 }} />
+              </button>
+            ))}
           </div>
-          <div style={{ display: "flex", marginRight: 4 }}>
-            {_achPreview.map((a, i) => <AchievementArtworkLive key={a.id} ach={a} size={27} style={{ marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)", background: "var(--card)", boxShadow: "0 2px 7px rgba(0,0,0,.10)" }} />)}
-          </div>
-          <I.ChevronRight size={18} className="bos-sys-text-2" />
-        </button>
-        {/* «Друзья» УБРАНЫ (David 2026-07-14): люди объединяются в совместных привычках/целях/кругах,
-            отдельная вкладка «Друзья» пользы не несла. Маршрут "friends" жив (нотификации), только строки нет. */}
-      </div>
+        </React.Fragment>
+      )}
 
-      {/* App menu — one grouped iOS card, hairline-divided rows */}
-      {/* App menu — Настройки first, Уведомления under (David). ИИ-инсайты removed (ИИ is its
-          own tab) and История removed (it's reachable from the home calendar). */}
-      <div className="bos-sys-card" style={{ marginTop: 12, padding: 0, overflow: "hidden" }}>
-        {/* «Как устроен Balance» и «Обучение» УБРАНЫ отсюда (David 2026-07-14): гид живёт на
-            «Сообществе» карточкой «Как устроен Balance» (СУТЬ) — там его настоящее место, новичок
-            приходит к людям. Компоненты гида/статей живы, просто не дублируются в настройках. */}
-        {navRow(I.Settings, "Настройки", "settings")}
-        {navRow(I.Bell, "Уведомления", "notifications")}
-        {navRow(I.Help, "Поддержка и помощь", "support", true)}
-      </div>
-      {/* «Выйти» ПЕРЕЕХАЛО в Настройки (David 2026-07-15) — красной кнопке не место на витрине
-          «Я», рядом с орбитами и тёплой подписью. Живёт в SettingsLive (profile_extra_live). */}
-      {/* Тёплая подпись — переехала из настроек СЮДА, к орбитам (David: «сделано с любовью на „Я"»). */}
-      <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "18px 14px 4px", fontSize: 12.5, opacity: 0.85 }}>Сделано с 💛</div>
+      {/* УСЛУГИ — мои форматы помощи. Пусто → раздела нет. */}
+      {myOffers && myOffers.length > 0 && (
+        <React.Fragment>
+          <div style={{ padding: "22px 4px 8px" }}>
+            <span onClick={() => navigate("community", { from: "profile" })} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", cursor: "pointer" }}>
+              Услуги <I.ChevronRight size={17} color="var(--text-3)" />
+            </span>
+          </div>
+          <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden" }}>
+            {myOffers.slice(0, 4).map((o, i) => (
+              <button key={o.id || i} onClick={() => openSheet(<AddHelpFormatSheetLive app={app} offer={o} onDone={() => { closeSheet(); loadOffers(); }} />)} className="tap"
+                style={{ width: "100%", border: 0, borderTop: i ? "0.5px solid var(--line-2)" : 0, background: "transparent", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", textAlign: "left", color: "var(--text)" }}>
+                <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 22, background: "var(--surface-3)" }}>{o.emoji || "\u2728"}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 17, fontWeight: 590, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.title || "Формат помощи"}</span>
+                  <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.when_text || ""}</span>
+                </span>
+                <I.ChevronRight size={17} color="var(--text-3)" style={{ flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* ДРУЗЬЯ — живые люди с твоей орбиты. */}
+      {typeof CircleFriendsStripLive === "function" && <div style={{ marginTop: 8 }}><CircleFriendsStripLive app={app} navigate={navigate} /></div>}
+
+      {/* Меню «⋯» — сюда переехало всё, чего в макете на экране нет. */}
+      {typeof CircleRoomMenuLive === "function" && (
+        <CircleRoomMenuLive open={profMenu} onClose={() => setProfMenu(false)} anchorRef={profMoreRef} isDark={isDark} items={[
+          { icon: <I.Sparkles size={17} strokeWidth={1.9} />, label: "Уровень " + lvlNum, go: () => navigate("levels", { from: "profile" }) },
+          { icon: <I.Trophy size={17} strokeWidth={1.9} />, label: "Достижения — " + _achEarnedN + " из " + _achTotal, go: () => navigate("achievements", { from: "profile" }) },
+          { icon: <I.Galaxy size={17} strokeWidth={1.9} />, label: "Вселенная", go: openUniverse },
+          { icon: <I.Settings size={17} strokeWidth={1.9} />, label: "Настройки", go: () => navigate("settings", { from: "profile" }) },
+          { icon: <I.Bell size={17} strokeWidth={1.9} />, label: "Уведомления", go: () => navigate("notifications", { from: "profile" }) },
+          { icon: <I.Help size={17} strokeWidth={1.9} />, label: "Поддержка и помощь", go: () => navigate("support", { from: "profile" }) },
+        ]} />
+      )}
+
+      <div style={{ textAlign: "center", padding: "22px 14px 4px", fontSize: 13, color: "var(--text-3)" }}>Сделано с 💛</div>
     </div>
   );
 }
