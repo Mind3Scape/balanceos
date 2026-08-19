@@ -168,6 +168,29 @@ function FigRail({ children, gap = 10, pad = 16, snap = true, style }) {
   );
 }
 
+/* БЕГУЩАЯ СТРОКА для длинных названий (David: «длинное дело нельзя прочитать —
+   ограничить знаки или бегущая строка, не меняя дизайн»). Пока текст помещается —
+   обычная строка; если шире поля — медленно едет туда-обратно, чтобы прочлось всё.
+   При «уменьшить движение» остаётся срез с многоточием (CSS в styles.css). */
+function FigMarquee({ children, style }) {
+  const box = React.useRef(null);
+  const [shift, setShift] = React.useState(0);
+  React.useLayoutEffect(function () {
+    const el = box.current; if (!el) return;
+    const inner = el.firstElementChild; if (!inner) return;
+    const d = inner.scrollWidth - el.clientWidth;
+    const next = d > 6 ? d : 0;
+    setShift(function (prev) { return prev === next ? prev : next; });
+  });
+  return (
+    <span ref={box} className={"fig-marquee" + (shift ? " run" : "")}
+      style={Object.assign({ display: "block", maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" },
+        shift ? { ["--mq-shift"]: "-" + shift + "px", ["--mq-dur"]: Math.max(4, Math.round(shift / 14)) + "s" } : {}, style || {})}>
+      <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>{children}</span>
+    </span>
+  );
+}
+
 /* КАРТОЧКА-ТАБЛИЦА (Grouped Table View): r24, заливка карточки, дети — строки. */
 function FigCard({ children, width, style }) {
   return (
@@ -600,7 +623,7 @@ function FigMonthCalendar({ value, marks, onPick, minKey, footer }) {
               style={{ border: 0, background: "transparent", padding: 0, cursor: future ? "default" : "pointer",
                 display: "grid", placeItems: "center", position: "relative" }}>
               <span style={{ width: 36, height: 36, borderRadius: "50%", display: "grid", placeItems: "center",
-                fontSize: 20, fontWeight: isToday ? 700 : 400, letterSpacing: "-0.4px",
+                fontSize: 20, lineHeight: "24px", fontWeight: isToday ? 700 : 400, letterSpacing: "-0.45px",
                 background: isSel ? "var(--cta)" : "transparent",
                 color: isSel ? "var(--cta-ink)" : (future || out) ? "var(--text-3)" : (isToday ? "var(--accent)" : "var(--text)"),
                 transition: "background .2s, color .2s" }}>{d.getDate()}</span>

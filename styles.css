@@ -1387,6 +1387,16 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 /* Календарь месяца: сетка въезжает с той стороны, откуда позвали месяц. */
 @keyframes figMonthNext { from { opacity:0; transform: translateX(14px);} to { opacity:1; transform:none;} }
 @keyframes figMonthPrev { from { opacity:0; transform: translateX(-14px);} to { opacity:1; transform:none;} }
+/* Бегущая строка: медленный проезд туда-обратно с паузой на краях. */
+@keyframes figMarquee {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(var(--mq-shift, -40px)); }
+}
+.fig-marquee.run > span { animation: figMarquee var(--mq-dur, 6s) ease-in-out 1.2s infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .fig-marquee.run > span { animation: none; }
+  .fig-marquee.run { text-overflow: ellipsis; }
+}
 /* Горизонтальные ленты макета — без видимой полосы прокрутки. */
 .fig-rail::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .fig-month { animation: none !important; } }

@@ -171,7 +171,8 @@ function ProfileLive() {
           Пустые плашки вместо них не рисуем: счётчики показывают то, что правда есть. */}
 
       <div style={{ position: "relative", margin: "0 -16px", padding: "0 16px" }}>
-        <div aria-hidden style={{ position: "absolute", inset: "0 0 auto", height: 420, pointerEvents: "none",
+        {/* Верх вуали — минус отступ страницы: цвет от самого верха экрана (David: «зазор сверху»). */}
+        <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: "calc(-1 * var(--page-top, 60px))", height: "calc(420px + var(--page-top, 60px) - 60px)", minHeight: 420, pointerEvents: "none",
           background: "linear-gradient(180deg, " + meTint + (isDark ? "8C" : "A6") + " 0%, "
             + meTint + (isDark ? "3D" : "4D") + " 36%, " + meTint + "14 60%, transparent 84%)" }} />
 

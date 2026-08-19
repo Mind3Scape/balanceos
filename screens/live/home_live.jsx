@@ -208,6 +208,7 @@ function TasksWidgetLive({ isDark, openSheet }) {
   const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
   const [activeId, setActiveId] = React.useState(null);
   const [taskText, setTaskText] = React.useState("");
+  const [editTask, setEditTask] = React.useState(null); // {id} — какое дело правится на месте
   const PAL = ["#0a0a0a", "#007AFF", "#34C759", "#FF9500", "#AF52DE", "#FF2D55"];
   const L = lists.find((l) => l.id === activeId) || lists[0] || null;
   const tasks = L ? (L.tasks || []) : [];
@@ -267,7 +268,17 @@ function TasksWidgetLive({ isDark, openSheet }) {
                     : { background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", boxShadow: isDark ? "inset 0 0 0 0.7px rgba(255,255,255,0.07)" : "inset 0 0 0 0.7px rgba(0,0,0,0.06)" }) }}>
                   {t.done ? <I.Check size={13} color={(typeof bosLum === "function" && bosLum(bosCanonColor(L.color)) > 0.62) ? "#141416" : "#fff"} /> : null}
                 </button>
-                <div style={{ flex: 1, fontSize: 14.5, letterSpacing: "-0.1px", color: t.done ? doneInk : "var(--text)", textDecoration: t.done ? "line-through" : "none" }}>{t.text}</div>
+                {editTask && editTask.id === t.id ? (
+                  <input autoFocus defaultValue={t.text} maxLength={80}
+                    onFocus={(e) => { try { e.target.select(); } catch (_) {} }}
+                    onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.text && app.updateTask) app.updateTask(L.id, t.id, { text: v }); setEditTask(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); if (e.key === "Escape") { e.target.value = t.text; e.target.blur(); } }}
+                    style={{ flex: 1, border: 0, outline: "none", fontFamily: "inherit", fontSize: 14.5, letterSpacing: "-0.1px", color: "var(--text)", background: "transparent", padding: 0 }} />
+                ) : (
+                  /* Тап по тексту — правка на месте (David: «ошиблась в орфографии — нет права на ошибку»). */
+                  <div onClick={() => { if (!t.done) setEditTask({ id: t.id }); }}
+                    style={{ flex: 1, fontSize: 14.5, letterSpacing: "-0.1px", color: t.done ? doneInk : "var(--text)", textDecoration: t.done ? "line-through" : "none", cursor: t.done ? "default" : "text" }}>{t.text}</div>
+                )}
                 <button className="tap" aria-label="Убрать дело" onClick={() => app.removeTask(L.id, t.id)}
                   style={{ border: 0, background: "transparent", color: "var(--text-4)", cursor: "pointer", padding: "2px 4px", opacity: 0.5, display: "grid", placeItems: "center" }}><I.X size={14} /></button>
               </div>
@@ -276,7 +287,7 @@ function TasksWidgetLive({ isDark, openSheet }) {
           {/* ИНЛАЙН-поле: фокус прячет таб-бар и подвигает страницу так, чтобы поле село над клавой (David) */}
           <label style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 3px", marginTop: tasks.length ? 0 : 2, borderTop: tasks.length ? hair : "none", cursor: "text" }}>
             <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
-            <input value={taskText} onChange={(e) => setTaskText(e.target.value)} onFocus={bosKbFocus}
+            <input value={taskText} maxLength={80} onChange={(e) => setTaskText(e.target.value)} onFocus={bosKbFocus}
               onBlur={(e) => { commitTask(); bosKbBlur(e); }}
               onKeyDown={(e) => { if (e.key === "Enter") { commitTask(); var _el = e.target; setTimeout(function () { if (_el._bosAdjust) _el._bosAdjust(); }, 50); } if (e.key === "Escape") { setTaskText(""); e.target.blur(); } }}
               placeholder="Добавить дело…"

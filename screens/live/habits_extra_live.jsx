@@ -314,7 +314,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
             background: _accent ? _accent + "26" : "var(--surface-3)" }}>
           {bosIcon(iconPick, 27, color, glyphPick)}
         </span>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
+        <input value={name} maxLength={60} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
       </div>
 
@@ -721,7 +721,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
             background: _accent ? _accent + "26" : "var(--surface-3)" }}>
           {bosIcon(iconPick, 27, color, glyphPick)}
         </span>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder={circleOn ? "Название круга" : "Название цели"} aria-label="Название"
+        <input value={name} maxLength={60} onChange={e => setName(e.target.value)} placeholder={circleOn ? "Название круга" : "Название цели"} aria-label="Название"
           style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
       </div>
 

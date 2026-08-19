@@ -28,11 +28,12 @@ const FIG_SHOWCASE_PLACES = [
   { id: "sc-med", title: "Открытая медитация: Час осознанности с гидом в студии", city: "Москва",
     rate: 5.0, reviews: 12, priceXP: 2500, oldXP: 3200, cta: "Открыто", showcase: true,
     about: "Час тишины с ведущим: дыхание, тело, внимание. Приходить можно без опыта — коврики и пледы на месте.",
-    cover: ["#C9A8E8", "#7FB3F2"], coverEmoji: "🧘", photos: [] },
+    /* Фото — из самого макета Figma (image fills), не сток. */
+    cover: ["#C9A8E8", "#7FB3F2"], coverEmoji: "🧘", photos: ["img/fig/meditation.jpg"] },
   { id: "sc-salt", title: "Солевые пещеры: пробное посещение", city: "Москва",
     rate: 5.0, reviews: 12, priceXP: 1000, oldXP: 3200, cta: "Открыто", showcase: true,
     about: "Сорок минут в соляной комнате. Хорошо после болезни и в сезон, когда дышится тяжело.",
-    cover: ["#86C7C2", "#9BD4A8"], coverEmoji: "🧂", photos: [] },
+    cover: ["#86C7C2", "#9BD4A8"], coverEmoji: "🧂", photos: ["img/fig/salt1.jpg", "img/fig/salt2.jpg"] },
   { id: "sc-bath", title: "Баня по-чёрному: парение с мастером", city: "Москва",
     rate: 4.9, reviews: 31, priceXP: 3200, cta: "Открыто", showcase: true,
     about: "Классическое парение в три захода с травяными вениками и чаем между заходами.",
@@ -72,7 +73,11 @@ function figShowcaseAdd(key, item) {
 /* ── УРОВНИ ГРУПП: один запрос на все круги сразу (bosTeamXPBatch уже пакует). ── */
 function useFigTeamLevels(teams) {
   var sig = (teams || []).map(function (t) { return t.cloudId; }).filter(Boolean).join(",");
-  var [map, setMap] = React.useState({});
+  // Тёплый старт из localStorage: значки уровней НЕ впрыгивают после открытия — экран
+  // рождается сразу с прошлыми значениями, сеть молча их подправляет.
+  var [map, setMap] = React.useState(function () {
+    try { var c = JSON.parse(localStorage.getItem("bos:cache:figlevels") || "null"); return (c && c.sig === sig && c.map) || {}; } catch (e) { return {}; }
+  });
   React.useEffect(function () {
     if (!sig) { setMap({}); return; }
     var on = true;
@@ -88,6 +93,7 @@ function useFigTeamLevels(teams) {
         if (L) out[id] = { level: L.level, pct: L.frac };
       });
       setMap(out);
+      try { localStorage.setItem("bos:cache:figlevels", JSON.stringify({ sig: sig, map: out })); } catch (e) {}
     }).catch(function () {});
     return function () { on = false; };
   }, [sig]);
@@ -101,7 +107,19 @@ var _figPeopleCache = null;
 function useFigPeople(app) {
   var teams = (app && app.teams || []).filter(function (t) { return t.cloudId; });
   var sig = teams.map(function (t) { return t.cloudId; }).join(",");
-  var [people, setPeople] = React.useState(_figPeopleCache || []);
+  // Тёплый старт: список людей из прошлого визита (в кэше команды хранятся по cloudId,
+  // при чтении пришиваем живые объекты групп) — «Друзья» не впрыгивают после открытия.
+  var [people, setPeople] = React.useState(function () {
+    if (_figPeopleCache) return _figPeopleCache;
+    try {
+      var c = JSON.parse(localStorage.getItem("bos:cache:figpeople") || "null");
+      if (!c || c.sig !== sig || !Array.isArray(c.people)) return [];
+      var byId = {}; teams.forEach(function (t) { byId[t.cloudId] = t; });
+      return c.people.map(function (p) {
+        return Object.assign({}, p, { teams: (p.teams || []).map(function (id) { return byId[id]; }).filter(Boolean) });
+      });
+    } catch (e) { return []; }
+  });
   React.useEffect(function () {
     var on = true;
     var C = window.bosCloud;
@@ -137,7 +155,15 @@ function useFigPeople(app) {
           });
         } catch (e) {}
       }
-      if (on) { _figPeopleCache = out; setPeople(out); }
+      if (on) {
+        _figPeopleCache = out; setPeople(out);
+        try {
+          localStorage.setItem("bos:cache:figpeople", JSON.stringify({ sig: sig, people: out.map(function (p) {
+            return { id: p.id, name: p.name, avatar: p.avatar, level: p.level, lvlPct: p.lvlPct,
+              teams: p.teams.map(function (t) { return t.cloudId; }) };
+          }) }));
+        } catch (e) {}
+      }
     })();
     return function () { on = false; };
   }, [sig]);
@@ -559,7 +585,9 @@ function FigShowcaseDetailSheetLive({ item, kind }) {
    «Уведомления»: заявки в твои группы, кто вступил, кого приняли, приглашения, напарники.
    Нет облака — нет числа (а не ноль-заглушка и не выдуманная тройка из макета). */
 function useFigNotifCount(app) {
-  var [n, setN] = React.useState(0);
+  var [n, setN] = React.useState(function () {
+    try { return parseInt(localStorage.getItem("bos:cache:fignotifn") || "0", 10) || 0; } catch (e) { return 0; }
+  });
   React.useEffect(function () {
     var on = true;
     if (!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled()) || typeof bosNotifCollectLive !== "function") return;
@@ -568,6 +596,7 @@ function useFigNotifCount(app) {
       var c = (d.requests || []).length + (d.joined || []).length + (d.accepted || []).length
             + (d.invited || []).length + (d.buddies || []).length;
       setN(c);
+      try { localStorage.setItem("bos:cache:fignotifn", "" + c); } catch (e) {}
     }).catch(function () {});
     return function () { on = false; };
   }, []);

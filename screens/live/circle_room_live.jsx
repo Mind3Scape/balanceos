@@ -404,8 +404,12 @@ function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub
           background: iconColor ? iconColor + "26" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)")),
           boxShadow: iconColor ? "none" : bosTileGlass(isDark) }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            color: struck ? "var(--text-3)" : "var(--text)", textDecoration: struck ? "line-through" : "none" }}>{name}</div>
+          {/* Длинное имя не режется, а медленно проезжает (David: «нельзя прочитать»). */}
+          {typeof FigMarquee === "function"
+            ? <FigMarquee style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px",
+                color: struck ? "var(--text-3)" : "var(--text)", textDecoration: struck ? "line-through" : "none" }}>{name}</FigMarquee>
+            : <div style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                color: struck ? "var(--text-3)" : "var(--text)", textDecoration: struck ? "line-through" : "none" }}>{name}</div>}
           {metaLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{metaLine}</div> : null}
           {countLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: subGold ? BOS_ROOM_GOLD_INK : "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{countLine}</div> : null}
         </div>
@@ -567,7 +571,7 @@ function CircleTaskComposeSheetLive({ onAdd, isDark }) {
   return (
     <div style={{ padding: "4px 2px 8px" }}>
       <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", padding: "0 4px 12px" }}>Разовое дело</div>
-      <input value={v} autoFocus onChange={(e) => setV(e.target.value)} placeholder="Например: фото завтрака в чат"
+      <input value={v} autoFocus maxLength={80} onChange={(e) => setV(e.target.value)} placeholder="Например: фото завтрака в чат"
         style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)", borderRadius: 14, padding: "12px 15px", fontSize: 15.5, color: "var(--text)" }} />
       <button onClick={() => { const tx = v.trim(); if (!tx) return; onAdd(tx); close(); }} className="tap"
         style={{ marginTop: 12, width: "100%", border: 0, borderRadius: 999, padding: "13px 0", fontSize: 14.5, fontWeight: 700, cursor: "pointer", background: v.trim() ? (isDark ? "#fff" : "#0a0a0a") : "var(--surface-3)", color: v.trim() ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)" }}>
