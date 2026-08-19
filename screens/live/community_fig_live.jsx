@@ -194,7 +194,7 @@ function FigCommunityAllLive({ app, navigate, isDark, onSeg, lowCircles }) {
   const openShowcase = function (item, kind) { if (openSheet) openSheet(<FigShowcaseDetailSheetLive item={item} kind={kind} />); };
   const openGroup = function (t) { navigate("team-detail", { team: t, from: "community" }); };
   const openChat = function (t) { navigate("team-detail", { team: t, from: "community", tab: "chat" }); };
-  const openPerson = function (p) { navigate("net-person", { person: { user_id: p.id, name: p.name, avatar: p.avatar, level: p.level || 0, offers: [] }, from: "community" }); };
+  const openPerson = function (p) { navigate("person-profile", { person: { user_id: p.id, name: p.name, avatar: p.avatar, level: p.level }, from: "community" }); };
 
   return (
     <div className="fig-swap" style={{ display: "grid", gap: 0 }}>
@@ -350,7 +350,7 @@ function FigPeopleRoomLive({ app, navigate, query }) {
     });
     return out;
   }, [people, q, sort]);
-  const openPerson = function (p) { navigate("net-person", { person: { user_id: p.id, name: p.name, avatar: p.avatar, level: p.level || 0, offers: [] }, from: "community" }); };
+  const openPerson = function (p) { navigate("person-profile", { person: { user_id: p.id, name: p.name, avatar: p.avatar, level: p.level }, from: "community" }); };
   if (!people.length) {
     return <div className="fig-swap"><FigEmpty title="Людей пока нет"
       text="Люди появляются здесь, когда вы оказываетесь в одной группе. Вступи в группу или позови своих." /></div>;

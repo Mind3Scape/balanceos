@@ -976,3 +976,213 @@ function bosExitFlowLive({ app, team, isOwner, navigate, openSheet, returnTo }) 
       }} />
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   ПРОФИЛЬ ЧЕЛОВЕКА — кадры «Гость / Профиль», «Друг», «Гость / Закрытый профиль» + «Заявка».
+
+   Анатомия кадра: цветная вуаль 400 сверху → шапка [назад] @ник [🔔][⋯] → аватар 96 в
+   кольце уровня 106/3 → «Lvl. N» → имя 22/700 → счётчики Подписок·Подписчиков·Друзья →
+   ряд кнопок (белая «Подписаться» 160×50 + стеклянные кружки 50) → описание → разделы
+   Группы · Услуги · Отзывы · Рекомендуемые аккаунты.
+
+   РОЛИ. guest — не подписан («Подписаться» белая); friend — вы в одном круге («Написать»);
+   closed — профиль закрыт: вместо разделов замок и «Отправить заявку» (кадр «Заявка» =
+   состояние «Заявка отправлена»).
+
+   ЧЕСТНОСТЬ ДАННЫХ. Уровень и услуги — настоящие (netProfiles, network_offers).
+   «Общие группы» — пересечение по твоим кругам (реально считается). Подписки — локальный
+   задел bos:follows до таблицы follows. Отзывы и рекомендации — их таблиц нет: разделы
+   говорят об этом прямо. ЗАМЕТКА ДЛЯ БЭКЕНДА: follows, reviews, profiles.bio/role/city,
+   profiles.is_private + join_requests. */
+function PersonProfileLive() {
+  const { navigate, params, back } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = !!(app && app.themeOverride === "dark");
+  const p = (params && params.person) || {};
+  const pid = p.user_id || p.id || null;
+  const name = p.name || p.username || "Участник";
+  const [level, setLevel] = React.useState(p.level != null ? p.level : null);
+  const [offers, setOffers] = React.useState(null);
+  const [common, setCommon] = React.useState([]);
+  const _live = !!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled());
+
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!_live || !pid) { setOffers([]); return; }
+    if (C.netProfiles) C.netProfiles([pid]).then(function (r) {
+      var q = r && r.profiles && r.profiles[0];
+      if (on && q && q.level != null) setLevel(q.level);
+    }).catch(function () {});
+    if (C.netConfirmedOffersByOwners) C.netConfirmedOffersByOwners([pid]).then(function (r) {
+      if (on) setOffers((r && r.offers) || []);
+    }).catch(function () { if (on) setOffers([]); });
+    else setOffers([]);
+    // Общие группы — по-настоящему: мои круги, где этот человек в составе.
+    (async function () {
+      var mine = (app && app.teams || []).filter(function (t) { return t.cloudId; });
+      var out = [];
+      for (var i = 0; i < mine.length; i++) {
+        try {
+          var mm = await C.teamMembers(mine[i].cloudId);
+          if ((mm || []).some(function (m) { return m.id === pid; })) out.push(mine[i]);
+        } catch (e) {}
+      }
+      if (on) setCommon(out);
+    })();
+    return function () { on = false; };
+  }, [pid]);
+
+  const isFriend = common.length > 0;
+  // Подписка — локальный задел до таблицы follows.
+  const [followed, setFollowed] = React.useState(function () {
+    try { var f = JSON.parse(localStorage.getItem("bos:follows") || "null") || {}; return (f.out || []).indexOf(pid) >= 0; } catch (e) { return false; }
+  });
+  const flipFollow = function () {
+    try {
+      var f = JSON.parse(localStorage.getItem("bos:follows") || "null") || {}; f.out = f.out || []; f.in_ = f.in_ || [];
+      var i = f.out.indexOf(pid);
+      if (i >= 0) f.out.splice(i, 1); else f.out.push(pid);
+      localStorage.setItem("bos:follows", JSON.stringify(f));
+      setFollowed(i < 0);
+      if (window.tgHaptic) { try { window.tgHaptic(i < 0 ? "success" : "light"); } catch (e) {} }
+    } catch (e) {}
+  };
+  const writeTo = function () {
+    if (common[0]) navigate("team-detail", { team: common[0], from: "person-profile", tab: "chat", prefill: "@" + name.split(" ")[0] + " " });
+  };
+
+  const tint = (typeof figGroupTint === "function") ? figGroupTint(name) : ["#C9A8E8", "#7FB3F2"];
+  const glass = { background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(30px) saturate(1.8)", backdropFilter: "blur(30px) saturate(1.8)" };
+  const card = { borderRadius: 24, background: "var(--surface)", overflow: "hidden" };
+  const follows = (function () { try { var f = JSON.parse(localStorage.getItem("bos:follows") || "null") || {}; return f; } catch (e) { return {}; } })();
+
+  return (
+    <div className="page-in" style={{ padding: "0 0 24px", position: "relative" }}>
+      {/* Цветная вуаль 400, тающая вниз — как Group Backgraund Fade в кадре. */}
+      <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 400, pointerEvents: "none",
+        background: "linear-gradient(180deg, " + tint[0] + (isDark ? "66" : "8C") + " 0%, " + tint[1] + "33 55%, transparent 100%)" }} />
+
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 44 }}>
+        <button onClick={back} className="tap" aria-label="Назад"
+          style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)", flexShrink: 0 }}>
+          <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
+        </button>
+        <span style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px", color: "var(--text)",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"@" + (name || "").toLowerCase().replace(/\s+/g, "_")}</span>
+        <span style={{ width: 44, flexShrink: 0 }} />
+      </div>
+
+      {/* Аватар в кольце уровня + имя. */}
+      <div style={{ position: "relative", display: "grid", justifyItems: "center", paddingTop: 12 }}>
+        {typeof FigAvatarLvl === "function"
+          ? <FigAvatarLvl avatar={p.avatar} name={name} size={96} level={level} pct={0} />
+          : <BuddyFaceLive avatar={p.avatar} name={name} size={96} />}
+        <span style={{ marginTop: 8 }}>{typeof FigLvlBadge === "function" && level != null ? <FigLvlBadge level={level} size={13} /> : null}</span>
+        <div style={{ fontSize: 22, fontWeight: 700, lineHeight: "28px", letterSpacing: "-0.26px", color: "var(--text)", marginTop: 2 }}>{name}</div>
+        {isFriend && <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", marginTop: 2 }}>{"вместе в «" + common[0].name + "»"}</div>}
+      </div>
+
+      {/* Счётчики. */}
+      <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", marginTop: 14 }}>
+        {[["Подписок", 0], ["Подписчиков", (follows.out || []).indexOf(pid) >= 0 ? 1 : 0], ["Друзья", common.length]].map(function (c, i) {
+          return (
+            <React.Fragment key={c[0]}>
+              {i > 0 && <span aria-hidden style={{ width: 1, height: 16, background: "var(--line-2)", margin: "0 8px" }} />}
+              <span style={{ padding: "3px 8px", textAlign: "center", minWidth: 96 }}>
+                <span style={{ display: "block", fontSize: 17, fontWeight: 590, lineHeight: "22px", color: "var(--text)" }}>{c[1]}</span>
+                <span style={{ display: "block", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>{c[0]}</span>
+              </span>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Ряд кнопок: белая «Подписаться» (или «Вы подписаны») + [написать] + [ещё]. */}
+      <div style={{ position: "relative", display: "flex", justifyContent: "center", gap: 10, padding: "18px 16px 6px" }}>
+        <button onClick={flipFollow} className="tap"
+          style={{ height: 50, minWidth: 160, padding: "0 22px", borderRadius: 999, border: 0, cursor: "pointer",
+            background: followed ? "rgba(153,153,153,0.17)" : "var(--cta)",
+            color: followed ? "var(--text)" : "var(--cta-ink)",
+            WebkitBackdropFilter: followed ? "blur(30px)" : "none", backdropFilter: followed ? "blur(30px)" : "none",
+            fontSize: 17, fontWeight: 510, display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center",
+            transition: "background .2s, color .2s" }}>
+          {!followed && <I.Plus size={18} strokeWidth={2.4} />}{followed ? "Вы подписаны" : "Подписаться"}
+        </button>
+        {isFriend && (
+          <button onClick={writeTo} className="tap" aria-label="Написать"
+            style={{ ...glass, width: 50, height: 50, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
+            <I.MessageCircle size={21} strokeWidth={2} />
+          </button>
+        )}
+      </div>
+      <div style={{ position: "relative", textAlign: "center", padding: "0 32px", fontSize: 13, lineHeight: "18px", color: "var(--text-3)" }}>
+        Подписка пока живёт на этом телефоне — станет общей с обновлением базы.
+      </div>
+
+      {/* ОБЩИЕ ГРУППЫ */}
+      {common.length > 0 && (
+        <div style={{ position: "relative" }}>
+          {typeof FigSectionHead === "function"
+            ? <FigSectionHead title="Общие группы" sub={common.length + " " + (common.length === 1 ? "группа" : (common.length < 5 ? "группы" : "групп"))} />
+            : <div style={{ padding: "16px 16px 8px", fontSize: 22, fontWeight: 700, color: "var(--text)" }}>Общие группы</div>}
+          <div style={{ padding: "0 16px" }}>
+            <div style={card}>
+              {common.map(function (t, i) {
+                return typeof FigGroupRow === "function" ? (
+                  <FigGroupRow key={t.cloudId} first={i === 0}
+                    group={{ name: t.name, avatar: t.emblem && ("" + t.emblem).indexOf("url:") === 0 ? t.emblem : (t.emblem ? "emoji:" + t.emblem : null),
+                      category: t.vis === "public" ? "Открытая группа" : "Приватная группа" }}
+                    onOpen={function () { navigate("team-detail", { team: t, from: "person-profile" }); }} />
+                ) : null;
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* УСЛУГИ */}
+      <div style={{ position: "relative" }}>
+        {typeof FigSectionHead === "function" && <FigSectionHead title="Услуги" sub={offers && offers.length ? (offers.length + " активных") : null} />}
+        <div style={{ padding: "0 16px" }}>
+          {offers === null ? (
+            <div style={{ ...card, padding: "18px 16px", fontSize: 15, color: "var(--text-2)" }}>Загружаю…</div>
+          ) : offers.length === 0 ? (
+            <div style={{ ...card, padding: "18px 16px", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+              {name.split(" ")[0] + " пока не добавлял услуг."}
+            </div>
+          ) : (
+            <div style={card}>
+              {offers.map(function (o, i) {
+                return (
+                  <div key={o.id || i} style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "0 16px", minHeight: 84 }}>
+                    {i > 0 && <span aria-hidden style={{ position: "absolute", left: 68, right: 0, top: 0, height: 1, background: "var(--line-2)" }} />}
+                    <span style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 22,
+                      background: "var(--surface-3)" }}>{o.emoji || "✨"}</span>
+                    <span style={{ flex: 1, minWidth: 0, padding: "10px 0" }}>
+                      <span style={{ display: "block", fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)",
+                        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{o.title}</span>
+                      {o.when_text && <span style={{ display: "block", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>{o.when_text}</span>}
+                    </span>
+                    <span style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)", flexShrink: 0 }}>
+                      {(o.price_xp || 0) > 0 ? (bosNumSpace(o.price_xp) + " XP") : "Даром"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ОТЗЫВЫ — таблицы нет, говорим прямо. */}
+      <div style={{ position: "relative" }}>
+        {typeof FigSectionHead === "function" && <FigSectionHead title="Отзывы" />}
+        <div style={{ padding: "0 16px" }}>
+          <div style={{ ...card, padding: "18px 16px", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+            Отзывы появятся, когда включим их в бэкенде: после купленной услуги можно будет поставить оценку и написать пару слов.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

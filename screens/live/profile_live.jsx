@@ -28,6 +28,13 @@ function ProfileLive() {
   const app = (typeof useApp === "function") ? useApp() : null;
   const { open: openSheet, close: closeSheet } = useSheet();
   const openAvatar = () => openSheet(<AvatarPickerSheetLive dark={app?.themeOverride === "dark"} />);
+  // «О себе / занятие / город» живут в localStorage (bos:bio): в profiles под них пока нет
+  // столбцов. ЗАМЕТКА ДЛЯ БЭКЕНДА: profiles.bio, profiles.role, profiles.city — и этот
+  // блок сам поедет в облако через saveProfile.
+  const [bio, setBio] = React.useState(() => { try { return JSON.parse(localStorage.getItem("bos:bio") || "null") || {}; } catch (e) { return {}; } });
+  const [bioOpen, setBioOpen] = React.useState(false);
+  const saveBio = (b) => { setBio(b); try { localStorage.setItem("bos:bio", JSON.stringify(b)); } catch (e) {} };
+  const openEdit = () => openSheet(<ProfileEditSheetLive app={app} bio={bio} onSave={saveBio} onAvatar={openAvatar} />);
   // LIVE: always real data.
   const _xp = bosLiveXPLive(app);
   const _li = bosLevelInfoLive(_xp);
@@ -175,7 +182,7 @@ function ProfileLive() {
             <I.ChevronLeft size={20} strokeWidth={2.4} />
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={openAvatar} className="tap" aria-label="Изменить"
+            <button onClick={openEdit} className="tap" aria-label="Изменить"
               style={{ ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : {}), width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
               <I.Pencil size={16} strokeWidth={2} />
             </button>
@@ -206,18 +213,22 @@ function ProfileLive() {
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", marginTop: 6, lineHeight: 1.25 }}>{app?.userName || "Ты"}</div>
         </div>
 
-        {/* СЧЁТЧИКИ. В макете «Подписок · Подписчиков · Друзья»; подписок у нас нет ни в
-            одной таблице, поэтому показываем три ПРАВДИВЫХ числа: группы, люди, XP. */}
-        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", marginTop: 18 }}>
-          {[[myTeams.length, "Группы", () => navigate("community", { from: "profile" })],
-            [orbitPeople.length, "Люди", () => navigate("friends", { from: "profile" })],
-            [_xp, "XP", () => navigate("levels", { from: "profile" })]].map(([n, label, go], i) => (
-            <button key={label} onClick={go} className="tap"
-              style={{ border: 0, background: "transparent", cursor: "pointer", padding: "2px 0", textAlign: "center",
-                borderLeft: i ? "0.5px solid var(--line-2)" : 0 }}>
-              <span style={{ display: "block", fontSize: 20, fontWeight: 590, color: "var(--text)" }}>{n}</span>
-              <span style={{ display: "block", fontSize: 13, color: "var(--text-2)", marginTop: 1 }}>{label}</span>
-            </button>
+        {/* СЧЁТЧИКИ ПО МАКЕТУ: Подписок · Подписчиков · Друзья (число 17/590, подпись 15/400,
+            тонкие разделители). Подписок в базе пока нет — числа честно нулевые, двери ведут
+            в общий экран «Люди». ЗАМЕТКА ДЛЯ БЭКЕНДА: таблица follows(follower_id, followee_id)
+            оживит первые два счётчика без правок здесь. Друзья — настоящие (люди твоих кругов). */}
+        <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", marginTop: 16 }}>
+          {[[bosProfileFollowCounts().following, "Подписок", () => navigate("friends", { from: "profile", tab: "following" })],
+            [bosProfileFollowCounts().followers, "Подписчиков", () => navigate("friends", { from: "profile", tab: "followers" })],
+            [orbitPeople.length, "Друзья", () => navigate("friends", { from: "profile" })]].map(([n, label, go], i) => (
+            <React.Fragment key={label}>
+              {i > 0 && <span aria-hidden style={{ width: 1, height: 16, background: "var(--line-2)", margin: "0 8px" }} />}
+              <button onClick={go} className="tap"
+                style={{ border: 0, background: "transparent", cursor: "pointer", padding: "3px 8px", textAlign: "center", minWidth: 96 }}>
+                <span style={{ display: "block", fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>{n}</span>
+                <span style={{ display: "block", fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)" }}>{label}</span>
+              </button>
+            </React.Fragment>
           ))}
         </div>
 
@@ -229,6 +240,34 @@ function ProfileLive() {
             background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.06)", color: "var(--text)", fontSize: 17, fontWeight: 590 }}>
           <I.Plus size={20} strokeWidth={2.2} />Добавить услугу
         </button>
+        {/* Описание в 2 строки с «Ещё» + строка «занятие · город» — как в кадре. Пусто —
+            приглашение рассказать (только у своего профиля). */}
+        {(bio.about || bio.role || bio.city) ? (
+          <div style={{ position: "relative", marginTop: 14, textAlign: "center" }}>
+            {bio.about && (
+              <div onClick={() => setBioOpen(!bioOpen)} style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)",
+                maxWidth: 280, margin: "0 auto", cursor: "pointer",
+                display: "-webkit-box", WebkitLineClamp: bioOpen ? 99 : 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {bio.about}
+              </div>
+            )}
+            {(bio.role || bio.city) && (
+              <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                {bio.role && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+                  <I.Person size={15} strokeWidth={2} />{bio.role}</span>}
+                {bio.city && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+                  <I.MapPin size={15} strokeWidth={2} />{bio.city}</span>}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ marginTop: 12, textAlign: "center" }}>
+            <button onClick={openEdit} className="tap" style={{ border: 0, background: "transparent", cursor: "pointer",
+              fontSize: 15, lineHeight: "20px", color: "var(--text-2)", textDecoration: "underline", textUnderlineOffset: 3 }}>
+              Рассказать о себе
+            </button>
+          </div>
+        )}
       </div>
 
       {universeOpen && typeof UniverseFieldLive === "function" && <UniverseFieldLive app={app} people={orbitPeople} from={universeFrom} onClose={() => setUniverseOpen(false)} />}
@@ -827,6 +866,54 @@ function AILive() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* Счётчики подписок. Таблицы follows пока нет — читаем локальный задел (bos:follows),
+   чтобы кнопка «Подписаться» на чужих профилях уже что-то значила. ЗАМЕТКА ДЛЯ БЭКЕНДА:
+   follows(follower_id, followee_id, created_at) + счёт через RPC. */
+function bosProfileFollowCounts() {
+  try {
+    var f = JSON.parse(localStorage.getItem("bos:follows") || "null") || {};
+    return { following: Array.isArray(f.out) ? f.out.length : 0, followers: Array.isArray(f.in_) ? f.in_.length : 0 };
+  } catch (e) { return { following: 0, followers: 0 }; }
+}
+
+/* Редактор профиля: имя (едет в облако как раньше), о себе / занятие / город (локально,
+   до появления столбцов), аватар — отдельной кнопкой в тот же пикер. */
+function ProfileEditSheetLive({ app, bio, onSave, onAvatar }) {
+  const { close } = useSheet();
+  const [name, setName] = React.useState((app && app.userName) || "");
+  const [about, setAbout] = React.useState((bio && bio.about) || "");
+  const [role, setRole] = React.useState((bio && bio.role) || "");
+  const [city, setCity] = React.useState((bio && bio.city) || "");
+  const F = { width: "100%", borderRadius: 12, border: 0, background: "var(--surface-3)", padding: "12px",
+    fontSize: 17, color: "var(--text)", outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
+  const save = () => {
+    var nm = name.trim();
+    if (nm && app && app.setUserName) { try { app.setUserName(nm); } catch (e) {} }
+    onSave({ about: about.trim(), role: role.trim(), city: city.trim() });
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    close();
+  };
+  return (
+    <div style={{ padding: "2px 16px 10px", color: "var(--text)", display: "grid", gap: 10 }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Профиль</div>
+      <button onClick={() => { close(); setTimeout(onAvatar, 60); }} className="tap"
+        style={{ justifySelf: "center", display: "inline-flex", alignItems: "center", gap: 8, border: 0, borderRadius: 999,
+          padding: "9px 16px", cursor: "pointer", background: "var(--surface-3)", color: "var(--text)", fontSize: 15, fontWeight: 590 }}>
+        <BuddyFaceLive avatar={app?.avatar} name={app?.userName} size={22} />Сменить аватар
+      </button>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Имя" style={F} />
+      <textarea value={about} onChange={(e) => setAbout(e.target.value)} placeholder="О себе — пара предложений" rows={3} style={{ ...F, resize: "none" }} />
+      <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Чем занимаешься (например, «Дизайнер»)" style={F} />
+      <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Город" style={F} />
+      <div style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.4, textAlign: "center" }}>
+        Имя и аватар видят все. «О себе», занятие и город пока хранятся на этом телефоне — переедут в облако с обновлением базы.
+      </div>
+      <button onClick={save} className="tap" style={{ width: "100%", height: 50, borderRadius: 999, border: 0, cursor: "pointer",
+        background: "var(--cta)", color: "var(--cta-ink)", fontSize: 17, fontWeight: 590 }}>Сохранить</button>
     </div>
   );
 }

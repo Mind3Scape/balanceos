@@ -152,6 +152,8 @@ const LIVE_SCREENS = {
   "team-admins": () => CircleAdminsLive,
   "team-admin-add": () => CircleAdminAddLive,
   "team-admin-rights": () => CircleAdminRightsLive,
+  // Профиль другого человека (кадры «Гость / Профиль», «Друг»).
+  "person-profile": () => PersonProfileLive,
   levels: () => LevelsLive,
   "course-detail": () => CourseDetailLive,
   "partner-detail": () => PartnerDetailLive,
