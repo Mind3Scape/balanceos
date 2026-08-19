@@ -815,3 +815,164 @@ function CircleAdminRightsLive() {
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   ВЫХОД ИЗ ГРУППЫ — кадры «Выход из группы» (алерты публичная/частная · удалить ·
+   «Какие привычки, цели, задачи оставить» · Undo Bar).
+
+   Путь участника: алерт → шторка «что оставить себе» (зеркала привычек круга) →
+   Undo Bar на 6 секунд. Выход НЕ выполняется, пока идёт отсчёт, — «Отменить» просто
+   гасит таймер, и ты остаёшься в группе. Это честная отмена, а не пере-вступление
+   (в частную группу заново не войти — значит, выходить надо лениво).
+   Путь владельца: алерт удаления (текст различает публичную и частную).
+   ═══════════════════════════════════════════════════════════════════════════════════════ */
+function bosUndoBarLive(text, onUndo, onTimeout, ms) {
+  try {
+    var host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:21px;right:21px;bottom:95px;z-index:9000;display:flex;justify-content:center;pointer-events:none;";
+    var isDark = !!document.querySelector(".bos-page.theme-dark");
+    var bar = document.createElement("div");
+    bar.style.cssText = "pointer-events:auto;display:flex;align-items:center;gap:8px;width:100%;max-width:351px;height:44px;" +
+      "border-radius:296px;padding:0 4px 0 14px;box-sizing:border-box;" +
+      "background:" + (isDark ? "rgba(28,28,30,0.92)" : "rgba(255,255,255,0.95)") + ";" +
+      "box-shadow:0 8px 26px rgba(0,0,0,0.28);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);" +
+      "color:" + (isDark ? "#fff" : "#000") + ";font:15px/20px -apple-system,system-ui,sans-serif;" +
+      "transform:translateY(16px);opacity:0;transition:transform .3s cubic-bezier(0.22,0.9,0.3,1),opacity .3s;";
+    var label = document.createElement("span");
+    label.style.cssText = "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+    label.textContent = text;
+    var btn = document.createElement("button");
+    btn.textContent = "Отменить";
+    btn.style.cssText = "flex-shrink:0;height:36px;padding:0 16px;border:0;border-radius:40px;cursor:pointer;" +
+      "background:" + (isDark ? "rgba(118,118,128,0.24)" : "rgba(118,118,128,0.12)") + ";" +
+      "color:inherit;font:590 15px/20px -apple-system,system-ui,sans-serif;";
+    bar.appendChild(label); bar.appendChild(btn); host.appendChild(bar); document.body.appendChild(host);
+    requestAnimationFrame(function () { bar.style.transform = "none"; bar.style.opacity = "1"; });
+    var done = false;
+    var kill = function () {
+      bar.style.transform = "translateY(16px)"; bar.style.opacity = "0";
+      setTimeout(function () { try { host.remove(); } catch (e) {} }, 320);
+    };
+    var timer = setTimeout(function () { if (done) return; done = true; kill(); onTimeout && onTimeout(); }, ms || 6000);
+    btn.onclick = function () {
+      if (done) return; done = true;
+      clearTimeout(timer); kill();
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+      onUndo && onUndo();
+    };
+  } catch (e) { onTimeout && onTimeout(); }
+}
+
+/* Алерт по кадру: заголовок 17/590 по центру, текст 17/400, две кнопки 132×48 r100. */
+function CircleExitAlertLive({ title, message, cancelLabel, confirmLabel, danger, onConfirm }) {
+  const { close } = useSheet();
+  return (
+    <div style={{ padding: "10px 20px 12px", color: "var(--text)", textAlign: "center" }}>
+      <div style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px" }}>{title}</div>
+      <div style={{ fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", marginTop: 12, whiteSpace: "pre-line" }}>{message}</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "center" }}>
+        <button onClick={close} className="tap" style={{ flex: 1, maxWidth: 132, height: 48, borderRadius: 100, border: 0, cursor: "pointer",
+          background: "var(--surface-3)", color: "var(--text)", fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>{cancelLabel || "Отмена"}</button>
+        <button onClick={function () { close(); onConfirm && onConfirm(); }} className="tap"
+          style={{ flex: 1, maxWidth: 132, height: 48, borderRadius: 100, border: 0, cursor: "pointer",
+            background: danger ? "var(--accent-red)" : "var(--cta)", color: danger ? "#fff" : "var(--cta-ink)",
+            fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px" }}>{confirmLabel}</button>
+      </div>
+    </div>
+  );
+}
+
+/* «Какие привычки, цели и задачи оставить»: зеркала привычек этого круга с отметками.
+   Отмеченные остаются личными привычками; снятые удаляются вместе с выходом. */
+function CircleKeepSheetLive({ team, mirrors, onDone }) {
+  const { close } = useSheet();
+  const [keep, setKeep] = React.useState(function () {
+    var o = {}; (mirrors || []).forEach(function (h) { o[h.id] = true; }); return o;
+  });
+  const flip = function (id) {
+    setKeep(function (o) { var n = Object.assign({}, o); n[id] = !n[id]; return n; });
+    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+  };
+  return (
+    <div style={{ padding: "6px 16px 12px", color: "var(--text)" }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center", lineHeight: 1.25 }}>Что оставить себе?</div>
+      <div style={{ fontSize: 13, color: "var(--text-2)", textAlign: "center", marginTop: 4, lineHeight: 1.4 }}>
+        Отмеченное станет твоими личными привычками — с историей отметок. Снятое исчезнет вместе с группой.
+      </div>
+      <div style={{ marginTop: 12, borderRadius: 18, background: "var(--surface-2, var(--surface-3))", overflow: "hidden" }}>
+        {(mirrors || []).map(function (h, i) {
+          const on = !!keep[h.id];
+          return (
+            <button key={h.id} onClick={function () { flip(h.id); }} className="tap" data-no-haptic
+              style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center",
+                gap: 10, padding: "0 14px", minHeight: 52, textAlign: "left", color: "var(--text)",
+                borderTop: i ? "0.5px solid var(--line-2)" : 0 }}>
+              <span style={{ fontSize: 22, width: 30, textAlign: "center", flexShrink: 0 }}>{bosIconOf(h, 22, h.color)}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 17, lineHeight: "22px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
+              <span aria-hidden style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center",
+                background: on ? "var(--accent)" : "transparent", border: on ? 0 : "1.5px solid var(--line)", transition: "background .18s" }}>
+                {on && <I.Check size={14} strokeWidth={3} color="#fff" />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <button onClick={function () { close(); onDone(keep); }} className="tap"
+        style={{ width: "100%", marginTop: 14, height: 50, borderRadius: 999, border: 0, cursor: "pointer",
+          background: "var(--cta)", color: "var(--cta-ink)", fontSize: 17, fontWeight: 590 }}>
+        Выйти из группы
+      </button>
+    </div>
+  );
+}
+
+/* Один вход на весь выход: собирает алерт → (если есть зеркала) шторку выбора → Undo Bar →
+   настоящий bosExitTeam. Вызывается из меню комнаты. */
+function bosExitFlowLive({ app, team, isOwner, navigate, openSheet, returnTo }) {
+  const vis = team && team.vis === "public" ? "public" : "private";
+  const mirrors = ((app && app.habits) || []).filter(function (h) {
+    return h && h.teamHabitId && (h.teamId === team.cloudId || h.teamId === team._id || h.circleId === team.cloudId || !h.teamId);
+  });
+  const finish = function (keepMap) {
+    // Уходим с экрана сразу, выходим — после отсчёта. «Отменить» просто гасит таймер.
+    navigate(returnTo || "community");
+    bosUndoBarLive(
+      isOwner ? ("Группа «" + (team.name || "") + "» удалена") : ("Вы вышли из «" + (team.name || "") + "»"),
+      function () { navigate("team-detail", { team: team, from: returnTo || "community" }); },
+      function () {
+        (async function () {
+          if (keepMap) {
+            mirrors.forEach(function (h) {
+              if (!keepMap[h.id] && app && app.removeHabit) { try { app.removeHabit(h.id); } catch (e) {} }
+            });
+          }
+          try { await bosExitTeam({ app: app, team: team, isOwner: isOwner }); } catch (e) {}
+        })();
+      },
+      6000
+    );
+  };
+  if (isOwner) {
+    openSheet(
+      <CircleExitAlertLive danger
+        title={vis === "public" ? "Удалить публичную группу?" : "Удалить частную группу?"}
+        message={"Группа «" + (team.name || "") + "» и весь общий прогресс исчезнут у всех участников. Это не отменить.\nПеренятые привычки останутся у людей личными."}
+        confirmLabel="Удалить"
+        onConfirm={function () { finish(null); }} />
+    );
+    return;
+  }
+  const tail = "Отметки, серии, перенятые привычки и задачи останутся с вами. Общая цель группы не перенесётся.";
+  openSheet(
+    <CircleExitAlertLive danger
+      title="Вы уверены, что хотите выйти из группы?"
+      message={vis === "private"
+        ? ("Это частная группа. Если вы её покинете, попасть обратно можно будет только по пригласительной ссылке от других участников.\n\n" + tail)
+        : tail}
+      confirmLabel="Выйти"
+      onConfirm={function () {
+        if (mirrors.length) openSheet(<CircleKeepSheetLive team={team} mirrors={mirrors} onDone={finish} />);
+        else finish(null);
+      }} />
+  );
+}

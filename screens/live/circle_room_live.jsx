@@ -1296,8 +1296,12 @@ function TeamDetailLive() {
       onNotify={() => navigate("notifications", { from: "team-detail" })}
       onEdit={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)}
       onReport={() => openSheet(<CircleReportSheetLive team={t} isDark={isDark} />)}
-      onLeave={() => { if (typeof bosConfirmExitTeam === "function") bosConfirmExitTeam(t, navigate, app); }}
-      onDelete={() => { try { window.bosCloud && window.bosCloud.deleteTeam && window.bosCloud.deleteTeam(t.cloudId); } catch (e) {} navigate("community"); }}
+      /* Выход и удаление — единый путь по кадрам макета: алерт (частная/публичная свой
+          текст) → «что оставить себе» → Undo Bar на 6 секунд. Прежний onLeave звал
+          bosConfirmExitTeam с ПОЗИЦИОННЫМИ аргументами при объектной сигнатуре — то есть
+          кнопка «Выйти» была сломана и падала. */
+      onLeave={() => bosExitFlowLive({ app, team: t, isOwner: false, navigate, openSheet, returnTo: "community" })}
+      onDelete={() => bosExitFlowLive({ app, team: t, isOwner: true, navigate, openSheet, returnTo: "community" })}
     />);
   });
   const joinThisCircle = React.useCallback(() => {
