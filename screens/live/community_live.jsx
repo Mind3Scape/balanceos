@@ -5076,7 +5076,7 @@ function CommunityLive() {
   const _grpWord = (n) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "группа" : (a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "группы" : "групп"; };
 
   return (
-    <div className="page-in fig" style={{ padding: "0 12px 24px", background: "var(--bg)", minHeight: "100%" }}>
+    <div className="page-in" style={{ padding: "0 12px 24px" }}>
       {/* ШАПКА ПО МАКЕТУ (кадр «Мои сообщества», Toolbar-Top 71). Было: заголовок и пульс в
           одну строку, кнопок нет вовсе. Стало: заголовок 28/700, под ним живой пульс, справа
           колокольчик и «+» — тот же стеклянный блок, что на Главной, чтобы рука искала их в

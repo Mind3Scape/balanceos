@@ -148,7 +148,7 @@ function ProfileLive() {
     </button>
   );
   return (
-    <div className="page-in fig" style={{ padding: "0 16px 24px", background: "var(--bg)", minHeight: "100%" }}>
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
       {/* ЭКРАН «Я» ПО МАКЕТУ (кадр «Профиль» 1706:20283).
 
           Было: орбита с привычками, строка уровня, достижения и меню настроек списком.

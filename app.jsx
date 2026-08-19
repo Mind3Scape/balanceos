@@ -38,13 +38,22 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
 // Root (html/body) background per screen — matches each screen's own base
 // colour so the home-indicator safe area is never a mismatched dark bar
 // (belt-and-suspenders alongside the full-height, no-fixed layout).
+/* МАРШРУТЫ РЕДИЗАЙНА. Класс .fig вешаем на .bos-page — на саму СТРАНИЦУ, а не на экран
+   внутри неё. Так было нельзя: экран красил только свой прямоугольник, а страница под ним
+   оставалась в старой палитре, и в Телеграме под контентом торчала полоса прежнего фона
+   («бекграунды не дотягиваются до конца», David 19.08). Плюс html/body ниже красим теми же
+   значениями — иначе за нижней кромкой видно чужой цвет. */
+const FIG_ROUTES = new Set(["community", "profile", "team-detail"]);
+
 const ROOT_BG = {
   mood: "#f2f3f6", "ai-chat": "#fafafa",
+  community: "#F2F2F7", profile: "#F2F2F7", "team-detail": "#F2F2F7",
 };
 // В ТЁМНОЙ теме светлые подложки выше НЕЛЬЗЯ применять — html/body/шапка Telegram на миг
 // красились белым при переходе («белое мигание», David). Тёмные аналоги:
 const ROOT_BG_DARK = {
   "ai-chat": "#0f0f12", mood: "#0a0b0e",
+  community: "#000000", profile: "#000000", "team-detail": "#000000",
 };
 
 const SCREENS = {
@@ -217,7 +226,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v874";
+const APP_VERSION = "v875";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -954,6 +963,7 @@ function PhoneApp() {
     const Comp = resolveScreen(frame.route, app.mode);
     const cls =
       "bos-page " + (dark ? "theme-dark" : "theme-light") +
+      (FIG_ROUTES.has(frame.route) ? " fig" : "") +
       (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") +
       (animClass ? " " + animClass : "");
     return (
@@ -974,6 +984,7 @@ function PhoneApp() {
     const Comp = resolveScreen(frame.route, app.mode);
     const cls =
       "bos-page " + (dark ? "theme-dark" : "theme-light") +
+      (FIG_ROUTES.has(frame.route) ? " fig" : "") +
       (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
     return (
       <div key={frame.id} data-fid={frame.id} className={cls} style={style}>

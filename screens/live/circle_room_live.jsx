@@ -99,6 +99,230 @@ function BosRoomH2({ children, extra }) {
   );
 }
 
+/* ЖАЛОБА — два шага из макета (кадры 719:27255 «Жалоба» и 719:29291 «Пожаловаться»).
+   Шаг 1: заголовок 34/700, подпись «Выберите причину», карточка из 11 строк со шевронами.
+   Шаг 2: название причины, блок «Запрещается:» списком, поле «Описание жалобы» с счётчиком
+   «0 из 200» и КРАСНАЯ кнопка «Отправить жалобу».
+
+   Формулировки причин и текст правил взяты из макета ДОСЛОВНО (вычитаны из кадров и узлов).
+   Правила расписаны дизайнерами пока только для первой причины — для остальных блок не
+   показываем, вместо него нельзя писать отсебятину.
+
+   Отправка: пишем в таблицу reports, если она уже заведена; если её нет — жалоба не
+   исчезает молча, человек видит честное «не удалось отправить». Ничего не имитируем. */
+var BOS_REPORT_REASONS = [
+  { id: "hate", t: "Ненависть и преследование", head: "Разжигание ненависти словами или действиями", rules: [
+    "Разжигание ненависти на основе расы, этнической принадлежности или религии.",
+    "Не допускается использование оскорбительных слов и выражений.",
+    "Запрещено подстрекательство к насилию или агрессии.",
+    "Не разрешается распространение ненавистнических материалов или контента.",
+    "Запрещается манипуляция с фактами для разжигания ненависти.",
+  ] },
+  { id: "members", t: "Неподобающее поведение участников" },
+  { id: "virus", t: "Распространение вирусов" },
+  { id: "intimidation", t: "Запугивание пользователей" },
+  { id: "admins", t: "Некорректное поведение администраторов" },
+  { id: "kids", t: "Недопустимое содержание для детей" },
+  { id: "fake", t: "Фальшивые новости" },
+  { id: "violence", t: "Призывы к насилию" },
+  { id: "insult", t: "Оскорбления и ненависть" },
+  { id: "copyright", t: "Нарушение авторских прав" },
+  { id: "spam", t: "Спам" },
+];
+
+function CircleReportSheetLive({ team, isDark }) {
+  const { close } = useSheet();
+  const [reason, setReason] = React.useState(null);
+  const [text, setText] = React.useState("");
+  const [state, setState] = React.useState("idle"); // idle | sending | sent | error
+  const LIMIT = 200;
+
+  const send = async () => {
+    if (state === "sending") return;
+    setState("sending");
+    let ok = false;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sendReport) {
+        ok = await window.bosCloud.sendReport({ kind: "team", targetId: team.cloudId, reason: reason.id, text: text.slice(0, LIMIT) });
+      }
+    } catch (e) { ok = false; }
+    setState(ok ? "sent" : "error");
+    if (window.tgHaptic) { try { window.tgHaptic(ok ? "success" : "error"); } catch (e) {} }
+    if (ok) setTimeout(close, 900);
+  };
+
+  if (!reason) {
+    return (
+      <div style={{ padding: "2px 0 8px" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.8px", color: "var(--text)", padding: "4px 4px 6px" }}>Жалоба</div>
+        <div style={{ fontSize: 17, color: "var(--text-2)", padding: "0 4px 12px" }}>Выберите причину</div>
+        <div style={{ background: "var(--surface-2)", borderRadius: 14, overflow: "hidden" }}>
+          {BOS_REPORT_REASONS.map((r, i) => (
+            <button key={r.id} onClick={() => setReason(r)} className="tap"
+              style={{ width: "100%", border: 0, borderTop: i ? "0.5px solid var(--line-2)" : 0, background: "transparent", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", textAlign: "left", color: "var(--text)", fontSize: 17, lineHeight: 1.25 }}>
+              <span style={{ flex: 1 }}>{r.t}</span>
+              <I.ChevronRight size={17} color="var(--text-3)" style={{ flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "2px 0 8px" }}>
+      <button onClick={() => setReason(null)} className="tap" aria-label="Назад"
+        style={{ width: 36, height: 36, borderRadius: "50%", border: 0, background: "var(--surface-2)", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)", marginBottom: 8 }}>
+        <I.ChevronLeft size={20} strokeWidth={2.4} />
+      </button>
+      <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.8px", color: "var(--text)", padding: "0 4px 10px" }}>Пожаловаться</div>
+      <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", padding: "0 4px 8px", lineHeight: 1.25 }}>{reason.head || reason.t}</div>
+
+      {reason.rules && (
+        <div style={{ padding: "0 4px 14px" }}>
+          <div style={{ fontSize: 17, color: "var(--text-2)", marginBottom: 4 }}>Запрещается:</div>
+          {reason.rules.map((x, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, fontSize: 17, color: "var(--text-2)", lineHeight: 1.32, padding: "1px 0" }}>
+              <span aria-hidden style={{ flexShrink: 0 }}>·</span><span>{x}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ fontSize: 17, fontWeight: 590, color: "var(--text)", padding: "4px 4px 8px" }}>Описание жалобы</div>
+      <textarea value={text} onChange={(e) => setText(e.target.value.slice(0, LIMIT))} rows={5}
+        placeholder="Расскажите о проблеме подробнее"
+        style={{ width: "100%", boxSizing: "border-box", border: 0, outline: "none", resize: "none", borderRadius: 14,
+          background: "var(--surface-2)", color: "var(--text)", fontSize: 17, lineHeight: 1.3, padding: "14px 16px", fontFamily: "inherit" }} />
+      <div style={{ textAlign: "right", fontSize: 15, color: "var(--text-3)", padding: "6px 4px 0" }}>{text.length + " из " + LIMIT}</div>
+
+      {state === "error" && (
+        <div style={{ fontSize: 15, color: "var(--accent-red)", padding: "8px 4px 0", lineHeight: 1.35 }}>
+          Не удалось отправить — приём жалоб на сервере ещё не включён. Ничего не потеряно: попробуй позже.
+        </div>
+      )}
+
+      <button onClick={send} disabled={state === "sending" || state === "sent"} className="tap"
+        style={{ width: "100%", marginTop: 16, height: 50, borderRadius: 999, border: 0, cursor: "pointer",
+          background: "var(--accent-red)", color: "#fff", fontSize: 17, fontWeight: 590, opacity: state === "sending" ? 0.6 : 1 }}>
+        {state === "sent" ? "Жалоба отправлена" : "Отправить жалобу"}
+      </button>
+    </div>
+  );
+}
+
+/* МЕНЮ ГРУППЫ — ШТОРКА СНИЗУ (кадры «Группа Меню»: участник 1291:40957, админ 1319:44403,
+   гость 1291:41167). Раньше «⋯» открывал выпадающий список у кнопки — в макете это шторка
+   с совсем другой раскладкой (David 19.08: «вкладки меню располагаются не так»).
+
+   Анатомия из макета, одинаковая у всех трёх ролей:
+     ряд из ТРЁХ крупных действий — значок сверху, подпись 15 снизу, равные колонки;
+     карточка обычных строк (значок-контур 24, текст 17, шеврон);
+     карточка КРАСНЫХ строк внизу.
+   Различия ролей:
+     участник — [♥ В избранное][🔔 Уведомления][↗ Поделится] · О группе · Пожаловаться + Выйти
+     админ    — те же три · О группе + Редактировать группу · Выйти + Удалить группу
+     гость    — [⊞ Вступить][🔔 приглушено][↗ Поделится] · О группе · Пожаловаться
+
+   «В избранное» — местная пометка (bos:favteam:<id>): поля «избранное» у круга в базе нет,
+   и заводить его ради галочки не стали; пометка живёт на устройстве, как и задумано в макете
+   (это МОЙ список, не общий). */
+function CircleMenuSheetLive({ team, role, isDark, unreadN, onAbout, onShare, onNotify, onEdit, onReport, onLeave, onDelete, onJoin }) {
+  const { close } = useSheet();
+  const favKey = "bos:favteam:" + (team.cloudId || team._id || team.id || "");
+  const [fav, setFav] = React.useState(() => { try { return localStorage.getItem(favKey) === "1"; } catch (e) { return false; } });
+  const toggleFav = () => {
+    const v = !fav; setFav(v);
+    try { v ? localStorage.setItem(favKey, "1") : localStorage.removeItem(favKey); } catch (e) {}
+    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+  };
+  const isGuest = role === "guest", isAdmin = role === "admin";
+  const run = (fn) => () => { close(); if (typeof fn === "function") setTimeout(fn, 60); };
+
+  const CARD = { background: "var(--surface-2)", borderRadius: 14, overflow: "hidden" };
+  const ROW = { width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex",
+    alignItems: "center", gap: 12, padding: "14px 16px", textAlign: "left", fontSize: 17 };
+
+  // Верхний ряд: три равные колонки со значком и подписью.
+  const big = (icon, label, onClick, muted) => (
+    <button onClick={muted ? undefined : onClick} disabled={!!muted} className={muted ? undefined : "tap"}
+      style={{ border: 0, background: "transparent", cursor: muted ? "default" : "pointer", padding: "6px 4px",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+        color: muted ? "var(--text-3)" : "var(--text)", opacity: muted ? 0.5 : 1 }}>
+      {icon}
+      <span style={{ fontSize: 15 }}>{label}</span>
+    </button>
+  );
+
+  return (
+    <div style={{ padding: "2px 0 6px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", padding: "10px 0 18px" }}>
+        {isGuest
+          ? big(<I.PlusCircle size={28} />, "Вступить", run(onJoin))
+          : big(<I.Heart size={28} filled={fav} color={fav ? "var(--accent-red)" : undefined} />, "В избранное", toggleFav)}
+        {big(<I.Bell size={28} />, "Уведомления", run(onNotify), isGuest)}
+        {big(<I.Share size={28} />, "Поделится", run(onShare))}
+      </div>
+
+      <div style={CARD}>
+        <button onClick={run(onAbout)} className="tap" style={{ ...ROW, color: "var(--text)" }}>
+          <I.Info size={24} /><span style={{ flex: 1 }}>О группе</span>
+          <I.ChevronRight size={17} color="var(--text-3)" />
+        </button>
+        {isAdmin && (
+          <button onClick={run(onEdit)} className="tap" style={{ ...ROW, color: "var(--text)", borderTop: "0.5px solid var(--line-2)" }}>
+            <I.Pencil size={24} strokeWidth={1.7} /><span style={{ flex: 1 }}>Редактировать группу</span>
+            <I.ChevronRight size={17} color="var(--text-3)" />
+          </button>
+        )}
+      </div>
+
+      <div style={{ ...CARD, marginTop: 12 }}>
+        {!isAdmin && (
+          <button onClick={run(onReport)} className="tap" style={{ ...ROW, color: "var(--accent-red)" }}>
+            <I.Warning size={24} /><span style={{ flex: 1 }}>Пожаловаться</span>
+          </button>
+        )}
+        {!isGuest && (
+          <button onClick={run(onLeave)} className="tap" style={{ ...ROW, color: "var(--accent-red)", borderTop: !isAdmin ? "0.5px solid var(--line-2)" : 0 }}>
+            <I.UserMinus size={24} /><span style={{ flex: 1 }}>Выйти из группы</span>
+          </button>
+        )}
+        {isAdmin && (
+          <button onClick={run(onDelete)} className="tap" style={{ ...ROW, color: "var(--accent-red)", borderTop: "0.5px solid var(--line-2)" }}>
+            <I.Trash size={24} strokeWidth={1.7} /><span style={{ flex: 1 }}>Удалить группу</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* «О группе» — отдельная шторка из макета: описание, место и состав. Показываем только то,
+   что у группы правда заполнено. */
+function CircleAboutSheetLive({ team, membersN, ageDays, isDark }) {
+  const rows = [];
+  if (team.desc) rows.push(["Описание", team.desc]);
+  if (team.city) rows.push(["Место", team.city]);
+  rows.push(["Вид", team.vis === "public" ? "Публичная группа" : "Частная группа"]);
+  if (membersN) rows.push(["Участников", String(membersN)]);
+  if (ageDays) rows.push(["Вместе", ageDays + " дн."]);
+  return (
+    <div style={{ padding: "4px 0 8px" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", padding: "6px 4px 14px" }}>О группе</div>
+      <div style={{ background: "var(--surface-2)", borderRadius: 14, overflow: "hidden" }}>
+        {rows.map(([k, v], i) => (
+          <div key={k} style={{ display: "flex", gap: 14, padding: "13px 16px", borderTop: i ? "0.5px solid var(--line-2)" : 0 }}>
+            <span style={{ fontSize: 17, color: "var(--text-2)", flexShrink: 0 }}>{k}</span>
+            <span style={{ fontSize: 17, color: "var(--text)", flex: 1, textAlign: "right", lineHeight: 1.3 }}>{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* НЕДЕЛЯ ОДНОЙ ПРИВЫЧКИ — нижняя половина «Group Habit Card» (361×140) из макета.
    Семь кружков календарной недели ВС..СБ; в каждом — число и дуга «сколько круга закрыло
    этот день». Цвета ровно те, что подписаны легендой в макете:
@@ -165,7 +389,7 @@ function CircleHabitWeekLive({ habit, rangeRows, membersN, isDark }) {
 
    Кружок = отметить; тело строки = аккордеон статистики (onOpen). Шеврона нет намеренно
    (David: рука и так тянется тапнуть) — строка раскрывается сама. */
-function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub, subGold, on, onToggle, onOpen, isDark, first, inert, struck }) {
+function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub, subGold, on, onToggle, onOpen, isDark, first, inert, struck, adopt, onAdopt }) {
   // Вторая подпись: сначала честный счёт по кругу, если он есть; иначе — то, что передали.
   const countLine = (totalN > 0) ? (doneN + " из " + totalN + " выполнили") : (sub || null);
   const metaLine = [tag, time].filter(Boolean).join(" \u00b7 ");
@@ -185,7 +409,14 @@ function CircleDayRowLive({ icon, iconColor, name, tag, time, doneN, totalN, sub
           {countLine ? <div style={{ fontSize: 15, lineHeight: "20px", color: subGold ? BOS_ROOM_GOLD_INK : "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{countLine}</div> : null}
         </div>
       </div>
-      {inert
+      {/* Гостю — «взять себе» (галочка с плюсом), как в кадре «Гость»: он не отмечает чужой
+          день, он забирает привычку в свой. inert — когда действий нет вовсе (нет облака). */}
+      {adopt
+        ? <button onClick={onAdopt} className="tap" data-haptic="selection" aria-label={"Взять «" + name + "» себе"}
+            style={{ width: 42, height: 42, margin: "-9px -9px -9px 0", borderRadius: "50%", flexShrink: 0, border: 0, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text-2)", padding: 0 }}>
+            <I.PlusCircle size={24} />
+          </button>
+        : inert
         ? <span aria-hidden style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.18)" : "rgba(10,10,10,0.12)") }} />
         : <BosFlatCheckLive on={on} isDark={isDark} onToggle={onToggle} label={"Отметить «" + name + "»"} />}
     </div>
@@ -398,6 +629,13 @@ function TeamDetailLive() {
   const rosterById = {}; members.forEach((m) => { rosterById[m.id] = m; });
   const _meMember = (meId && Array.isArray(cloudRoster)) ? cloudRoster.find((m) => m.id === meId) : null;
   const _isOwner = _meMember ? (_meMember.role === "owner") : !t.joined;
+  // ТРИ РОЛИ ИЗ МАКЕТА: «Админ» (владелец), «Участник» (в составе), «Гость» (ещё не вступил).
+  // Раньше экран знал только _isOwner, и гость видел ровно то же, что участник, — включая
+  // кружки отметки, которых у него быть не может. Гостем считаем ТОЛЬКО в живом режиме:
+  // без облака состава нет, и локальный круг всегда «мой».
+  const _amMember = !!_meMember || t.joined === true;
+  const _role = _isOwner ? "admin" : (_amMember || !_live ? "member" : "guest");
+  const _isGuest = _role === "guest";
 
   // Заявки — владелец принимает прямо здесь (не терять людей у двери).
   const [pending, setPending] = React.useState([]);
@@ -1046,6 +1284,33 @@ function TeamDetailLive() {
   // остаётся универсальным. dayList = строки активной вкладки.
   const [listTab, setListTab] = React.useState("habits");
   const [descOpen, setDescOpen] = React.useState(false);
+  // ВСТУПЛЕНИЕ ГОСТЯ. Тот же путь, что в каталоге (requestJoin): закрытая группа отвечает
+  // {pending:true} → кнопка становится «Заявка отправлена» (кадр «Заявка отправленна»),
+  // открытая пускает сразу → перезагружаем комнату уже участником.
+  const [joinState, setJoinState] = React.useState("idle"); // idle | sending | pending
+  const openRoomMenu = React.useCallback(() => {
+    openSheet(<CircleMenuSheetLive team={t} role={_role} isDark={isDark} unreadN={unreadN}
+      onJoin={joinThisCircle}
+      onAbout={() => openSheet(<CircleAboutSheetLive team={t} membersN={membersN} ageDays={ageDays} isDark={isDark} />)}
+      onShare={() => openSheet(<TeamShareSheetLive team={t} />)}
+      onNotify={() => navigate("notifications", { from: "team-detail" })}
+      onEdit={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)}
+      onReport={() => openSheet(<CircleReportSheetLive team={t} isDark={isDark} />)}
+      onLeave={() => { if (typeof bosConfirmExitTeam === "function") bosConfirmExitTeam(t, navigate, app); }}
+      onDelete={() => { try { window.bosCloud && window.bosCloud.deleteTeam && window.bosCloud.deleteTeam(t.cloudId); } catch (e) {} navigate("community"); }}
+    />);
+  });
+  const joinThisCircle = React.useCallback(() => {
+    if (!t.cloudId || joinState === "sending" || joinState === "pending") return;
+    setJoinState("sending");
+    try {
+      window.bosCloud.requestJoin(t.cloudId).then((res) => {
+        if (!res) { setJoinState("idle"); return; }
+        if (res.pending) { setJoinState("pending"); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } return; }
+        navigate("team-detail", { team: { ...t, joined: true }, from: from });
+      }).catch(() => setJoinState("idle"));
+    } catch (e) { setJoinState("idle"); }
+  }, [t.cloudId, joinState, from]);
   const [goalFilter, setGoalFilter] = React.useState("all");   // Все · Для каждого · Общие
   const [strategyOpen, setStrategyOpen] = React.useState(false);
   // РЕДИЗАЙН (Figma 19.08): «Привычки» и «Задачи» поднялись из подвкладок в ВЕРХНИЕ сегменты,
@@ -1069,7 +1334,9 @@ function TeamDetailLive() {
     const done = myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const opened = openHabit === h.id;
-    const _bucket = (roomTab === "habits") ? dayList : (done ? doneList : dayList);
+    // Гость ничего не отмечает — у него в макете вместо кружка «взять себе». Значит и
+    // делить список на «сделано / не сделано» ему незачем: всё идёт одним списком.
+    const _bucket = (_isGuest || roomTab === "habits") ? dayList : (done ? doneList : dayList);
     const _at = done ? myMarkAt(h.id) : null;
     // Подпись строки. На «Привычках» макет показывает РАСПИСАНИЕ («Ежедневно · 18:00»,
     // «Пн-Ср-Пт»), на «Сегодня» — просто «Привычка». Расписание собираем из маски дней.
@@ -1084,6 +1351,7 @@ function TeamDetailLive() {
         tag={roomTab === "habits" ? _tagHabits : (done ? ("Выполнено" + (_at ? " в " + bosRoomHHMM(_pt(_at)) : "")) : "Привычка")}
         doneN={facesH.length} totalN={membersN}
         on={done} inert={!_live}
+        adopt={_isGuest} onAdopt={joinThisCircle}
         onToggle={() => (adoptedFor(h) ? markAdopted(h) : toggleMyTeamHabit(h))}
         onOpen={() => setOpenHabit(opened ? null : h.id)} />
     );
@@ -1156,7 +1424,7 @@ function TeamDetailLive() {
   });
 
   return (
-    <div className="page-in fig" style={{ padding: "0 16px 24px", background: "var(--bg)", minHeight: "100%" }}>
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
       {/* ШАПКА-ГЕРОЙ (редизайн Figma 19.08, кадр «Группа / Участник»). Была пилюля 44px с
           именем внутри; в макете шапка — блок 476px: цветная подложка с затуханием, аватар 96,
           имя по центру, ряд стеклянных кнопок и описание. Смысл сдвига: комната перестаёт
@@ -1180,14 +1448,17 @@ function TeamDetailLive() {
             </button>
           ) : <span />}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {_isOwner && _live && (
-              <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap" aria-label="Хозяйство круга" title="Хозяйство круга"
+            {/* КАРАНДАШ — только у админа (кадр «Админ»): у участника и гостя его в макете нет.
+                Прежний компас «Хозяйство круга» переехал в меню «⋯» — в макете этой кнопки
+                на экране нет вовсе, а маршрут терять нельзя. */}
+            {_role === "admin" && _live && (
+              <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" aria-label="Редактировать группу"
                 style={{ ...glass, position: "relative", width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
-                <I.Compass size={17} strokeWidth={2} />
+                <I.Pencil size={16} strokeWidth={2} />
                 {redCount > 0 && <span style={{ position: "absolute", top: -3, right: -3, minWidth: 16, height: 16, borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px" }}>{redCount}</span>}
               </button>
             )}
-            <button ref={moreRef} onClick={() => setMenuOpen(true)} className="tap" aria-label="Ещё" aria-haspopup="menu" aria-expanded={menuOpen}
+            <button ref={moreRef} onClick={openRoomMenu} className="tap" aria-label="Ещё" aria-haspopup="dialog"
               style={{ ...glass, width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
             </button>
@@ -1218,36 +1489,60 @@ function TeamDetailLive() {
           )}
           <div style={{ textAlign: "center", maxWidth: 320, marginTop: 6 }}>
             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", lineHeight: 1.25 }}>{t.name}</div>
-            <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", marginTop: 2 }}>{subParts.join(" \u00b7 ")}</div>
+            {/* ПОДПИСЬ по роли: у админа в макете стоит вид группы («Публичная группа»),
+                у участника и гостя — «15 участников · 89 дней вместе». */}
+            <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)", marginTop: 2 }}>
+              {_role === "admin" ? (t.vis === "public" ? "Публичная группа" : "Частная группа") : subParts.join(" \u00b7 ")}
+            </div>
           </div>
         </div>
 
-        {/* Ряд кнопок: «Чат» 160×50 + два кружка 50×50, зазор 10 — размеры из макета. */}
+        {/* РЯД КНОПОК ПО РОЛИ (размеры из макета: широкая 50 в высоту, кружки 50×50, зазор 10).
+              гость    → «+ Вступить» БЕЛОЙ первичной + кружки [чат][календарь];
+              участник → «Чат» текстом + кружки [добавить][календарь];
+              админ    → «+ Создать» + кружки [чат][календарь].
+            Разные роли — разное первое действие, и в макете это видно с первого взгляда. */}
         <div style={{ position: "relative", display: "flex", justifyContent: "center", gap: 10, paddingBottom: 24 }}>
-          <button onClick={() => setRoomTab("chat")} className="tap" data-haptic="selection"
-            style={{ ...glass, position: "relative", width: 160, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 590, cursor: "pointer" }}>
-            <I.MessageCircle size={20} strokeWidth={2} />Чат
-            {unreadN > 0 && (
-              <span style={{ position: "absolute", top: 4, right: 10, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
-            )}
-          </button>
-          {/* В макете вторая кнопка — «добавить» (список с плюсом), не «люди». Люди уехали
-              в меню «⋯». Точной иконки «список с плюсом» в нашем наборе Phosphor нет —
-              рисовать её руками нельзя (правило David), поэтому пока чистый плюс; добавить
-              ListPlus в набор можно отдельно, генератором. Не владельцу кнопка не нужна —
-              добавлять в круг может только ведущий, показываем ему «Люди». */}
-          {_isOwner ? (
+          {_isGuest ? (
+            <button onClick={joinThisCircle} disabled={joinState === "sending" || joinState === "pending"} className="tap" data-haptic="selection"
+              style={{ width: 230, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                background: joinState === "pending" ? "var(--surface-3)" : "var(--cta)",
+                color: joinState === "pending" ? "var(--text-2)" : "var(--cta-ink)",
+                fontSize: 17, fontWeight: 590, cursor: joinState === "pending" ? "default" : "pointer", opacity: joinState === "sending" ? 0.6 : 1 }}>
+              {joinState === "pending" ? "Заявка отправлена" : (<React.Fragment><I.Plus size={20} strokeWidth={2.4} />Вступить</React.Fragment>)}
+            </button>
+          ) : _role === "admin" ? (
+            <button onClick={() => openSheet(<CircleAddSheetLive isDark={isDark} onHabit={openAddHabit} onTask={() => openSheet(<CircleTaskComposeSheetLive isDark={isDark} onAdd={addTeamTaskCloud} />)} />)}
+              className="tap" data-haptic="selection"
+              style={{ ...glass, width: 200, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 590, cursor: "pointer" }}>
+              <I.Plus size={20} strokeWidth={2.4} />Создать
+            </button>
+          ) : (
+            <button onClick={() => setRoomTab("chat")} className="tap" data-haptic="selection"
+              style={{ ...glass, position: "relative", width: 160, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 590, cursor: "pointer" }}>
+              <I.MessageCircle size={20} strokeWidth={2} />Чат
+              {unreadN > 0 && (
+                <span style={{ position: "absolute", top: 4, right: 10, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
+              )}
+            </button>
+          )}
+
+          {/* Второй кружок: участнику — «добавить», гостю и админу — «чат» (у админа своя
+              широкая «Создать», у гостя добавлять нечего). */}
+          {_role === "member" ? (
             <button onClick={() => openSheet(<CircleAddSheetLive isDark={isDark} onHabit={openAddHabit} onTask={() => openSheet(<CircleTaskComposeSheetLive isDark={isDark} onAdd={addTeamTaskCloud} />)} />)}
               className="tap" data-haptic="selection" aria-label="Добавить привычку или дело"
               style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
               <I.Plus size={22} strokeWidth={2.2} />
             </button>
           ) : (
-            <button onClick={() => setRoomTab("people")} className="tap" data-haptic="selection" aria-label="Люди круга"
-              style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
-              <I.Users size={20} strokeWidth={2} />
+            <button onClick={() => setRoomTab("chat")} className="tap" data-haptic="selection" aria-label="Чат группы"
+              style={{ ...glass, position: "relative", width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <I.MessageCircle size={20} strokeWidth={2} />
+              {unreadN > 0 && <span style={{ position: "absolute", top: -2, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>}
             </button>
           )}
+
           <button onClick={() => { setRoomTab("path"); setPathSeen(true); }} className="tap" data-haptic="selection" aria-label="Путь круга"
             style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
             <I.Calendar size={20} strokeWidth={2} />
@@ -1265,6 +1560,27 @@ function TeamDetailLive() {
           </div>
         )}
       </div>
+
+      {/* КАРТОЧКА СОСТАВА — только у админа (кадр «Админ»): две строки со счётом и стрелкой.
+          Числа настоящие: участники из состава, администраторы — те, у кого роль owner/admin. */}
+      {_role === "admin" && (
+        <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden", marginTop: 4 }}>
+          <button onClick={() => setRoomTab("people")} className="tap"
+            style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", color: "var(--text)" }}>
+            <I.Users size={22} strokeWidth={1.9} />
+            <span style={{ flex: 1, textAlign: "left", fontSize: 17 }}>Участники</span>
+            <span style={{ fontSize: 17, color: "var(--text-2)" }}>{membersN}</span>
+            <I.ChevronRight size={17} color="var(--text-3)" />
+          </button>
+          <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap"
+            style={{ width: "100%", border: 0, borderTop: "0.5px solid var(--line-2)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", color: "var(--text)" }}>
+            <I.Star size={22} strokeWidth={1.9} />
+            <span style={{ flex: 1, textAlign: "left", fontSize: 17 }}>Администраторы</span>
+            <span style={{ fontSize: 17, color: "var(--text-2)" }}>{members.filter((m) => m.role === "owner" || m.role === "admin").length || 1}</span>
+            <I.ChevronRight size={17} color="var(--text-3)" />
+          </button>
+        </div>
+      )}
 
       {/* СЕГМЕНТЫ ПО МАКЕТУ: Сегодня · Привычки · Задачи · Цели. Чат, Путь и Люди ушли в
           кнопки шапки — сегментов снова четыре, но теперь они про СОДЕРЖИМОЕ круга, а не про
@@ -1286,16 +1602,8 @@ function TeamDetailLive() {
         })}
       </div>
 
-      {/* «Редактировать» — ПЕРВЫМ и для владельца ЛЮБОГО круга (David 2026-07-17: «исчезло
-          редактирование целей»): та же форма __isTeam, что в кабинете (save=updateTeam). */}
-      <CircleRoomMenuLive open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={moreRef} isDark={isDark} items={[
-        _isOwner ? { icon: <I.Pencil size={17} strokeWidth={1.9} />, label: "Редактировать", go: () => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />) } : null,
-        { icon: <I.Users size={18} strokeWidth={1.9} />, label: "Люди круга", go: () => setRoomTab("people") },
-        { icon: <I.Share size={18} strokeWidth={1.9} />, label: "Позвать в круг", go: () => openSheet(<TeamShareSheetLive team={t} />) },
-        circleLvl ? { icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="8.4" strokeDasharray="39 14" transform="rotate(-90 12 12)" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /></svg>
-        ), label: "Уровень круга — " + circleLvl.level, go: openLevelSheet } : null,
-      ].filter(Boolean)} />
+      {/* Выпадающее меню у кнопки УБРАНО: в макете это шторка снизу (CircleMenuSheetLive),
+          она открывается прямо из обработчика «⋯». */}
 
       {(roomTab === "day" || roomTab === "habits" || roomTab === "tasks") && (<React.Fragment>
       {/* ДЕНЬ (v5, кадр 05): здесь остаётся ТОЛЬКО сегодняшнее действие. Уровень, счёт и

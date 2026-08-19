@@ -1273,3 +1273,14 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .fig .glass, .fig .glass-sm { background: var(--surface); }
 }
+
+/* СТРАНИЦА РЕДИЗАЙНА заполняет высоту и красит себя сама. Без этого в Телеграме под
+   коротким экраном оставалась полоса прежнего фона: экран красил свой прямоугольник,
+   а страница под ним — нет (David 19.08: «бекграунды не дотягиваются до конца»).
+   `min-height:100%` вместо `100vh`: в Телеграме vh считается по ПОЛНОМУ окну, а не по
+   видимой части, и низ уезжал под системную панель. */
+.bos-page.fig {
+  background: var(--bg);
+  min-height: 100%;
+}
+.bos-page.fig > .page-in { min-height: 100%; }
