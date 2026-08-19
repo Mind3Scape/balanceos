@@ -38,6 +38,19 @@ const FIG_SHOWCASE_PLACES = [
     rate: 4.9, reviews: 31, priceXP: 3200, cta: "Открыто", showcase: true,
     about: "Классическое парение в три захода с травяными вениками и чаем между заходами.",
     cover: ["#F4A574", "#E8C868"], coverEmoji: "🔥", photos: [] },
+  /* Три места ниже — с фотографиями ИЗ МАКЕТА (image fills кадров «Места и события»). */
+  { id: "sc-retro", title: "Ретро-музей: экскурсия по коллекции с гидом", city: "Москва",
+    rate: 5.0, reviews: 8, priceXP: 1500, cta: "Открыто", showcase: true,
+    about: "Час среди машин и вещей прошлого века. Гид рассказывает истории владельцев — можно трогать и фотографировать.",
+    cover: ["#C7B299", "#8FA3B8"], coverEmoji: "🚗", photos: ["img/fig/retro.jpg"] },
+  { id: "sc-paint", title: "Живопись маслом: вечерний класс для начинающих", city: "Москва",
+    rate: 4.9, reviews: 17, priceXP: 2000, cta: "Открыто", showcase: true,
+    about: "Три часа за мольбертом с преподавателем. Холст, краски и фартук дают на месте — уходишь со своей картиной.",
+    cover: ["#E8A8C9", "#F2D57F"], coverEmoji: "🎨", photos: ["img/fig/paint.jpg"] },
+  { id: "sc-cook", title: "Кулинарный мастер-класс: ужин своими руками", city: "Москва",
+    rate: 5.0, reviews: 23, priceXP: 2800, oldXP: 3500, cta: "Открыто", showcase: true,
+    about: "Готовим три блюда под руководством шефа и садимся за общий стол. Продукты и фартуки включены.",
+    cover: ["#F4C874", "#E88A68"], coverEmoji: "🍳", photos: ["img/fig/cook1.jpg", "img/fig/cook2.jpg"] },
 ];
 const FIG_SHOWCASE_COURSES = [
   { id: "sc-tech", title: "Постановка техники, работа с опытным тренером", emoji: "🏋️",
