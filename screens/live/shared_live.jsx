@@ -8163,7 +8163,7 @@ function InviteFriendsCardLive({ isDark }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>Позови своих</span>
-            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#B4820A", background: "rgba(240,195,10,0.14)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
+            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "var(--xp-ink)", background: "var(--xp-bg)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
           </div>
           <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35 }}>Пригласи друзей прямо из Telegram — и они появятся в «Твои люди».</div>
         </div>

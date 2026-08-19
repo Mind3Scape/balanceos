@@ -34,6 +34,12 @@
   --d-text: #e9e9e9;
   --d-text-2: #9f9fa9;
 
+  /* Значок XP («+150 XP»). Был прибит золотом прямо в компоненте — из-за этого на экранах
+     редизайна оставалось пятно старой палитры. Вынесен в токены: снаружи .fig золото как
+     было, внутри .fig — зелёный, который в макете и стал валютой. */
+  --xp-ink: #B4820A;
+  --xp-bg: rgba(240,195,10,0.14);
+
   /* accents (lifted from screens) */
   --accent-yellow: #FEDE34;
   --accent-orange: #EF9F14;
@@ -1195,6 +1201,8 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   --accent-blue-2: #0091FF;
   --accent-teal: #1CDDBD;
   --accent-yellow: #FFB366;   /* золота в макете нет — старые ссылки уводим в оранжевый */
+  --xp-ink: #0EBE65;
+  --xp-bg: rgba(14,190,101,0.12);
 
   /* ── стекло ──
      В Figma это BACKGROUND_BLUR радиусом 100 (крупный хром: док, шапка) и 10
