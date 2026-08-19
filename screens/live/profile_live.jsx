@@ -347,6 +347,8 @@ function ProfileLive() {
       {/* Меню «⋯» — сюда переехало всё, чего в макете на экране нет. */}
       {typeof CircleRoomMenuLive === "function" && (
         <CircleRoomMenuLive open={profMenu} onClose={() => setProfMenu(false)} anchorRef={profMoreRef} isDark={isDark} items={[
+          /* «Поделиться» из кадра «Меню» профиля — та же личная ссылка-приглашение. */
+          { icon: <I.Share size={17} strokeWidth={1.9} />, label: "Поделиться профилем", go: () => { try { typeof ShareAppSheetLive === "function" && openSheet(<ShareAppSheetLive dark={isDark} />); } catch (e) {} } },
           { icon: <I.Sparkles size={17} strokeWidth={1.9} />, label: "Уровень " + lvlNum, go: () => navigate("levels", { from: "profile" }) },
           { icon: <I.Trophy size={17} strokeWidth={1.9} />, label: "Достижения — " + _achEarnedN + " из " + _achTotal, go: () => navigate("achievements", { from: "profile" }) },
           { icon: <I.Galaxy size={17} strokeWidth={1.9} />, label: "Вселенная", go: openUniverse },

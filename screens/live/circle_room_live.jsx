@@ -130,7 +130,8 @@ var BOS_REPORT_REASONS = [
   { id: "spam", t: "Спам" },
 ];
 
-function CircleReportSheetLive({ team, isDark }) {
+/* kind/targetId позволяют жаловаться не только на группу: person-profile шлёт kind:"user". */
+function CircleReportSheetLive({ team, isDark, kind, targetId }) {
   const { close } = useSheet();
   const [reason, setReason] = React.useState(null);
   const [text, setText] = React.useState("");
@@ -143,7 +144,7 @@ function CircleReportSheetLive({ team, isDark }) {
     let ok = false;
     try {
       if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sendReport) {
-        ok = await window.bosCloud.sendReport({ kind: "team", targetId: team.cloudId, reason: reason.id, text: text.slice(0, LIMIT) });
+        ok = await window.bosCloud.sendReport({ kind: kind || "team", targetId: targetId || (team && team.cloudId), reason: reason.id, text: text.slice(0, LIMIT) });
       }
     } catch (e) { ok = false; }
     setState(ok ? "sent" : "error");

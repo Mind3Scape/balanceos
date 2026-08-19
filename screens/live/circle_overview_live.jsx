@@ -1011,6 +1011,7 @@ function PersonProfileLive() {
   const [offers, setOffers] = React.useState(null);
   const [common, setCommon] = React.useState([]);
   const _live = !!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled());
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: null };
 
   React.useEffect(function () {
     var on = true, C = window.bosCloud;
@@ -1075,7 +1076,11 @@ function PersonProfileLive() {
         </button>
         <span style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px", color: "var(--text)",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"@" + (name || "").toLowerCase().replace(/\s+/g, "_")}</span>
-        <span style={{ width: 44, flexShrink: 0 }} />
+        <button onClick={function () { if (openSheet) openSheet(<PersonMenuSheetLive person={p} name={name} onBlocked={back} />); }}
+          className="tap" aria-label="Ещё"
+          style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)", flexShrink: 0 }}>
+          <I.More size={20} strokeWidth={2.2} />
+        </button>
       </div>
 
       {/* Аватар в кольце уровня + имя. */}
@@ -1241,6 +1246,61 @@ function CircleNotifySheetLive({ team }) {
       </div>
       <button onClick={close} className="tap" style={{ width: "100%", marginTop: 14, height: 50, borderRadius: 999, border: 0,
         cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)", fontSize: 17, fontWeight: 590 }}>Готово</button>
+    </div>
+  );
+}
+
+/* «⋯» профиля человека — кадр «Меню»: Пожаловаться · Заблокировать (алерт как в кадре).
+   Блок — локальный список bos:block: человек исчезает из «Людей» и лент. Серверный бан
+   появится с таблицей blocks в бэкенде. */
+function bosBlockedSet() {
+  try { return new Set(JSON.parse(localStorage.getItem("bos:block") || "[]")); } catch (e) { return new Set(); }
+}
+function PersonMenuSheetLive({ person, name, onBlocked }) {
+  const { open: openSheet, close } = useSheet();
+  const pid = person.user_id || person.id;
+  const blocked = bosBlockedSet().has(pid);
+  const doBlock = function () {
+    openSheet(
+      <CircleExitAlertLive danger
+        title={blocked ? "Разблокировать?" : "Заблокировать " + (name || "участника") + "?"}
+        message={blocked
+          ? "Человек снова появится в «Людях» и лентах."
+          : "Вы перестанете видеть " + (name || "этого человека") + " в «Людях» и лентах. Отменить можно здесь же."}
+        confirmLabel={blocked ? "Разблокировать" : "Заблокировать"}
+        onConfirm={function () {
+          try {
+            var arr = JSON.parse(localStorage.getItem("bos:block") || "[]");
+            var i = arr.indexOf(pid);
+            if (i >= 0) arr.splice(i, 1); else arr.push(pid);
+            localStorage.setItem("bos:block", JSON.stringify(arr));
+          } catch (e) {}
+          if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+          if (!blocked && onBlocked) onBlocked();
+        }} />
+    );
+  };
+  const Row = function (p) {
+    return (
+      <button onClick={p.go} className="tap" style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 12, padding: "0 14px", minHeight: 52, textAlign: "left",
+        color: p.red ? "var(--accent-red)" : "var(--text)", borderTop: p.first ? 0 : "0.5px solid var(--line-2)" }}>
+        <span style={{ width: 26, display: "grid", placeItems: "center" }}>{p.icon}</span>
+        <span style={{ flex: 1, fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px" }}>{p.label}</span>
+      </button>
+    );
+  };
+  return (
+    <div style={{ padding: "6px 16px 12px", color: "var(--text)" }}>
+      <div style={{ borderRadius: 18, background: "var(--surface-2, var(--surface-3))", overflow: "hidden" }}>
+        {typeof CircleReportSheetLive === "function" && (
+          <Row first red icon={<I.Warning size={19} />} label="Пожаловаться"
+            go={function () { openSheet(<CircleReportSheetLive kind="user" targetId={pid} />); }} />
+        )}
+        <Row red icon={<I.Ban size={19} strokeWidth={2} />} label={blocked ? "Разблокировать" : "Заблокировать"} go={doBlock} />
+      </div>
+      <button onClick={close} className="tap" style={{ width: "100%", marginTop: 12, height: 50, borderRadius: 999, border: 0,
+        cursor: "pointer", background: "var(--surface-3)", color: "var(--text)", fontSize: 17, fontWeight: 590 }}>Закрыть</button>
     </div>
   );
 }

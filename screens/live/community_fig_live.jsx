@@ -108,12 +108,14 @@ function useFigPeople(app) {
     if (!(C && C.enabled && C.enabled() && C.teamMembers) || !sig) { setPeople([]); return; }
     (async function () {
       var myId = null; try { myId = await C.uid(); } catch (e) {}
+      // Заблокированные (bos:block) не появляются в «Людях» — обещание кнопки «Заблокировать».
+      var blocked = (typeof bosBlockedSet === "function") ? bosBlockedSet() : new Set();
       var seen = {}, out = [];
       for (var i = 0; i < teams.length; i++) {
         try {
           var mem = await C.teamMembers(teams[i].cloudId);
           (mem || []).forEach(function (m) {
-            if (!m || !m.id || m.id === myId) return;
+            if (!m || !m.id || m.id === myId || blocked.has(m.id)) return;
             if (seen[m.id]) { seen[m.id].teams.push(teams[i]); return; }
             var row = { id: m.id, name: m.name || "Участник", avatar: m.avatar, teams: [teams[i]], level: null, lvlPct: 0 };
             seen[m.id] = row; out.push(row);
