@@ -1046,6 +1046,8 @@ function TeamDetailLive() {
   // остаётся универсальным. dayList = строки активной вкладки.
   const [listTab, setListTab] = React.useState("habits");
   const [descOpen, setDescOpen] = React.useState(false);
+  const [goalFilter, setGoalFilter] = React.useState("all");   // Все · Для каждого · Общие
+  const [strategyOpen, setStrategyOpen] = React.useState(false);
   // РЕДИЗАЙН (Figma 19.08): «Привычки» и «Задачи» поднялись из подвкладок в ВЕРХНИЕ сегменты,
   // а «Сегодня» показывает и то и другое одним списком — в макете внутри одной таблицы стоят
   // и Group Task Today Row, и Group Habit Today Row. listTab оставлен: по нему всё ещё
@@ -1104,6 +1106,19 @@ function TeamDetailLive() {
       </div>
     );
   });
+  const taskGroups = [];      // [{key, label, rows: []}] — только для вкладки «Задачи»
+  const _taskGroupOf = (tk) => {
+    const at = tk.createdAt || tk.created_at;
+    const d = at ? (typeof bosParseTs === "function" ? bosParseTs(at) : new Date(at)) : new Date();
+    d.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff = Math.round((today - d) / 86400000);
+    const key = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+    const MON = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+    const label = diff === 0 ? "Сегодня" : diff === 1 ? "Вчера"
+      : (d.getDate() + " " + MON[d.getMonth()] + ". " + d.getFullYear());
+    return { key: key, label: label, ord: d.getTime() };
+  };
   if (_showTasks) _teamTasks.forEach((tk, i) => {
     const facesT = (Array.isArray(tk.doneUsers) ? tk.doneUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const _tDone = !!tk.doneByMe;
@@ -1116,6 +1131,24 @@ function TeamDetailLive() {
         on={_tDone} inert={!_live}
         onToggle={() => toggleMyTeamTask(tk)} />
     );
+    // На вкладке «Задачи» строка едет в группу своей даты, а не в общий список.
+    if (roomTab === "tasks") {
+      const g = _taskGroupOf(tk);
+      let grp = taskGroups.find((x) => x.key === g.key);
+      if (!grp) { grp = { key: g.key, label: g.label, ord: g.ord, rows: [] }; taskGroups.push(grp); }
+      const _row = (
+        <CircleDayRowLive first={grp.rows.length === 0} isDark={isDark}
+          icon={<I.Flag size={24} strokeWidth={2} color="var(--text-2)" />} name={tk.text}
+          struck={_tDone} tag={_tDone ? "Выполнено" : null}
+          doneN={facesT.length} totalN={membersN}
+          on={_tDone} inert={!_live}
+          onToggle={() => toggleMyTeamTask(tk)} />
+      );
+      grp.rows.push(_isOwner
+        ? <SwipeRow key={"t" + tk.id} rowBg="var(--card)" dark={isDark} actionWidth={54} actionSize={32} actions={_taskSwipe(tk)}>{_row}</SwipeRow>
+        : <div key={"t" + tk.id}>{_row}</div>);
+      return;
+    }
     // Свайп влево (владелец) → «Удалить» (David: «фото завтрака не удалить»); метки «дело» нет — вкладка сама говорит.
     _tBucket.push(_isOwner
       ? <SwipeRow key={"t" + tk.id} rowBg="var(--card)" dark={isDark} actionWidth={54} actionSize={32} actions={_taskSwipe(tk)}>{_tRow}</SwipeRow>
@@ -1392,6 +1425,19 @@ function TeamDetailLive() {
           ))}
         </div>
       )}
+      {/* ЗАДАЧИ идут группами по датам — заголовок даты, под ним карточка (кадр «Задачи»). */}
+      {roomTab === "tasks" && taskGroups.length > 0 && (
+        <React.Fragment>
+          {taskGroups.sort((a, b) => b.ord - a.ord).map((g) => (
+            <React.Fragment key={g.key}>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "var(--text)", padding: "16px 4px 8px" }}>{g.label}</div>
+              <div style={{ ...card, padding: "3px 12px" }}>{g.rows}</div>
+            </React.Fragment>
+          ))}
+        </React.Fragment>
+      )}
+
+      {!(roomTab === "tasks" && taskGroups.length > 0) && (
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (
           <div style={{ padding: "18px 6px", textAlign: "center" }}>
@@ -1416,6 +1462,7 @@ function TeamDetailLive() {
           </button>
         )}
       </div>
+      )}
 
       {/* Легенда цветов — в макете стоит под карточкой «Привычек» и расшифровывает кольца. */}
       {roomTab === "habits" && teamHabits.length > 0 && (
@@ -1478,79 +1525,139 @@ function TeamDetailLive() {
       )}
       </React.Fragment>)}
 
-      {/* ЦЕЛИ (новая вкладка, редизайн Figma). В макете это список Target Card со ставкой,
-          сроком, числом участников и вложенными привычками. В ДАННЫХ у круга цель ПОКА ОДНА
-          (goalProg / t.target) — список целей не выдумываем: рисуем одну карточку тем же
-          языком и честно подписываем, что цель у круга одна. Когда цели станут
-          множественными, карточка уже готова принимать их массивом. */}
+      {/* ЦЕЛИ — кадр «Группа / Участник / Цели» (1205:45515).
+
+          Анатомия карточки взята из макета целиком: строка цели (значок 52, имя 17,
+          «Для каждого · До чт, 13 авг», «15 участвуют», кружок справа) → блок СТАВКИ
+          (серая плашка: слева «Ставка ⓘ», справа число; ниже «за завершение цели» и
+          зелёный «+200XP») → блок ПРОГРЕССА («Осталось N», полоса, «200 / 20 000») →
+          раскрывашка «— Стратегия ⌄» со вложенными привычками и делами.
+
+          В ДАННЫХ у круга цель ОДНА (goalProg / t.target) — список целей не выдумываем.
+          Верхние чипы «Все · Для каждого · Общие» из макета оставлены: они настоящие,
+          просто пока фильтруют одну цель. */}
       {roomTab === "goals" && (<React.Fragment>
-        {(gTgt > 0 || t.goal || stake > 0) ? (
-          <div style={{ ...card, marginTop: 10, padding: "16px 16px 14px" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 22, overflow: "hidden",
-                background: heroTint + "26" }}>{bosIconOf(t, 22, null, "\ud83c\udfaf")}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 590, color: "var(--text)", letterSpacing: "-0.3px" }}>{t.goal || t.name}</div>
-                <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 2 }}>
-                  {[goalType === "collective" ? "Общая" : "Для каждого",
-                    (t.date || t.deadline) ? ("до " + (t.date || t.deadline)) : "бессрочная"].join(" \u00b7 ")}
-                </div>
-                {membersN > 0 && <div style={{ fontSize: 15, color: "var(--text-2)" }}>{membersN + " " + bosRoomPeopleWord(membersN) + " участвуют"}</div>}
+        {(() => {
+          const hasGoal = gTgt > 0 || t.goal || stake > 0;
+          const kind = goalType === "collective" ? "Общая" : "Для каждого";
+          const shown = hasGoal && (goalFilter === "all"
+            || (goalFilter === "each" && kind === "Для каждого")
+            || (goalFilter === "common" && kind === "Общая"));
+          const left = gTgt > 0 ? Math.max(0, gTgt - gCur) : 0;
+          return (
+            <React.Fragment>
+              {/* Чипы-фильтры под сегментами — в макете отдельная строка. */}
+              <div style={{ display: "flex", gap: 8, padding: "8px 2px 4px" }}>
+                {[["all", "Все"], ["each", "Для каждого"], ["common", "Общие"]].map(([id, label]) => {
+                  const on = goalFilter === id;
+                  return (
+                    <button key={id} onClick={() => setGoalFilter(id)} className="tap" data-haptic="selection"
+                      style={{ border: 0, cursor: "pointer", borderRadius: 999, height: 32, padding: "0 14px",
+                        fontSize: 15, fontWeight: on ? 590 : 400,
+                        background: on ? "var(--cta)" : "transparent", color: on ? "var(--cta-ink)" : "var(--text-2)" }}>{label}</button>
+                  );
+                })}
               </div>
-            </div>
 
-            {/* Ставка — зелёным: в макете это валюта, и зелёный занял место золота. */}
-            {stake > 0 && (
-              <div style={{ marginTop: 14, borderRadius: 13, padding: "11px 13px", background: "var(--surface-3)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 15, color: "var(--text-2)" }}>Ставка</span>
-                  <span style={{ fontSize: 15, fontWeight: 590, color: "var(--text)" }}>{stake + " XP"}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                  <span style={{ fontSize: 13, color: "var(--text-3)" }}>банк круга</span>
-                  <span style={{ fontSize: 13, fontWeight: 590, color: "var(--accent)" }}>{"+" + bank + " XP"}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Полоса прогресса — только когда есть куда идти. Без цели-числа полосы нет. */}
-            {gTgt > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ height: 8, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: Math.max(0, Math.min(100, (gCur / gTgt) * 100)) + "%", background: "var(--accent)", borderRadius: 999, transition: "width .3s" }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 13, color: "var(--text-3)" }}>
-                  <span>{gCur + (gUnit ? " " + gUnit : "")}</span>
-                  <span>{gTgt + (gUnit ? " " + gUnit : "")}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Привычки, которые ведут к цели — вложенный список из макета. */}
-            {teamHabits.length > 0 && (
-              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "0.5px solid var(--line-2)" }}>
-                {teamHabits.slice(0, 5).map((h, i) => (
-                  <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
-                    <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", fontSize: 15, overflow: "hidden", background: "var(--surface-3)" }}>{bosIconOf(h, 15, h.color)}</span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
-                    <span style={{ fontSize: 13, color: "var(--text-3)" }}>Привычка</span>
+              {shown ? (
+                <div style={{ ...card, padding: "4px 16px 14px" }}>
+                  {/* Строка цели */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 0 8px" }}>
+                    <span style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 26, overflow: "hidden",
+                      background: heroTint + "26" }}>{bosIconOf(t, 26, null, "\ud83c\udfaf")}</span>
+                    <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
+                      <div style={{ fontSize: 17, lineHeight: "22px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.goal || t.name}</div>
+                      <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+                        {[kind, (t.date || t.deadline) ? ("До " + (t.date || t.deadline)) : "Бессрочная"].join(" \u00b7 ")}
+                      </div>
+                      {membersN > 0 && <div style={{ fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>{membersN + " участвуют"}</div>}
+                    </div>
+                    <span aria-hidden style={{ width: 24, height: 24, marginTop: 14, borderRadius: "50%", flexShrink: 0,
+                      boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.25)" : "rgba(10,10,10,0.18)") }} />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ ...card, marginTop: 10, padding: "28px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: 17, fontWeight: 590, color: "var(--text)" }}>{_isOwner ? "У круга пока нет цели" : "Ведущий ещё не поставил цель"}</div>
-            <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 4, lineHeight: 1.35 }}>{_isOwner ? "Цель — то, куда круг идёт вместе, а привычки — шаги к ней." : "Когда появится — она будет здесь."}</div>
-            {_isOwner && (
-              <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap"
-                style={{ marginTop: 16, border: 0, borderRadius: 999, padding: "13px 22px", fontSize: 17, fontWeight: 590, cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)" }}>Поставить цель</button>
-            )}
-          </div>
-        )}
-        <div style={{ padding: "12px 16px 0", fontSize: 13, lineHeight: 1.35, color: "var(--text-3)", textAlign: "center" }}>
-          У круга одна общая цель. Несколько целей сразу ещё не завезли.
+
+                  {/* СТАВКА — серая плашка из макета. Зелёным только начисление. */}
+                  {stake > 0 && (
+                    <div style={{ borderRadius: 12, padding: "10px 12px", background: "var(--surface-3)" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 17, color: "var(--text)" }}>
+                          Ставка
+                          <span onClick={openLevelSheet} className="tap" aria-label="Что такое ставка"
+                            style={{ width: 17, height: 17, borderRadius: "50%", display: "inline-grid", placeItems: "center", cursor: "pointer",
+                              boxShadow: "inset 0 0 0 1.2px var(--text-3)", fontSize: 11, color: "var(--text-3)" }}>i</span>
+                        </span>
+                        <span style={{ fontSize: 17, color: "var(--text)" }}>{stake + "XP"}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
+                        <span style={{ fontSize: 15, color: "var(--text-2)" }}>за завершение цели</span>
+                        <span style={{ fontSize: 15, color: "var(--accent)" }}>{"+ " + bank + "XP"}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ПРОГРЕСС — «Осталось N», полоса, границы. Только когда цель числовая. */}
+                  {gTgt > 0 && (
+                    <div style={{ borderRadius: 12, padding: "10px 12px", background: "var(--surface-3)", marginTop: 10 }}>
+                      <div style={{ fontSize: 17, color: "var(--text)" }}>{"Осталось " + left + (gUnit ? " " + gUnit : "")}</div>
+                      <div style={{ height: 6, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.10)", overflow: "hidden", marginTop: 8 }}>
+                        <div style={{ height: "100%", width: Math.max(0, Math.min(100, (gCur / gTgt) * 100)) + "%", background: "var(--accent)", borderRadius: 999, transition: "width .3s" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5, fontSize: 15, color: "var(--text-2)" }}>
+                        <span>{gCur}</span><span>{gTgt}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* СТРАТЕГИЯ — раскрывашка со вложенными привычками и делами. */}
+                  {(teamHabits.length > 0 || _teamTasks.length > 0) && (
+                    <React.Fragment>
+                      {strategyOpen && (
+                        <div style={{ paddingTop: 6 }}>
+                          {teamHabits.concat(_teamTasks.map((x) => ({ id: "t" + x.id, name: x.text, __task: true }))).map((x, i) => (
+                            <div key={x.id || i} style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "9px 0" }}>
+                              {i > 0 && <span aria-hidden style={{ position: "absolute", top: 0, left: 40, right: 0, height: "0.5px", background: "var(--line-2)" }} />}
+                              <span style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 17, overflow: "hidden", background: "var(--surface-3)" }}>
+                                {x.__task ? <I.Flag size={16} strokeWidth={2} color="var(--text-2)" /> : bosIconOf(x, 17, x.color)}
+                              </span>
+                              <span style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: 17, lineHeight: "22px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.name}</span>
+                                <span style={{ display: "block", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>{x.__task ? "Задача" : "Привычка"}</span>
+                              </span>
+                              <span aria-hidden style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                                boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.25)" : "rgba(10,10,10,0.18)") }} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={() => setStrategyOpen(!strategyOpen)} className="tap" data-haptic="selection"
+                        style={{ display: "flex", alignItems: "center", gap: 10, border: 0, background: "transparent", cursor: "pointer",
+                          padding: "12px 0 2px", color: "var(--text-2)", fontSize: 17 }}>
+                        <span aria-hidden style={{ width: 28, height: 1, background: "var(--line)" }} />
+                        {strategyOpen ? "Скрыть" : "Стратегия"}
+                        <I.ChevronRight size={16} style={{ transform: strategyOpen ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform .2s" }} />
+                      </button>
+                    </React.Fragment>
+                  )}
+                </div>
+              ) : (
+                <div style={{ ...card, padding: "28px 20px", textAlign: "center" }}>
+                  <div style={{ fontSize: 17, fontWeight: 590, color: "var(--text)" }}>
+                    {hasGoal ? "В этом разрезе целей нет" : (_isOwner ? "У круга пока нет цели" : "Ведущий ещё не поставил цель")}
+                  </div>
+                  <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 4, lineHeight: 1.35 }}>
+                    {hasGoal ? "Переключи фильтр наверху." : (_isOwner ? "Цель — то, куда круг идёт вместе, а привычки — шаги к ней." : "Когда появится — она будет здесь.")}
+                  </div>
+                  {!hasGoal && _isOwner && (
+                    <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap"
+                      style={{ marginTop: 16, border: 0, borderRadius: 999, padding: "13px 22px", fontSize: 17, fontWeight: 590, cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)" }}>Поставить цель</button>
+                  )}
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })()}
+        <div style={{ padding: "12px 4px 0", fontSize: 13, lineHeight: 1.35, color: "var(--text-3)" }}>
+          На главной странице отображаются задачи, привычки и цели, которые вы принимаете
         </div>
       </React.Fragment>)}
 
