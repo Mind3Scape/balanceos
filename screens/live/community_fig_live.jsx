@@ -355,8 +355,26 @@ function FigPeopleRoomLive({ app, navigate, query }) {
     return <div className="fig-swap"><FigEmpty title="Людей пока нет"
       text="Люди появляются здесь, когда вы оказываетесь в одной группе. Вступи в группу или позови своих." /></div>;
   }
+  // Верхняя лента друзей — столбики 90×109 из кадра «Люди»: лицо 44 в кольце + имя.
+  const strip = people.slice(0, 8);
   return (
     <div className="fig-swap">
+      {strip.length > 0 && !q && (
+        <FigRail pad={16} gap={0} style={{ paddingTop: 4 }}>
+          {strip.map(function (p) {
+            return (
+              <button key={"s" + p.id} onClick={function () { openPerson(p); }} className="tap"
+                style={{ width: 90, flexShrink: 0, border: 0, background: "transparent", padding: 0, cursor: "pointer",
+                  display: "grid", justifyItems: "center", gap: 4 }}>
+                <FigAvatarLvl avatar={p.avatar} name={p.name} size={44} level={p.level} pct={p.lvlPct || 0} />
+                <FigLvlBadge level={p.level} />
+                <span style={{ fontSize: 13, lineHeight: "18px", color: "var(--text)", maxWidth: 84,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || "").split(" ")[0]}</span>
+              </button>
+            );
+          })}
+        </FigRail>
+      )}
       <FigSectionHead title="Люди" sub={figPlural(list.length, "человек", "человека", "человек")}
         action={sort === "level" ? "По уровню" : "По имени"} onAction={function () { setSort(sort === "level" ? "name" : "level"); }} />
       <div style={{ padding: "0 16px 10px" }}>
@@ -371,6 +389,15 @@ function FigPeopleRoomLive({ app, navigate, query }) {
         </FigCard>
       </div>
       {q && !list.length && <FigEmpty title="Ничего не найдено" text="Попробуй другое имя." />}
+      {/* Рекомендации по интересам/должности из кадра требуют полей interests/role в
+          profiles — их пока нет. Говорим прямо, а не рисуем чужих людей наугад. */}
+      {!q && (
+        <div style={{ padding: "6px 16px 0" }}>
+          <div style={{ borderRadius: 24, background: "var(--surface)", padding: "16px", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+            Рекомендации по интересам и по должности появятся, когда профили начнут хранить интересы и занятие — тогда здесь будут люди «под твой баланс».
+          </div>
+        </div>
+      )}
     </div>
   );
 }
