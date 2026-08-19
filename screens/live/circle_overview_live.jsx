@@ -171,9 +171,15 @@ function CircleOverviewLive() {
       <div style={{ padding: "0 16px" }}>
         {/* Шапка периода 40 */}
         <div style={{ display: "flex", alignItems: "center", height: 40, padding: "0 6px 0 8px" }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>
-            {MON[(mode === "month" ? cursor : selDate).getMonth()] + " " + (mode === "month" ? cursor : selDate).getFullYear()}
-          </span>
+          {/* Заголовок месяца с раскрытием «›» из узла — тап переключает в режим месяца. */}
+          <button onClick={function () { if (mode !== "month") { setMode("month"); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } } }}
+            className="tap" style={{ flex: 1, minWidth: 0, border: 0, background: "transparent", padding: 0, cursor: mode === "month" ? "default" : "pointer",
+              display: "inline-flex", alignItems: "center", gap: 4, textAlign: "left" }}>
+            <span style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>
+              {MON[(mode === "month" ? cursor : selDate).getMonth()] + " " + (mode === "month" ? cursor : selDate).getFullYear()}
+            </span>
+            {mode !== "month" && <I.ChevronRight size={13} strokeWidth={2.8} color="var(--text-2)" />}
+          </button>
           <span style={{ display: "flex", alignItems: "center", gap: 28 }}>
             <button onClick={function () { shiftPeriod(-1); }} className="tap" aria-label="Назад"
               style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", width: 15, color: "var(--text)" }}>
