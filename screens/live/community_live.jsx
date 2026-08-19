@@ -4942,7 +4942,7 @@ function CommunityLive() {
   // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
   // «Тренинги» ОТДЕЛЬНЫЙ чип (David: «тренинги может отдельно от партнёров выделить»):
   // партнёры = живые впечатления за XP, тренинги = бывшие «программы партнёров» (courses).
-  const _pairFor = { all: "discover", nearby: "discover", circles: "discover", challenges: "discover", partners: "community", people: "community", training: "community" };
+  const _pairFor = { all: "discover", nearby: "discover", circles: "discover", challenges: "discover", partners: "community", people: "community", training: "community", places: "community", courses: "community" };
   const _legacyFilter = section === "community" ? (commTabEff === "courses" ? "training" : "people") : "all";
   const _fOk = cv.filter && _pairFor[cv.filter] === section
     && (section !== "community" || (cv.filter === "training") === (commTabEff === "courses"));
@@ -4959,9 +4959,13 @@ function CommunityLive() {
   // «Все» — обзорная комната из макета (кадр «Мои сообщества»): не смесь всего подряд, а
   // короткая сводка по каждому разделу с переходом внутрь. Раньше filter="all" сворачивался
   // в «Круги», и обзора не было вовсе.
+  // «Места и события» и «Курсы» — свои комнаты из макета (прежде оба сворачивались в
+  // «Партнёров»). Старое значение filter="partners"/"training" остаётся живым для тура.
   const seg = (filter === "people") ? "people"
-    : ((filter === "partners" || filter === "training") ? "partners"
-    : (filter === "circles" ? "circles" : "all"));
+    : (filter === "places" ? "places"
+    : ((filter === "courses" || filter === "training") ? "courses"
+    : (filter === "partners") ? "partners"
+    : (filter === "circles" ? "circles" : "all")));
   const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "training" ? "courses" : "network", helpOwnerIds: null, helpOfferIds: null });
   const isDark = app?.themeOverride === "dark";
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
@@ -5178,6 +5182,12 @@ function CommunityLive() {
       {!searching && seg === "all" && typeof FigCommunityAllLive === "function" && (
         <FigCommunityAllLive app={app} navigate={navigate} isDark={isDark} onSeg={setFilter} lowCircles={lowCircles} />
       )}
+      {!searching && seg === "circles" && typeof FigGroupsRoomLive === "function" && (
+        <FigGroupsRoomLive app={app} navigate={navigate} isDark={isDark} query={qDeb} />
+      )}
+      {!searching && seg === "people" && typeof FigPeopleRoomLive === "function" && (
+        <FigPeopleRoomLive app={app} navigate={navigate} query={qDeb} />
+      )}
       {!searching && seg === "places" && typeof FigPlacesRoomLive === "function" && (
         <FigPlacesRoomLive navigate={navigate} query={qDeb}
           onAdd={(done) => _openSheet(<FigShowcaseAddSheetLive kind="places" onDone={done} />)} />
@@ -5187,7 +5197,7 @@ function CommunityLive() {
           onAdd={(done) => _openSheet(<FigShowcaseAddSheetLive kind="courses" onDone={done} />)} />
       )}
 
-      {!searching && seg !== "all" && seg !== "places" && seg !== "courses" && (
+      {!searching && ["all", "places", "courses", "circles", "people"].indexOf(seg) < 0 && (
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14, padding: "0 12px" }}>
         {/* ══ КРУГИ — комната «с кем делать». Читается сверху вниз: сначала ТВОИ круги живыми
             карточками, потом чужие открытые, потом готовые челленджи и «собери свой», и только в

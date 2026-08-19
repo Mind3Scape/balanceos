@@ -543,3 +543,111 @@ function useFigNotifCount(app) {
   }, []);
   return n;
 }
+
+/* ── КОМНАТА «ГРУППЫ» (кадр «Группы» 1062:36319): Мои группы строками + сетка каталога
+      «Вам может понравиться» карточками 176×298 r26 (обложка 176, имя/рубрика, «Вступить»). ── */
+function FigCatalogGroupCard({ item, joined, requested, onOpen, onJoin }) {
+  var g = item || {};
+  var a = "" + (g.avatar || "");
+  var cover = a.indexOf("url:") === 0
+    ? { background: "url(" + JSON.stringify(a.slice(4)) + ") center/cover no-repeat" }
+    : (function () { var t = (typeof figGroupTint === "function") ? figGroupTint(g.name) : ["#7FB3F2", "#9BD4A8"]; return { background: "linear-gradient(150deg," + t[0] + "," + t[1] + ")" }; })();
+  return (
+    <div style={{ borderRadius: 26, background: "var(--surface)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <button onClick={onOpen} style={{ border: 0, padding: 0, cursor: "pointer", height: 150, display: "grid", placeItems: "center", ...cover }}>
+        {a.indexOf("url:") !== 0 && <span style={{ fontSize: 56, lineHeight: 1 }}>{a.indexOf("emoji:") === 0 ? a.slice(6) : "👥"}</span>}
+      </button>
+      <button onClick={onOpen} style={{ border: 0, background: "transparent", textAlign: "left", cursor: "pointer", padding: "8px 10px 4px", display: "grid", color: "var(--text)" }}>
+        <span style={{ fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
+        <span style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {g.category || (g.membersN ? figPlural(g.membersN, "участник", "участника", "участников") : "Открытая группа")}
+        </span>
+      </button>
+      <div style={{ padding: "0 10px 10px", marginTop: "auto" }}>
+        <FigPillButton onClick={joined ? onOpen : onJoin} disabled={requested}>
+          {joined ? "Открыть" : requested ? "Заявка отправлена" : "Вступить"}
+        </FigPillButton>
+      </div>
+    </div>
+  );
+}
+
+function FigGroupsRoomLive({ app, navigate, isDark, query }) {
+  const teams = (app && app.teams) || [];
+  const levels = useFigTeamLevels(teams);
+  const [cloudList, setCloudList] = React.useState(null);
+  const [asked, setAsked] = React.useState({});
+  const _live = !!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled());
+  React.useEffect(function () {
+    var on = true;
+    if (!_live || !window.bosCloud.discoverTeams) { setCloudList([]); return; }
+    window.bosCloud.discoverTeams().then(function (r) { if (on) setCloudList(Array.isArray(r) ? r : []); }).catch(function () { if (on) setCloudList([]); });
+    return function () { on = false; };
+  }, [_live]);
+
+  const q = ("" + (query || "")).trim().toLowerCase();
+  const myIds = {}; teams.forEach(function (t) { if (t.cloudId) myIds[t.cloudId] = true; });
+  const mine = teams.filter(function (t) { return !q || ("" + t.name).toLowerCase().indexOf(q) >= 0; });
+  const others = (cloudList || []).filter(function (t) { return !myIds[t.id] && (!q || ("" + t.name).toLowerCase().indexOf(q) >= 0); });
+
+  const dress = function (t) {
+    var L = levels[t.cloudId] || null;
+    return { key: t.cloudId || t._id, team: t, name: t.name,
+      avatar: (t.emblem && ("" + t.emblem).indexOf("url:") === 0) ? t.emblem : (t.emblem ? "emoji:" + t.emblem : null),
+      category: t.category || (t.vis === "public" ? "Открытая группа" : "Приватная группа"),
+      level: L ? L.level : null, lvlPct: L ? L.pct : 0 };
+  };
+  const join = function (t) {
+    if (!window.bosCloud.requestJoin) return;
+    window.bosCloud.requestJoin(t.id).then(function (res) {
+      if (res && res.pending) { setAsked(function (o) { var n = Object.assign({}, o); n[t.id] = true; return n; }); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
+      else if (res) navigate("team-detail", { team: { cloudId: t.id, name: t.name, emblem: t.emblem, vis: t.vis, joined: true, members: [] }, from: "community" });
+    }).catch(function () {});
+  };
+
+  return (
+    <div className="fig-swap">
+      {mine.length > 0 && (
+        <React.Fragment>
+          <FigSectionHead title="Мои группы" sub={figPlural(mine.length, "группа", "группы", "групп")} />
+          <div style={{ padding: "0 16px 4px" }}>
+            <FigCard>
+              {mine.map(function (t, i) {
+                var g = dress(t);
+                return <FigGroupRow key={g.key} group={g} first={i === 0}
+                  onOpen={function () { navigate("team-detail", { team: t, from: "community" }); }}
+                  onChat={function () { navigate("team-detail", { team: t, from: "community", tab: "chat" }); }} />;
+              })}
+            </FigCard>
+          </div>
+        </React.Fragment>
+      )}
+      {mine.length === 0 && !q && (
+        <FigEmpty title="Групп пока нет" text="Вступи в группу из каталога ниже или собери свою через «+»." />
+      )}
+
+      <FigSectionHead title="Вам может понравиться"
+        sub={cloudList === null ? null : (others.length ? figPlural(others.length, "группа", "группы", "групп") : null)} />
+      {cloudList === null ? (
+        <div style={{ padding: "0 16px", fontSize: 15, color: "var(--text-2)" }}>Загружаю каталог…</div>
+      ) : others.length === 0 ? (
+        <div style={{ padding: "0 16px" }}>
+          <div style={{ borderRadius: 24, background: "var(--surface)", padding: "18px 16px", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+            {q ? "По запросу ничего не нашлось." : "Открытых групп пока нет — собери первую."}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "0 16px" }}>
+          {others.map(function (t) {
+            return <FigCatalogGroupCard key={t.id}
+              item={{ name: t.name, avatar: t.emblem ? ("" + t.emblem).indexOf("url:") === 0 ? t.emblem : "emoji:" + t.emblem : null,
+                membersN: (t.team_members && t.team_members[0] && t.team_members[0].count) || null }}
+              requested={!!asked[t.id]}
+              onOpen={function () { navigate("team-detail", { team: { cloudId: t.id, name: t.name, emblem: t.emblem, vis: t.vis, joined: false, members: [] }, from: "community" }); }}
+              onJoin={function () { join(t); }} />;
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
