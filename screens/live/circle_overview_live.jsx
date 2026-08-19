@@ -1159,7 +1159,7 @@ function PersonProfileLive() {
             <div style={{ ...card, padding: "18px 16px", fontSize: 15, color: "var(--text-2)" }}>Загружаю…</div>
           ) : offers.length === 0 ? (
             <div style={{ ...card, padding: "18px 16px", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
-              {name.split(" ")[0] + " пока не добавлял услуг."}
+              Услуг пока нет.
             </div>
           ) : (
             <div style={card}>
