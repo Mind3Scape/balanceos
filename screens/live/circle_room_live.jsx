@@ -1600,39 +1600,25 @@ function TeamDetailLive() {
               <svg viewBox="0 0 106 106" width="106" height="106" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
                 <defs>
                   <linearGradient id="bosLvlArcG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="#9A36FF" /><stop offset="1" stopColor="#CC35FF" />
+                    <stop offset="0" stopColor={(typeof figLvlStroke === "function" ? figLvlStroke(circleLvl.level) : ["#9A36FF", "#CC35FF"])[0]} />
+                    <stop offset="1" stopColor={(typeof figLvlStroke === "function" ? figLvlStroke(circleLvl.level) : ["#9A36FF", "#CC35FF"])[1]} />
                   </linearGradient>
                 </defs>
                 <circle cx="53" cy="53" r="51.5" fill="none" stroke="rgba(120,120,128,0.32)" strokeWidth="3" />
-                <circle cx="53" cy="53" r="51.5" fill="none" stroke={circleLvl.level >= 5 ? "url(#bosLvlArcG)" : "#8A8A8A"} strokeWidth="3" strokeLinecap="round"
+                <circle cx="53" cy="53" r="51.5" fill="none" stroke="url(#bosLvlArcG)" strokeWidth="3" strokeLinecap="round"
                   strokeDasharray={323.58} strokeDashoffset={(323.58 * (1 - circleLvl.frac)).toFixed(1)} />
               </svg>
             )}
             <span style={{ width: 96, height: 96, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 46, overflow: "hidden",
               background: isDark ? "#0d0d10" : "#ffffff", boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 46, null, "\ud83d\udc65")}</span>
           </span>
-          {circleLvl && (() => {
-            const _hiLvl = circleLvl.level >= 5;
-            const _lvlInk = _hiLvl ? "#B336FF" : (isDark ? "rgba(235,235,245,0.7)" : "var(--text-2)");
-            return (
-              <span onClick={openLevelSheet} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 3, marginTop: 10, cursor: "pointer" }}>
-                <svg viewBox="0 0 16 16" width="16" height="16" style={{ transform: "rotate(-90deg)" }} aria-hidden>
-                  <defs>
-                    <linearGradient id="bosLvlPillG" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0" stopColor="#9A36FF" /><stop offset="1" stopColor="#CC35FF" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="8" cy="8" r="6" fill="none" stroke={_hiLvl ? "url(#bosLvlPillG)" : _lvlInk} strokeOpacity={_hiLvl ? 0.35 : 0.35} strokeWidth="3" />
-                  <circle cx="8" cy="8" r="6" fill="none" stroke={_hiLvl ? "url(#bosLvlPillG)" : _lvlInk} strokeWidth="3"
-                    strokeDasharray={37.7} strokeDashoffset={(37.7 * (1 - circleLvl.frac)).toFixed(1)} />
-                </svg>
-                <span style={{ fontSize: 13, fontWeight: 590, lineHeight: "18px", letterSpacing: "-0.08px",
-                  color: _hiLvl ? "transparent" : _lvlInk,
-                  backgroundImage: _hiLvl ? "linear-gradient(180deg,#9A36FF,#CC35FF)" : "none",
-                  WebkitBackgroundClip: _hiLvl ? "text" : "border-box", backgroundClip: _hiLvl ? "text" : "border-box" }}>{"Lvl. " + circleLvl.level}</span>
-              </span>
-            );
-          })()}
+          {circleLvl && (
+            <span onClick={openLevelSheet} className="tap" style={{ display: "inline-flex", alignItems: "center", marginTop: 10, cursor: "pointer" }}>
+              {typeof FigLvlBadge === "function"
+                ? <FigLvlBadge level={circleLvl.level} size={13} />
+                : <span style={{ fontSize: 13, fontWeight: 590, color: "var(--text-2)" }}>{"Lvl. " + circleLvl.level}</span>}
+            </span>
+          )}
           <div style={{ textAlign: "center", maxWidth: 320, marginTop: 6 }}>
             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.26px", color: "var(--text)", lineHeight: "28px" }}>{t.name}</div>
             {/* ПОДПИСЬ по роли: у админа в макете стоит вид группы («Публичная группа»),

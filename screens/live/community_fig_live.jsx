@@ -191,6 +191,8 @@ function FigCommunityAllLive({ app, navigate, isDark, onSeg, lowCircles }) {
   const [lowOpen, setLowOpen] = React.useState(false);
   const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: null };
 
+  const _blank = myGroups.length === 0 && (!people || people.length === 0);
+
   const favIds = React.useMemo(function () {
     var out = {};
     try {
@@ -224,6 +226,13 @@ function FigCommunityAllLive({ app, navigate, isDark, onSeg, lowCircles }) {
   const openChat = function (t) { navigate("team-detail", { team: t, from: "community", tab: "chat" }); };
   const openPerson = function (p) { navigate("person-profile", { person: { user_id: p.id, name: p.name, avatar: p.avatar, level: p.level }, from: "community" }); };
 
+  if (_blank) {
+    return (
+      <FigEmpty title="Тут пока ничего нет"
+        text="Вступайте в группы, приглашайте друзей и развивайте сообщество"
+        action="Каталог групп" onAction={function () { onSeg("circles"); }} />
+    );
+  }
   return (
     <div className="fig-swap" style={{ display: "grid", gap: 0 }}>
       {/* МАЛО АКТИВНОСТИ — та же метрика, что решает вылет из круга, только мягче порог.
@@ -601,6 +610,78 @@ function useFigNotifCount(app) {
     return function () { on = false; };
   }, []);
   return n;
+}
+
+/* ── КОМНАТА «УСЛУГИ» — шестой чип кадра «Пустое». Строки по узлу «Service Row» из
+   профиля (340×84: тонированная плитка 44 r11, имя 17/400 в две строки, подпись 15 @0.70,
+   цена «N XP» 17/590 + шеврон, разделитель от 68). Данные настоящие: netOffers() — активные
+   услуги людей; тап ведёт в профиль владельца, где живёт бронь. Счёт «N выполнено» в бэке
+   пока не хранится — вместо него честная подпись «от {имя}». ── */
+const FIG_SERVICE_TINTS = [["#453BD6", 0.10], ["#1CDDBD", 0.12], ["#0091FF", 0.10], ["#FF9736", 0.12]];
+function FigServicesRoomLive({ navigate, query }) {
+  const [rows, setRows] = React.useState(null);   // null = грузим
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!(C && C.enabled && C.enabled() && C.netOffers)) { setRows([]); return; }
+    (async function () {
+      try {
+        var r = await C.netOffers(200);
+        var offers = Array.isArray(r) ? r : ((r && r.offers) || []);
+        var ids = []; offers.forEach(function (o) { if (ids.indexOf(o.owner_id) < 0) ids.push(o.owner_id); });
+        var names = {};
+        if (C.netProfiles && ids.length) {
+          try {
+            var pr = await C.netProfiles(ids.slice(0, 60));
+            ((pr && pr.profiles) || []).forEach(function (p) { names[p.id || p.user_id] = p; });
+          } catch (e) {}
+        }
+        if (on) setRows(offers.map(function (o) { return { o: o, p: names[o.owner_id] || null }; }));
+      } catch (e) { if (on) setRows([]); }
+    })();
+    return function () { on = false; };
+  }, []);
+  const q = ("" + (query || "")).trim().toLowerCase();
+  const list = (rows || []).filter(function (x) {
+    return !q || ("" + x.o.title).toLowerCase().indexOf(q) >= 0 || ("" + (x.p && x.p.name || "")).toLowerCase().indexOf(q) >= 0;
+  });
+  return (
+    <div className="fig-swap">
+      <FigSectionHead title="Услуги" sub={rows && rows.length ? figPlural(rows.length, "услуга людей сообщества", "услуги людей сообщества", "услуг людей сообщества") : "Полезное от людей сообщества за XP"} />
+      {list.length > 0 && (
+        <div style={{ padding: "0 16px 10px" }}>
+          <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "0 16px" }}>
+            {list.map(function (x, i) {
+              var tint = FIG_SERVICE_TINTS[i % FIG_SERVICE_TINTS.length];
+              var ownerName = (x.p && (x.p.name || x.p.username)) || null;
+              return (
+                <button key={x.o.id} onClick={function () {
+                    navigate("person-profile", { person: { user_id: x.o.owner_id, name: ownerName || "Участник", avatar: x.p && x.p.avatar, level: x.p && x.p.level }, from: "community" });
+                  }} className="tap"
+                  style={{ position: "relative", width: "100%", minHeight: 84, border: 0, background: "transparent", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 8, padding: "10px 0", textAlign: "left", color: "var(--text)", boxSizing: "border-box" }}>
+                  {i > 0 && <span aria-hidden style={{ position: "absolute", top: 0, left: 52, right: 0, height: "1px", background: "var(--line-2)" }} />}
+                  <span style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 20,
+                    background: "rgba(" + parseInt(tint[0].slice(1, 3), 16) + "," + parseInt(tint[0].slice(3, 5), 16) + "," + parseInt(tint[0].slice(5, 7), 16) + "," + tint[1] + ")",
+                    color: tint[0] }}>{x.o.emoji || "\u2728"}</span>
+                  <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: 17, fontWeight: 400, lineHeight: "22px", letterSpacing: "-0.43px",
+                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{x.o.title}</span>
+                    {ownerName ? <span style={{ fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"от " + ownerName}</span> : null}
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    <span style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>{(x.o.price_xp || 0) + " XP"}</span>
+                    <I.ChevronRight size={17} color="var(--text-2)" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {rows === null && <div style={{ padding: "18px 16px", fontSize: 15, color: "var(--text-3)" }}>Загружаем…</div>}
+      {rows !== null && list.length === 0 && <FigEmpty title="Тут пока ничего нет" text={q ? "По запросу ничего не нашлось." : "Услуги появятся, когда люди сообщества опубликуют, чем могут помочь."} />}
+    </div>
+  );
 }
 
 /* ── КОМНАТА «ГРУППЫ» (кадр «Группы» 1062:36319): Мои группы строками + сетка каталога

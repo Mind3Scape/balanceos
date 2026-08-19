@@ -4942,7 +4942,7 @@ function CommunityLive() {
   // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
   // «Тренинги» ОТДЕЛЬНЫЙ чип (David: «тренинги может отдельно от партнёров выделить»):
   // партнёры = живые впечатления за XP, тренинги = бывшие «программы партнёров» (courses).
-  const _pairFor = { all: "discover", nearby: "discover", circles: "discover", challenges: "discover", partners: "community", people: "community", training: "community", places: "community", courses: "community" };
+  const _pairFor = { all: "discover", nearby: "discover", circles: "discover", challenges: "discover", partners: "community", people: "community", training: "community", places: "community", courses: "community", services: "community" };
   const _legacyFilter = section === "community" ? (commTabEff === "courses" ? "training" : "people") : "all";
   const _fOk = cv.filter && _pairFor[cv.filter] === section
     && (section !== "community" || (cv.filter === "training") === (commTabEff === "courses"));
@@ -4964,6 +4964,7 @@ function CommunityLive() {
   const seg = (filter === "people") ? "people"
     : (filter === "places" ? "places"
     : ((filter === "courses" || filter === "training") ? "courses"
+    : (filter === "services") ? "services"
     : (filter === "partners") ? "partners"
     : (filter === "circles" ? "circles" : "all")));
   const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "training" ? "courses" : "network", helpOwnerIds: null, helpOfferIds: null });
@@ -5121,7 +5122,7 @@ function CommunityLive() {
           шире экрана (507 при 393) — значит задумана прокручиваемой, и это не «не влезло». */}
       {!searching && (
         <FigChips value={seg} onChange={setFilter}
-          items={[["all", "Все"], ["circles", "Группы"], ["people", "Люди"], ["places", "Места и события"], ["courses", "Курсы"]]} />
+          items={[["all", "Все"], ["circles", "Группы"], ["people", "Люди"], ["places", "Места и события"], ["courses", "Курсы"], ["services", "Услуги"]]} />
       )}
 
       {/* Живой пульс переехал в шапку (вправо от «Сообщество») — отдельной строки под пилюлями больше нет. */}
@@ -5154,8 +5155,11 @@ function CommunityLive() {
         <FigCoursesRoomLive navigate={navigate} query={qDeb}
           onAdd={(done) => _openSheet(<FigShowcaseAddSheetLive kind="courses" onDone={done} />)} />
       )}
+      {!searching && seg === "services" && typeof FigServicesRoomLive === "function" && (
+        <FigServicesRoomLive navigate={navigate} query={qDeb} />
+      )}
 
-      {!searching && ["all", "places", "courses", "circles", "people"].indexOf(seg) < 0 && (
+      {!searching && ["all", "places", "courses", "circles", "people", "services"].indexOf(seg) < 0 && (
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14, padding: "0 12px" }}>
         {/* ══ КРУГИ — комната «с кем делать». Читается сверху вниз: сначала ТВОИ круги живыми
             карточками, потом чужие открытые, потом готовые челленджи и «собери свой», и только в
