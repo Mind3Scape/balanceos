@@ -32,11 +32,13 @@ const LIVE_TAB_ROUTES = new Set(["home", "community", "chats", "ai", "profile"])
    «Я» из нижнего ряда ушло — в макете профиля в доке нет; вход в свой профиль теперь
    аватаром в шапке «Сообщества» (маршрут profile жив, ничего не потеряно).
    «Чаты» — новая дверь; экран для неё сделан рядом (ChatsLive), пустой двери нет. */
+/* Значки — SF-глифы узла (house.fill · person.2.fill · message.fill · sparkles),
+   у нас — их Phosphor-FILL двойники (SF на вебе нельзя по лицензии). */
 const LIVE_TABS_BASE = [
-  { id: "home", icon: "Home", label: "Главная" },
-  { id: "community", icon: "Group", label: "Сообщество" },
-  { id: "chats", icon: "MessageCircle", label: "Чаты" },
-  { id: "ai", icon: "Sparkles", label: "Balance AI" },
+  { id: "home", icon: "TabHome", label: "Главная" },
+  { id: "community", icon: "TabUsers", label: "Сообщество" },
+  { id: "chats", icon: "TabChat", label: "Чаты" },
+  { id: "ai", icon: "TabSpark", label: "Balance AI" },
 ];
 const LIVE_TAB_PROFILE = { id: "profile", icon: "Person", label: "Я" };
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
@@ -820,6 +822,9 @@ function PhoneApp() {
     () => LIVE_TABS_BASE,
     [profTabPref, heroHidden]
   );
+  // Сумма непрочитанных сообщений всех групп → красный счётчик на значке «Чаты»
+  // (узел Notifications Badge). Хук живёт в shared_live (там же кэш peek'ов).
+  const chatsUnread = (typeof useBosChatsUnread === "function") ? useBosChatsUnread(app) : 0;
   const tabSet = isLive ? LIVE_TAB_ROUTES : TAB_ROUTES;
   // navigate — стабильный useCallback, поэтому актуальный режим/набор вкладок читаем через ref.
   const tabSetRef = useRef(tabSet); tabSetRef.current = tabSet;
@@ -1116,11 +1121,11 @@ function PhoneApp() {
         {/* No fake status bar. iOS draws the real one in an installed PWA; in a
             browser or Telegram the OS / Telegram owns the top bar, so we stay clean. */}
         {!drag && topInTabs && (
-          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} fig={isLive} />
+          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} fig={isLive} badges={isLive ? { chats: chatsUnread } : null} />
         )}
         {destTab && (
           <TabBar key="tabbar-drag" active={destTab} dark={themeFor(destTab)}
-            onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} tabs={isLive ? liveTabs : undefined} fig={isLive} />
+            onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} tabs={isLive ? liveTabs : undefined} fig={isLive} badges={isLive ? { chats: chatsUnread } : null} edge={false} />
         )}
         <div className="bos-version">{app.mode === "live" ? APP_VERSION : DEMO_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark} fig={FIG_ROUTES.has(top.route)}>{sheet}</BottomSheet>

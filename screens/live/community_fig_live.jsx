@@ -249,10 +249,12 @@ function FigCommunityAllLive({ app, navigate, isDark, onSeg, lowCircles }) {
         <React.Fragment>
           <FigSectionHead title="Мои группы" sub={figPlural(groupRows.length, "группа", "группы", "групп")}
             onPress={function () { onSeg("circles"); }} />
+          {/* Одна страница — карточка ВО ВСЮ ширину (David: «пока групп немного, они должны
+              занимать весь экран»); листание страницами по три включается со второй. */}
           <FigRail>
-            {figChunk(groupRows, 3).map(function (page, pi) {
+            {figChunk(groupRows, 3).map(function (page, pi, pages) {
               return (
-                <FigCard key={pi} width={340}>
+                <FigCard key={pi} width={pages.length > 1 ? 340 : "100%"}>
                   {page.map(function (g, i) {
                     return <FigGroupRow key={g.key} group={g} first={i === 0}
                       onOpen={function () { openGroup(g.team); }}
@@ -272,9 +274,9 @@ function FigCommunityAllLive({ app, navigate, isDark, onSeg, lowCircles }) {
           <FigSectionHead title="Друзья" sub={figPlural(people.length, "друг", "друга", "друзей")}
             onPress={function () { onSeg("people"); }} />
           <FigRail>
-            {figChunk(people, 3).map(function (page, pi) {
+            {figChunk(people, 3).map(function (page, pi, pages) {
               return (
-                <FigCard key={pi} width={340}>
+                <FigCard key={pi} width={pages.length > 1 ? 340 : "100%"}>
                   {page.map(function (p, i) {
                     return <FigFriendRow key={p.id} first={i === 0}
                       person={{ name: p.name, avatar: p.avatar, level: p.level, lvlPct: p.lvlPct,

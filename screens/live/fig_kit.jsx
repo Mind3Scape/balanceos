@@ -154,11 +154,15 @@ function FigSectionHead({ title, sub, action, onAction, onPress, style }) {
 }
 
 /* ГОРИЗОНТАЛЬНАЯ ЛЕНТА: зазор 10, боковые отступы 16, скрытая полоса прокрутки, «липкие»
-   страницы — в макете карточки ровно 340 и следующая выглядывает краем. */
+   страницы — в макете карточки ровно 340 и следующая выглядывает краем.
+   scrollPadding ОБЯЗАТЕЛЕН: без него snap-align:start выравнивает карточку по краю
+   скролл-порта, игнорируя padding — лента сама подъезжала на 16px и первая карточка
+   прилипала к краю экрана (David: «нет расстояния слева»). */
 function FigRail({ children, gap = 10, pad = 16, snap = true, style }) {
   return (
     <div className="fig-rail" style={Object.assign({ display: "flex", gap: gap, overflowX: "auto", padding: "0 " + pad + "px 10px",
-      scrollbarWidth: "none", WebkitOverflowScrolling: "touch", scrollSnapType: snap ? "x proximity" : "none" }, style || {})}>
+      scrollPadding: "0 " + pad + "px", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
+      scrollSnapType: snap ? "x proximity" : "none" }, style || {})}>
       {children}
     </div>
   );

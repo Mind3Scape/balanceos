@@ -83,7 +83,7 @@ const useNav = () => React.useContext(NavCtx);
 // Bottom tab bar. `tabs` — необязательный список {id, icon}: live передаёт свой состав
 // (без «Привычек», с «Я»), демо живёт на прежнем дефолте. Ширина линзы следует за
 // числом вкладок инлайном (CSS-дефолт рассчитан на 4).
-function TabBar({ active, dark = false, onTab, style, tabs: tabsProp, fig = false }) {
+function TabBar({ active, dark = false, onTab, style, tabs: tabsProp, fig = false, badges = null, edge = true }) {
   const tabs = (tabsProp && tabsProp.length) ? tabsProp : [
     { id: "home", icon: "Home" },
     { id: "habits", icon: "Bolt" },
@@ -91,8 +91,40 @@ function TabBar({ active, dark = false, onTab, style, tabs: tabsProp, fig = fals
     { id: "ai", icon: "Sparkles" },
   ];
   const idx = Math.max(0, tabs.findIndex(t => t.id === active));
+  if (fig) {
+    /* Раскладка узла «Tab Bar»: рамка 2, вкладки (25%+6px) внахлёст −8 → шаг 25%−3px,
+       таблетка 95×54 шире вкладки на 2.125 с каждой стороны (левый край −0.125px).
+       Проценты считаются от подложки, поэтому раскладка резиновая на любой ширине.
+       badges — {id: число} — красный счётчик на значке (узел Notifications Badge). */
+    return (
+      <React.Fragment>
+        {edge ? <div className="bos-tabedge" aria-hidden /> : null}
+        <div className={"bos-tabbar fig " + (dark ? "dark" : "")} style={style}>
+          {/* Дорожка = ШАГ вкладки (25% подложки − 5px = 82.75 при 351), капля 95 чуть шире:
+              выступает на 2.125 за края вкладки, левый край первой — 3.875 от пилюли. */}
+          <span className="bos-tab-lens-track" style={{ left: "3.875px", width: "calc(25% - 5px)", transform: "translateX(" + (idx * 100) + "%)" }}>
+            <span key={idx} className="bos-tab-lens" />
+          </span>
+          {tabs.map(t => {
+            const b = (badges && badges[t.id]) || 0;
+            return (
+              <button key={t.id} className={"tab tap " + (active === t.id ? "active" : "")}
+                data-haptic="selection" aria-label={t.label || t.id}
+                onClick={() => onTab(t.id)}>
+                <span className="tab-ico">
+                  {React.createElement(I[t.icon], { size: 24, filled: active === t.id })}
+                  {b > 0 ? <span className="tab-badge">{b > 99 ? "99+" : b}</span> : null}
+                </span>
+                {t.label ? <span className="tab-label">{t.label}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      </React.Fragment>
+    );
+  }
   return (
-    <div className={"bos-tabbar " + (dark ? "dark " : "") + (fig ? "fig" : "")} style={style}>
+    <div className={"bos-tabbar " + (dark ? "dark" : "")} style={style}>
       {/* Liquid-glass selection lens: the TRACK springs between tabs (translateX), while the
           inner droplet replays a stretch-and-settle morph on every change (key→remount) — the
           «жидкое стекло» cue. Two layers so position and morph never fight over `transform`. */}
@@ -103,9 +135,7 @@ function TabBar({ active, dark = false, onTab, style, tabs: tabsProp, fig = fals
         <button key={t.id} className={"tab tap " + (active === t.id ? "active" : "")}
           data-haptic="selection" aria-label={t.label || t.id}
           onClick={() => onTab(t.id)}>
-          {React.createElement(I[t.icon], { size: fig ? 22 : 24, filled: active === t.id })}
-          {/* Подпись — только в раскладке макета: там у каждой вкладки имя 10/590. */}
-          {fig && t.label ? <span className="tab-label">{t.label}</span> : null}
+          {React.createElement(I[t.icon], { size: 24, filled: active === t.id })}
         </button>
       ))}
     </div>

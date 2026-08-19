@@ -476,6 +476,7 @@ function CircleHistoryLive() {
 function CircleMembersLive() {
   const { navigate, params, back } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = !!(app && app.themeOverride === "dark");
   const t = (params && params.team) || { name: "Группа" };
   const _live = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
   const [seg, setSeg] = React.useState("all");
@@ -527,7 +528,7 @@ function CircleMembersLive() {
         <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr", padding: 2, height: 32, boxSizing: "border-box",
           borderRadius: 999, background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(20px) saturate(180%)", backdropFilter: "blur(20px) saturate(180%)" }}>
           <span aria-hidden style={{ position: "absolute", top: 2, bottom: 2, left: 2, width: "calc((100% - 4px) / 2)", borderRadius: 999,
-            background: "rgba(118,118,128,0.24)", transform: "translateX(" + (seg === "friends" ? 100 : 0) + "%)",
+            background: isDark ? "rgba(118,118,128,0.24)" : "rgba(118,118,128,0.12)", transform: "translateX(" + (seg === "friends" ? 100 : 0) + "%)",
             transition: "transform .34s cubic-bezier(0.34,1.4,0.44,1)" }} />
           {[["all", plural(members.length, "участник", "участника", "участников")], ["friends", plural(friends.length, "друг", "друга", "друзей")]].map(function (m) {
             const on = seg === m[0];
@@ -1065,8 +1066,10 @@ function PersonProfileLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 0 24px", position: "relative" }}>
-      {/* Цветная вуаль 400, тающая вниз — как Group Backgraund Fade в кадре. */}
-      <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 400, pointerEvents: "none",
+      {/* Цветная вуаль 400, тающая вниз — как Group Backgraund Fade в кадре. Верх — МИНУС
+          отступ страницы: градиент начинается от самого верха экрана, под статус-баром,
+          а не от начала контента (David: «градиенты не достают до верха»). */}
+      <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: "calc(-1 * var(--page-top, 60px))", height: "calc(400px + var(--page-top, 60px) - 60px)", minHeight: 400, pointerEvents: "none",
         background: "linear-gradient(180deg, " + tint[0] + (isDark ? "66" : "8C") + " 0%, " + tint[1] + "33 55%, transparent 100%)" }} />
 
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 44 }}>

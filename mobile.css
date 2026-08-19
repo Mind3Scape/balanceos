@@ -218,7 +218,10 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
 /* Top room (was a fixed 60px under the old fake status bar). Stays 60px in a
    browser / installed PWA, and grows only if Telegram reports a bigger top inset
    in fullscreen (notch + its floating buttons). Full-bleed screens keep padding:0. */
-.bos-page:not(.full-bleed) { padding-top: max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))); }
+.bos-page:not(.full-bleed) {
+  --page-top: max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px)));
+  padding-top: var(--page-top);
+}
 
 /* ── Liquid-glass bottom tab bar — floats above the home indicator ─────────
    Genuine frosted-glass: low opacity so content behind shows through, heavy

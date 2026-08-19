@@ -680,8 +680,12 @@ input, textarea, select, [contenteditable] { caret-color: currentColor; }
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  /* status bar height + safe area top */
-  padding-top: 60px;
+  /* status bar height + safe area top. --page-top — ЕДИНСТВЕННЫЙ источник этого числа:
+     цветные вуали экранов тянутся вверх на -1*var(--page-top), чтобы градиент начинался
+     от САМОГО верха экрана, а не от начала контента (David 19.08: «градиенты не достают
+     до верха, остаётся зазор»). mobile.css переопределяет и padding, и переменную. */
+  --page-top: 60px;
+  padding-top: var(--page-top);
   /* tabbar room when shown */
   padding-bottom: var(--tabbar-room);
 }
@@ -1294,38 +1298,66 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .bos-page.fig ~ .bos-tabbar,
 .bos-tabbar.fig {
   height: 62px;
-  left: 21px; right: 21px; bottom: 24px;
+  /* Геометрия узла: подложка 351×62 при экране 393 → бока 21, до низа 21;
+     внутренняя рамка 2 (Tab Bar Buttons pad 2). */
+  left: 21px; right: 21px; bottom: 21px;
   background: rgba(153,153,153,0.17);
   backdrop-filter: blur(30px) saturate(1.8);
   -webkit-backdrop-filter: blur(30px) saturate(1.8);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.14);
-  padding: 0 4px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+  /* Поле 6 = рамка ряда кнопок 4 (351→343) + его внутренний отступ 2 (343→339). */
+  padding: 0 6px;
 }
+/* Вкладка 90.75 = (339+24)/4, соседки внахлёст −8 — потому крайние значки стоят
+   на 4.5px БЛИЖЕ к центру, чем при делении на равные четверти. Раньше делили flex:1
+   поровну — крайние («Главная», «Balance AI») съезжали к краям (David: «не по центру»). */
 .bos-tabbar.fig .tab {
+  flex: 0 0 calc(25% + 6px);
+  min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   border-radius: 999px;
   height: 54px;
-  /* Неактивная — ровно #8A8A8A из макета (одинаково читается в обеих темах).
-     Активная — цвет темы: в тёмной это и есть #FFFFFF макета, в светлой чернила.
-     Прибитый белый делал подпись нечитаемой на светлом фоне. */
   color: #8A8A8A;
   transition: color .2s;
 }
-.bos-tabbar.fig .tab.active { color: var(--text); }
+.bos-tabbar.fig .tab + .tab { margin-left: -8px; }
+.bos-tabbar.fig .tab.active { color: var(--text); background: transparent; box-shadow: none; }
+.bos-tabbar.fig.dark .tab.active { color: #fff; background: transparent; box-shadow: none; }
+.bos-tabbar.fig .tab-ico { position: relative; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
+/* Красный счётчик непрочитанного на значке (узел Notifications Badge: 16×16, 12/590,
+   #FC4436, левый край на 8.5px правее центра значка). */
+.bos-tabbar.fig .tab-badge {
+  position: absolute; left: calc(50% + 8.5px); top: 0;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; box-sizing: border-box;
+  background: #FC4436; color: #fff; font-size: 12px; font-weight: 590; line-height: 16px; letter-spacing: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
 .bos-tabbar.fig .tab-label {
   font-size: 10px;
   font-weight: 590;
   letter-spacing: -0.1px;
   line-height: 12px;
 }
-/* Бегунок-таблетка: тот же приём, что в сегменте — слой едет с пружиной, а не
-   перекрашивается на месте. */
+/* Таблетка выделения 95×54: на 2.125px шире вкладки с каждой стороны. Слой-бегунок
+   шириной в ШАГ (25% − 3px) едет с пружиной, капля внутри чуть шире дорожки. */
 .bos-tabbar.fig .bos-tab-lens-track { top: 4px; bottom: 4px; height: auto; }
-.bos-tabbar.fig .bos-tab-lens {
-  background: rgba(118,118,128,0.24);
+.bos-tabbar.fig .bos-tab-lens,
+.bos-tabbar.fig.dark .bos-tab-lens {
+  left: 0; width: calc(100% + 12.25px); top: 0; bottom: 0;
+  background: rgba(118,118,128,0.12);
   border-radius: 999px;
   box-shadow: none;
+}
+.bos-tabbar.fig.dark .bos-tab-lens { background: rgba(118,118,128,0.24); }
+/* Прогрессивное размытие нижней кромки под пилюлей — узел «Scroll Edge Effect - Soft»:
+   контент тает в блюр к нижнему краю, как в iOS 26. Лежит ПОД таб-баром (z 19 < 20). */
+.bos-tabedge {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 95px;
+  z-index: 19; pointer-events: none;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(to top, #000 32%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 32%, transparent 100%);
 }
 
 /* ═══ ДВИЖЕНИЕ ═══════════════════════════════════════════════════════════════════

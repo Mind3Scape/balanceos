@@ -3312,6 +3312,40 @@ function bosTeamUnreadClear(cloudId) {
 }
 try { window.addEventListener("bos:notifSeenChanged", function () { _bosTeamUnreadCache = {}; }); } catch (e) {}
 
+/* Сколько всего непрочитанных сообщений по всем моим группам — для красного счётчика
+   на значке «Чаты» в таб-баре (узел Notifications Badge из макета). Считает через
+   bosTeamUnreadPeek (кэш 60с, «без звука» даёт 0), пересчитывается по событиям
+   прочтения и раз в минуту. */
+function useBosChatsUnread(app) {
+  const live = !!(app && app.mode === "live");
+  const teams = (live && app.teams) || [];
+  const key = teams.map(function (t) { return t && t.cloudId; }).filter(Boolean).join(",");
+  const [n, setN] = React.useState(0);
+  React.useEffect(function () {
+    if (!live || !key) { setN(0); return undefined; }
+    let on = true;
+    const recount = function () {
+      if (typeof bosTeamUnreadPeek !== "function") return;
+      Promise.all(teams.filter(function (t) { return t && t.cloudId; }).map(function (t) {
+        return bosTeamUnreadPeek(t.cloudId).catch(function () { return null; });
+      })).then(function (rs) {
+        if (!on) return;
+        setN(rs.reduce(function (a, r) { return a + ((r && !r.muted && r.count) || 0); }, 0));
+      });
+    };
+    recount();
+    const iv = window.setInterval(recount, 60000);
+    window.addEventListener("bos:chatunread", recount);
+    window.addEventListener("bos:notifSeenChanged", recount);
+    return function () {
+      on = false; window.clearInterval(iv);
+      window.removeEventListener("bos:chatunread", recount);
+      window.removeEventListener("bos:notifSeenChanged", recount);
+    };
+  }, [live, key]);
+  return n;
+}
+
 /* Welcome modal shown when you open an invite LINK and land in a shared habit / team — so the
    join is never silent (David: «человек не понимает, что его позвали»). Rendered at app root
    from app.pendingJoinWelcome (mirrors AchievementUnlock). Spring-in glass card. LIVE only. */

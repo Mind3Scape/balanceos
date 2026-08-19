@@ -1344,23 +1344,45 @@ function ChatsLive() {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const teams = ((app && app.teams) || []).filter(Boolean);
-  const [unread, setUnread] = React.useState({});
+  // peek: ck → {count, last:{text,image_url,created_at}} — счёт И превью последнего.
+  const [peek, setPeek] = React.useState({});
 
   React.useEffect(() => {
     let on = true;
     if (typeof bosTeamUnreadPeek !== "function") return undefined;
-    teams.forEach((t) => {
+    const load = () => teams.forEach((t) => {
       if (!t.cloudId) return;
       bosTeamUnreadPeek(t.cloudId).then((u) => {
         if (!on || !u) return;
-        setUnread((m) => (m[t.cloudId] === (u.count || 0) ? m : { ...m, [t.cloudId]: u.count || 0 }));
+        setPeek((m) => ({ ...m, [t.cloudId]: u }));
       }).catch(() => {});
     });
-    return () => { on = false; };
+    load();
+    window.addEventListener("bos:chatunread", load);
+    return () => { on = false; window.removeEventListener("bos:chatunread", load); };
   }, [teams.map((t) => t.cloudId).join(",")]);
 
   const openChat = (t) => navigate("team-detail", { team: t, from: "chats", tab: "chat" });
-  const totalUnread = Object.keys(unread).reduce((a, k) => a + (unread[k] || 0), 0);
+  const totalUnread = teams.reduce((a, t) => a + ((peek[t.cloudId] && peek[t.cloudId].count) || 0), 0);
+  // Непрочитанные группы — СВЕРХУ, свежие разговоры выше старых (David: «должен видеть,
+  // в какой группе непрочитанное, и сразу перейти внутрь чата»).
+  const _lastTs = (t) => { const r = peek[t.cloudId]; return (r && r.last && r.last.created_at) ? new Date(r.last.created_at).getTime() : 0; };
+  const rows = teams.slice().sort((a, b) => {
+    const ua = ((peek[a.cloudId] || {}).count || 0) > 0 ? 1 : 0;
+    const ub = ((peek[b.cloudId] || {}).count || 0) > 0 ? 1 : 0;
+    if (ua !== ub) return ub - ua;
+    const ta = _lastTs(a), tb = _lastTs(b);
+    if (ta !== tb) return tb - ta;
+    return (a.name || "").localeCompare(b.name || "", "ru");
+  });
+  const timeOf = (t) => {
+    const r = peek[t.cloudId]; const iso = r && r.last && r.last.created_at;
+    if (!iso) return null;
+    const d = new Date(iso), now = new Date();
+    if (d.toDateString() === now.toDateString()) return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    if (now - d < 6 * 864e5) return ["вс", "пн", "вт", "ср", "чт", "пт", "сб"][d.getDay()];
+    return d.getDate() + "." + String(d.getMonth() + 1).padStart(2, "0");
+  };
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -1375,8 +1397,9 @@ function ChatsLive() {
 
       {teams.length > 0 ? (
         <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden" }}>
-          {teams.map((t, i) => {
-            const n = unread[t.cloudId] || 0;
+          {rows.map((t, i) => {
+            const rec = peek[t.cloudId] || {};
+            const n = rec.count || 0;
             return (
               <button key={t._id || t.cloudId || i} onClick={() => openChat(t)} className="tap" data-haptic="selection"
                 style={{ width: "100%", border: 0, borderTop: i ? "0.5px solid var(--line-2)" : 0, background: "transparent", cursor: "pointer",
@@ -1386,16 +1409,20 @@ function ChatsLive() {
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 17, fontWeight: 590, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                  {/* Превью, как в мессенджере: текст последнего сообщения (или «Фотография»). */}
                   <span style={{ display: "block", fontSize: 15, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {n > 0 ? (n + (n === 1 ? " новое сообщение" : " новых сообщений")) : "Разговор группы"}
+                    {n > 0 && rec.last ? (rec.last.text || (rec.last.image_url ? "Фотография" : "Новое сообщение")) : "Разговор группы"}
                   </span>
                 </span>
-                {typeof bosTeamMuted === "function" && bosTeamMuted(t.cloudId) ? (
-                  <span aria-label="Без звука" style={{ color: "var(--text-3)", flexShrink: 0, fontSize: 15 }}>🔕</span>
-                ) : n > 0 ? (
-                  <span style={{ minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: "var(--accent-red)", color: "#fff",
-                    fontSize: 13, fontWeight: 590, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n > 99 ? "99+" : n}</span>
-                ) : null}
+                <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                  {timeOf(t) ? <span style={{ fontSize: 13, color: n > 0 ? "var(--accent-red)" : "var(--text-3)" }}>{timeOf(t)}</span> : null}
+                  {typeof bosTeamMuted === "function" && bosTeamMuted(t.cloudId) ? (
+                    <span aria-label="Без звука" style={{ color: "var(--text-3)", fontSize: 15 }}>🔕</span>
+                  ) : n > 0 ? (
+                    <span style={{ minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: "var(--accent-red)", color: "#fff",
+                      fontSize: 13, fontWeight: 590, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{n > 99 ? "99+" : n}</span>
+                  ) : null}
+                </span>
               </button>
             );
           })}

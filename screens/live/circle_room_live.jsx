@@ -859,6 +859,12 @@ function TeamDetailLive() {
     var p = params && params.tab;
     return (p === "chat" || p === "path" || p === "people") ? p : "day";
   });
+  /* ЧАТ-РЕЖИМ: «Разговор» рисуется ЭКРАНОМ МЕССЕНДЖЕРА (компактная шапка, лента во всю
+     высоту), а не вкладкой под шапкой-героем. Из «Чатов» человек попадает сразу в чат
+     (David: «нажал на группу в чатах — открывай чат, а не группу»). _cameChat помнит,
+     что пришли снаружи: «назад» тогда ведёт обратно в «Чаты», а не в комнату. */
+  const chatMode = roomTab === "chat";
+  const _cameChat = !!(params && (params.tab === "chat" || params.prefill));
   // Фото из чата НА ВЕСЬ ЭКРАН (David 2026-07-16: «нажимаю на фотку — не открывается,
   // в уменьшенном виде что толку»): тап по снимку → тёмный просмотр, тап — закрыть.
   const [photoView, setPhotoView] = React.useState(null);
@@ -1451,6 +1457,28 @@ function TeamDetailLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      {chatMode && (
+        <div className="fig-swap" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0 8px" }}>
+          <button onClick={() => { if (_cameChat) navigate(from || "chats"); else setRoomTab("day"); }} className="tap" aria-label="Назад"
+            style={{ ...glass, width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer", flexShrink: 0 }}>
+            <I.ChevronLeft size={19} strokeWidth={2.4} />
+          </button>
+          {/* Тап по имени — раскрыть саму группу (как в мессенджерах шапка ведёт в профиль). */}
+          <button onClick={() => setRoomTab("day")} className="tap"
+            style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, border: 0, background: "transparent", padding: 0, cursor: "pointer", textAlign: "left", color: "var(--text)" }}>
+            <span style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0,
+              background: isDark ? "#0d0d10" : "#ffffff", boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 20, null, "\ud83d\udc65")}</span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 17, fontWeight: 590, letterSpacing: "-0.43px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+              <span style={{ display: "block", fontSize: 13, color: "var(--text-2)" }}>{membersN + " " + bosRoomPeopleWord(membersN)}</span>
+            </span>
+          </button>
+          <button ref={moreRef} onClick={openRoomMenu} className="tap" aria-label="Ещё" aria-haspopup="dialog"
+            style={{ ...glass, width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer", flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+          </button>
+        </div>
+      )}
       {/* ШАПКА-ГЕРОЙ (редизайн Figma 19.08, кадр «Группа / Участник»). Была пилюля 44px с
           именем внутри; в макете шапка — блок 476px: цветная подложка с затуханием, аватар 96,
           имя по центру, ряд стеклянных кнопок и описание. Смысл сдвига: комната перестаёт
@@ -1458,9 +1486,11 @@ function TeamDetailLive() {
 
           Кнопки: «Чат» текстом (в макете он вышел из сегментов), рядом два кружка — «Люди» и
           «Путь». Ни один сегмент не пропал, все трое переехали сюда. */}
-      <div style={{ position: "relative", margin: "0 -16px", padding: "0 16px" }}>
+      {!chatMode && (<div style={{ position: "relative", margin: "0 -16px", padding: "0 16px" }}>
+        {/* Верх вуали — минус отступ страницы: цвет заливает экран от самого верха
+            (David: «остаётся зазор сверху»). */}
         <div aria-hidden style={{
-          position: "absolute", inset: "0 0 auto", height: 400, pointerEvents: "none",
+          position: "absolute", left: 0, right: 0, top: "calc(-1 * var(--page-top, 60px))", height: "calc(400px + var(--page-top, 60px) - 60px)", minHeight: 400, pointerEvents: "none",
           background: "linear-gradient(180deg, " + heroTint + (isDark ? "8C" : "A6") + " 0%, "
             + heroTint + (isDark ? "3D" : "4D") + " 38%, " + heroTint + "14 62%, transparent 84%)",
         }} />
@@ -1587,11 +1617,11 @@ function TeamDetailLive() {
             )}
           </div>
         )}
-      </div>
+      </div>)}
 
       {/* КАРТОЧКА СОСТАВА — только у админа (кадр «Админ»): две строки со счётом и стрелкой.
           Числа настоящие: участники из состава, администраторы — те, у кого роль owner/admin. */}
-      {_role === "admin" && (
+      {!chatMode && _role === "admin" && (
         <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden", marginTop: 4 }}>
           <button onClick={() => navigate("team-members", { team: t, from: from })} className="tap"
             style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", color: "var(--text)" }}>
@@ -1622,13 +1652,15 @@ function TeamDetailLive() {
             начертание 13/590 У ВСЕХ (не 590/400, как я сделал сначала).
           Бегунок ЕДЕТ: отдельный слой с translateX и пружиной — в прежней версии активный
           сегмент просто перекрашивался, и переключение читалось как подмена, а не движение. */}
-      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", padding: 2, marginTop: 8,
+      {!chatMode && (<div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", padding: 2, marginTop: 8,
         height: 32, boxSizing: "border-box", borderRadius: 999,
         background: "rgba(153,153,153,0.17)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)", backdropFilter: "blur(20px) saturate(180%)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.10)" }}>
+        {/* Таблетка: в тёмной #767680@24 из кадра, в светлой её светлый двойник @12
+            (кадры группы рисованы в тёмной теме; белый текст на светлом не читался). */}
         <span aria-hidden style={{ position: "absolute", top: 2, bottom: 2, left: 2, width: "calc((100% - 4px) / 4)",
-          borderRadius: 999, background: "rgba(118,118,128,0.24)",
+          borderRadius: 999, background: isDark ? "rgba(118,118,128,0.24)" : "rgba(118,118,128,0.12)",
           transform: "translateX(" + (["day", "habits", "tasks", "goals"].indexOf(roomTab) < 0 ? 0 : ["day", "habits", "tasks", "goals"].indexOf(roomTab)) * 100 + "%)",
           transition: "transform .34s cubic-bezier(0.34,1.4,0.44,1)" }} />
         {[["day", "Сегодня"], ["habits", "Привычки"], ["tasks", "Задачи"], ["goals", "Цели"]].map(([id, label]) => {
@@ -1637,12 +1669,12 @@ function TeamDetailLive() {
             <button key={id} onClick={() => { setRoomTab(id); if (id === "habits" || id === "tasks") setListTab(id); try { window.scrollTo(0, 0); } catch (e) {} }} className="tap" data-haptic="selection"
               style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 999, height: 28, padding: 0, cursor: "pointer",
                 background: "transparent", fontSize: 13, fontWeight: 590, letterSpacing: "-0.1px",
-                color: on ? "#FFFFFF" : "#8A8A8A", transition: "color .2s" }}>
+                color: on ? (isDark ? "#FFFFFF" : "var(--text)") : "#8A8A8A", transition: "color .2s" }}>
               {label}
             </button>
           );
         })}
-      </div>
+      </div>)}
 
       {/* Выпадающее меню у кнопки УБРАНО: в макете это шторка снизу (CircleMenuSheetLive),
           она открывается прямо из обработчика «⋯». */}
@@ -2327,7 +2359,7 @@ function TeamDetailLive() {
       {/* Чат занимает ОГРАНИЧЕННУЮ высоту экрана, лента скроллится внутри, композер приклеен к её
           дну: страница под ним не едет (David 2026-08-02: «как раньше в чате было удобнее»). */}
       <div style={{ ...card, overflow: "hidden", marginTop: cheeredMe.length > 0 ? 0 : 10 }}>
-      <div ref={feedBoxRef} className="screen-scroll" style={{ height: "calc(100vh - " + (cheeredMe.length > 0 ? 366 : 324) + "px)", minHeight: 320, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
+      <div ref={feedBoxRef} className="screen-scroll" style={{ height: chatMode ? ("calc(100vh - var(--page-top, 60px) - " + (cheeredMe.length > 0 ? 228 : 176) + "px)") : ("calc(100vh - " + (cheeredMe.length > 0 ? 366 : 324) + "px)"), minHeight: 320, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
       {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px", flexShrink: 0 }}>показаны последние события</div>}
       {feedShown.length === 0 && !hasMiles ? (
         <div style={{ textAlign: "center", padding: "0 24px", margin: "auto" }}>
