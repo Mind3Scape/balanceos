@@ -298,7 +298,7 @@ function CircleOverviewLive() {
       <div style={{ padding: "10px 16px" }}>
         <div style={card}>
           <Row first icon={<I.Users size={19} strokeWidth={2} />} title="Участники" detail={members.length || t.membersN || null}
-            onClick={function () { navigate("team-detail", { team: t, from: "team-overview", tab: "people" }); }} />
+            onClick={function () { navigate("team-members", { team: t, from: "team-overview" }); }} />
           <Row icon={<I.Clock size={19} strokeWidth={2} />} title="История"
             onClick={function () { navigate("team-history", { team: t, from: "team-overview" }); }} />
         </div>
@@ -456,6 +456,362 @@ function CircleHistoryLive() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   УЧАСТНИКИ — кадры «Участники» (участник: сегмент «N участников · M друзей» + поиск;
+   админ: то же + строка «Добавить администратора» ведёт в управление).
+   Заголовок-пилюля по центру 17/590, сегмент 361×32 (жёлоб стеклянный, активный
+   #767680@0.24, подпись 13/590), поиск 44 r26, карточка r24 со строками 68.
+   «Друзья» у нас = люди, с которыми есть ещё один общий круг, — настоящий признак.
+   ═══════════════════════════════════════════════════════════════════════════════════════ */
+function CircleMembersLive() {
+  const { navigate, params, back } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const t = (params && params.team) || { name: "Группа" };
+  const _live = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  const [seg, setSeg] = React.useState("all");
+  const [q, setQ] = React.useState("");
+  const [meId, setMeId] = React.useState(null);
+  const [members, setMembers] = React.useState(function () { return (t.members || []).slice(); });
+  const [friendIds, setFriendIds] = React.useState({});
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!_live) return;
+    C.uid().then(function (id) { if (on) setMeId(id); });
+    C.teamMembers(t.cloudId).then(function (m) { if (on && m) setMembers(m); }).catch(function () {});
+    // «Друзья» = вместе ещё хотя бы в одном МОЁМ круге, кроме этого.
+    (async function () {
+      var mine = (app && app.teams || []).filter(function (x) { return x.cloudId && x.cloudId !== t.cloudId; });
+      var out = {};
+      for (var i = 0; i < mine.length; i++) {
+        try {
+          var mm = await C.teamMembers(mine[i].cloudId);
+          (mm || []).forEach(function (p) { out[p.id] = true; });
+        } catch (e) {}
+      }
+      if (on) setFriendIds(out);
+    })();
+    return function () { on = false; };
+  }, [_live, t.cloudId]);
+
+  const qq = q.trim().toLowerCase();
+  const friends = members.filter(function (m) { return m.id !== meId && friendIds[m.id]; });
+  const base = seg === "friends" ? friends : members;
+  const list = base.filter(function (m) { return !qq || ("" + m.name).toLowerCase().indexOf(qq) >= 0; });
+  const plural = function (n, a, b, c) { var x = n % 10, y = n % 100; return n + " " + ((x === 1 && y !== 11) ? a : (x >= 2 && x <= 4 && (y < 12 || y > 14)) ? b : c); };
+  const glass = { background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(30px) saturate(1.8)", backdropFilter: "blur(30px) saturate(1.8)" };
+
+  return (
+    <div className="page-in" style={{ padding: "0 0 24px" }}>
+      {/* Шапка: назад-стекло · пилюля «Участники» по центру */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 54 }}>
+        <button onClick={back} className="tap" aria-label="Назад"
+          style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)", flexShrink: 0 }}>
+          <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
+        </button>
+        <span style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>Участники</span>
+        <span style={{ width: 44, flexShrink: 0 }} />
+      </div>
+
+      {/* Сегмент 361×32 из макета */}
+      <div style={{ padding: "0 16px 10px" }}>
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr", padding: 2, height: 32, boxSizing: "border-box",
+          borderRadius: 999, background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(20px) saturate(180%)", backdropFilter: "blur(20px) saturate(180%)" }}>
+          <span aria-hidden style={{ position: "absolute", top: 2, bottom: 2, left: 2, width: "calc((100% - 4px) / 2)", borderRadius: 999,
+            background: "rgba(118,118,128,0.24)", transform: "translateX(" + (seg === "friends" ? 100 : 0) + "%)",
+            transition: "transform .34s cubic-bezier(0.34,1.4,0.44,1)" }} />
+          {[["all", plural(members.length, "участник", "участника", "участников")], ["friends", plural(friends.length, "друг", "друга", "друзей")]].map(function (m) {
+            const on = seg === m[0];
+            return <button key={m[0]} onClick={function () { setSeg(m[0]); }} className="tap" data-haptic="selection"
+              style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 999, height: 28, padding: 0, cursor: "pointer", background: "transparent",
+                fontSize: 13, fontWeight: 590, letterSpacing: "-0.08px", color: on ? "var(--text)" : "#8A8A8A", transition: "color .2s" }}>{m[1]}</button>;
+          })}
+        </div>
+      </div>
+
+      {typeof FigSearchField === "function" && <FigSearchField value={q} onChange={setQ} placeholder="Поиск" />}
+
+      <div className="fig-swap" style={{ padding: "0 16px" }}>
+        <div style={{ borderRadius: 24, background: "var(--surface)", overflow: "hidden" }}>
+          {list.map(function (m, i) {
+            const me = m.id === meId;
+            return <FigFriendRow key={m.id} first={i === 0}
+              person={{ name: me ? "Ты" : m.name, avatar: m.avatar, level: null,
+                status: m.role === "owner" ? "Владелец" : (m.role === "admin" ? "Администратор" : (friendIds[m.id] ? "вы вместе ещё в одной группе" : null)) }}
+              onOpen={function () { navigate("team-person", { team: t, person: m, from: "team-members" }); }}
+              onChat={me ? null : function () { navigate("team-detail", { team: t, from: "team-members", tab: "chat", prefill: "@" + (m.name || "").split(" ")[0] + " " }); }} />;
+          })}
+          {!list.length && <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 15, color: "var(--text-2)" }}>
+            {qq ? "Никого с таким именем." : "Пока никого."}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   АДМИНИСТРАТОРЫ — кадр «Администраторы» (владелец): строка «Добавить администратора»
+   с подписью «Вы можете назначить администраторов из подписчиков группы», список
+   владелец + админы, «…» у админа → снять (алерт «Удаление администратора»).
+   Права по способностям из кадра «Права администратора» — тумблеры #30D158.
+   Права хранить негде, пока нет столбца, — храним в teams.goal.adminRights через
+   updateTeam; сам role='admin' пишем в team_members. Если RLS не пустит — честно
+   говорим, что нужен патч БД.
+   ═══════════════════════════════════════════════════════════════════════════════════════ */
+const BOS_ADMIN_RIGHTS = [
+  ["edit",   "Изменение группы"],
+  ["habits", "Управление привычками"],
+  ["tasks",  "Управление задачами"],
+  ["goals",  "Управление целями"],
+  ["chat",   "Управление чатом группы"],
+  ["admins", "Назначение администраторов"],
+  ["block",  "Блокировка пользователей"],
+];
+function CircleAdminsLive() {
+  const { navigate, params, back } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const t = (params && params.team) || { name: "Группа" };
+  const _live = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  const { open: openSheet, close: closeSheet } = (typeof useSheet === "function") ? useSheet() : { open: function () {}, close: function () {} };
+  const [members, setMembers] = React.useState(function () { return (t.members || []).slice(); });
+  const [err, setErr] = React.useState("");
+  const load = React.useCallback(function () {
+    if (!_live) return;
+    window.bosCloud.teamMembers(t.cloudId).then(function (m) { if (m) setMembers(m); }).catch(function () {});
+  }, [_live, t.cloudId]);
+  React.useEffect(function () { load(); }, [load]);
+
+  const admins = members.filter(function (m) { return m.role === "owner" || m.role === "admin"; })
+    .sort(function (a, b) { return (a.role === "owner" ? 0 : 1) - (b.role === "owner" ? 0 : 1); });
+  const candidates = members.filter(function (m) { return m.role === "member"; });
+  const glass = { background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(30px) saturate(1.8)", backdropFilter: "blur(30px) saturate(1.8)" };
+  const card = { borderRadius: 24, background: "var(--surface)", overflow: "hidden" };
+
+  const demote = function (m) {
+    openSheet(
+      <div style={{ padding: "6px 16px 12px", color: "var(--text)", textAlign: "center" }}>
+        <div style={{ fontSize: 17, fontWeight: 590, lineHeight: "22px" }}>Удаление администратора</div>
+        <div style={{ fontSize: 17, lineHeight: "22px", marginTop: 10 }}>
+          {(m.name || "Участник") + " перестанет быть администратором, и все связанные полномочия будут аннулированы. Удалить администратора?"}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <button onClick={closeSheet} className="tap" style={{ flex: 1, height: 48, borderRadius: 999, border: 0, cursor: "pointer",
+            background: "var(--surface-3)", color: "var(--text)", fontSize: 17, fontWeight: 590 }}>Отмена</button>
+          <button onClick={function () {
+            window.bosCloud.setMemberRole(t.cloudId, m.id, "member").then(function (ok) {
+              closeSheet();
+              if (ok) { load(); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
+              else setErr("Не получилось: базе нужен патч прав (RLS не пускает менять роль).");
+            });
+          }} className="tap" style={{ flex: 1, height: 48, borderRadius: 999, border: 0, cursor: "pointer",
+            background: "var(--accent-red)", color: "#fff", fontSize: 17, fontWeight: 590 }}>Удалить</button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="page-in" style={{ padding: "0 0 24px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 44 }}>
+        <button onClick={back} className="tap" aria-label="Назад"
+          style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
+          <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
+        </button>
+      </div>
+      <div style={{ padding: "10px 16px 10px" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "0.4px", color: "var(--text)" }}>Администраторы</div>
+      </div>
+
+      {/* Добавить администратора */}
+      <div style={{ padding: "0 16px" }}>
+        <div style={card}>
+          <button onClick={function () { navigate("team-admin-add", { team: t, from: "team-admins" }); }} className="tap"
+            style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+              padding: "0 16px", minHeight: 52, textAlign: "left", color: "var(--text)" }}>
+            <span style={{ width: 36, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.UserPlus size={20} strokeWidth={2} /></span>
+            <span style={{ flex: 1, fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px" }}>Добавить администратора</span>
+            <I.ChevronRight size={15} strokeWidth={2.6} color="var(--text-3)" />
+          </button>
+        </div>
+        <div style={{ padding: "8px 16px 0", fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
+          Вы можете назначить администраторов из участников группы.
+        </div>
+      </div>
+
+      {/* Список */}
+      <div style={{ padding: "16px 16px 0" }}>
+        <div style={card}>
+          {admins.map(function (m, i) {
+            return (
+              <div key={m.id} style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "0 16px", minHeight: 68 }}>
+                {i > 0 && <span aria-hidden style={{ position: "absolute", left: 88, right: 0, top: 0, height: 1, background: "var(--line-2)" }} />}
+                <span style={{ width: 48, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <BuddyFaceLive avatar={m.avatar} name={m.name} size={44} />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+                  <span style={{ display: "block", fontSize: 15, lineHeight: "20px", letterSpacing: "-0.23px", color: "var(--text-2)" }}>
+                    {m.role === "owner" ? "Владелец" : "Администратор"}</span>
+                </span>
+                {m.role === "admin" && (
+                  <button onClick={function () { demote(m); }} className="tap" aria-label="Снять администратора"
+                    style={{ border: 0, background: "transparent", padding: 6, cursor: "pointer", color: "var(--text-2)", flexShrink: 0 }}>
+                    <I.More size={20} strokeWidth={2.2} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {err && <div style={{ padding: "10px 20px 0", fontSize: 13, color: "var(--accent-red)", lineHeight: 1.4 }}>{err}</div>}
+      {candidates.length === 0 && admins.length <= 1 && (
+        <div style={{ padding: "10px 20px 0", fontSize: 13, color: "var(--text-3)", lineHeight: 1.4 }}>
+          Когда в группе появятся участники, их можно будет назначить администраторами.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* «Сделать администратором»: список участников → страница прав одного человека. */
+function CircleAdminAddLive() {
+  const { navigate, params, back } = useNav();
+  const t = (params && params.team) || { name: "Группа" };
+  const _live = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  const [members, setMembers] = React.useState([]);
+  React.useEffect(function () {
+    if (!_live) return;
+    window.bosCloud.teamMembers(t.cloudId).then(function (m) { if (m) setMembers(m.filter(function (x) { return x.role === "member"; })); }).catch(function () {});
+  }, [_live, t.cloudId]);
+  const glass = { background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(30px) saturate(1.8)", backdropFilter: "blur(30px) saturate(1.8)" };
+  return (
+    <div className="page-in" style={{ padding: "0 0 24px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 44 }}>
+        <button onClick={back} className="tap" aria-label="Назад"
+          style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
+          <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
+        </button>
+      </div>
+      <div style={{ padding: "10px 16px 10px" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "0.4px", color: "var(--text)" }}>Права администратора</div>
+      </div>
+      <div style={{ padding: "0 16px" }}>
+        <div style={{ borderRadius: 24, background: "var(--surface)", overflow: "hidden" }}>
+          {members.map(function (m, i) {
+            return <FigFriendRow key={m.id} first={i === 0}
+              person={{ name: m.name, avatar: m.avatar, level: null,
+                status: m.joinedAt ? ("Участвует с " + new Date(m.joinedAt).toLocaleDateString("ru-RU")) : null }}
+              onOpen={function () { navigate("team-admin-rights", { team: t, person: m, from: "team-admin-add" }); }} />;
+          })}
+          {!members.length && <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 15, color: "var(--text-2)" }}>
+            Пока некого назначить — в группе нет других участников.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Права одного человека: тумблеры способностей + «Сделать администратором». */
+function CircleAdminRightsLive() {
+  const { navigate, params, back } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const t = (params && params.team) || { name: "Группа" };
+  const p = (params && params.person) || { name: "Участник" };
+  const _live = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  // Права по умолчанию: всё, кроме назначения админов и блокировок.
+  const saved = (t.goal && t.goal.adminRights && t.goal.adminRights[p.id]) || null;
+  const [rights, setRights] = React.useState(function () {
+    var o = {}; BOS_ADMIN_RIGHTS.forEach(function (r) { o[r[0]] = saved ? !!saved[r[0]] : (r[0] !== "admins" && r[0] !== "block"); });
+    return o;
+  });
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const glass = { background: "rgba(153,153,153,0.17)", WebkitBackdropFilter: "blur(30px) saturate(1.8)", backdropFilter: "blur(30px) saturate(1.8)" };
+  const card = { borderRadius: 24, background: "var(--surface)", overflow: "hidden" };
+
+  const save = function () {
+    if (busy) return;
+    setBusy(true); setErr("");
+    window.bosCloud.setMemberRole(t.cloudId, p.id, "admin").then(function (ok) {
+      if (!ok) { setBusy(false); setErr("Не получилось: базе нужен патч прав (RLS не пускает менять роль)."); return; }
+      // Права — в карман goal.adminRights (общий JSON настроек группы).
+      var goal = Object.assign({}, t.goal || {});
+      var ar = Object.assign({}, goal.adminRights || {}); ar[p.id] = rights; goal.adminRights = ar;
+      try { window.bosCloud.updateTeam(t.cloudId, { goal: goal }); } catch (e) {}
+      try { app && app.updateTeam && app.updateTeam(t._id || t.id, { goal: goal }); } catch (e) {}
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+      navigate("team-admins", { team: t, from: "team-admin-rights" });
+    });
+  };
+
+  const Toggle = function (props) {
+    return (
+      <button onClick={props.onFlip} className="tap" data-no-haptic aria-pressed={props.on}
+        style={{ width: 51, height: 31, borderRadius: 999, border: 0, cursor: "pointer", flexShrink: 0, position: "relative",
+          background: props.on ? "#30D158" : "var(--surface-3)", transition: "background .2s" }}>
+        <span aria-hidden style={{ position: "absolute", top: 2, left: props.on ? 22 : 2, width: 27, height: 27, borderRadius: "50%",
+          background: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)", transition: "left .22s cubic-bezier(0.34,1.3,0.44,1)" }} />
+      </button>
+    );
+  };
+
+  return (
+    <div className="page-in" style={{ padding: "0 0 24px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 44 }}>
+        <button onClick={back} className="tap" aria-label="Назад"
+          style={{ ...glass, width: 44, height: 44, borderRadius: 999, border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text)" }}>
+          <I.ChevronRight size={19} strokeWidth={2.6} style={{ transform: "rotate(180deg)" }} />
+        </button>
+      </div>
+      <div style={{ padding: "10px 16px 10px" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, lineHeight: "41px", letterSpacing: "0.4px", color: "var(--text)" }}>Права администратора</div>
+      </div>
+
+      <div style={{ padding: "0 16px" }}>
+        <div style={{ ...card, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px" }}>
+          <BuddyFaceLive avatar={p.avatar} name={p.name} size={44} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>{p.name}</span>
+            {p.joinedAt && <span style={{ display: "block", fontSize: 15, lineHeight: "20px", color: "var(--text-2)" }}>
+              {"Участвует с " + new Date(p.joinedAt).toLocaleDateString("ru-RU")}</span>}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ padding: "16px 32px 8px", fontSize: 17, fontWeight: 590, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text-2)" }}>Возможности</div>
+      <div style={{ padding: "0 16px" }}>
+        <div style={card}>
+          {BOS_ADMIN_RIGHTS.map(function (r, i) {
+            return (
+              <div key={r[0]} style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, padding: "0 16px", minHeight: 52 }}>
+                {i > 0 && <span aria-hidden style={{ position: "absolute", left: 16, right: 0, top: 0, height: 1, background: "var(--line-2)" }} />}
+                <span style={{ flex: 1, fontSize: 17, lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--text)" }}>{r[1]}</span>
+                <Toggle on={rights[r[0]]} onFlip={function () {
+                  setRights(function (o) { var n = Object.assign({}, o); n[r[0]] = !n[r[0]]; return n; });
+                  if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+                }} />
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding: "8px 16px 0", fontSize: 13, lineHeight: "18px", letterSpacing: "-0.08px", color: "var(--text-2)" }}>
+          Права действуют внутри приложения; жёсткая проверка на сервере появится вместе с патчем БД.
+        </div>
+      </div>
+
+      <div style={{ padding: "18px 16px 0" }}>
+        <button onClick={save} disabled={busy} className="tap"
+          style={{ width: "100%", height: 50, borderRadius: 999, border: 0, cursor: "pointer", background: "var(--cta)",
+            color: "var(--cta-ink)", fontSize: 17, fontWeight: 590, opacity: busy ? 0.6 : 1 }}>
+          {busy ? "Сохраняю…" : "Сделать администратором"}
+        </button>
+        {err && <div style={{ padding: "10px 4px 0", fontSize: 13, color: "var(--accent-red)", lineHeight: 1.4 }}>{err}</div>}
+      </div>
     </div>
   );
 }

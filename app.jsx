@@ -147,6 +147,11 @@ const LIVE_SCREENS = {
   "team-overview": () => CircleOverviewLive,
   // История группы — лента событий по дням (кадры «… / История»).
   "team-history": () => CircleHistoryLive,
+  // Участники и администрирование (кадры «Участники», «Администраторы», «Права администратора»).
+  "team-members": () => CircleMembersLive,
+  "team-admins": () => CircleAdminsLive,
+  "team-admin-add": () => CircleAdminAddLive,
+  "team-admin-rights": () => CircleAdminRightsLive,
   levels: () => LevelsLive,
   "course-detail": () => CourseDetailLive,
   "partner-detail": () => PartnerDetailLive,

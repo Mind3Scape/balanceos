@@ -1586,14 +1586,14 @@ function TeamDetailLive() {
           Числа настоящие: участники из состава, администраторы — те, у кого роль owner/admin. */}
       {_role === "admin" && (
         <div style={{ background: "var(--card)", borderRadius: 16, overflow: "hidden", marginTop: 4 }}>
-          <button onClick={() => setRoomTab("people")} className="tap"
+          <button onClick={() => navigate("team-members", { team: t, from: from })} className="tap"
             style={{ width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", color: "var(--text)" }}>
             <I.Users size={22} strokeWidth={1.9} />
             <span style={{ flex: 1, textAlign: "left", fontSize: 17 }}>Участники</span>
             <span style={{ fontSize: 17, color: "var(--text-2)" }}>{membersN}</span>
             <I.ChevronRight size={17} color="var(--text-3)" />
           </button>
-          <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap"
+          <button onClick={() => navigate("team-admins", { team: t, from: from })} className="tap"
             style={{ width: "100%", border: 0, borderTop: "0.5px solid var(--line-2)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", color: "var(--text)" }}>
             <I.Star size={22} strokeWidth={1.9} />
             <span style={{ flex: 1, textAlign: "left", fontSize: 17 }}>Администраторы</span>

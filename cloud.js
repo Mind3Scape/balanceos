@@ -704,6 +704,20 @@
     } catch (e) { return null; }
   }
   // E: owner approves / rejects a pending request.
+  /* АДМИНИСТРАТОРЫ ГРУППЫ. team_members.role — текст; владелец пишет 'admin'/'member'
+     напрямую. Права по способностям (bos_admin_rights) храним в teams.goal.adminRights —
+     колонки под это нет, а goal уже JSON-карман настроек. RLS: обновлять team_members
+     может владелец (та же политика, что у approve/reject через rpc — здесь пробуем
+     прямой update и ЧЕСТНО возвращаем false, если политика не пустила: UI покажет
+     «нужен патч БД», а не соврёт, что получилось). */
+  async function setMemberRole(teamId, userId, role) {
+    var c = client(); if (!c || !teamId || !userId) return false;
+    if (["admin", "member"].indexOf(role) < 0) return false;
+    try {
+      var r = await c.from("team_members").update({ role: role }).eq("team_id", teamId).eq("user_id", userId).select("user_id");
+      return !r.error && Array.isArray(r.data) && r.data.length > 0;   // RLS-тихий отказ = 0 строк
+    } catch (e) { return false; }
+  }
   async function approveMember(teamId, userId) {
     var c = client(); if (!c || !teamId || !userId) return false;
     try { var r = await c.rpc("approve_member", { t: teamId, u: userId }); return !r.error; } catch (e) { return false; }
@@ -2120,7 +2134,7 @@
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal, pendingDeletes: pendingDeletes,
     createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
-    joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
+    joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, setMemberRole: setMemberRole, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
     teamMembers: teamMembers, teamMembersStrict: teamMembersStrict, teamMemberIdsStrict: teamMemberIdsStrict, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday, myCircleDays: myCircleDays,
     teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
