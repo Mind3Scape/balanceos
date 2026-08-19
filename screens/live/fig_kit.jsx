@@ -291,16 +291,16 @@ function FigPillButton({ children, onClick, filled, disabled, style }) {
 
 /* КАРТОЧКА МЕСТА/СОБЫТИЯ — 240 шириной: фото 160 с точками страниц, заголовок в две строки,
    оценка · город, цена в XP (со старой ценой), кнопка. */
-function FigPlaceCard({ item, onOpen, onAct }) {
+function FigPlaceCard({ item, onOpen, onAct, wide }) {
   var it = item || {};
   var photos = it.photos && it.photos.length ? it.photos : (it.photo ? [it.photo] : []);
   var [pg, setPg] = React.useState(0);
   var railRef = React.useRef(null);
   var onScroll = () => { var el = railRef.current; if (!el) return; setPg(Math.round(el.scrollLeft / Math.max(1, el.clientWidth))); };
   return (
-    <div style={{ width: 240, flexShrink: 0, borderRadius: 24, background: "var(--surface)", overflow: "hidden",
+    <div style={{ width: wide ? "100%" : 240, flexShrink: 0, borderRadius: 24, background: "var(--surface)", overflow: "hidden",
       display: "flex", flexDirection: "column", scrollSnapAlign: "start" }}>
-      <div style={{ position: "relative", height: 160, background: "var(--surface-3)" }}>
+      <div style={{ position: "relative", height: wide ? 180 : 160, background: "var(--surface-3)" }}>
         <div ref={railRef} onScroll={onScroll} style={{ display: "flex", height: "100%", overflowX: photos.length > 1 ? "auto" : "hidden",
           scrollSnapType: "x mandatory", scrollbarWidth: "none" }}>
           {(photos.length ? photos : [null]).map((src, i) => (

@@ -417,10 +417,8 @@ function FigPlacesRoomLive({ navigate, query, onAdd }) {
         action="Добавить" onAction={function () { onAdd(function () { setTick(function (t) { return t + 1; }); }); }} />
       <div style={{ display: "grid", gap: 10, padding: "0 16px 10px" }}>
         {list.map(function (p) {
-          return <div key={p.id} style={{ display: "grid" }}>
-            <FigPlaceCard item={Object.assign({}, p)} onOpen={function () { openShowcase(p, "place"); }}
-              onAct={function () { openShowcase(p, "place"); }} />
-          </div>;
+          return <FigPlaceCard key={p.id} wide item={p} onOpen={function () { openShowcase(p, "place"); }}
+              onAct={function () { openShowcase(p, "place"); }} />;
         })}
       </div>
       {!list.length && <FigEmpty title="Ничего не найдено" text="Попробуй другое слово или добавь своё место." action="Добавить" onAction={function () { onAdd(function () { setTick(function (t) { return t + 1; }); }); }} />}
