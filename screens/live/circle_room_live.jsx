@@ -956,6 +956,17 @@ function TeamDetailLive() {
 
   /* ── вёрстка ── */
   const glass = bosGlassChrome(isDark);
+  // Цвет шапки. Свой t.accent → он; иначе устойчивый из палитры кругов по имени, чтобы у
+  // каждого круга было СВОЁ лицо и оно не прыгало между заходами. Это не данные, а внешность
+  // по умолчанию: в макете у каждой группы своя заливка, и в Figma «Группа» лежит Color Picker.
+  const heroTint = React.useMemo(() => {
+    if (t.accent) return t.accent;
+    const pal = (typeof BOS_TEAM_PALETTE !== "undefined" && BOS_TEAM_PALETTE.length) ? BOS_TEAM_PALETTE : ["#7FB3F2"];
+    const key = String(t.cloudId || t.id || t.name || "");
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return pal[h % pal.length];
+  }, [t.accent, t.cloudId, t.id, t.name]);
   const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: (goalProg && goalProg.desc) || t.desc || "", joined: t.joined, threadOff: threadOff, habitIds: [] };
   const subParts = [];
   if (ageDays) subParts.push("живёт " + ageDays + " " + ((ageDays % 10 === 1 && ageDays % 100 !== 11) ? "день" : (ageDays % 10 >= 2 && ageDays % 10 <= 4 && (ageDays % 100 < 12 || ageDays % 100 > 14)) ? "дня" : "дней"));
@@ -969,10 +980,17 @@ function TeamDetailLive() {
   // смешивалось всё в одно; тогда дела не надо подписывать как дела»). Плюс внизу
   // остаётся универсальным. dayList = строки активной вкладки.
   const [listTab, setListTab] = React.useState("habits");
+  const [descOpen, setDescOpen] = React.useState(false);
+  // РЕДИЗАЙН (Figma 19.08): «Привычки» и «Задачи» поднялись из подвкладок в ВЕРХНИЕ сегменты,
+  // а «Сегодня» показывает и то и другое одним списком — в макете внутри одной таблицы стоят
+  // и Group Task Today Row, и Group Habit Today Row. listTab оставлен: по нему всё ещё
+  // считается «N из M», и это запасной путь, если сегменты откатим.
+  const _showHabits = roomTab === "day" || roomTab === "habits";
+  const _showTasks = roomTab === "day" || roomTab === "tasks";
   const dayList = [];
   // Строки БЕЗ подписей «N из M · ты в 12:52» (David 2026-07-16: «грязь, захламляет» —
   // лица уже показывают, кто прокликал, а раскрытие даёт подробности).
-  if (listTab === "habits") teamHabits.forEach((h, i) => {
+  if (_showHabits) teamHabits.forEach((h, i) => {
     const done = myDone(h);
     const facesH = (Array.isArray(h.todayUsers) ? h.todayUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const opened = openHabit === h.id;
@@ -999,7 +1017,7 @@ function TeamDetailLive() {
       </div>
     );
   });
-  if (listTab === "tasks") _teamTasks.forEach((tk, i) => {
+  if (_showTasks) _teamTasks.forEach((tk, i) => {
     const facesT = (Array.isArray(tk.doneUsers) ? tk.doneUsers : []).map((u) => rosterById[u]).filter(Boolean);
     const _tRow = (
       <CircleDayRowLive first={dayList.length === 0} isDark={isDark}
@@ -1015,66 +1033,106 @@ function TeamDetailLive() {
   });
 
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* ШАПКА-ПИЛЮЛЯ (v5, кадр 05): назад · имя круга с подписью «кто уже в деле» · компас и «⋯».
-          Раньше здесь стоял переключатель, а имени не было вовсе — комната читалась как экран, а
-          не как место. Сегменты уехали ниже: их стало четыре, значками они уже не помещались.
-          Подпись говорит ТОЛЬКО правду: про «кто сейчас в приложении» у нас данных нет, поэтому
-          вместо присутствия — сегодняшние отметки. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 0", minHeight: 46 }}>
-        {!_inTG && (
-          <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={{ width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", background: "transparent", color: "var(--text)", flexShrink: 0, cursor: "pointer", marginLeft: -6 }}>
-            <I.ChevronLeft size={20} strokeWidth={2.4} />
-          </button>
-        )}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 9, height: 44, borderRadius: 999, padding: "0 6px 0 7px", boxSizing: "border-box", ...glass }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
-            background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
-            boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 15, null, "👥")}</span>
-          <span style={{ flex: 1, minWidth: 0, lineHeight: 1.15 }}>
-            <span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
-            <span style={{ display: "block", fontSize: 10.5, color: "var(--text-4)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {_live && todayN > 0
-                ? (todayN >= membersN && membersN > 1 ? "все уже в деле сегодня" : (bosRoomCountWord(todayN) + " уже в деле"))
-                : (membersN ? membersN + " " + bosRoomPeopleWord(membersN) : "круг только начинается")}
-            </span>
-          </span>
-          {_isOwner && _live && (
-            <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap" aria-label="Хозяйство круга" title="Хозяйство круга"
-              style={{ height: 36, border: 0, padding: "0 6px", display: "inline-flex", alignItems: "center", gap: 3, background: "transparent", color: isDark ? "#fff" : "#0a0a0a", cursor: "pointer", flexShrink: 0 }}>
-              <I.Compass size={17} strokeWidth={2} />
-              {redCount > 0 && <span style={{ minWidth: 16, height: 16, borderRadius: 999, background: "#E0362B", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px" }}>{redCount}</span>}
+    <div className="page-in fig" style={{ padding: "0 16px 24px", background: "var(--bg)", minHeight: "100%" }}>
+      {/* ШАПКА-ГЕРОЙ (редизайн Figma 19.08, кадр «Группа / Участник»). Была пилюля 44px с
+          именем внутри; в макете шапка — блок 476px: цветная подложка с затуханием, аватар 96,
+          имя по центру, ряд стеклянных кнопок и описание. Смысл сдвига: комната перестаёт
+          читаться как список и начинает читаться как МЕСТО.
+
+          Кнопки: «Чат» текстом (в макете он вышел из сегментов), рядом два кружка — «Люди» и
+          «Путь». Ни один сегмент не пропал, все трое переехали сюда. */}
+      <div style={{ position: "relative", margin: "0 -16px", padding: "0 16px" }}>
+        <div aria-hidden style={{
+          position: "absolute", inset: "0 0 auto", height: 400, pointerEvents: "none",
+          background: "linear-gradient(180deg, " + heroTint + (isDark ? "8C" : "A6") + " 0%, "
+            + heroTint + (isDark ? "3D" : "4D") + " 38%, " + heroTint + "14 62%, transparent 84%)",
+        }} />
+
+        {/* Панель сверху: назад слева, компас и «⋯» справа. В Телеграме свой «назад». */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, paddingTop: 6 }}>
+          {!_inTG ? (
+            <button onClick={() => navigate(from)} className="tap" aria-label="Назад"
+              style={{ ...glass, width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <I.ChevronLeft size={20} strokeWidth={2.4} />
             </button>
-          )}
-          <button ref={moreRef} onClick={() => setMenuOpen(true)} className="tap" aria-label="Ещё" aria-haspopup="menu" aria-expanded={menuOpen}
-            style={{ width: 34, height: 36, border: 0, background: "transparent", color: isDark ? "#fff" : "#0a0a0a", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+          ) : <span />}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {_isOwner && _live && (
+              <button onClick={() => navigate("team-cabinet", { team: t, from: from })} className="tap" aria-label="Хозяйство круга" title="Хозяйство круга"
+                style={{ ...glass, position: "relative", width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+                <I.Compass size={17} strokeWidth={2} />
+                {redCount > 0 && <span style={{ position: "absolute", top: -3, right: -3, minWidth: 16, height: 16, borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px" }}>{redCount}</span>}
+              </button>
+            )}
+            <button ref={moreRef} onClick={() => setMenuOpen(true)} className="tap" aria-label="Ещё" aria-haspopup="menu" aria-expanded={menuOpen}
+              style={{ ...glass, width: 36, height: 36, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Аватар 96 + имя. Отступы из макета: аватар→имя 16, имя→кнопки 24. */}
+        <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: 12, paddingBottom: 24 }}>
+          <span style={{ width: 96, height: 96, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 46, flexShrink: 0, overflow: "hidden",
+            background: BOS_ORB_SHEEN + ", " + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)"),
+            boxShadow: bosOrbGlass(isDark) }}>{bosIconOf(t, 46, null, "\ud83d\udc65")}</span>
+          <div style={{ textAlign: "center", maxWidth: 300 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", lineHeight: 1.2 }}>{t.name}</div>
+            <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 4 }}>{subParts.join(" \u00b7 ")}</div>
+          </div>
+        </div>
+
+        {/* Ряд кнопок: «Чат» 160×50 + два кружка 50×50, зазор 10 — размеры из макета. */}
+        <div style={{ position: "relative", display: "flex", justifyContent: "center", gap: 10, paddingBottom: 24 }}>
+          <button onClick={() => setRoomTab("chat")} className="tap" data-haptic="selection"
+            style={{ ...glass, position: "relative", width: 160, height: 50, borderRadius: 999, border: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text)", fontSize: 17, fontWeight: 590, cursor: "pointer" }}>
+            <I.MessageCircle size={20} strokeWidth={2} />Чат
+            {unreadN > 0 && (
+              <span style={{ position: "absolute", top: 4, right: 10, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: "var(--accent-red)", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
+            )}
+          </button>
+          <button onClick={() => setRoomTab("people")} className="tap" data-haptic="selection" aria-label="Люди круга"
+            style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+            <I.Users size={20} strokeWidth={2} />
+          </button>
+          <button onClick={() => { setRoomTab("path"); setPathSeen(true); }} className="tap" data-haptic="selection" aria-label="Путь круга"
+            style={{ ...glass, width: 50, height: 50, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer" }}>
+            <I.Calendar size={20} strokeWidth={2} />
           </button>
         </div>
+
+        {/* Описание с «Ещё» и строка места — блок Content из макета (2 строки, потом обрез). */}
+        {t.desc && (
+          <div style={{ position: "relative", paddingBottom: 24, textAlign: "center" }}>
+            <div style={{ fontSize: 15, lineHeight: 1.33, color: "var(--text-2)", display: "-webkit-box", WebkitLineClamp: descOpen ? 99 : 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.desc}</div>
+            {t.desc.length > 90 && (
+              <button onClick={() => setDescOpen(!descOpen)} className="tap"
+                style={{ border: 0, background: "transparent", color: "var(--text)", fontSize: 15, fontWeight: 590, cursor: "pointer", padding: "2px 0 0" }}>{descOpen ? "Свернуть" : "Ещё"}</button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ЧЕТЫРЕ СЕГМЕНТА (v5): День · Чат · Путь · Люди. Разговор больше не спрятан за
-          значком — у него имя и золотая цифра непрочитанного.
-          МАТЕРИАЛ ПО МАКЕТУ (design-mockups/2026-07-26-сообщество-v5.html, .seg): активный —
-          БЕЛАЯ карточка с мягкой тенью на сером жёлобе, скругление 14/11, а не чёрная
-          таблетка-пилюля. David 2026-08-02: «в дизайнах он выделялся белым, а сейчас чёрным». */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, padding: 3, borderRadius: 14, marginTop: 8,
-        background: isDark ? "rgba(255,255,255,0.07)" : "#e5e5eb" }}>
-        {[["day", "День"], ["chat", "Чат"], ["path", "Путь"], ["people", "Люди"]].map(([id, label]) => {
+      {/* СЕГМЕНТЫ ПО МАКЕТУ: Сегодня · Привычки · Задачи · Цели. Чат, Путь и Люди ушли в
+          кнопки шапки — сегментов снова четыре, но теперь они про СОДЕРЖИМОЕ круга, а не про
+          способ на него посмотреть.
+          Материал: жёлоб высотой 32 с внутренним полем 2 (в макете Segmented control 361×32,
+          padding 2) — стандартный сегмент iOS вместо нашей прежней карточки 34. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, padding: 2, borderRadius: 9, marginTop: 8,
+        background: "var(--surface-3)" }}>
+        {[["day", "Сегодня"], ["habits", "Привычки"], ["tasks", "Задачи"], ["goals", "Цели"]].map(([id, label]) => {
           const on = roomTab === id;
           return (
-            <button key={id} onClick={() => { setRoomTab(id); if (id === "path") setPathSeen(true); try { window.scrollTo(0, 0); } catch (e) {} }} className="tap" data-haptic="selection"
-              style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 11, height: 34, padding: 0, cursor: "pointer", fontSize: 12.5, fontWeight: on ? 700 : 650, letterSpacing: "-0.2px",
-                background: on ? (isDark ? "rgba(255,255,255,0.16)" : "#fff") : "transparent", color: on ? "var(--text)" : "var(--text-3)",
-                boxShadow: on ? (isDark ? "none" : "0 2px 7px rgba(24,26,36,0.08)") : "none", transition: "background .15s, color .15s" }}>
+            <button key={id} onClick={() => { setRoomTab(id); if (id === "habits" || id === "tasks") setListTab(id); try { window.scrollTo(0, 0); } catch (e) {} }} className="tap" data-haptic="selection"
+              style={{ position: "relative", minWidth: 0, border: 0, borderRadius: 7, height: 28, padding: 0, cursor: "pointer", fontSize: 13, fontWeight: on ? 590 : 400, letterSpacing: "-0.1px",
+                background: on ? "var(--surface)" : "transparent", color: "var(--text)",
+                boxShadow: on ? "0 3px 8px rgba(0,0,0,0.12)" : "none", transition: "background .15s" }}>
               {label}
-              {id === "chat" && !on && unreadN > 0 && (
-                <span style={{ position: "absolute", top: -2, right: 2, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#5a4104", fontSize: 8.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{unreadN > 9 ? "9+" : unreadN}</span>
-              )}
             </button>
           );
         })}
       </div>
+
       {/* «Редактировать» — ПЕРВЫМ и для владельца ЛЮБОГО круга (David 2026-07-17: «исчезло
           редактирование целей»): та же форма __isTeam, что в кабинете (save=updateTeam). */}
       <CircleRoomMenuLive open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={moreRef} isDark={isDark} items={[
@@ -1085,10 +1143,11 @@ function TeamDetailLive() {
         ), label: "Уровень круга — " + circleLvl.level, go: openLevelSheet } : null,
       ].filter(Boolean)} />
 
-      {roomTab === "day" && (<React.Fragment>
+      {(roomTab === "day" || roomTab === "habits" || roomTab === "tasks") && (<React.Fragment>
       {/* ДЕНЬ (v5, кадр 05): здесь остаётся ТОЛЬКО сегодняшнее действие. Уровень, счёт и
           календарь уехали в «Путь», список людей — в «Люди», имя круга живёт в шапке. Первым —
           факт дня словами, под ним нить: кто и в котором часу уже закрыл своё. */}
+      {roomTab === "day" && (
       <div style={{ ...card, padding: "13px 13px 9px", marginTop: 10 }}>
         <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px" }}>{dayTitle}</div>
         {daySub && <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>{daySub}</div>}
@@ -1098,6 +1157,7 @@ function TeamDetailLive() {
           </div>
         )}
       </div>
+      )}
 
       {/* ЗАЯВКИ — владельцу, прямо у двери. */}
       {_isOwner && pending.length > 0 && (
@@ -1114,28 +1174,20 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* МОЙ ДЕНЬ В КРУГЕ — вкладки «Привычки · Дела» (David 2026-07-20: «не смешивать в одно;
-          переключатель посимпатичней»): пилюля-сегмент в языке шапки комнаты (активный сегмент =
-          белая карточка на сером, как «День/Чат»); счётчик справа — по активной вкладке. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0 9px" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 3, borderRadius: 14, padding: 3, background: isDark ? "rgba(255,255,255,0.07)" : "#e5e5eb" }}>
-          {[["habits", "Привычки"], ["tasks", "Дела"]].map(([id, label]) => {
-            const on = listTab === id;
-            return (
-              <button key={id} onClick={() => setListTab(id)} className="tap" data-haptic="selection"
-                style={{ border: 0, borderRadius: 11, padding: "7px 15px", fontSize: 12.5, fontWeight: on ? 700 : 650, letterSpacing: "-0.1px", cursor: "pointer",
-                  background: on ? (isDark ? "rgba(255,255,255,0.16)" : "#fff") : "transparent", color: on ? "var(--text)" : "var(--text-3)",
-                  boxShadow: on ? (isDark ? "none" : "0 2px 7px rgba(24,26,36,0.08)") : "none", transition: "background .15s, color .15s" }}>{label}</button>
-            );
-          })}
-        </div>
-        {listTab === "habits" && teamHabits.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)", paddingRight: 4 }}>{_myDoneCount + " из " + teamHabits.length}</span>}
-        {listTab === "tasks" && _teamTasks.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-4)", paddingRight: 4 }}>{_teamTasks.filter((x) => x.doneByMe).length + " из " + _teamTasks.length}</span>}
+      {/* Заголовок списка со счётом. Переключатель «Привычки · Дела» отсюда УБРАН: обе
+          вкладки поднялись в верхние сегменты, и два ряда сегментов подряд читались бы
+          как ошибка вёрстки. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 4px 8px" }}>
+        <span style={{ fontSize: 17, fontWeight: 590, color: "var(--text)", letterSpacing: "-0.3px" }}>
+          {roomTab === "tasks" ? "Задачи" : roomTab === "habits" ? "Привычки" : "Сегодня"}
+        </span>
+        {roomTab !== "tasks" && teamHabits.length > 0 && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{_myDoneCount + " из " + teamHabits.length}</span>}
+        {roomTab === "tasks" && _teamTasks.length > 0 && <span style={{ fontSize: 15, color: "var(--text-2)" }}>{_teamTasks.filter((x) => x.doneByMe).length + " из " + _teamTasks.length}</span>}
       </div>
       <div style={{ ...card, padding: "3px 12px" }}>
         {dayList.length ? dayList : (
           <div style={{ padding: "18px 6px", textAlign: "center" }}>
-            {listTab === "habits" ? (
+            {roomTab !== "tasks" ? (
               <React.Fragment>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>{_isOwner ? "Дай кругу первую привычку" : "Ведущий ещё не добавил привычек"}</div>
                 <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>{_isOwner ? "Общий ритм — то, что круг делает каждый день" : "Загляни позже — здесь появится список дня"}</div>
@@ -1191,6 +1243,82 @@ function TeamDetailLive() {
           </div>
         </div>
       )}
+      </React.Fragment>)}
+
+      {/* ЦЕЛИ (новая вкладка, редизайн Figma). В макете это список Target Card со ставкой,
+          сроком, числом участников и вложенными привычками. В ДАННЫХ у круга цель ПОКА ОДНА
+          (goalProg / t.target) — список целей не выдумываем: рисуем одну карточку тем же
+          языком и честно подписываем, что цель у круга одна. Когда цели станут
+          множественными, карточка уже готова принимать их массивом. */}
+      {roomTab === "goals" && (<React.Fragment>
+        {(gTgt > 0 || t.goal || stake > 0) ? (
+          <div style={{ ...card, marginTop: 10, padding: "16px 16px 14px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 22, overflow: "hidden",
+                background: heroTint + "26" }}>{bosIconOf(t, 22, null, "\ud83c\udfaf")}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 590, color: "var(--text)", letterSpacing: "-0.3px" }}>{t.goal || t.name}</div>
+                <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 2 }}>
+                  {[goalType === "collective" ? "Общая" : "Для каждого",
+                    (t.date || t.deadline) ? ("до " + (t.date || t.deadline)) : "бессрочная"].join(" \u00b7 ")}
+                </div>
+                {membersN > 0 && <div style={{ fontSize: 15, color: "var(--text-2)" }}>{membersN + " " + bosRoomPeopleWord(membersN) + " участвуют"}</div>}
+              </div>
+            </div>
+
+            {/* Ставка — зелёным: в макете это валюта, и зелёный занял место золота. */}
+            {stake > 0 && (
+              <div style={{ marginTop: 14, borderRadius: 13, padding: "11px 13px", background: "var(--surface-3)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 15, color: "var(--text-2)" }}>Ставка</span>
+                  <span style={{ fontSize: 15, fontWeight: 590, color: "var(--text)" }}>{stake + " XP"}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-3)" }}>банк круга</span>
+                  <span style={{ fontSize: 13, fontWeight: 590, color: "var(--accent)" }}>{"+" + bank + " XP"}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Полоса прогресса — только когда есть куда идти. Без цели-числа полосы нет. */}
+            {gTgt > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ height: 8, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: Math.max(0, Math.min(100, (gCur / gTgt) * 100)) + "%", background: "var(--accent)", borderRadius: 999, transition: "width .3s" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 13, color: "var(--text-3)" }}>
+                  <span>{gCur + (gUnit ? " " + gUnit : "")}</span>
+                  <span>{gTgt + (gUnit ? " " + gUnit : "")}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Привычки, которые ведут к цели — вложенный список из макета. */}
+            {teamHabits.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "0.5px solid var(--line-2)" }}>
+                {teamHabits.slice(0, 5).map((h, i) => (
+                  <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", fontSize: 15, overflow: "hidden", background: "var(--surface-3)" }}>{bosIconOf(h, 15, h.color)}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
+                    <span style={{ fontSize: 13, color: "var(--text-3)" }}>Привычка</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ ...card, marginTop: 10, padding: "28px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 17, fontWeight: 590, color: "var(--text)" }}>{_isOwner ? "У круга пока нет цели" : "Ведущий ещё не поставил цель"}</div>
+            <div style={{ fontSize: 15, color: "var(--text-2)", marginTop: 4, lineHeight: 1.35 }}>{_isOwner ? "Цель — то, куда круг идёт вместе, а привычки — шаги к ней." : "Когда появится — она будет здесь."}</div>
+            {_isOwner && (
+              <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap"
+                style={{ marginTop: 16, border: 0, borderRadius: 999, padding: "13px 22px", fontSize: 17, fontWeight: 590, cursor: "pointer", background: "var(--cta)", color: "var(--cta-ink)" }}>Поставить цель</button>
+            )}
+          </div>
+        )}
+        <div style={{ padding: "12px 16px 0", fontSize: 13, lineHeight: 1.35, color: "var(--text-3)", textAlign: "center" }}>
+          У круга одна общая цель. Несколько целей сразу ещё не завезли.
+        </div>
       </React.Fragment>)}
 
       {/* ПУТЬ — читается сверху вниз одной историей: ГДЕ круг сейчас → КАК он держится →

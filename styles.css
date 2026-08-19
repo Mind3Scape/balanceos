@@ -1207,7 +1207,11 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
   --glass-shadow: 0 8px 32px rgba(0,0,0,0.10);
 }
 
+/* Класс темы живёт на ОБЁРТКЕ страницы (.bos-page.theme-dark), а .fig — на самом экране
+   внутри неё. Поэтому одного «.fig.theme-dark» мало: нужен и вариант «тема выше по дереву».
+   Порядок в списке значения не имеет — специфичность у обоих одна. */
 .fig.theme-dark,
+.theme-dark .fig,
 .fig .bos-sheet.is-dark,
 .bos-sheet.fig.is-dark {
   --bg: #000000;
