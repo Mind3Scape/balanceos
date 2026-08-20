@@ -64,8 +64,20 @@ function AvatarPickerSheet({ dark = false }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const { close } = useSheet();
   const C = sheetColors(dark);
-  const [tab, setTab] = useP("memoji");
   const cur = app?.avatar || null;
+  // «Капли» — первая вкладка (экспери­мент 2026-08-20): 15 живых лиц, ДЕТЕРМИНИРОВАННО выросших
+  // из личности (uid → у каждого человека СВОЙ набор вариантов, не общий каталог). Текущая
+  // капля (если выбрана) — всегда первой ячейкой, чтобы выбор был виден.
+  const [tab, setTab] = useP(cur && ("" + cur).indexOf("blob:") === 0 ? "drops" : "memoji");
+  const dropSeeds = React.useMemo(() => {
+    var base = null;
+    try { base = (window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync()) || null; } catch (e) {}
+    base = base || (app && app.userName) || "me";
+    var out = [];
+    if (cur && ("" + cur).indexOf("blob:") === 0) out.push(("" + cur).slice(5));
+    for (var i = 0; out.length < 15; i++) { var s = base + "·" + i; if (out.indexOf(s) < 0) out.push(s); }
+    return out;
+  }, [cur]);
   const pick = (val) => { try { app?.setAvatar?.(val); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const cell = (key, val, selected) => (
     <button key={key} onClick={() => pick(val)} className="tap" aria-label="Аватар"
@@ -78,16 +90,18 @@ function AvatarPickerSheet({ dark = false }) {
   return (
     <div style={{ padding: "2px 16px 8px", color: C.text }}>
       <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Аватар</div>
-      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Выбери лицо — Мемоджи или Эмодзи. Сменить можно когда угодно.</div>
+      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Выбери лицо — живая Капля, Мемоджи или Эмодзи. Сменить можно когда угодно.</div>
       <div style={{ display: "flex", gap: 6, background: C.field, borderRadius: 999, padding: 4, margin: "14px auto 14px", width: "fit-content" }}>
-        {[["memoji", "Мемоджи"], ["emoji", "Эмодзи"]].map(([k, l]) => (
-          <button key={k} onClick={() => setTab(k)} className="tap" style={{ border: 0, borderRadius: 999, padding: "7px 20px", fontSize: 13.5, fontWeight: 600, background: tab === k ? C.btn : "transparent", color: tab === k ? C.btnFg : C.sub }}>{l}</button>
+        {[["drops", "Капли"], ["memoji", "Мемоджи"], ["emoji", "Эмодзи"]].map(([k, l]) => (
+          <button key={k} onClick={() => setTab(k)} className="tap" style={{ border: 0, borderRadius: 999, padding: "7px 16px", fontSize: 13.5, fontWeight: 600, background: tab === k ? C.btn : "transparent", color: tab === k ? C.btnFg : C.sub }}>{l}</button>
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 13, maxHeight: 296, overflowY: "auto", padding: "2px 2px 4px" }}>
-        {tab === "memoji"
-          ? BOS_MEMOJI.map(m => cell(m, m === "default" ? null : m, m === "default" ? (!cur || cur === "default") : cur === m))
-          : BOS_EMOJI_AVATARS.map(e => { var v = "emoji:" + e; return cell(v, v, cur === v); })}
+        {tab === "drops"
+          ? dropSeeds.map(s => { var v = "blob:" + s; return cell(v, v, cur === v); })
+          : tab === "memoji"
+            ? BOS_MEMOJI.map(m => cell(m, m === "default" ? null : m, m === "default" ? (!cur || cur === "default") : cur === m))
+            : BOS_EMOJI_AVATARS.map(e => { var v = "emoji:" + e; return cell(v, v, cur === v); })}
       </div>
       <button onClick={close} className="tap" style={{ width: "100%", marginTop: 16, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Готово</button>
     </div>
@@ -163,7 +177,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
     };
     hb.forEach((h, i) => place((r) => nodes.push({ ring: r, kind: "h", emoji: h.emoji || "✨", icon: h.icon || null, streak: h.streak || 0, key: "h" + (h.id != null ? h.id : i) })));
     if (slot > 0) { ring++; slot = 0; } // people start their own belt, just outside your habits
-    pp.forEach((p, j) => place((r) => nodes.push({ ring: r, kind: "p", avatar: p && p.avatar, lit: (p && typeof p === "object") ? p.lit : undefined, key: "p" + j })));
+    pp.forEach((p, j) => place((r) => nodes.push({ ring: r, kind: "p", avatar: p && p.avatar, seed: (p && typeof p === "object" && (p.id || p.name)) || null, lit: (p && typeof p === "object") ? p.lit : undefined, key: "p" + j })));
     if (overflow > 0) nodes.push({ ring: MAXR, kind: "more", count: overflow, key: "more" });
     // Even angular spread within each belt (so nothing collides), then a per-ring spin.
     const byRing = {};
@@ -212,6 +226,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
   const avStr = "" + (avatar || "");
   const avIsMemoji = /^m\d+$/.test(avStr);
   const avIsEmoji = avStr.indexOf("emoji:") === 0;
+  const avBlobSeed = avStr.indexOf("blob:") === 0 ? avStr.slice(5) : null;
   const centreInitial = ("" + (name || "")).trim().charAt(0).toUpperCase();
   const TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
   // ПОЯС (кольца + пылинки + арка + планеты) — один JSX, рендерится либо прямо в основном svg
@@ -292,6 +307,10 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           );
         }
         const av = n.avatar, isEmoji = av && ("" + av).indexOf("emoji:") === 0, isMemoji = /^m\d+$/.test(av || "");
+        // Капля на орбите: явный "blob:", либо пусто/сфера при известном seed (id/имя человека).
+        // Рисуем СТАТИКОЙ прямо в этом svg (масштаб 16/50 от родного холста капли) — планет
+        // может быть много и они перерисовываются вращением, анимациям тут не место.
+        const pBlobSeed = (typeof bosBlobSeed === "function") ? bosBlobSeed(av, n.seed) : null;
         const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
         const pOp = (n.lit === false ? 0.5 : 1) * op; // dim members not active today (lit opt-in; profile passes none → full)
         return (
@@ -300,7 +319,9 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
             {isEmoji
               ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
-              : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
+              : pBlobSeed && typeof BosBlobShape === "function"
+                ? <g transform="scale(0.32)"><BosBlobShape p={bosBlobParams(pBlobSeed)} /></g>
+                : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
             <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
             <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />
             {n.lit === true && (
@@ -379,13 +400,15 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             boxShadow: "inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)" }}>
             <div style={{ position: "absolute", inset: 0 }}><PlanetOrb size={levelBadge > 0 ? 46 : 60} mood={centerMood} live /></div>
             {avIsEmoji && <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>{avStr.slice(6)}</span>}
+            {avBlobSeed && typeof BosBlob === "function" && <BosBlob seed={avBlobSeed} size={levelBadge > 0 ? 46 : 60} animate bare style={{ position: "absolute", inset: 0 }} />}
           </div>
         ) : (
         <div aria-hidden style={{ position: "absolute", inset: levelBadge > 0 ? 7 : 0, borderRadius: "50%",
-          background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
+          background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !avBlobSeed && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
           boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
           display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
-          {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}
+          {avIsEmoji ? avStr.slice(6) : (!avIsMemoji && !avBlobSeed ? (centreInitial || null) : null)}
+          {avBlobSeed && typeof BosBlob === "function" ? <BosBlob seed={avBlobSeed} size={levelBadge > 0 ? 46 : 60} animate bare style={{ position: "absolute", inset: 0 }} /> : null}
         </div>
         )}
         {/* Level-number badge at 45° on the ring — identical language to the home hero avatar.

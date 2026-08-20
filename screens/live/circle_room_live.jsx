@@ -79,7 +79,7 @@ function BosRoomFaceLive({ p, size, active, gold, isDark, onClick, level, accent
   var node = (
     <span style={{ position: "relative", borderRadius: "50%", lineHeight: 0, flexShrink: 0, display: "inline-block", boxShadow: ring }}>
       <span style={{ display: "inline-block", lineHeight: 0, borderRadius: "50%", filter: active === false ? "grayscale(1)" : "none", opacity: active === false ? 0.45 : 1 }}>
-        <BuddyFaceLive avatar={p.avatar} name={p.name} size={size} />
+        <BuddyFaceLive avatar={p.avatar} name={p.name} seed={p.id || p.uid} size={size} />
       </span>
       {(level | 0) > 0 && (
         <span style={{ position: "absolute", right: -5, bottom: -3, minWidth: 15, height: 15, padding: "0 3px", borderRadius: 999, background: isDark ? "#26262b" : "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 800, color: BOS_ROOM_GOLD_INK, lineHeight: 1 }}>{level | 0}</span>
@@ -283,9 +283,9 @@ function CircleMenuSheetLive({ team, role, isDark, unreadN, onAbout, onShare, on
   const isGuest = role === "guest", isAdmin = role === "admin";
   const run = (fn) => () => { close(); if (typeof fn === "function") setTimeout(fn, 60); };
 
-  const CARD = { background: "var(--surface-2)", borderRadius: 14, overflow: "hidden" };
+  const CARD = { background: isDark ? "#2C2C2E" : "var(--surface-2)", borderRadius: 26, overflow: "hidden" };
   const ROW = { width: "100%", border: 0, background: "transparent", cursor: "pointer", display: "flex",
-    alignItems: "center", gap: 12, padding: "14px 16px", textAlign: "left", fontSize: 17 };
+    alignItems: "center", gap: 12, padding: "15px 16px", textAlign: "left", fontSize: 17, fontWeight: 400, lineHeight: "22px", letterSpacing: "-0.43px" };
 
   // Верхний ряд: три равные колонки со значком и подписью.
   const big = (icon, label, onClick, muted) => (
@@ -299,8 +299,8 @@ function CircleMenuSheetLive({ team, role, isDark, unreadN, onAbout, onShare, on
   );
 
   return (
-    <div style={{ padding: "2px 0 6px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", padding: "10px 0 18px" }}>
+    <div style={{ padding: "2px 16px 6px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", padding: "8px 0 16px" }}>
         {isGuest
           ? big(<I.PlusCircle size={28} />, "Вступить", run(onJoin))
           : big(<I.Heart size={28} filled={fav} color={fav ? "var(--accent-red)" : undefined} />, "В избранное", toggleFav)}
@@ -352,9 +352,9 @@ function CircleAboutSheetLive({ team, membersN, ageDays, isDark }) {
   if (membersN) rows.push(["Участников", String(membersN)]);
   if (ageDays) rows.push(["Вместе", ageDays + " дн."]);
   return (
-    <div style={{ padding: "4px 0 8px" }}>
-      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", padding: "6px 4px 14px" }}>О группе</div>
-      <div style={{ background: "var(--surface-2)", borderRadius: 14, overflow: "hidden" }}>
+    <div style={{ padding: "4px 16px 8px" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.26px", color: "var(--text)", padding: "6px 0 14px" }}>О группе</div>
+      <div style={{ background: isDark ? "#2C2C2E" : "var(--surface-2)", borderRadius: 26, overflow: "hidden" }}>
         {rows.map(([k, v], i) => (
           <div key={k} style={{ display: "flex", gap: 14, padding: "13px 16px", borderTop: i ? "0.5px solid var(--line-2)" : 0 }}>
             <span style={{ fontSize: 17, color: "var(--text-2)", flexShrink: 0 }}>{k}</span>
@@ -925,6 +925,7 @@ function TeamDetailLive() {
      (David: «нажал на группу в чатах — открывай чат, а не группу»). _cameChat помнит,
      что пришли снаружи: «назад» тогда ведёт обратно в «Чаты», а не в комнату. */
   const chatMode = roomTab === "chat";
+  const [kbOpen, setKbOpen] = React.useState(false);
   const _cameChat = !!(params && (params.tab === "chat" || params.prefill));
   // Фото из чата НА ВЕСЬ ЭКРАН (David 2026-07-16: «нажимаю на фотку — не открывается,
   // в уменьшенном виде что толку»): тап по снимку → тёмный просмотр, тап — закрыть.
@@ -1520,11 +1521,16 @@ function TeamDetailLive() {
   });
 
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* Маркер чат-режима: по нему CSS (:has) прячет таб-бар — мессенджер живёт без меню. */}
-      {chatMode && <span className="fig-chatmode" aria-hidden style={{ display: "none" }} />}
+    <div className="page-in" style={chatMode
+      ? { padding: "0 16px", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", boxSizing: "border-box" }
+      : { padding: "0 16px 24px" }}>
+      {/* Маркер чат-режима: по нему CSS (:has) запирает скролл страницы — экран собирается
+          флекс-колонкой (шапка · лента · композер), скролл живёт ТОЛЬКО в ленте, композер
+          прижат над таб-баром (David 20.08: «поле для ввода прямо над таббаром, страница
+          скроллиться не должна»). Таб-бар в чате ВИДЕН. */}
+      {chatMode && <span className="fig-chatlock" aria-hidden style={{ display: "none" }} />}
       {chatMode && (
-        <div className="fig-swap" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0 8px" }}>
+        <div className="fig-swap" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0 8px", flexShrink: 0 }}>
           <button onClick={() => { if (_cameChat) navigate(from || "chats"); else setRoomTab("day"); }} className="tap" aria-label="Назад"
             style={{ ...glass, width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", color: "var(--text)", cursor: "pointer", flexShrink: 0 }}>
             <I.ChevronLeft size={19} strokeWidth={2.4} />
@@ -2025,7 +2031,7 @@ function TeamDetailLive() {
 
       {!(roomTab === "tasks" && taskGroups.length > 0) && (
         dayList.length ? (
-          <div style={{ ...card, borderRadius: 26, padding: "0 16px" }}>{dayList}</div>
+          <div style={{ ...card, borderRadius: 26, padding: "0 16px", marginTop: 10 }}>{dayList}</div>
         ) : (
           /* Пустое состояние по кадру «Пустое»: сообщение по фону, без карточки и подписи. */
           <div style={{ padding: "24px 32px", textAlign: "center" }}>
@@ -2427,7 +2433,7 @@ function TeamDetailLive() {
       {/* Имя круга больше не дублируется: оно живёт в шапке-пилюле и видно на всех вкладках. */}
       {/* Тебя подбодрили — и кто. */}
       {cheeredMe.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "7px 0 9px", borderRadius: 14, padding: "8px 11px", background: "rgba(240,195,10,0.10)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "7px 0 9px", borderRadius: 14, padding: "8px 11px", background: "rgba(240,195,10,0.10)", flexShrink: 0 }}>
           <I.Flame size={14} color={BOS_ROOM_GOLD} filled strokeWidth={1.6} />
           <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: BOS_ROOM_GOLD_INK }}>Тебя подбодрили — {cheeredMe.length} {bosRoomPeopleWord(cheeredMe.length)}</span>
           <button onClick={() => openSheet(<CircleWhoSheetLive people={cheeredMe.map((u) => rosterById[u]).filter(Boolean)} />)} className="tap"
@@ -2435,12 +2441,10 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* ЧАТ-БОКС: лента скроллится ВНУТРИ и открыта на свежем. С v5 композер уехал из коробки
-          в закреплённую строку внизу комнаты — она одна на все четыре вкладки. */}
-      {/* Чат занимает ОГРАНИЧЕННУЮ высоту экрана, лента скроллится внутри, композер приклеен к её
-          дну: страница под ним не едет (David 2026-08-02: «как раньше в чате было удобнее»). */}
-      <div style={{ ...card, overflow: "hidden", marginTop: cheeredMe.length > 0 ? 0 : 10 }}>
-      <div ref={feedBoxRef} className="screen-scroll" style={{ height: chatMode ? ("calc(100vh - var(--page-top, 60px) - " + (cheeredMe.length > 0 ? 228 : 176) + "px)") : ("calc(100vh - " + (cheeredMe.length > 0 ? 366 : 324) + "px)"), minHeight: 320, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 12px 4px", display: "flex", flexDirection: "column" }}>
+      {/* ЧАТ во всю высоту: лента = flex-часть колонки страницы (скролл ТОЛЬКО в ней),
+          композер — последний ряд, прижатый над таб-баром. Никакой vh-математики. */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", margin: "0 -16px" }}>
+      <div ref={feedBoxRef} className="screen-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: "12px 16px 4px", display: "flex", flexDirection: "column" }}>
       {feedCut && <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-5, var(--text-4))", margin: "0 0 8px", flexShrink: 0 }}>показаны последние события</div>}
       {feedShown.length === 0 && !hasMiles ? (
         <div style={{ textAlign: "center", padding: "0 24px", margin: "auto" }}>
@@ -2504,17 +2508,20 @@ function TeamDetailLive() {
       )}
       </div>
 
-      {/* КОМПОЗЕР — на дне чат-коробки, как в мессенджере (David 2026-08-02: закреплённая внизу
-          строка «Написать кругу» на всех вкладках не нужна — для разговора есть своя вкладка,
-          а бегущая за экраном строка неудобна). Скролл живёт ВНУТРИ ленты. */}
-      <div style={{ display: "flex", gap: 7, alignItems: "center", padding: "9px 10px", borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)") }}>
+      {/* КОМПОЗЕР — прижат НАД ТАБ-БАРОМ (62 + низ 21 + зазор 10). Пока печатаешь, таб-бар
+          гаснет (body.bos-kb-typing — тот же механизм, что у «Дел»), и отступ схлопывается,
+          чтобы строка стояла у клавиатуры. */}
+      <div style={{ display: "flex", gap: 7, alignItems: "center", flexShrink: 0,
+        padding: kbOpen ? "9px 16px 10px" : "9px 16px 93px",
+        borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(10,10,10,0.06)") }}>
         <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
         <button onClick={() => { if (fileRef.current) fileRef.current.click(); }} className="tap" aria-label="Прикрепить фото"
           style={{ width: 36, height: 36, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="M21 15l-5-5L5 21" /></svg>
         </button>
         <input ref={composerRef} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Написать кругу…"
-          onFocus={() => setTimeout(() => { try { composerRef.current && composerRef.current.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {} }, 250)}
+          onFocus={() => { setKbOpen(true); try { document.body.classList.add("bos-kb-typing"); } catch (e) {} }}
+          onBlur={() => { setKbOpen(false); try { document.body.classList.remove("bos-kb-typing"); } catch (e) {} }}
           style={{ flex: 1, minWidth: 0, ...bosChipGlass(isDark), border: 0, outline: 0, borderRadius: 999, padding: "10px 15px", fontSize: 15, color: "var(--text)" }} />
         <button onClick={send} className="tap" aria-label="Отправить"
           style={{ width: 36, height: 36, borderRadius: "50%", border: 0, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, background: text.trim() ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), transition: "background .2s" }}>

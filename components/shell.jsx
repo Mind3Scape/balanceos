@@ -965,10 +965,15 @@ function bosAvatarBg(avatar) {
   if (/^m\d+$/.test(avatar)) return "url(./assets/people/" + avatar + ".png) center/cover no-repeat";
   return "url(./assets/sphere.png) center/cover no-repeat";
 }
-function BosAvatar({ avatar, size, style, bare }) {
+function BosAvatar({ avatar, size, style, bare, seed, still }) {
   size = size || 44;
   var isEmoji = avatar && ("" + avatar).indexOf("emoji:") === 0;
   var isPhoto = avatar && ("" + avatar).indexOf("url:") === 0;
+  // «Живая капля»: avatar="blob:<seed>" — или пусто, но вызвавший знает, ЧЕЙ это круг (seed=id/имя).
+  var _bs = (typeof bosBlobSeed === "function") ? bosBlobSeed(avatar, seed) : null;
+  // Совсем мелкие лица (стопки 18-24px) не анимируем: моргание на такой площади не читается,
+  // а стоит как настоящая анимация.
+  if (_bs) return <BosBlob seed={_bs} size={size} animate={!still && size >= 30} bare={bare} style={style} />;
   if (isPhoto) return <div style={Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0,
     background: bosAvatarBg(avatar), backgroundSize: "cover", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" }, style || {})} />;
   // `bare`: when an emoji avatar sits ON a glossy mood orb, float the glyph on a
@@ -992,6 +997,18 @@ function BosOrbFace({ avatar, size, tint, style }) {
   size = size || 80;
   var isEmoji = avatar && ("" + avatar).indexOf("emoji:") === 0;
   var isMemoji = avatar && /^m\d+$/.test(avatar);
+  var _bs = avatar && ("" + avatar).indexOf("blob:") === 0 ? ("" + avatar).slice(5) : null;
+  if (_bs) {
+    // Капля живёт НА глянцевой сфере настроения — как эмодзи, только лицом-каплей.
+    var bt0 = (tint && tint[0]) || "#ffd97a", bt2 = (tint && tint[2]) || "#d97757";
+    return (
+      <div style={Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden",
+        background: "radial-gradient(circle at 33% 27%, rgba(255,255,255,0.9), rgba(255,255,255,0) 44%), radial-gradient(circle at 50% 52%, " + bt0 + ", " + bt2 + ")",
+        boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), inset 3px 4px 12px rgba(255,255,255,0.22)" }, style || {})}>
+        <BosBlob seed={_bs} size={size} animate bare style={{ position: "absolute", inset: 0 }} />
+      </div>
+    );
+  }
   if (avatar && ("" + avatar).indexOf("url:") === 0) return <div style={Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden" }, style || {}, { background: bosAvatarBg(avatar), backgroundSize: "cover", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" })} />;
   var t0 = (tint && tint[0]) || "#ffd97a", t2 = (tint && tint[2]) || "#d97757";
   var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden" }, style || {});
@@ -1006,6 +1023,133 @@ function BosOrbFace({ avatar, size, tint, style }) {
   );
   return <div style={Object.assign(base, { background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + t0 + ", " + t2 + ")", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" })} />;
 }
+
+/* ── ЖИВЫЕ КАПЛИ — автогенерируемые аватары «blob:<seed>» (экспери­мент 2026-08-20).
+   Идея с blobatar/bloub: одна строка (seed) → одно и то же лицо навсегда, без хранения и
+   загрузок. Тело — «чернильная» капля глубокого тона (12 тонов), глаза/рот — белые заливные
+   формы; форма тела = детерминированный волнистый контур. ВСЁ влезает в существующий круг
+   аватара (тело ≤ 46 из 50 радиуса viewBox) — размеры кругов приложения не трогаются.
+   Анимации (только там, где animate=true): дыхание тела + моргание + медленный взгляд, чистый
+   CSS-transform (GPU); рассинхрон толпы — длительности/задержка из хэша. Вселенная и SVG-орбиты
+   рендерят ту же каплю СТАТИКОЙ (без классов) — ноль лишней нагрузки на 240 систем. */
+function bosBlobHash(s) { s = "" + (s || "x"); var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; } return h; }
+// 12 глубоких тонов тела [светлая тема] + пастельная пара подложки; тёмная тема перебивает
+// тело через var(--bbt-N) и подложку через var(--blob-disc-*) (styles.css).
+var BOS_BLOB_TONES = [
+  { b: "#17181d", d: ["#eceef4", "#dde0e8"] },  // чернила
+  { b: "#33363e", d: ["#edeef2", "#dee0e6"] },  // графит
+  { b: "#2c3470", d: ["#eaecf8", "#dbdff0"] },  // индиго
+  { b: "#1f3f74", d: ["#e9eef8", "#d9e2f1"] },  // сапфир
+  { b: "#175258", d: ["#e7f1f2", "#d7e6e7"] },  // морская глубина
+  { b: "#1e4d38", d: ["#e8f1ec", "#d9e7df"] },  // хвоя
+  { b: "#3f4423", d: ["#eff0e7", "#e2e4d5"] },  // тёмная олива
+  { b: "#43301f", d: ["#f1ede9", "#e5ded7"] },  // эспрессо
+  { b: "#5a2432", d: ["#f4eaed", "#e9d9de"] },  // бордо
+  { b: "#46265c", d: ["#f0eaf5", "#e2d8ea"] },  // слива
+  { b: "#2f4560", d: ["#eaeff5", "#dae2ec"] },  // грифель-синий
+  { b: "#521f4b", d: ["#f3e9f1", "#e7d7e4"] },  // ежевика
+];
+// Все параметры капли из seed'а. Свой xorshift на базе FNV — Math.random запрещён (детерминизм).
+function bosBlobParams(seed) {
+  var h = bosBlobHash(seed) || 1;
+  var rnd = function () { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+  var pick = function (a, b) { return a + (b - a) * rnd(); };
+  var tone = Math.floor(rnd() * 12) % 12;
+  // Контур: базовый радиус + три волны (асимметрия k=1, крупная k=2..3, рябь k=4..6) + сплющивание.
+  var a0 = pick(0, 0.045), a1 = pick(0.02, 0.055), a2 = pick(0.012, 0.04);
+  var k1 = 2 + Math.floor(rnd() * 2), k2 = 4 + Math.floor(rnd() * 3);
+  var p0 = pick(0, 6.28), p1 = pick(0, 6.28), p2 = pick(0, 6.28), rot = pick(0, 6.28);
+  var sx = pick(0.94, 1.08), sy = pick(0.94, 1.08);
+  var R = 37;
+  var N = 22, pts = [];
+  for (var i = 0; i < N; i++) {
+    var th = (i / N) * Math.PI * 2;
+    var r = R * (1 + a0 * Math.sin(th + p0) + a1 * Math.sin(k1 * th + p1) + a2 * Math.sin(k2 * th + p2));
+    pts.push([Math.cos(th + rot) * r * sx, Math.sin(th + rot) * r * sy]);
+  }
+  var d = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
+  for (var j = 0; j < N; j++) {
+    var q0 = pts[(j + N - 1) % N], qa = pts[j], qb = pts[(j + 1) % N], q3 = pts[(j + 2) % N];
+    d += "C" + (qa[0] + (qb[0] - q0[0]) / 6).toFixed(1) + " " + (qa[1] + (qb[1] - q0[1]) / 6).toFixed(1)
+       + " " + (qb[0] - (q3[0] - qa[0]) / 6).toFixed(1) + " " + (qb[1] - (q3[1] - qa[1]) / 6).toFixed(1)
+       + " " + qb[0].toFixed(1) + " " + qb[1].toFixed(1);
+  }
+  d += "Z";
+  // Лицо: вариант глаз/рта (взвешенные таблицы), посадка и масштаб.
+  var eyeKind = ["caps", "caps", "caps", "dots", "dots", "tallcaps", "tallcaps", "sleepy", "happy", "happy", "wink", "dots"][Math.floor(rnd() * 12) % 12];
+  var mouthKind = ["none", "none", "none", "none", "smile", "smile", "smile", "grin", "grin", "o", "dash", "none"][Math.floor(rnd() * 12) % 12];
+  var eyeY = pick(-7, -1.5), eyeDX = pick(10.5, 14) * (sx > 1 ? sx : 1), eyeS = pick(0.95, 1.28), tilt = pick(0, 8);
+  var mouthY = eyeY + pick(11.5, 14);
+  // Рассинхрон анимаций: свои длительности + отрицательная задержка.
+  var d1 = pick(3.9, 5.7).toFixed(2) + "s", d2 = pick(4.2, 7.4).toFixed(2) + "s", d3 = pick(8, 12).toFixed(2) + "s", o = "-" + pick(0, 6).toFixed(2) + "s";
+  return { tone: tone, path: d, eyeKind: eyeKind, mouthKind: mouthKind, eyeY: eyeY, eyeDX: eyeDX, eyeS: eyeS, tilt: tilt, mouthY: mouthY, d1: d1, d2: d2, d3: d3, o: o };
+}
+// Внутренность капли (для viewBox -50..50): тело + блик + лицо. Используется и standalone
+// (BosBlob), и прямо ВНУТРИ чужого SVG (планеты-люди OrbitField) через <g scale>.
+function BosBlobShape({ p, animate }) {
+  var t = BOS_BLOB_TONES[p.tone] || BOS_BLOB_TONES[0];
+  var body = "var(--bbt-" + p.tone + ", " + t.b + ")";
+  var W = "#ffffff";
+  var ey = p.eyeY, dx = p.eyeDX, s = p.eyeS, k = p.eyeKind;
+  var eye = function (side) { // side: -1 левый, 1 правый
+    var x = dx * side, tw = (p.tilt * side).toFixed(1);
+    var kk = k === "wink" ? (side < 0 ? "caps" : "happy") : k;
+    if (kk === "dots") return <circle key={side} cx={x} cy={ey} r={5.4 * s} fill={W} />;
+    if (kk === "sleepy") return <rect key={side} x={x - 4 * s} y={ey - 1.9 * s} width={8 * s} height={4.2 * s} rx={2.1 * s} fill={W} transform={"rotate(" + tw + " " + x + " " + ey + ")"} />;
+    if (kk === "happy") return <path key={side} d={"M " + (x - 4.6 * s) + " " + (ey + 1.9 * s) + " Q " + x + " " + (ey - 5 * s) + " " + (x + 4.6 * s) + " " + (ey + 1.9 * s)} fill="none" stroke={W} strokeWidth={3.1 * s} strokeLinecap="round" />;
+    var hh = kk === "tallcaps" ? 13.6 : 11.4;
+    return <rect key={side} x={x - 3.2 * s} y={ey - hh * s / 2} width={6.4 * s} height={hh * s} rx={3.2 * s} fill={W} transform={"rotate(" + tw + " " + x + " " + ey + ")"} />;
+  };
+  var mouth = null, mk = p.mouthKind, my = p.mouthY;
+  if (mk === "smile") mouth = <path d={"M -4.2 " + my + " Q 0 " + (my + 3.9) + " 4.2 " + my} fill="none" stroke={W} strokeWidth="2.8" strokeLinecap="round" />;
+  else if (mk === "grin") mouth = <path d={"M -5 " + my + " A 5 5 0 0 0 5 " + my + " Z"} fill={W} />;
+  else if (mk === "o") mouth = <circle cx="0" cy={my + 1} r="2.3" fill={W} />;
+  else if (mk === "dash") mouth = <rect x="-3" y={my} width="6" height="2.6" rx="1.3" fill={W} />;
+  return (
+    <g className={animate ? "bb-bob" : undefined}>
+      <path d={p.path} fill={body} stroke="var(--blob-rim, rgba(255,255,255,0))" strokeWidth="1" />
+      <ellipse cx="-12" cy="-17" rx="15" ry="10" fill="#ffffff" opacity="0.13" transform="rotate(-24 -12 -17)" />
+      <g className={animate ? "bb-gaze" : undefined}>
+        <g className={animate ? "bb-blink" : undefined}>{eye(-1)}{eye(1)}</g>
+        {mouth}
+      </g>
+    </g>
+  );
+}
+// Готовый круглый аватар-капля. bare=true — без подложки-диска (капля на планете/орбе).
+function BosBlob({ seed, size, animate, bare, style }) {
+  size = size || 44;
+  var p = bosBlobParams(seed);
+  var t = BOS_BLOB_TONES[p.tone] || BOS_BLOB_TONES[0];
+  var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative",
+    background: bare ? "transparent" : "linear-gradient(150deg, var(--blob-disc-a, " + t.d[0] + "), var(--blob-disc-b, " + t.d[1] + "))",
+    boxShadow: bare ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.07)" }, style || {});
+  return (
+    <div style={base} aria-hidden>
+      <svg className={"bos-blob" + (animate ? " bos-blob-anim" : "")} viewBox="-50 -50 100 100" width={size} height={size}
+        style={{ position: "absolute", inset: 0, display: "block", "--bb-d1": p.d1, "--bb-d2": p.d2, "--bb-d3": p.d3, "--bb-o": p.o }}>
+        <BosBlobShape p={p} animate={animate} />
+      </svg>
+    </div>
+  );
+}
+// Авто-выданное ЛИЦО-эмодзи (пул bosRandomFaceAvatar): в пикере таких никогда не было
+// (там звери/предметы), значит человек его НЕ выбирал — можно честно переодеть в каплю.
+function bosAvatarIsAutoFace(avatar) {
+  var a = "" + (avatar || "");
+  if (a.indexOf("emoji:") !== 0) return false;
+  return (typeof BOS_FACE_AVATARS !== "undefined") && BOS_FACE_AVATARS.indexOf(a.slice(6)) >= 0;
+}
+// Единая точка решения «что за аватар»: строка "blob:<seed>" ИЛИ (пусто/сфера/авто-лицо)+
+// подсказка-seed → капля. Выбранные вручную мемоджи/звери/фото не трогаются никогда.
+function bosBlobSeed(avatar, seedHint) {
+  var a = "" + (avatar || "");
+  if (a.indexOf("blob:") === 0) return a.slice(5) || "b";
+  if ((!avatar || a === "default" || bosAvatarIsAutoFace(a)) && seedHint) return "" + seedHint;
+  return null;
+}
+// Случайная капля для НОВОГО пользователя (закрепляется в профиле и облаке один раз).
+function bosRandomBlobAvatar() { return "blob:" + Math.random().toString(36).slice(2, 9); }
 
 function AppProvider({ children }) {
   const [mood, setMood] = useState(MOOD_OPTIONS[1]);
@@ -1735,12 +1879,14 @@ function AppProvider({ children }) {
     var name = (tgUser && (tgUser.first_name || tgUser.username)) || "";
     setMode("live");
     var saved = (window.bosStore && window.bosStore.has(pid)) ? window.bosStore.load(pid) : null;
-    // Стартовое лицо: аватар ещё НИ РАЗУ не выбирался (null) → случайное эмодзи-лицо вместо
-    // общей серой сферы. Один раз: дальше выбор сохранён локально + в облаке. Ручной выбор
-    // (включая «default»-сферу из пикера) не перебивается.
+    // Стартовое лицо: аватар ещё НИ РАЗУ не выбирался (null) → СЛУЧАЙНАЯ ЖИВАЯ КАПЛЯ (2026-08-20;
+    // раньше — случайное эмодзи-лицо). Один раз: дальше выбор сохранён локально + в облаке.
+    // Ручной выбор (включая «default»-сферу из пикера) не перебивается.
     var _av0 = (saved ? (saved.avatar || avatar) : avatar) || null;
+    // Авто-выданный смайлик старого пула приравнен к «не выбирал» — тоже переезжает на каплю.
+    if (_av0 && typeof bosAvatarIsAutoFace === "function" && bosAvatarIsAutoFace(_av0)) _av0 = null;
     var _avWasEmpty = !_av0;
-    if (_avWasEmpty && typeof bosRandomFaceAvatar === "function") _av0 = bosRandomFaceAvatar();
+    if (_avWasEmpty) _av0 = (typeof bosRandomBlobAvatar === "function") ? bosRandomBlobAvatar() : (typeof bosRandomFaceAvatar === "function" ? bosRandomFaceAvatar() : null);
     if (saved) {
       setUserName(saved.userName || name); setAvatar(_av0);
       setHabits(_uniqLocal((saved.habits || []).map(bosRollHabit))); setGoals(_uniqLocal(saved.goals || [])); setTeams(saved.teams || []); setTaskLists(_bosNormLists(saved.taskLists));
@@ -1799,7 +1945,15 @@ function AppProvider({ children }) {
           window.bosCloud.loadProfile().then(function (prof) {
             if (prof && (prof.username || prof.avatar)) {
               if (prof.username) setUserName(prof.username);
-              if (prof.avatar) setAvatar(prof.avatar);
+              // Само-миграция старожилов на ЖИВЫЕ КАПЛИ (2026-08-20): в облаке авто-выданный
+              // смайлик старого пула (человек его не выбирал — в пикере лиц нет) → один раз
+              // закрепляем случайную каплю и в облаке; выбранные вручную лица не трогаем.
+              if (prof.avatar && typeof bosAvatarIsAutoFace === "function" && bosAvatarIsAutoFace(prof.avatar) && typeof bosRandomBlobAvatar === "function") {
+                var _avB = bosRandomBlobAvatar();
+                setAvatar(_avB);
+                window.bosCloud.saveProfile({ username: prof.username || _locName, avatar: _avB });
+              }
+              else if (prof.avatar) setAvatar(prof.avatar);
               // Само-миграция старожилов: имя в облаке есть, аватара НЕТ (никогда не менял) →
               // закрепляем свежее случайное лицо и в облаке — Вселенная/круги увидят его сразу.
               else if (_avWasEmpty && _av0) window.bosCloud.saveProfile({ username: prof.username || _locName, avatar: _av0 });

@@ -4099,7 +4099,7 @@ function PersonCardLive({ person, isDark, navigate, app }) {
     <div style={{ background: "var(--card)", borderRadius: 23, padding: 15, boxShadow: "var(--card-shadow)" }}>
       <button onClick={function () { navigate("net-person", { person: person }); }} className="tap"
         style={{ width: "100%", border: 0, background: "transparent", padding: 0, textAlign: "left", color: "var(--text)", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={46} style={{ flexShrink: 0 }} /> : null}
+        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} seed={person.id || person.name} size={46} style={{ flexShrink: 0 }} /> : null}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ fontSize: 16.5, fontWeight: 780, letterSpacing: "-0.3px" }}>{person.name || "Участник"}</span>
@@ -4165,7 +4165,7 @@ function OrderHelpSheetLive({ person, offer, app, isDark }) {
     <div style={_dSTitle}>Заказать помощь</div>
     <div style={_dSSub}>{bosNetSkillForOffer(offer).title} · {bosNetWhenText(offer)}</div>
     <div style={{ marginTop: 12, borderRadius: 18, background: "var(--card)", padding: 13, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 11 }}>
-      {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={42} /> : null}
+      {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} seed={person.id || person.name} size={42} /> : null}
       <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 750 }}>{person.name || "Участник"}</div><div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{bosHelpOfferTitleText(offer)}</div></div>
       <BosPriceLive xp={price} isDark={isDark} size={16} />
     </div>
@@ -4217,7 +4217,7 @@ function PersonScreenLive() {
           <button onClick={function () { sheet.open(<NetworkSafetySheetLive person={{ ownerId: person.user_id, name: person.name, avatar: person.avatar }} onHidden={back} />); }} aria-label="Действия" className="tap hit44" style={{ width: 40, height: 40, border: 0, borderRadius: 999, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text-3)", display: "grid", placeItems: "center", cursor: "pointer" }}><I.More size={18} /></button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={64} style={{ flexShrink: 0 }} /> : null}
+          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} seed={person.id || person.name} size={64} style={{ flexShrink: 0 }} /> : null}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.55px", color: "var(--text)" }}>{person.name || "Участник"}</span>

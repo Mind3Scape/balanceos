@@ -92,7 +92,7 @@ function FigGroupFace({ avatar, name, size }) {
     </span>
   );
 }
-function FigAvatarLvl({ avatar, name, size = 44, level = null, pct = 0, online = false, unread = 0, square = false, ring = true, group = false }) {
+function FigAvatarLvl({ avatar, name, size = 44, level = null, pct = 0, online = false, unread = 0, square = false, ring = true, group = false, seed }) {
   var gap = size >= 72 ? 5 : 2;
   var box = size + gap * 2 + 3;
   var r = (box - 3) / 2;
@@ -102,7 +102,7 @@ function FigAvatarLvl({ avatar, name, size = 44, level = null, pct = 0, online =
   var face = group
     ? <FigGroupFace avatar={avatar} name={name} size={size} />
     : (typeof BuddyFaceLive === "function")
-      ? <BuddyFaceLive avatar={avatar} name={name} size={size} />
+      ? <BuddyFaceLive avatar={avatar} name={name} size={size} seed={seed} />
       : <span style={{ width: size, height: size, borderRadius: "50%", background: "var(--surface-3)", display: "block" }} />;
   return (
     <span style={{ position: "relative", display: "inline-grid", placeItems: "center", width: box, height: box, flexShrink: 0 }}>

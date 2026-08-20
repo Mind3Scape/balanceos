@@ -263,7 +263,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v886";
+const APP_VERSION = "v887";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -1130,7 +1130,10 @@ function PhoneApp() {
         {/* No fake status bar. iOS draws the real one in an installed PWA; in a
             browser or Telegram the OS / Telegram owns the top bar, so we stay clean. */}
         {!drag && topInTabs && (
-          <TabBar key="tabbar" active={isLive ? (LIVE_TAB_OF[top.route] || (LIVE_TAB_ROUTES.has(top.route) ? top.route : "community")) : top.route}
+          <TabBar key="tabbar" active={isLive
+            ? ((top.route === "team-detail" && top.params && top.params.tab === "chat") ? "chats"
+              : (LIVE_TAB_OF[top.route] || (LIVE_TAB_ROUTES.has(top.route) ? top.route : "community")))
+            : top.route}
             dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} fig={isLive} badges={isLive ? { chats: chatsUnread } : null} />
         )}
         {destTab && (

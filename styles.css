@@ -1373,6 +1373,14 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .bos-page:has(.fig-chatmode) ~ .bos-tabbar,
 .bos-page:has(.fig-chatmode) ~ .bos-tabedge { display: none; }
 .page-stack > .bos-page:has(.fig-chatmode) { padding-bottom: 30px; }
+/* ЧАТ-РЕЖИМ (маркер .fig-chatlock): страница ЗАПЕРТА — не скроллится и не пружинит,
+   экран собран флекс-колонкой (шапка · лента · композер), скролл живёт только в ленте,
+   композер прижат над таб-баром. Таб-бар в чате ВИДЕН (David 20.08). */
+.page-stack > .bos-page:has(.fig-chatlock) {
+  overflow: hidden;
+  padding-bottom: 0;
+  overscroll-behavior: none;
+}
 
 /* Прогрессивное размытие нижней кромки под пилюлей — узел «Scroll Edge Effect - Soft»:
    контент тает в блюр к нижнему краю, как в iOS 26. Лежит ПОД таб-баром (z 19 < 20). */
@@ -1424,3 +1432,44 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 /* Горизонтальные ленты макета — без видимой полосы прокрутки. */
 .fig-rail::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .fig-month { animation: none !important; } }
+
+/* ── ЖИВЫЕ КАПЛИ (blob-аватары) — детерминированные лица из seed'а (id/имя человека).
+   Тело = глубокий «чернильный» тон, глаза/рот — белые заливные формы (материальная дисциплина).
+   Анимации ТОЛЬКО transform (GPU): дыхание-покачивание тела, моргание, медленный «взгляд».
+   Рассинхрон между людьми — inline-переменные --bb-d*/--bb-o из хэша seed'а, чтобы толпа
+   не моргала хором. Статичный режим (Вселенная, орбиты-SVG) классов не вешает — ноль затрат. */
+.bos-blob g, .bos-blob rect, .bos-blob path, .bos-blob circle, .bos-blob ellipse {
+  transform-box: fill-box; transform-origin: center;
+}
+@keyframes bosBlobBob {
+  0%   { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  32%  { transform: translateY(-1.7px) rotate(-1.2deg) scale(1.013, 0.987); }
+  64%  { transform: translateY(0.9px) rotate(1deg) scale(0.988, 1.014); }
+  100% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+}
+@keyframes bosBlobBlink {
+  0%, 91% { transform: scaleY(1); }
+  93.6%   { transform: scaleY(0.07); }
+  96.2%, 100% { transform: scaleY(1); }
+}
+@keyframes bosBlobGaze {
+  0%, 20%  { transform: translateX(0); }
+  28%, 46% { transform: translateX(1.8px); }
+  56%, 76% { transform: translateX(-1.5px); }
+  84%, 100% { transform: translateX(0); }
+}
+.bos-blob-anim .bb-bob   { animation: bosBlobBob  var(--bb-d1, 4.6s) ease-in-out var(--bb-o, 0s) infinite; }
+.bos-blob-anim .bb-blink { animation: bosBlobBlink var(--bb-d2, 5.4s) ease-in-out var(--bb-o, 0s) infinite; }
+.bos-blob-anim .bb-gaze  { animation: bosBlobGaze var(--bb-d3, 9s)   ease-in-out var(--bb-o, 0s) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .bos-blob-anim .bb-bob, .bos-blob-anim .bb-blink, .bos-blob-anim .bb-gaze { animation: none !important; }
+}
+/* Тёмная тема капель: подложка = общий графитовый диск, у тела лёгкий световой ободок,
+   тона тела чуть приподняты (--bbt-N перебивают светлые фолбэки в fill'ах). */
+.theme-dark, .bos-sheet.is-dark {
+  --blob-disc-a: #3d424b; --blob-disc-b: #282c33;
+  --blob-rim: rgba(255,255,255,0.16);
+  --bbt-0: #23242b; --bbt-1: #3f434c; --bbt-2: #3a4390; --bbt-3: #2b4f8d;
+  --bbt-4: #206671; --bbt-5: #28624a; --bbt-6: #4f5630; --bbt-7: #55402c;
+  --bbt-8: #6f3245; --bbt-9: #583573; --bbt-10: #3d567a; --bbt-11: #66305e;
+}

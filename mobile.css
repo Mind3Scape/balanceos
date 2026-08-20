@@ -205,6 +205,15 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
 .page-stack > .bos-page:not(.no-tabbar):not(.full-bleed) {
   padding-bottom: calc(110px + var(--bos-safe-bottom));
 }
+/* ЧАТ-РЕЖИМ: страница заперта — без нижнего отступа (композер сам держит место под таб-бар),
+   без скролла и пружины. Правило живёт здесь же, НИЖЕ базового padding-bottom, чтобы победить. */
+/* Специфичность как у правила 110px выше (два :not) + :has — иначе оно перевешивало. */
+.page-stack > .bos-page:not(.no-tabbar):not(.full-bleed):has(.fig-chatlock) {
+  overflow: hidden;
+  padding-bottom: 0;
+  overscroll-behavior: none;
+}
+
 .page-stack > .bos-page.no-tabbar {
   padding-bottom: calc(30px + var(--bos-safe-bottom));
 }

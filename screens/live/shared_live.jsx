@@ -1733,7 +1733,7 @@ function NetPersonCardLive({ person, viewerLevel, navigate }) {
   return (
     <button onClick={function () { navigate("net-person", { person: person }); }} className="tap" style={{ width: "100%", border: 0, textAlign: "left", background: "var(--card)", borderRadius: 23, padding: 0, boxShadow: "var(--card-shadow)", cursor: "pointer", color: "var(--text)", overflow: "hidden" }}>
       <div style={{ padding: "14px 15px 12px", display: "flex", gap: 11, alignItems: "center" }}>
-        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={46} style={{ flexShrink: 0 }} /> : null}
+        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} seed={person.id || person.name} size={46} style={{ flexShrink: 0 }} /> : null}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 750, fontSize: 16, color: "var(--text)" }}>{person.name || "Участник"}</span>
@@ -1810,7 +1810,7 @@ function NetPersonDetailLegacyLive() {
           <button onClick={function () { navigate("community"); }} className="tap" style={{ width: 40, height: 40, borderRadius: 999, background: "var(--card)", border: 0, display: "grid", placeItems: "center", padding: 0, boxShadow: "var(--card-shadow)" }}><I.ChevronLeft size={18} /></button>
         </div>
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={64} style={{ flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }} /> : null}
+          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} seed={person.id || person.name} size={64} style={{ flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }} /> : null}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px" }}>Участник</span>
@@ -1899,7 +1899,7 @@ function NetPersonDetailLive() {
           <button onClick={function () { openSheet(<NetworkSafetySheetLive person={person} onHidden={function () { navigate("community"); }} />); }} aria-label="Действия" className="tap hit44" style={{ width: 40, height: 40, border: 0, borderRadius: 999, background: "rgba(255,255,255,0.10)", color: "#fff", display: "grid", placeItems: "center" }}><I.More size={18} /></button>
         </div>
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
-          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={68} style={{ flexShrink: 0, boxShadow: "0 0 0 2px rgba(255,255,255,0.14)" }} /> : null}
+          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} seed={person.id || person.name} size={68} style={{ flexShrink: 0, boxShadow: "0 0 0 2px rgba(255,255,255,0.14)" }} /> : null}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}><span style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.55px" }}>{person.name || "Участник"}</span><span style={{ fontSize: 9.5, color: "#17120A", background: "#FEDE34", borderRadius: 999, padding: "3px 8px", fontWeight: 850 }}>L{person.level | 0}</span>{person.preview ? <span style={{ fontSize: 9, color: "rgba(255,255,255,0.62)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 999, padding: "3px 8px", fontWeight: 750, textTransform: "uppercase" }}>пример</span> : null}</div>
             <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.62)", marginTop: 5, lineHeight: 1.4 }}>{evidence ? (evidence + " состоявшихся дел" + ((person.peopleCount | 0) ? (" · " + person.peopleCount + " человек") : "")) : "Навыки подтверждены общими кругами"}</div>
@@ -1958,7 +1958,7 @@ function NetworkRequestSheetLive({ person, offer }) {
     {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
     <div style={typeof _dSTitle !== "undefined" ? _dSTitle : { fontSize: 21, fontWeight: 800 }}>Запросить помощь</div>
     <div style={typeof _dSSub !== "undefined" ? _dSSub : { fontSize: 13, color: "var(--text-4)" }}>{skill.title} · {it.title.toLowerCase()}</div>
-    <div style={{ marginTop: 15, borderRadius: 18, background: "var(--card)", padding: 13, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 11 }}><BosAvatar avatar={person.avatar} size={42} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 750 }}>{person.name || "Участник"}</div><div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{bosHelpOfferTitleText(offer)}</div></div></div>
+    <div style={{ marginTop: 15, borderRadius: 18, background: "var(--card)", padding: 13, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 11 }}><BosAvatar avatar={person.avatar} seed={person.id || person.name} size={42} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 750 }}>{person.name || "Участник"}</div><div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{bosHelpOfferTitleText(offer)}</div></div></div>
     <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "17px 2px 8px" }}>Какой результат нужен</div>
     <div role="radiogroup" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>{choices.map(function (x) { var on = choice === x; return <button key={x} onClick={function () { setChoice(x); }} role="radio" aria-checked={on} className="tap hit44" style={{ minHeight: 48, border: on ? "1px solid #D7A719" : "1px solid transparent", borderRadius: 14, background: on ? "rgba(254,222,52,0.22)" : "var(--card)", color: "var(--text)", boxShadow: on ? "none" : "var(--card-shadow)", padding: "9px 10px", textAlign: "left", fontSize: 11.8, lineHeight: 1.3, fontWeight: on ? 750 : 650 }}>{x}</button>; })}</div>
     <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: "var(--text-4)", margin: "17px 2px 8px" }}>Контекст · необязательно</div>
@@ -2155,7 +2155,7 @@ function NetworkEpisodesLive({ app, onChanged }) {
       var myDone = provider ? !!row.provider_done_at : !!row.recipient_done_at;
       return <div key={row.id} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {p ? <BosAvatar avatar={p.avatar || "default"} size={38} /> : <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><BosHelpOfferIconLive offer={o} size={17} /></span>}
+          {p ? <BosAvatar avatar={p.avatar} seed={p.id || p.name} size={38} /> : <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center" }}><BosHelpOfferIconLive offer={o} size={17} /></span>}
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 750 }}>{p && p.name ? (p.name + " · ") : ""}{bosHelpOfferTitleText(o)}</div><div style={{ fontSize: 10.8, color: "var(--text-4)", marginTop: 2 }}>{statusText(st)}</div></div>
         </div>
         {row.request_note ? <div style={{ marginTop: 9, borderRadius: 13, background: "var(--surface-3)", padding: 9, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.4 }}>{row.request_note}</div> : null}
@@ -2176,7 +2176,7 @@ function NetworkEpisodeContactSheetLive({ episode }) {
   React.useEffect(function () { var on = true, C = window.bosCloud; if (!(C && C.netSkillEpisodeContact)) { setError("Контакт пока недоступен."); return; } C.netSkillEpisodeContact(episode && episode.id).then(function (r) { if (!on) return; if (r && r.status === "ready" && r.contact) setContact(r.contact); else setError("Контакт откроется только после принятия запроса."); }).catch(function () { if (on) setError("Не удалось загрузить контакт."); }); return function () { on = false; }; }, [episode && episode.id]);
   var openTelegram = function () { var url = contact && contact.telegram_url; if (!url) return; try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url); else window.location.href = url; } catch (e) {} };
   return <div className="bos-sheet-scroll" style={{ padding: "6px 16px 20px", color: "var(--text)", textAlign: "center" }}>{typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
-    <div style={{ width: 56, height: 56, borderRadius: "50%", margin: "10px auto 12px", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>{contact ? <BosAvatar avatar={contact.avatar || "default"} size={52} /> : <I.MessageCircle size={23} color="var(--text-4)" />}</div>
+    <div style={{ width: 56, height: 56, borderRadius: "50%", margin: "10px auto 12px", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>{contact ? <BosAvatar avatar={contact.avatar} seed={contact.id || contact.name} size={52} /> : <I.MessageCircle size={23} color="var(--text-4)" />}</div>
     <div style={{ fontSize: 20, fontWeight: 800 }}>{contact ? (contact.first_name || "Участник") : "Согласовать детали"}</div>
     <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.47, margin: "6px auto 15px", maxWidth: 300 }}>{error || "Запрос принят. Теперь можно договориться о времени и перейти к делу в личном чате Telegram."}</div>
     {contact && contact.telegram_url ? <button onClick={openTelegram} className="tap hit44" style={{ width: "100%", minHeight: 49, border: 0, borderRadius: 16, background: "#0a0a0a", color: "#fff", fontSize: 14.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Send size={17} /> Открыть Telegram</button> : <button onClick={s.close} className="tap hit44" style={{ width: "100%", minHeight: 48, border: 0, borderRadius: 16, background: "var(--surface-3)", color: "var(--text-2)", fontSize: 14, fontWeight: 800 }}>Закрыть</button>}
@@ -2511,7 +2511,7 @@ function CircleFacesLive({ habit, size, max }) {
    сливаются — стандартизируй на сером»). We show ONLY what the person picked — emoji or memoji
    photo; base users (no custom avatar) get the clean grey disc. No mood/state tint at this level —
    simple, consistent, beautiful everywhere. (`name` kept for call-site compatibility.) */
-function BuddyFaceLive({ avatar, name, size }) {
+function BuddyFaceLive({ avatar, name, size, seed, still }) {
   size = size || 24;
   var a = "" + (avatar || "");
   var disc = { width: size, height: size, borderRadius: "50%", flexShrink: 0,
@@ -2520,6 +2520,11 @@ function BuddyFaceLive({ avatar, name, size }) {
   if (a.indexOf("url:") === 0) return <div style={Object.assign({}, disc, { background: "url(" + JSON.stringify(a.slice(4)) + ") center/cover no-repeat", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (/^m\d+$/.test(a)) return <div style={Object.assign({}, disc, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (a.indexOf("emoji:") === 0) return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.54), lineHeight: 1 })}>{a.slice(6)}</div>;
+  // «Живая капля»: явный "blob:<seed>", либо пусто/сфера, но известно ЧЕЙ круг (seed=id, иначе имя) —
+  // тогда лицо детерминированно вырастает из личности и одинаково у всех клиентов. Заменяет
+  // серый диск с инициалом. Мелкие лица (таймлайн, стопки) не моргают — still с вызова.
+  var _bs = (typeof bosBlobSeed === "function") ? bosBlobSeed(avatar, seed || name) : null;
+  if (_bs && typeof BosBlob === "function") return <BosBlob seed={_bs} size={size} animate={!still && size >= 30} />;
   // No custom avatar → the person's first initial on the SAME grey disc, so it's never a blank
   // circle (David: «густой серый кружочек неприкольно — пиши первый инициал ника»). A real avatar
   // always wins above; this is only the fallback. Muted slate ink, one letter — NOT colourful.
@@ -3725,7 +3730,7 @@ function PeopleStackLive({ people = [], size = 24, max = 5 }) {
     <div style={{ display: "flex", alignItems: "center" }} aria-hidden>
       {shown.map((m, i) => (
         <span key={m.id != null ? m.id : i} style={{ marginLeft: i ? -ov : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)", display: "block" }}>
-          <BuddyFaceLive avatar={m.avatar} name={m.name} size={size} />
+          <BuddyFaceLive avatar={m.avatar} name={m.name} seed={m.id} size={size} />
         </span>
       ))}
       {extra > 0 && <span style={{ marginLeft: -ov, width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.58)", color: "#fff", fontSize: Math.round(size * 0.4), fontWeight: 700, letterSpacing: "-0.5px", display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card, #fff)" }}>+{extra}</span>}
@@ -6785,10 +6790,13 @@ function HeroAvatarGlassLive({ avatar, inset = 6, size = 60, mood }) {
   const planet = !isMemoji && !!mood;
   if (planet) {
     const isEmoji = avStr.indexOf("emoji:") === 0;
+    const isBlob = avStr.indexOf("blob:") === 0;
     return (
       <div style={{ position: "absolute", inset, borderRadius: "50%", overflow: "hidden", boxShadow: "0 2px 7px rgba(0,0,0,0.12)" }}>
         <div style={{ position: "absolute", inset: 0 }}><PlanetOrb size={size} mood={mood} live /></div>
         {isEmoji && <span aria-hidden style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: Math.round(size * 0.5), lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>{avStr.slice(6)}</span>}
+        {/* Капля плавает НА планете состояния — как эмодзи, лицо не теряется за орбом. */}
+        {isBlob && typeof BosBlob === "function" && <BosBlob seed={avStr.slice(5)} size={size} animate bare style={{ position: "absolute", inset: 0 }} />}
       </div>
     );
   }
@@ -8255,13 +8263,13 @@ var BOS_UNI_M1 = 0.62;         // финал: раскрытие «масшта�
 // им не нужна анимация). Вид совпадает со свёрнутым OrbitField → переход бесшовный.
 function UniDiscLive({ avatar, level, lvlPct, size, dark }) {
   var av = "" + (avatar || "");
-  var isMemoji = /^m\d+$/.test(av), isEmoji = av.indexOf("emoji:") === 0;
+  var isMemoji = /^m\d+$/.test(av), isEmoji = av.indexOf("emoji:") === 0, isBlob = av.indexOf("blob:") === 0;
   // Блик кружка Вселенной ТЕМА-ЗАВИСИМ (David: «в тёмной кружочки не адаптировались»): в тёмной
   // яркий белый градиент (0.55) выбеливал графитовый диск → приглушаем почти в ноль.
   var SHEEN = dark
     ? "linear-gradient(165deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04) 46%, rgba(255,255,255,0) 72%)"
     : "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
-  var bg = SHEEN + ", " + (isMemoji ? "url(./assets/people/" + av + ".png) center/cover no-repeat, " : (!isEmoji ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))";
+  var bg = SHEEN + ", " + (isMemoji ? "url(./assets/people/" + av + ".png) center/cover no-repeat, " : (!isEmoji && !isBlob ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))";
   // Верхняя белая кромка диска тоже гаснет в тёмной (была 0.9 — резкий блик).
   var discSh = dark
     ? "inset 0 1px 0.5px rgba(255,255,255,0.10), inset 0 0 0 0.6px rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.30)"
@@ -8273,6 +8281,9 @@ function UniDiscLive({ avatar, level, lvlPct, size, dark }) {
     <div style={{ position: "relative", width: size, height: size }}>
       <div style={{ position: "absolute", inset: size * 0.12, borderRadius: "50%", background: bg, boxShadow: discSh, display: "grid", placeItems: "center", fontSize: size * 0.42, lineHeight: 1 }}>
         {isEmoji ? av.slice(6) : null}
+        {/* Капля во Вселенной — СТРОГО статичная (дисков сотни, они мемоизированы; анимации тут
+            стоили бы дороже всей соты). Живой она становится только под линзой/в списках. */}
+        {isBlob && typeof BosBlob === "function" ? <BosBlob seed={av.slice(5)} size={Math.round(size * 0.76)} bare style={{ position: "absolute", inset: 0 }} /> : null}
       </div>
       {/* Цифра уровня — grid-центрирование (была line-height с border → визуально съезжала). */}
       {level > 0 && <span style={{ position: "absolute", right: size * 0.05, bottom: size * 0.05, minWidth: badge, height: badge, padding: "0 " + (size * 0.03) + "px", boxSizing: "border-box", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: size * 0.2, fontWeight: 800, lineHeight: 1, display: "grid", placeItems: "center", border: "1.5px solid var(--card)", fontFamily: "-apple-system, system-ui, sans-serif" }}>{level}</span>}
@@ -8455,6 +8466,11 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // а сейчас иконки криво»). Поэтому НЕ рисуем отдельную bead-схему — готовим данные под OrbitField и
   // рендерим его уменьшенным. Размер растёт с объёмом (больше привычек+людей → крупнее система).
   function buildSystem(s) {
+    // Ничей аватар не пустует: нет выбранного лица (или авто-выданный смайлик из старого пула) →
+    // ЖИВАЯ КАПЛЯ из id (детерминизм: у всех клиентов одно и то же лицо). Нормализуем строку
+    // прямо в данных — мемоизация дисков/орбит сравнивает avatar по значению, стабильная строка
+    // её не ломает. Выбранные вручную мемоджи/звери/фото остаются как есть.
+    if (!s.avatar || s.avatar === "default" || (typeof bosAvatarIsAutoFace === "function" && bosAvatarIsAutoFace(s.avatar))) s = Object.assign({}, s, { avatar: "blob:" + (s.id || s.name || "u") });
     var hb = Array.isArray(s.habits) ? s.habits : [];
     var peopleN = s.people || 0;
     var weight = Math.min(hb.length + peopleN, 16);

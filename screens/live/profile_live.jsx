@@ -54,7 +54,13 @@ function ProfileLive() {
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
         const _me = (window.bosCloud.uidSync && window.bosCloud.uidSync()) || null;
-        const _mk = (p) => ({ id: (p && p.id) || null, avatar: (p && p.avatar) || "default", name: (p && (p.username || p.name)) || "" });
+        // Нет выбранного лица (или авто-смайлик старого пула) → живая капля из id (та же,
+        // что увидят ВСЕ клиенты: seed=id).
+        const _mk = (p) => {
+          let av = (p && p.avatar) || null;
+          if ((!av || av === "default" || (typeof bosAvatarIsAutoFace === "function" && bosAvatarIsAutoFace(av))) && p && p.id) av = "blob:" + p.id;
+          return { id: (p && p.id) || null, avatar: av || "default", name: (p && (p.username || p.name)) || "" };
+        };
         Promise.all([
           window.bosCloud.invitedPeople().catch(() => []),
           (window.bosCloud.myInviter ? window.bosCloud.myInviter() : Promise.resolve(null)).catch(() => null),

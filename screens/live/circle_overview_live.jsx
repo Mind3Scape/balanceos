@@ -1276,6 +1276,12 @@ function PersonProfileLive() {
         </div>
       )}
 
+      {/* ПУСТОЙ ПРОФИЛЬ — кадр «Пустое»: одно сообщение вместо стопки пустых секций. */}
+      {offers !== null && offers.length === 0 && common.length === 0 ? (
+        <div style={{ padding: "24px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 590, lineHeight: "25px", letterSpacing: "-0.45px", color: "var(--text)" }}>Тут пока ничего нет</div>
+        </div>
+      ) : (<React.Fragment>
       {/* УСЛУГИ */}
       <div style={{ position: "relative" }}>
         {typeof FigSectionHead === "function" && <FigSectionHead title="Услуги" sub={offers && offers.length ? (offers.length + " активных") : null} />}
@@ -1319,6 +1325,7 @@ function PersonProfileLive() {
           </div>
         </div>
       </div>
+      </React.Fragment>)}
     </div>
   );
 }
