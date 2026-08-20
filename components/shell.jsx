@@ -971,9 +971,8 @@ function BosAvatar({ avatar, size, style, bare, seed, still }) {
   var isPhoto = avatar && ("" + avatar).indexOf("url:") === 0;
   // «Живая капля»: avatar="blob:<seed>" — или пусто, но вызвавший знает, ЧЕЙ это круг (seed=id/имя).
   var _bs = (typeof bosBlobSeed === "function") ? bosBlobSeed(avatar, seed) : null;
-  // Совсем мелкие лица (стопки 18-24px) не анимируем: моргание на такой площади не читается,
-  // а стоит как настоящая анимация.
-  if (_bs) return <BosBlob seed={_bs} size={size} animate={!still && size >= 30} bare={bare} style={style} />;
+  // Анимируем всё (David), кроме совсем крошек <20px — там движение не читается.
+  if (_bs) return <BosBlob seed={_bs} size={size} animate={!still && size >= 20} bare={bare} style={style} />;
   if (isPhoto) return <div style={Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0,
     background: bosAvatarBg(avatar), backgroundSize: "cover", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" }, style || {})} />;
   // `bare`: when an emoji avatar sits ON a glossy mood orb, float the glyph on a
@@ -1024,49 +1023,37 @@ function BosOrbFace({ avatar, size, tint, style }) {
   return <div style={Object.assign(base, { background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + t0 + ", " + t2 + ")", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" })} />;
 }
 
-/* ── ЖИВЫЕ КАПЛИ — автогенерируемые аватары «blob:<seed>» (экспери­мент 2026-08-20).
-   Идея с blobatar/bloub: одна строка (seed) → одно и то же лицо навсегда, без хранения и
-   загрузок. Тело — «чернильная» капля глубокого тона (12 тонов), глаза/рот — белые заливные
-   формы; форма тела = детерминированный волнистый контур. ВСЁ влезает в существующий круг
-   аватара (тело ≤ 46 из 50 радиуса viewBox) — размеры кругов приложения не трогаются.
-   Анимации (только там, где animate=true): дыхание тела + моргание + медленный взгляд, чистый
-   CSS-transform (GPU); рассинхрон толпы — длительности/задержка из хэша. Вселенная и SVG-орбиты
-   рендерят ту же каплю СТАТИКОЙ (без классов) — ноль лишней нагрузки на 240 систем. */
+/* ── ЖИВЫЕ КАПЛИ v3 «существа-формы» — автогенерируемые аватары «blob:<seed>» (2026-08-20).
+   Идея с blobatar (одна строка → одно лицо навсегда), словарь ФОРМ как у bloub/Grok (David:
+   «кружочки, блобы, что-то ещё — разные!»): 9 УЗНАВАЕМЫХ силуэтов — круг, галька, сквиркл,
+   капсула, пилюля, мягкий треугольник, шестиугольник, облако, капля. Никакой животности:
+   абстрактное существо = форма + крупные спокойные глаза (+иногда пузико/щёчки вторым цветом,
+   канон ip-as-logo: два цвета персонажа, плоско, ноль бликов). 13-я палитра — чернильно-чёрный
+   с белыми глазами (чистый Grok, наш бело-чёрно-золотой род). Анимации РАЗНЫЕ по seed:
+   тело — прыжок/покачивание/парение/желе, взгляд — ввысь (как у Грока) или по сторонам,
+   моргают все; рассинхрон длительностей из хэша. Чистый CSS-transform: 300 существ = 121fps,
+   0 long tasks (замерено headless). Всё вписано в существующие круги приложения. */
 function bosBlobHash(s) { s = "" + (s || "x"); var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; } return h; }
-// 12 глубоких тонов тела [светлая тема] + пастельная пара подложки; тёмная тема перебивает
-// тело через var(--bbt-N) и подложку через var(--blob-disc-*) (styles.css).
-var BOS_BLOB_TONES = [
-  { b: "#17181d", d: ["#eceef4", "#dde0e8"] },  // чернила
-  { b: "#33363e", d: ["#edeef2", "#dee0e6"] },  // графит
-  { b: "#2c3470", d: ["#eaecf8", "#dbdff0"] },  // индиго
-  { b: "#1f3f74", d: ["#e9eef8", "#d9e2f1"] },  // сапфир
-  { b: "#175258", d: ["#e7f1f2", "#d7e6e7"] },  // морская глубина
-  { b: "#1e4d38", d: ["#e8f1ec", "#d9e7df"] },  // хвоя
-  { b: "#3f4423", d: ["#eff0e7", "#e2e4d5"] },  // тёмная олива
-  { b: "#43301f", d: ["#f1ede9", "#e5ded7"] },  // эспрессо
-  { b: "#5a2432", d: ["#f4eaed", "#e9d9de"] },  // бордо
-  { b: "#46265c", d: ["#f0eaf5", "#e2d8ea"] },  // слива
-  { b: "#2f4560", d: ["#eaeff5", "#dae2ec"] },  // грифель-синий
-  { b: "#521f4b", d: ["#f3e9f1", "#e7d7e4"] },  // ежевика
+// 12 сочных пар «тело A + акцент B» + фон (свет bg / тьма bgd) + 13-я «чернила» (глаза белые).
+var BOS_BLOB_PALS = [
+  { a: "#FF8A3B", b: "#FFD8B0", bg: "#F6E7DA", bgd: "#3A2E24" },  // мандарин
+  { a: "#FF6D5A", b: "#FFC9BE", bg: "#F7E3DF", bgd: "#3C2825" },  // коралл
+  { a: "#FFC53D", b: "#FFE8A9", bg: "#F5EBD4", bgd: "#3A3222" },  // солнце
+  { a: "#6FBE52", b: "#CBE9B4", bg: "#E7EFDD", bgd: "#28321F" },  // лист
+  { a: "#3FC9A6", b: "#BFEFDF", bg: "#DFEFE9", bgd: "#1F332C" },  // мята
+  { a: "#4FA8F5", b: "#C4E3FE", bg: "#E0EAF6", bgd: "#22303E" },  // небо
+  { a: "#6B79F7", b: "#CDD3FE", bg: "#E4E6F6", bgd: "#262A3F" },  // индиго
+  { a: "#9C7DF2", b: "#DED2FD", bg: "#EAE4F6", bgd: "#2E2839" },  // лаванда
+  { a: "#F573A8", b: "#FDD0E2", bg: "#F6E3EB", bgd: "#392630" },  // роза
+  { a: "#D65FC4", b: "#F3CBEC", bg: "#F2E2EF", bgd: "#372637" },  // ягода
+  { a: "#A9744C", b: "#E6CDB4", bg: "#EFE6DC", bgd: "#322721" },  // какао
+  { a: "#6B7686", b: "#CFD6E0", bg: "#E8EAEE", bgd: "#272B31", ink: "#F3F5F8" },  // графит (светлые метки)
+  { a: "#1E1F24", b: "#43454E", bg: "#EBEBEE", bgd: "#35363D", ink: "#FFFFFF" },  // чернила (Grok: белые глаза)
 ];
-// Все параметры капли из seed'а. Свой xorshift на базе FNV — Math.random запрещён (детерминизм).
-function bosBlobParams(seed) {
-  var h = bosBlobHash(seed) || 1;
-  var rnd = function () { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
-  var pick = function (a, b) { return a + (b - a) * rnd(); };
-  var tone = Math.floor(rnd() * 12) % 12;
-  // Контур: базовый радиус + три волны (асимметрия k=1, крупная k=2..3, рябь k=4..6) + сплющивание.
-  var a0 = pick(0, 0.045), a1 = pick(0.02, 0.055), a2 = pick(0.012, 0.04);
-  var k1 = 2 + Math.floor(rnd() * 2), k2 = 4 + Math.floor(rnd() * 3);
-  var p0 = pick(0, 6.28), p1 = pick(0, 6.28), p2 = pick(0, 6.28), rot = pick(0, 6.28);
-  var sx = pick(0.94, 1.08), sy = pick(0.94, 1.08);
-  var R = 37;
-  var N = 22, pts = [];
-  for (var i = 0; i < N; i++) {
-    var th = (i / N) * Math.PI * 2;
-    var r = R * (1 + a0 * Math.sin(th + p0) + a1 * Math.sin(k1 * th + p1) + a2 * Math.sin(k2 * th + p2));
-    pts.push([Math.cos(th + rot) * r * sx, Math.sin(th + rot) * r * sy]);
-  }
+var BOS_BLOB_INK = "#33302E";  // тёплые чернила глаз/рта для сочных тел
+// Сглаженный замкнутый контур по точкам (Catmull-Rom → кубические Безье).
+function bosBlobSmooth(pts) {
+  var N = pts.length;
   var d = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
   for (var j = 0; j < N; j++) {
     var q0 = pts[(j + N - 1) % N], qa = pts[j], qb = pts[(j + 1) % N], q3 = pts[(j + 2) % N];
@@ -1074,67 +1061,163 @@ function bosBlobParams(seed) {
        + " " + (qb[0] - (q3[0] - qa[0]) / 6).toFixed(1) + " " + (qb[1] - (q3[1] - qa[1]) / 6).toFixed(1)
        + " " + qb[0].toFixed(1) + " " + qb[1].toFixed(1);
   }
-  d += "Z";
-  // Лицо: вариант глаз/рта (взвешенные таблицы), посадка и масштаб.
-  var eyeKind = ["caps", "caps", "caps", "dots", "dots", "tallcaps", "tallcaps", "sleepy", "happy", "happy", "wink", "dots"][Math.floor(rnd() * 12) % 12];
-  var mouthKind = ["none", "none", "none", "none", "smile", "smile", "smile", "grin", "grin", "o", "dash", "none"][Math.floor(rnd() * 12) % 12];
-  var eyeY = pick(-7, -1.5), eyeDX = pick(10.5, 14) * (sx > 1 ? sx : 1), eyeS = pick(0.95, 1.28), tilt = pick(0, 8);
-  var mouthY = eyeY + pick(11.5, 14);
-  // Рассинхрон анимаций: свои длительности + отрицательная задержка.
-  var d1 = pick(3.9, 5.7).toFixed(2) + "s", d2 = pick(4.2, 7.4).toFixed(2) + "s", d3 = pick(8, 12).toFixed(2) + "s", o = "-" + pick(0, 6).toFixed(2) + "s";
-  return { tone: tone, path: d, eyeKind: eyeKind, mouthKind: mouthKind, eyeY: eyeY, eyeDX: eyeDX, eyeS: eyeS, tilt: tilt, mouthY: mouthY, d1: d1, d2: d2, d3: d3, o: o };
+  return d + "Z";
 }
-// Внутренность капли (для viewBox -50..50): тело + блик + лицо. Используется и standalone
-// (BosBlob), и прямо ВНУТРИ чужого SVG (планеты-люди OrbitField) через <g scale>.
+// Полярный сэмплер: r(θ) → сглаженный контур (для гальки/облака/капли/сквиркла).
+function bosBlobPolar(rfn, n, sx, sy) {
+  var pts = [];
+  for (var i = 0; i < n; i++) {
+    var th = (i / n) * Math.PI * 2 - Math.PI / 2;   // старт с «макушки»
+    var r = rfn(th);
+    pts.push([Math.cos(th) * r * sx, Math.sin(th) * r * sy]);
+  }
+  return bosBlobSmooth(pts);
+}
+// Скруглённый многоугольник: вершины → на каждом углу срез двумя точками + quadratic.
+function bosBlobRoundPoly(verts, cut) {
+  var N = verts.length, d = "";
+  for (var i = 0; i < N; i++) {
+    var p0 = verts[(i + N - 1) % N], p1 = verts[i], p2 = verts[(i + 1) % N];
+    var v0 = [p1[0] - p0[0], p1[1] - p0[1]], l0 = Math.hypot(v0[0], v0[1]);
+    var v1 = [p2[0] - p1[0], p2[1] - p1[1]], l1 = Math.hypot(v1[0], v1[1]);
+    var t0 = Math.min(cut, l0 / 2) / l0, t1 = Math.min(cut, l1 / 2) / l1;
+    var aX = p1[0] - v0[0] * t0, aY = p1[1] - v0[1] * t0;
+    var bX = p1[0] + v1[0] * t1, bY = p1[1] + v1[1] * t1;
+    d += (i === 0 ? "M" + aX.toFixed(1) + " " + aY.toFixed(1) : "L" + aX.toFixed(1) + " " + aY.toFixed(1));
+    d += "Q" + p1[0].toFixed(1) + " " + p1[1].toFixed(1) + " " + bX.toFixed(1) + " " + bY.toFixed(1);
+  }
+  return d + "Z";
+}
+// Все параметры существа из seed'а. Свой xorshift на базе FNV — Math.random запрещён (детерминизм).
+function bosBlobParams(seed) {
+  var h = bosBlobHash(seed) || 1;
+  var rnd = function () { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+  var pick = function (a, b) { return a + (b - a) * rnd(); };
+  var wpick = function (table) { return table[Math.floor(rnd() * table.length) % table.length]; };
+  var pal = Math.floor(rnd() * 13) % 13;
+  // ФОРМА — 9 узнаваемых силуэтов (галька и облако чаще: они самые «блобные»).
+  var shape = wpick(["circle", "pebble", "pebble", "squircle", "capsule", "pill", "tri", "hex", "cloud", "cloud", "drop", "pebble"]);
+  var sx = pick(0.94, 1.06), sy = pick(0.94, 1.06);
+  var path = "", faceDY = 2, dxMax = 16, bellyOK = true, R;
+  if (shape === "circle") {
+    R = pick(38, 41);
+    path = bosBlobPolar(function () { return R; }, 24, sx, sy);
+  } else if (shape === "squircle") {
+    R = pick(37, 40);
+    var nn = pick(3.2, 4.2);
+    path = bosBlobPolar(function (th) {
+      var c = Math.abs(Math.cos(th)), si = Math.abs(Math.sin(th));
+      return R / Math.pow(Math.pow(c, nn) + Math.pow(si, nn), 1 / nn);
+    }, 36, sx * 0.96, sy * 0.96);
+  } else if (shape === "pebble") {
+    R = pick(35, 38);
+    var a1 = pick(0.05, 0.08), a2 = pick(0.025, 0.05), p1 = pick(0, 6.28), p2 = pick(0, 6.28);
+    var k1 = 2 + Math.floor(rnd() * 2), k2 = 4 + Math.floor(rnd() * 2);
+    path = bosBlobPolar(function (th) { return R * (1 + a1 * Math.sin(k1 * th + p1) + a2 * Math.sin(k2 * th + p2)); }, 26, sx * 0.97, sy * 0.97);
+  } else if (shape === "capsule") {
+    var cw = pick(27, 30), chh = pick(38, 42);
+    path = "M" + (-cw) + " " + (chh - cw) + "L" + (-cw) + " " + (-(chh - cw)) + "A" + cw + " " + cw + " 0 0 1 " + cw + " " + (-(chh - cw)) + "L" + cw + " " + (chh - cw) + "A" + cw + " " + cw + " 0 0 1 " + (-cw) + " " + (chh - cw) + "Z";
+    faceDY = -2; dxMax = cw - 12;
+  } else if (shape === "pill") {
+    var pw = pick(39, 43), ph = pick(28, 31);
+    path = "M" + (ph - pw) + " " + (-ph) + "L" + (pw - ph) + " " + (-ph) + "A" + ph + " " + ph + " 0 0 1 " + (pw - ph) + " " + ph + "L" + (ph - pw) + " " + ph + "A" + ph + " " + ph + " 0 0 1 " + (ph - pw) + " " + (-ph) + "Z";
+    faceDY = 0; dxMax = 19; bellyOK = false;
+  } else if (shape === "tri") {
+    var tw = pick(36, 40), th2 = pick(38, 42);
+    path = bosBlobRoundPoly([[0, -th2], [tw, th2 * 0.62], [-tw, th2 * 0.62]], pick(16, 20));
+    faceDY = 9; dxMax = 14;
+  } else if (shape === "hex") {
+    var hr = pick(39, 42), hv = [];
+    for (var i6 = 0; i6 < 6; i6++) { var a6 = (i6 / 6) * Math.PI * 2 - Math.PI / 2; hv.push([Math.cos(a6) * hr * sx, Math.sin(a6) * hr * sy]); }
+    path = bosBlobRoundPoly(hv, pick(10, 14));
+  } else if (shape === "cloud") {
+    R = pick(35, 38);
+    var bph = pick(0, 6.28), bA = pick(0.09, 0.13);
+    path = bosBlobPolar(function (th) { return R * (1 + bA * Math.abs(Math.sin(2.5 * th + bph)) - bA * 0.35); }, 30, sx, sy);
+  } else { // drop — капля с мягким кончиком вверх
+    R = pick(33, 35);
+    var sg = pick(0.42, 0.55), amp = pick(0.16, 0.22);
+    path = bosBlobPolar(function (th) {
+      var d0 = Math.atan2(Math.sin(th - (-Math.PI / 2)), Math.cos(th - (-Math.PI / 2)));
+      return R * (1 + amp * Math.exp(-(d0 * d0) / (2 * sg * sg)));
+    }, 30, sx, sy);
+    faceDY = 6;
+  }
+  // ВТОРОЙ ЦВЕТ: пузико/щёчки (без «мордочек» — никакой животности).
+  var region = bellyOK ? wpick(["belly", "belly", "belly", "none", "none", "none", "none"]) : "none";
+  var cheeks = rnd() < 0.45;
+  // ЛИЦО: крупные, широко посаженные, спокойные, без наклона.
+  var eyes = wpick(["dots", "dots", "dots", "dots", "pills", "pills", "happy", "happy", "sleepy", "sleepy"]);
+  var mouth = wpick(["none", "none", "none", "none", "smile", "smile", "smile", "smile", "open", "flat"]);
+  var faceY = faceDY + pick(-3, 3);
+  var eyeS = pick(0.9, 1.15);
+  var eyeDX = Math.min(pick(11.5, 16), dxMax);
+  var mouthY = faceY + pick(9.5, 12);
+  var chY = faceY + 8, chR = 3.8;
+  var cheekX = Math.min(eyeDX + 8.5, dxMax + 6.5);
+  var bellyCY = pick(20, 25), bellyRX = Math.min(pick(15, 19), dxMax + 4), bellyRY = pick(13, 17);
+  // АНИМАЦИИ — каждому своя пара «тело + взгляд» (David: «различные должны быть, как у Грока
+  // вверх смотрел»): тело прыгает/качается/парит/желе, глаза глядят ввысь или по сторонам.
+  var bodyAnim = wpick(["bosBlobBounce", "bosBlobSway", "bosBlobFloat", "bosBlobJelly", "bosBlobFloat", "bosBlobSway"]);
+  var eyeAnim = wpick(["bosBlobLookUp", "bosBlobLookUp", "bosBlobLookAround", "bosBlobLookAround", "none"]);
+  var d1 = (bodyAnim === "bosBlobBounce" ? pick(2.6, 3.6) : pick(3.4, 5.2)).toFixed(2) + "s";
+  var d2 = pick(4.2, 7.4).toFixed(2) + "s", d3 = pick(6.5, 10).toFixed(2) + "s", o = "-" + pick(0, 6).toFixed(2) + "s";
+  return { pal: pal, shape: shape, path: path, region: region, cheeks: cheeks, eyes: eyes, mouth: mouth,
+    faceY: faceY, eyeS: eyeS, eyeDX: eyeDX, mouthY: mouthY, cheekX: cheekX, cheekY: chY, cheekR: chR,
+    bellyCY: bellyCY, bellyRX: bellyRX, bellyRY: bellyRY,
+    bodyAnim: bodyAnim, eyeAnim: eyeAnim, d1: d1, d2: d2, d3: d3, o: o };
+}
+// Внутренность существа (viewBox -50..50, форма по центру): тело → пузико → лицо. Всё плоско,
+// без бликов/градиентов/обводок. Используется и standalone (BosBlob), и внутри чужого SVG
+// (планеты-люди OrbitField) — там оборачивать в клип круга не обязательно (форма вписана),
+// но фон-кружок нужен свой.
 function BosBlobShape({ p, animate }) {
-  var t = BOS_BLOB_TONES[p.tone] || BOS_BLOB_TONES[0];
-  var body = "var(--bbt-" + p.tone + ", " + t.b + ")";
-  var W = "#ffffff";
-  var ey = p.eyeY, dx = p.eyeDX, s = p.eyeS, k = p.eyeKind;
-  var eye = function (side) { // side: -1 левый, 1 правый
-    var x = dx * side, tw = (p.tilt * side).toFixed(1);
-    var kk = k === "wink" ? (side < 0 ? "caps" : "happy") : k;
-    if (kk === "dots") return <circle key={side} cx={x} cy={ey} r={5.4 * s} fill={W} />;
-    if (kk === "sleepy") return <rect key={side} x={x - 4 * s} y={ey - 1.9 * s} width={8 * s} height={4.2 * s} rx={2.1 * s} fill={W} transform={"rotate(" + tw + " " + x + " " + ey + ")"} />;
-    if (kk === "happy") return <path key={side} d={"M " + (x - 4.6 * s) + " " + (ey + 1.9 * s) + " Q " + x + " " + (ey - 5 * s) + " " + (x + 4.6 * s) + " " + (ey + 1.9 * s)} fill="none" stroke={W} strokeWidth={3.1 * s} strokeLinecap="round" />;
-    var hh = kk === "tallcaps" ? 13.6 : 11.4;
-    return <rect key={side} x={x - 3.2 * s} y={ey - hh * s / 2} width={6.4 * s} height={hh * s} rx={3.2 * s} fill={W} transform={"rotate(" + tw + " " + x + " " + ey + ")"} />;
+  var t = BOS_BLOB_PALS[p.pal] || BOS_BLOB_PALS[0];
+  var INK = t.ink || ((typeof BOS_BLOB_INK !== "undefined") ? BOS_BLOB_INK : "#33302E");
+  var fy = p.faceY, s = p.eyeS, dx = p.eyeDX;
+  var eye = function (side) {
+    var x = dx * side;
+    if (p.eyes === "pills") return <rect key={side} x={x - 3.1 * s} y={fy - 6.2 * s} width={6.2 * s} height={12.4 * s} rx={3.1 * s} fill={INK} />;
+    if (p.eyes === "happy") return <path key={side} d={"M " + (x - 5.2 * s) + " " + (fy + 1.8 * s) + " Q " + x + " " + (fy - 5.2 * s) + " " + (x + 5.2 * s) + " " + (fy + 1.8 * s)} fill="none" stroke={INK} strokeWidth={3.4 * s} strokeLinecap="round" />;
+    if (p.eyes === "sleepy") return <rect key={side} x={x - 5 * s} y={fy - 2.1 * s} width={10 * s} height={4.6 * s} rx={2.3 * s} fill={INK} />;
+    return <circle key={side} cx={x} cy={fy} r={6 * s} fill={INK} />;
   };
-  var mouth = null, mk = p.mouthKind, my = p.mouthY;
-  if (mk === "smile") mouth = <path d={"M -4.2 " + my + " Q 0 " + (my + 3.9) + " 4.2 " + my} fill="none" stroke={W} strokeWidth="2.8" strokeLinecap="round" />;
-  else if (mk === "grin") mouth = <path d={"M -5 " + my + " A 5 5 0 0 0 5 " + my + " Z"} fill={W} />;
-  else if (mk === "o") mouth = <circle cx="0" cy={my + 1} r="2.3" fill={W} />;
-  else if (mk === "dash") mouth = <rect x="-3" y={my} width="6" height="2.6" rx="1.3" fill={W} />;
+  var my = p.mouthY, mouth = null;
+  if (p.mouth === "smile") mouth = <path d={"M -4.2 " + my + " Q 0 " + (my + 3.8) + " 4.2 " + my} fill="none" stroke={INK} strokeWidth="2.7" strokeLinecap="round" />;
+  else if (p.mouth === "open") mouth = <ellipse cx="0" cy={my + 1.2} rx="2.7" ry="3.1" fill={INK} />;
+  else if (p.mouth === "flat") mouth = <rect x="-2.9" y={my} width="5.8" height="2.3" rx="1.15" fill={INK} />;
   return (
-    <g className={animate ? "bb-bob" : undefined}>
-      <path d={p.path} fill={body} stroke="var(--blob-rim, rgba(255,255,255,0))" strokeWidth="1" />
-      <ellipse cx="-12" cy="-17" rx="15" ry="10" fill="#ffffff" opacity="0.13" transform="rotate(-24 -12 -17)" />
-      <g className={animate ? "bb-gaze" : undefined}>
+    <g className={animate ? "bb-m" : undefined}>
+      <path d={p.path} fill={t.a} />
+      {p.region === "belly" && <ellipse cx="0" cy={p.bellyCY} rx={p.bellyRX} ry={p.bellyRY} fill={t.b} />}
+      {p.cheeks && <g><circle cx={-p.cheekX} cy={p.cheekY} r={p.cheekR * s} fill={p.pal === 12 ? "#5A5C66" : t.b} /><circle cx={p.cheekX} cy={p.cheekY} r={p.cheekR * s} fill={p.pal === 12 ? "#5A5C66" : t.b} /></g>}
+      <g className={animate ? "bb-e" : undefined}>
         <g className={animate ? "bb-blink" : undefined}>{eye(-1)}{eye(1)}</g>
-        {mouth}
       </g>
+      {mouth}
     </g>
   );
 }
-// Готовый круглый аватар-капля. bare=true — без подложки-диска (капля на планете/орбе).
-function BosBlob({ seed, size, animate, bare, style }) {
+// Готовый круглый аватар-существо. bare=true — без цветного фона (на планете/орбе).
+// dark — для мест ВНЕ обёртки .theme-dark (Вселенная — портал в body): фон напрямую.
+function BosBlob({ seed, size, animate, bare, style, dark }) {
   size = size || 44;
   var p = bosBlobParams(seed);
-  var t = BOS_BLOB_TONES[p.tone] || BOS_BLOB_TONES[0];
-  var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative",
-    background: bare ? "transparent" : "linear-gradient(150deg, var(--blob-disc-a, " + t.d[0] + "), var(--blob-disc-b, " + t.d[1] + "))",
-    boxShadow: bare ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.07)" }, style || {});
+  var t = BOS_BLOB_PALS[p.pal] || BOS_BLOB_PALS[0];
+  var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden",
+    background: bare ? "transparent" : (dark ? t.bgd : "var(--blob-bgd-" + p.pal + ", " + t.bg + ")"),
+    boxShadow: bare ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.06)" }, style || {})
   return (
     <div style={base} aria-hidden>
       <svg className={"bos-blob" + (animate ? " bos-blob-anim" : "")} viewBox="-50 -50 100 100" width={size} height={size}
-        style={{ position: "absolute", inset: 0, display: "block", "--bb-d1": p.d1, "--bb-d2": p.d2, "--bb-d3": p.d3, "--bb-o": p.o }}>
+        style={{ position: "absolute", inset: 0, display: "block", "--bb-m": p.bodyAnim, "--bb-e": p.eyeAnim, "--bb-d1": p.d1, "--bb-d2": p.d2, "--bb-d3": p.d3, "--bb-o": p.o }}>
         <BosBlobShape p={p} animate={animate} />
       </svg>
     </div>
   );
 }
 // Авто-выданное ЛИЦО-эмодзи (пул bosRandomFaceAvatar): в пикере таких никогда не было
-// (там звери/предметы), значит человек его НЕ выбирал — можно честно переодеть в каплю.
+// (там звери/предметы), значит человек его НЕ выбирал — можно честно переодеть в существо.
 function bosAvatarIsAutoFace(avatar) {
   var a = "" + (avatar || "");
   if (a.indexOf("emoji:") !== 0) return false;

@@ -2520,11 +2520,11 @@ function BuddyFaceLive({ avatar, name, size, seed, still }) {
   if (a.indexOf("url:") === 0) return <div style={Object.assign({}, disc, { background: "url(" + JSON.stringify(a.slice(4)) + ") center/cover no-repeat", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (/^m\d+$/.test(a)) return <div style={Object.assign({}, disc, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (a.indexOf("emoji:") === 0) return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.54), lineHeight: 1 })}>{a.slice(6)}</div>;
-  // «Живая капля»: явный "blob:<seed>", либо пусто/сфера, но известно ЧЕЙ круг (seed=id, иначе имя) —
-  // тогда лицо детерминированно вырастает из личности и одинаково у всех клиентов. Заменяет
-  // серый диск с инициалом. Мелкие лица (таймлайн, стопки) не моргают — still с вызова.
+  // «Живая зефирка»: явный "blob:<seed>", либо пусто/сфера, но известно ЧЕЙ круг (seed=id, иначе
+  // имя) — тогда лицо детерминированно вырастает из личности и одинаково у всех клиентов.
+  // Заменяет серый диск с инициалом. Анимируем всё, кроме совсем крошек (<20px — не читается).
   var _bs = (typeof bosBlobSeed === "function") ? bosBlobSeed(avatar, seed || name) : null;
-  if (_bs && typeof BosBlob === "function") return <BosBlob seed={_bs} size={size} animate={!still && size >= 30} />;
+  if (_bs && typeof BosBlob === "function") return <BosBlob seed={_bs} size={size} animate={!still && size >= 20} />;
   // No custom avatar → the person's first initial on the SAME grey disc, so it's never a blank
   // circle (David: «густой серый кружочек неприкольно — пиши первый инициал ника»). A real avatar
   // always wins above; this is only the fallback. Muted slate ink, one letter — NOT colourful.
@@ -6800,13 +6800,16 @@ function HeroAvatarGlassLive({ avatar, inset = 6, size = 60, mood }) {
       </div>
     );
   }
+  // Зефирка живёт ПЛОСКО (канон ip-as-logo: никаких глянцевых вуалей поверх персонажа) —
+  // стеклянную плёнку оставляем только эмодзи/мемоджи/сфере.
+  const isBlobAv = avStr.indexOf("blob:") === 0;
   return (
     <div style={{ position: "absolute", inset, borderRadius: "50%", overflow: "hidden",
       background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "0 2px 7px rgba(0,0,0,0.12)" }}>
       <BosAvatar avatar={avatar} size={size} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} />
-      <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", pointerEvents: "none",
+      {!isBlobAv && <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", pointerEvents: "none",
         background: BOS_TILE_SHEEN,
-        boxShadow: "inset 0 1px 1.5px rgba(255,255,255,0.9), inset 0 -3px 6px rgba(0,0,0,0.07), inset 0 0 0 0.5px rgba(0,0,0,0.06)" }} />
+        boxShadow: "inset 0 1px 1.5px rgba(255,255,255,0.9), inset 0 -3px 6px rgba(0,0,0,0.07), inset 0 0 0 0.5px rgba(0,0,0,0.06)" }} />}
     </div>
   );
 }
@@ -8281,9 +8284,10 @@ function UniDiscLive({ avatar, level, lvlPct, size, dark }) {
     <div style={{ position: "relative", width: size, height: size }}>
       <div style={{ position: "absolute", inset: size * 0.12, borderRadius: "50%", background: bg, boxShadow: discSh, display: "grid", placeItems: "center", fontSize: size * 0.42, lineHeight: 1 }}>
         {isEmoji ? av.slice(6) : null}
-        {/* Капля во Вселенной — СТРОГО статичная (дисков сотни, они мемоизированы; анимации тут
-            стоили бы дороже всей соты). Живой она становится только под линзой/в списках. */}
-        {isBlob && typeof BosBlob === "function" ? <BosBlob seed={av.slice(5)} size={Math.round(size * 0.76)} bare style={{ position: "absolute", inset: 0 }} /> : null}
+        {/* Зефирка во Вселенной — ЖИВАЯ (David: «анимированы, желательно и во Вселенной»).
+            Дыхание сидит на корневом svg = композитный слой; замер: сотни существ дышат без
+            просадки. Свой цветной фон-иллюминатор вместо серого диска — поле из планет. */}
+        {isBlob && typeof BosBlob === "function" ? <BosBlob seed={av.slice(5)} size={Math.round(size * 0.76)} animate dark={dark} style={{ position: "absolute", inset: 0 }} /> : null}
       </div>
       {/* Цифра уровня — grid-центрирование (была line-height с border → визуально съезжала). */}
       {level > 0 && <span style={{ position: "absolute", right: size * 0.05, bottom: size * 0.05, minWidth: badge, height: badge, padding: "0 " + (size * 0.03) + "px", boxSizing: "border-box", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: size * 0.2, fontWeight: 800, lineHeight: 1, display: "grid", placeItems: "center", border: "1.5px solid var(--card)", fontFamily: "-apple-system, system-ui, sans-serif" }}>{level}</span>}

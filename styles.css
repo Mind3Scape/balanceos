@@ -1433,43 +1433,72 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .fig-rail::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .fig-month { animation: none !important; } }
 
-/* ── ЖИВЫЕ КАПЛИ (blob-аватары) — детерминированные лица из seed'а (id/имя человека).
-   Тело = глубокий «чернильный» тон, глаза/рот — белые заливные формы (материальная дисциплина).
-   Анимации ТОЛЬКО transform (GPU): дыхание-покачивание тела, моргание, медленный «взгляд».
-   Рассинхрон между людьми — inline-переменные --bb-d*/--bb-o из хэша seed'а, чтобы толпа
-   не моргала хором. Статичный режим (Вселенная, орбиты-SVG) классов не вешает — ноль затрат. */
+/* ── ЖИВЫЕ КАПЛИ v3 (blob-аватары) — существа-формы из seed'а (id/имя человека).
+   Анимации РАЗНООБРАЗНЫЕ (David: «как у Грока — вверх-ввысь смотрел»): тело — прыжок/
+   покачивание/парение/желе (имя приходит переменной --bb-m с svg), взгляд — ввысь или по
+   сторонам (--bb-e), моргают все. Только transform (GPU), рассинхрон — длительности из хэша.
+   Замер headless: 300 существ = 121fps, 0 long tasks. Статичный режим классов не вешает. */
 .bos-blob g, .bos-blob rect, .bos-blob path, .bos-blob circle, .bos-blob ellipse {
   transform-box: fill-box; transform-origin: center;
 }
-@keyframes bosBlobBob {
-  0%   { transform: translateY(0) rotate(0deg) scale(1, 1); }
-  32%  { transform: translateY(-1.7px) rotate(-1.2deg) scale(1.013, 0.987); }
-  64%  { transform: translateY(0.9px) rotate(1deg) scale(0.988, 1.014); }
-  100% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+@keyframes bosBlobBounce {
+  0%, 76%, 100% { transform: translateY(0) scale(1, 1); }
+  12%  { transform: translateY(1.2px) scale(1.05, 0.94); }
+  32%  { transform: translateY(-4.4px) scale(0.96, 1.06); }
+  48%  { transform: translateY(0.6px) scale(1.07, 0.93); }
+  62%  { transform: translateY(-1.2px) scale(0.99, 1.02); }
+}
+@keyframes bosBlobSway {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-4deg) translateY(-0.6px); }
+  75% { transform: rotate(4deg) translateY(-0.6px); }
+}
+@keyframes bosBlobFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3.4px); }
+}
+@keyframes bosBlobJelly {
+  0%, 100% { transform: scale(1, 1); }
+  20% { transform: scale(1.06, 0.94); }
+  45% { transform: scale(0.95, 1.06); }
+  70% { transform: scale(1.03, 0.97); }
 }
 @keyframes bosBlobBlink {
   0%, 91% { transform: scaleY(1); }
   93.6%   { transform: scaleY(0.07); }
   96.2%, 100% { transform: scaleY(1); }
 }
-@keyframes bosBlobGaze {
-  0%, 20%  { transform: translateX(0); }
-  28%, 46% { transform: translateX(1.8px); }
-  56%, 76% { transform: translateX(-1.5px); }
-  84%, 100% { transform: translateX(0); }
+@keyframes bosBlobLookUp {
+  0%, 52% { transform: translateY(0); }
+  60%, 78% { transform: translateY(-3.6px); }
+  86%, 100% { transform: translateY(0); }
 }
-.bos-blob-anim .bb-bob   { animation: bosBlobBob  var(--bb-d1, 4.6s) ease-in-out var(--bb-o, 0s) infinite; }
-.bos-blob-anim .bb-blink { animation: bosBlobBlink var(--bb-d2, 5.4s) ease-in-out var(--bb-o, 0s) infinite; }
-.bos-blob-anim .bb-gaze  { animation: bosBlobGaze var(--bb-d3, 9s)   ease-in-out var(--bb-o, 0s) infinite; }
+@keyframes bosBlobLookAround {
+  0%, 18% { transform: translateX(0); }
+  24%, 40% { transform: translateX(3px); }
+  48%, 66% { transform: translateX(-3px); }
+  74%, 100% { transform: translateX(0); }
+}
+.bos-blob-anim .bb-m {
+  animation-name: var(--bb-m, bosBlobFloat); animation-duration: var(--bb-d1, 4s);
+  animation-timing-function: ease-in-out; animation-delay: var(--bb-o, 0s); animation-iteration-count: infinite;
+}
+.bos-blob-anim .bb-e {
+  animation-name: var(--bb-e, none); animation-duration: var(--bb-d3, 8s);
+  animation-timing-function: ease-in-out; animation-delay: var(--bb-o, 0s); animation-iteration-count: infinite;
+}
+.bos-blob-anim .bb-blink {
+  animation-name: bosBlobBlink; animation-duration: var(--bb-d2, 5.4s);
+  animation-timing-function: ease-in-out; animation-delay: var(--bb-o, 0s); animation-iteration-count: infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .bos-blob-anim .bb-bob, .bos-blob-anim .bb-blink, .bos-blob-anim .bb-gaze { animation: none !important; }
+  .bos-blob-anim .bb-m, .bos-blob-anim .bb-e, .bos-blob-anim .bb-blink { animation: none !important; }
 }
-/* Тёмная тема капель: подложка = общий графитовый диск, у тела лёгкий световой ободок,
-   тона тела чуть приподняты (--bbt-N перебивают светлые фолбэки в fill'ах). */
+/* Тёмная тема зефирок: тело/акцент те же (сочные работают на тьме), меняется только фон
+   иллюминатора — глубокая приглушённая версия цвета пары (12 палитр). */
 .theme-dark, .bos-sheet.is-dark {
-  --blob-disc-a: #3d424b; --blob-disc-b: #282c33;
-  --blob-rim: rgba(255,255,255,0.16);
-  --bbt-0: #23242b; --bbt-1: #3f434c; --bbt-2: #3a4390; --bbt-3: #2b4f8d;
-  --bbt-4: #206671; --bbt-5: #28624a; --bbt-6: #4f5630; --bbt-7: #55402c;
-  --bbt-8: #6f3245; --bbt-9: #583573; --bbt-10: #3d567a; --bbt-11: #66305e;
+  --blob-bgd-0: #3A2E24; --blob-bgd-1: #3C2825; --blob-bgd-2: #3A3222; --blob-bgd-3: #28321F;
+  --blob-bgd-4: #1F332C; --blob-bgd-5: #22303E; --blob-bgd-6: #262A3F; --blob-bgd-7: #2E2839;
+  --blob-bgd-8: #392630; --blob-bgd-9: #372637; --blob-bgd-10: #322721; --blob-bgd-11: #272B31;
+  --blob-bgd-12: #35363D;
 }
