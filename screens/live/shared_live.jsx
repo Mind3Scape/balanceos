@@ -9397,21 +9397,47 @@ function AvatarPickerSheetLive({ dark = false }) {
   const { close } = useSheet();
   const C = (typeof sheetColors === "function") ? sheetColors(dark) : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", field: "#f4f4f6", btn: "#0a0a0a", btnFg: "#fff" };
   const cur = "" + (app?.avatar || "");
-  const [tab, setTab] = React.useState(cur.indexOf("url:") === 0 ? "photo" : (cur.indexOf("emoji:") === 0 ? "emoji" : "memoji"));
+  const [tab, setTab] = React.useState(cur.indexOf("url:") === 0 ? "photo" : (cur.indexOf("emoji:") === 0 ? "emoji" : (cur.indexOf("blob:") === 0 ? "drops" : "memoji")));
   const [cat, setCat] = React.useState(0);
   const pick = (val) => { try { app && app.setAvatar && app.setAvatar(val); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const CATS = (typeof BOS_EMOJI_CATS !== "undefined") ? BOS_EMOJI_CATS : [];
   const MEMO = (typeof BOS_MEMOJI !== "undefined") ? BOS_MEMOJI : [];
+  // «Капли» — свои 15 живых лиц, детерминированно выросших из личности (uid): у каждого
+  // человека СВОЙ набор вариантов, не общий каталог. Текущая капля — первой ячейкой. Набор
+  // печётся ОДИН РАЗ на открытие шторки (не на каждый тап — иначе сетка скачет под пальцем).
+  const dropSeeds = React.useState(() => {
+    var base = null;
+    try { base = (window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync()) || null; } catch (e) {}
+    base = base || (app && app.userName) || "me";
+    var c = "" + ((app && app.avatar) || "");
+    var out = [];
+    if (c.indexOf("blob:") === 0 && c.length > 5) out.push(c.slice(5));
+    for (var i = 0; out.length < 15; i++) { var s = base + "·" + i; if (out.indexOf(s) < 0) out.push(s); }
+    return out;
+  })[0];
   return (
     <div style={{ padding: "2px 16px 8px", color: C.text }}>
       <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Аватар</div>
-      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Эмодзи, мемоджи или своё фото из галереи. Сменить можно когда угодно.</div>
-      <div style={{ display: "flex", gap: 6, background: C.field, borderRadius: 999, padding: 4, margin: "14px auto 12px", width: "fit-content" }}>
-        {[["emoji", "Эмодзи"], ["memoji", "Мемоджи"], ["photo", "Фото"]].map(function (m) {
-          return <button key={m[0]} onClick={() => setTab(m[0])} className="tap" data-no-haptic style={{ border: 0, borderRadius: 999, padding: "7px 22px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", background: tab === m[0] ? C.btn : "transparent", color: tab === m[0] ? C.btnFg : C.sub }}>{m[1]}</button>;
+      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Живая капля, эмодзи, мемоджи или своё фото. Сменить можно когда угодно.</div>
+      <div style={{ display: "flex", gap: 5, background: C.field, borderRadius: 999, padding: 4, margin: "14px auto 12px", width: "fit-content" }}>
+        {[["drops", "Капли"], ["emoji", "Эмодзи"], ["memoji", "Мемоджи"], ["photo", "Фото"]].map(function (m) {
+          return <button key={m[0]} onClick={() => setTab(m[0])} className="tap" data-no-haptic style={{ border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", background: tab === m[0] ? C.btn : "transparent", color: tab === m[0] ? C.btnFg : C.sub }}>{m[1]}</button>;
         })}
       </div>
-      {tab === "emoji" ? (
+      {tab === "drops" ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 13, maxHeight: 296, overflowY: "auto", padding: "2px 2px 4px" }}>
+          {dropSeeds.map(function (s) {
+            var v = "blob:" + s, sel = cur === v;
+            return (
+              <button key={s} onClick={() => pick(v)} className="tap" aria-label="Аватар-капля" style={{ padding: 0, border: 0, background: "transparent", display: "grid", placeItems: "center", justifySelf: "center" }}>
+                <div style={{ borderRadius: "50%", padding: 3, boxShadow: sel ? "0 0 0 2.5px " + C.text : "none" }}>
+                  <BosAvatar avatar={v} size={52} style={{ border: "2px solid " + (dark ? "#1c1c1e" : "#fff") }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : tab === "emoji" ? (
         <>
           <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
             {CATS.map(function (c, i) {

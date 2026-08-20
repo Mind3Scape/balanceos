@@ -69,15 +69,17 @@ function AvatarPickerSheet({ dark = false }) {
   // из личности (uid → у каждого человека СВОЙ набор вариантов, не общий каталог). Текущая
   // капля (если выбрана) — всегда первой ячейкой, чтобы выбор был виден.
   const [tab, setTab] = useP(cur && ("" + cur).indexOf("blob:") === 0 ? "drops" : "memoji");
-  const dropSeeds = React.useMemo(() => {
+  // Набор печётся ОДИН РАЗ на открытие шторки (не на каждый тап — иначе сетка скачет под пальцем).
+  const dropSeeds = React.useState(() => {
     var base = null;
     try { base = (window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync()) || null; } catch (e) {}
     base = base || (app && app.userName) || "me";
     var out = [];
-    if (cur && ("" + cur).indexOf("blob:") === 0) out.push(("" + cur).slice(5));
+    var c = "" + ((app && app.avatar) || "");
+    if (c.indexOf("blob:") === 0 && c.length > 5) out.push(c.slice(5));
     for (var i = 0; out.length < 15; i++) { var s = base + "·" + i; if (out.indexOf(s) < 0) out.push(s); }
     return out;
-  }, [cur]);
+  })[0];
   const pick = (val) => { try { app?.setAvatar?.(val); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const cell = (key, val, selected) => (
     <button key={key} onClick={() => pick(val)} className="tap" aria-label="Аватар"
