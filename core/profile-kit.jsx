@@ -322,10 +322,11 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             {isEmoji
               ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
               : pBlobSeed && typeof BosBlobShape === "function"
-                ? (() => { const bp = bosBlobParams(pBlobSeed); const bt = (typeof BOS_BLOB_PALS !== "undefined" && BOS_BLOB_PALS[bp.pal]) || { bg: "#eef1f6", bgd: "#2c2f36" };
-                    // Клип круга ОБЯЗАТЕЛЕН: низ зефирки нарочно уходит за иллюминатор. Фон
-                    // напрямую по dark (Вселенная — портал вне .theme-dark, var не дотянется).
-                    return <g clipPath="url(#orbAvClip)"><circle cx="0" cy="0" r="16" fill={dark ? bt.bgd : bt.bg} /><g transform="scale(0.32)"><BosBlobShape p={bp} /></g></g>; })()
+                ? (() => { const bp = bosBlobParams(pBlobSeed);
+                    // Фон иллюминатора напрямую по dark (Вселенная — портал вне .theme-dark,
+                    // var не дотянется); клип круга на всякий случай оставлен.
+                    const bbg = dark ? ((typeof BOS_BLOB_BG_D !== "undefined") ? BOS_BLOB_BG_D : "#282930") : ((typeof BOS_BLOB_BG_L !== "undefined") ? BOS_BLOB_BG_L : "#EDEEF2");
+                    return <g clipPath="url(#orbAvClip)"><circle cx="0" cy="0" r="16" fill={bbg} /><g transform="scale(0.32)"><BosBlobShape p={bp} /></g></g>; })()
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
             <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
             <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />

@@ -1433,72 +1433,129 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .fig-rail::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .fig-month { animation: none !important; } }
 
-/* ── ЖИВЫЕ КАПЛИ v3 (blob-аватары) — существа-формы из seed'а (id/имя человека).
-   Анимации РАЗНООБРАЗНЫЕ (David: «как у Грока — вверх-ввысь смотрел»): тело — прыжок/
-   покачивание/парение/желе (имя приходит переменной --bb-m с svg), взгляд — ввысь или по
-   сторонам (--bb-e), моргают все. Только transform (GPU), рассинхрон — длительности из хэша.
-   Замер headless: 300 существ = 121fps, 0 long tasks. Статичный режим классов не вешает. */
+/* ── ЖИВЫЕ КАПЛИ v4 «чистый Grok» — существа из seed'а. ИНДИВИДУАЛЬНОСТЬ В ДВИЖЕНИИ:
+   библиотека ХАРАКТЕРОВ (David: «чтобы прям живыми ощущались; у одного одна анимация, у
+   другого другая; эпично смотрит вверх-вбок как Grok»). Имена анимаций приезжают с svg
+   переменными: --bb-m (тело), --bb-e (глаза), --bb-bl (вид моргания); тело и глаза живут
+   ОДНОЙ длительностью --bb-d1 (жест синхронный), моргание — своей --bb-d2, рассинхрон толпы
+   отрицательной задержкой --bb-o. Все жесты ЭПИЗОДАМИ с паузами — поле остаётся спокойным.
+   Только transform (GPU): паттерн замерен headless — 300 существ 121fps, 0 long tasks. */
 .bos-blob g, .bos-blob rect, .bos-blob path, .bos-blob circle, .bos-blob ellipse {
   transform-box: fill-box; transform-origin: center;
 }
-@keyframes bosBlobBounce {
-  0%, 76%, 100% { transform: translateY(0) scale(1, 1); }
-  12%  { transform: translateY(1.2px) scale(1.05, 0.94); }
-  32%  { transform: translateY(-4.4px) scale(0.96, 1.06); }
-  48%  { transform: translateY(0.6px) scale(1.07, 0.93); }
-  62%  { transform: translateY(-1.2px) scale(0.99, 1.02); }
+/* ── тела ── */
+@keyframes bosBodyDreamer {  /* мечтатель: чуть откинулся, глядя ввысь (пара к bosEyesSkyward) */
+  0%, 38%, 84%, 100% { transform: rotate(0deg) translateY(0); }
+  46%, 72% { transform: rotate(-3deg) translateY(-1.8px); }
 }
-@keyframes bosBlobSway {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-4deg) translateY(-0.6px); }
-  75% { transform: rotate(4deg) translateY(-0.6px); }
+@keyframes bosBodyCurious {  /* любопытный: подаётся в сторону взгляда (пара к bosEyesDart) */
+  0%, 15%, 42%, 58%, 85%, 100% { transform: rotate(0deg); }
+  21%, 37% { transform: rotate(2.8deg); }
+  63%, 79% { transform: rotate(-2.8deg); }
 }
-@keyframes bosBlobFloat {
+@keyframes bosBodyHop {      /* попрыгун: долго сидит — потом прыжок с приседом и плюхом */
+  0%, 54%, 86%, 100% { transform: translateY(0) scale(1, 1); }
+  58% { transform: translateY(1.4px) scale(1.07, 0.92); }
+  65% { transform: translateY(-5.2px) scale(0.94, 1.08); }
+  71% { transform: translateY(0.5px) scale(1.06, 0.93); }
+  77% { transform: translateY(-1.5px) scale(0.99, 1.02); }
+}
+@keyframes bosBodyBreath {   /* соня/наблюдатель: глубокое медленное дыхание */
+  0%, 100% { transform: scale(1, 1) translateY(0); }
+  50% { transform: scale(1.035, 0.972) translateY(0.7px); }
+}
+@keyframes bosBodySway {     /* танцор: маятник (глаза противоходом — bosEyesCounter) */
+  0%, 100% { transform: rotate(-3.4deg); }
+  50% { transform: rotate(3.4deg); }
+}
+@keyframes bosBodyJelly {    /* желе: волна упругости, потом покой */
+  0%, 62%, 100% { transform: scale(1, 1); }
+  10% { transform: scale(1.07, 0.94); }
+  22% { transform: scale(0.95, 1.06); }
+  34% { transform: scale(1.04, 0.97); }
+  46% { transform: scale(0.98, 1.02); }
+}
+@keyframes bosBodyFloat {    /* парящий: плывёт (глаза в противофазе — bosEyesParallax) */
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3.4px); }
+  50% { transform: translateY(-3.6px); }
 }
-@keyframes bosBlobJelly {
-  0%, 100% { transform: scale(1, 1); }
-  20% { transform: scale(1.06, 0.94); }
-  45% { transform: scale(0.95, 1.06); }
-  70% { transform: scale(1.03, 0.97); }
+@keyframes bosBodyShiver {   /* встрёпа: сидит смирно — и вдруг короткая встряска */
+  0%, 70%, 84%, 100% { transform: rotate(0deg); }
+  72% { transform: rotate(2.2deg); }
+  74% { transform: rotate(-2.2deg); }
+  76% { transform: rotate(1.6deg); }
+  78% { transform: rotate(-1.2deg); }
+  80% { transform: rotate(0.6deg); }
 }
-@keyframes bosBlobBlink {
+@keyframes bosBodyShy {      /* скромняга: чуть склонился, отводя взгляд (пара к bosEyesShy) */
+  0%, 40%, 78%, 100% { transform: rotate(0deg) translateY(0); }
+  48%, 70% { transform: rotate(2deg) translateY(0.8px); }
+}
+/* ── взгляды ── */
+@keyframes bosEyesSkyward {  /* ГРОК-ВЗГЛЯД: ввысь-вбок, замер — и мягко назад */
+  0%, 38%, 84%, 100% { transform: translate(0, 0); }
+  46%, 72% { transform: translate(3.8px, -5.2px); }
+}
+@keyframes bosEyesDart {     /* стрельба глазами с паузами */
+  0%, 15%, 42%, 58%, 85%, 100% { transform: translateX(0); }
+  21%, 37% { transform: translateX(4px); }
+  63%, 79% { transform: translateX(-4px); }
+}
+@keyframes bosEyesCounter {  /* противоход маятнику тела — взгляд держит горизонт */
+  0%, 100% { transform: translateX(1.7px); }
+  50% { transform: translateX(-1.7px); }
+}
+@keyframes bosEyesParallax { /* противофаза парению — ощущение глубины */
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1.9px); }
+}
+@keyframes bosEyesScan {     /* медленно осматривает углы */
+  0%, 20%, 72%, 100% { transform: translate(0, 0); }
+  27%, 37% { transform: translate(-3.6px, -2px); }
+  44%, 54% { transform: translate(3.6px, -2px); }
+  60%, 66% { transform: translate(2.4px, 2.2px); }
+}
+@keyframes bosEyesShy {      /* смущённо вниз-вбок */
+  0%, 40%, 78%, 100% { transform: translate(0, 0); }
+  48%, 70% { transform: translate(3.2px, 3.6px); }
+}
+/* ── моргания ── */
+@keyframes bosBlink {
   0%, 91% { transform: scaleY(1); }
-  93.6%   { transform: scaleY(0.07); }
+  93.6% { transform: scaleY(0.07); }
   96.2%, 100% { transform: scaleY(1); }
 }
-@keyframes bosBlobLookUp {
-  0%, 52% { transform: translateY(0); }
-  60%, 78% { transform: translateY(-3.6px); }
-  86%, 100% { transform: translateY(0); }
+@keyframes bosBlinkDouble {  /* быстрое двойное */
+  0%, 80%, 89%, 100% { transform: scaleY(1); }
+  82.5% { transform: scaleY(0.07); }
+  85% { transform: scaleY(1); }
+  87.5% { transform: scaleY(0.07); }
 }
-@keyframes bosBlobLookAround {
-  0%, 18% { transform: translateX(0); }
-  24%, 40% { transform: translateX(3px); }
-  48%, 66% { transform: translateX(-3px); }
-  74%, 100% { transform: translateX(0); }
+@keyframes bosBlinkSlow {    /* сонное, долго прикрытые */
+  0%, 84% { transform: scaleY(1); }
+  88%, 94% { transform: scaleY(0.06); }
+  98%, 100% { transform: scaleY(1); }
 }
+/* ПОСТОЯННОЕ ДЫХАНИЕ на корне svg — никто никогда не заморожен (жесты характеров поверх). */
+@keyframes bosBlobIdle {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.014, 0.988) translateY(0.5px); }
+}
+.bos-blob-anim { animation: bosBlobIdle var(--bb-d2, 5s) ease-in-out var(--bb-o, 0s) infinite; }
 .bos-blob-anim .bb-m {
-  animation-name: var(--bb-m, bosBlobFloat); animation-duration: var(--bb-d1, 4s);
+  animation-name: var(--bb-m, bosBodyFloat); animation-duration: var(--bb-d1, 5s);
   animation-timing-function: ease-in-out; animation-delay: var(--bb-o, 0s); animation-iteration-count: infinite;
 }
 .bos-blob-anim .bb-e {
-  animation-name: var(--bb-e, none); animation-duration: var(--bb-d3, 8s);
+  animation-name: var(--bb-e, none); animation-duration: var(--bb-d1, 5s);
   animation-timing-function: ease-in-out; animation-delay: var(--bb-o, 0s); animation-iteration-count: infinite;
 }
 .bos-blob-anim .bb-blink {
-  animation-name: bosBlobBlink; animation-duration: var(--bb-d2, 5.4s);
+  animation-name: var(--bb-bl, bosBlink); animation-duration: var(--bb-d2, 5.4s);
   animation-timing-function: ease-in-out; animation-delay: var(--bb-o, 0s); animation-iteration-count: infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .bos-blob-anim .bb-m, .bos-blob-anim .bb-e, .bos-blob-anim .bb-blink { animation: none !important; }
+  .bos-blob-anim, .bos-blob-anim .bb-m, .bos-blob-anim .bb-e, .bos-blob-anim .bb-blink { animation: none !important; }
 }
-/* Тёмная тема зефирок: тело/акцент те же (сочные работают на тьме), меняется только фон
-   иллюминатора — глубокая приглушённая версия цвета пары (12 палитр). */
-.theme-dark, .bos-sheet.is-dark {
-  --blob-bgd-0: #3A2E24; --blob-bgd-1: #3C2825; --blob-bgd-2: #3A3222; --blob-bgd-3: #28321F;
-  --blob-bgd-4: #1F332C; --blob-bgd-5: #22303E; --blob-bgd-6: #262A3F; --blob-bgd-7: #2E2839;
-  --blob-bgd-8: #392630; --blob-bgd-9: #372637; --blob-bgd-10: #322721; --blob-bgd-11: #272B31;
-  --blob-bgd-12: #35363D;
-}
+/* Тёмная тема: фон иллюминатора существ (тело всегда чернильное). */
+.theme-dark, .bos-sheet.is-dark { --blob-bg: #282930; }
