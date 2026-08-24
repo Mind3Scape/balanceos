@@ -1077,18 +1077,29 @@ function bosBlobPolar(rfn, n, sx, sy) {
    Тело и глаза живут ОДНОЙ длительностью (--bb-d1) — жест синхронный («посмотрел и подался»),
    моргание своей (--bb-d2). eyeBias подбирает форму глаз под характер (соня всегда с веками). */
 var BOS_BLOB_CHARS = {
-  dreamer: { m: "bosBodyDreamer", e: "bosEyesSkyward",  bl: "bosBlink",       d: [6, 9],   eyes: ["pills", "pills", "dots"] },
-  curious: { m: "bosBodyCurious", e: "bosEyesDart",     bl: "bosBlinkDouble", d: [5.5, 8], eyes: ["dots", "dots", "pills"] },
-  hopper:  { m: "bosBodyHop",     e: "none",            bl: "bosBlink",       d: [3.2, 4.2], eyes: ["happy", "dots", "dots"] },
-  sleepy:  { m: "bosBodyBreath",  e: "none",            bl: "bosBlinkSlow",   d: [4.5, 6], eyes: ["sleepy"] },
-  dancer:  { m: "bosBodySway",    e: "bosEyesCounter",  bl: "bosBlink",       d: [3.4, 4.8], eyes: ["happy", "pills", "dots"] },
-  jelly:   { m: "bosBodyJelly",   e: "none",            bl: "bosBlinkDouble", d: [3.2, 4.4], eyes: ["dots", "dots", "pills"] },
-  floaty:  { m: "bosBodyFloat",   e: "bosEyesParallax", bl: "bosBlink",       d: [4.5, 6.5], eyes: ["pills", "dots"] },
-  shiver:  { m: "bosBodyShiver",  e: "bosEyesScan",     bl: "bosBlinkDouble", d: [5, 7],   eyes: ["dots", "pills"] },
-  shy:     { m: "bosBodyShy",     e: "bosEyesShy",      bl: "bosBlink",       d: [6, 9],   eyes: ["dots", "dots", "sleepy"] },
-  scanner: { m: "bosBodyBreath",  e: "bosEyesScan",     bl: "bosBlink",       d: [6.5, 9], eyes: ["pills", "dots"] },
+  // имя: [тело, взгляд, веки, [длит.], левый глаз, правый глаз, предпочтения формы глаз]
+  dreamer:    { m: "bosBodyDreamer",  e: "bosEyesSkyward", bl: "bosBlink",      d: [5.5, 8],  eyes: ["pills", "pills", "dots"] },
+  spinner:    { m: "bosBodySpin",     e: "none",           bl: "bosBlink",      d: [5.5, 8],  eyes: ["dots", "pills"] },
+  startled:   { m: "bosBodyJolt",     e: "none",           bl: "bosLidsWiden",  d: [5.5, 8],  eyes: ["dots"] },
+  suspicious: { m: "bosBodyTiltSm",   e: "none",           bl: "bosLidsSquint", d: [6, 9],    eyes: ["dots", "pills"] },
+  puppy:      { m: "bosBodyTilt",     e: "none",           bl: "bosBlink",      d: [6, 9],    er: "bosEyeGrow", eyes: ["dots", "dots", "pills"] },
+  winker:     { m: "bosBodyBreath",   e: "none",           bl: "bosBlink",      d: [5, 7.5],  er: "bosEyeWink", eyes: ["dots", "pills"] },
+  nodder:     { m: "bosBodyNod",      e: "none",           bl: "bosBlink",      d: [5, 7.5],  eyes: ["happy", "dots"] },
+  shaker:     { m: "bosBodyNo",       e: "none",           bl: "bosBlink",      d: [5.5, 8],  eyes: ["dots", "pills"] },
+  sleepy:     { m: "bosBodyDroop",    e: "none",           bl: "bosBlinkSlow",  d: [5.5, 8],  eyes: ["sleepy"] },
+  pulse:      { m: "bosBodyPulse",    e: "none",           bl: "bosBlink",      d: [4.5, 6.5], eyes: ["dots", "pills"] },
+  stretcher:  { m: "bosBodyStretch",  e: "none",           bl: "bosBlinkSlow",  d: [6, 8.5],  eyes: ["sleepy", "dots"] },
+  peeker:     { m: "bosBodyPeek",     e: "bosEyesPeek",    bl: "bosBlink",      d: [6, 8.5],  eyes: ["dots", "pills"] },
+  curious:    { m: "bosBodyCurious",  e: "bosEyesDart",    bl: "bosBlinkDouble", d: [5, 7.5], eyes: ["dots", "dots", "pills"] },
+  hopper:     { m: "bosBodyHop",      e: "none",           bl: "bosBlink",      d: [3.2, 4.2], eyes: ["happy", "dots", "dots"] },
+  dancer:     { m: "bosBodySway",     e: "bosEyesCounter", bl: "bosBlink",      d: [3.4, 4.8], eyes: ["happy", "pills", "dots"] },
+  jelly:      { m: "bosBodyJelly",    e: "none",           bl: "bosBlinkDouble", d: [3.2, 4.4], eyes: ["dots", "dots", "pills"] },
+  floaty:     { m: "bosBodyFloat",    e: "bosEyesParallax", bl: "bosBlink",     d: [4.5, 6.5], eyes: ["pills", "dots"] },
+  shiver:     { m: "bosBodyShiver",   e: "bosEyesScan",    bl: "bosBlinkDouble", d: [5, 7],   eyes: ["dots", "pills"] },
+  shy:        { m: "bosBodyShy",      e: "bosEyesShy",     bl: "bosBlink",      d: [6, 9],    eyes: ["dots", "dots", "sleepy"] },
+  scanner:    { m: "bosBodyBreath",   e: "bosEyesScan",    bl: "bosBlink",      d: [6.5, 9],  eyes: ["pills", "dots"] },
 };
-var BOS_BLOB_CHAR_TABLE = ["dreamer", "dreamer", "curious", "curious", "hopper", "sleepy", "dancer", "jelly", "floaty", "floaty", "shiver", "shy", "scanner", "dreamer"];
+var BOS_BLOB_CHAR_TABLE = ["dreamer", "dreamer", "spinner", "startled", "suspicious", "puppy", "winker", "nodder", "shaker", "sleepy", "pulse", "stretcher", "peeker", "curious", "hopper", "dancer", "jelly", "floaty", "shiver", "shy", "scanner", "spinner", "startled", "dreamer"];
 // Все параметры существа из seed'а. Свой xorshift на базе FNV — Math.random запрещён (детерминизм).
 function bosBlobParams(seed) {
   var h = bosBlobHash(seed) || 1;
@@ -1148,7 +1159,7 @@ function bosBlobParams(seed) {
   var d2 = (ch.bl === "bosBlinkSlow" ? pick(6, 9) : pick(4.2, 7)).toFixed(2) + "s";
   var o = "-" + pick(0, 8).toFixed(2) + "s";
   return { pal: pal, shape: shape, path: path, charName: charName, eyes: eyes, eyeS: s2, eyeDX: dx, faceY: faceY,
-    bodyAnim: ch.m, eyeAnim: ch.e, blinkAnim: ch.bl, d1: d1, d2: d2, o: o,
+    bodyAnim: ch.m, eyeAnim: ch.e, blinkAnim: ch.bl, eyeLAnim: ch.el || "none", eyeRAnim: ch.er || "none", d1: d1, d2: d2, o: o,
     gid: "bbg" + (bosBlobHash(seed) % 1000000) + "_" + pal };
 }
 // Внутренность существа (viewBox -50..50): чернильное тело с еле заметным верхним светом +
@@ -1181,7 +1192,10 @@ function BosBlobShape({ p, animate, dark }) {
       </defs>
       <path d={p.path} fill={"url(#" + gid + ")"} />
       <g className={animate ? "bb-e" : undefined}>
-        <g className={animate ? "bb-blink" : undefined}>{eye(-1)}{eye(1)}</g>
+        <g className={animate ? "bb-blink" : undefined}>
+          <g className={animate ? "bb-eL" : undefined}>{eye(-1)}</g>
+          <g className={animate ? "bb-eR" : undefined}>{eye(1)}</g>
+        </g>
       </g>
     </g>
   );
@@ -1197,7 +1211,7 @@ function BosBlob({ seed, size, animate, bare, style, dark }) {
   return (
     <div style={base} aria-hidden>
       <svg className={"bos-blob" + (animate ? " bos-blob-anim" : "")} viewBox="-50 -50 100 100" width={size} height={size}
-        style={{ position: "absolute", inset: 0, display: "block", "--bb-m": p.bodyAnim, "--bb-e": p.eyeAnim, "--bb-bl": p.blinkAnim, "--bb-d1": p.d1, "--bb-d2": p.d2, "--bb-o": p.o }}>
+        style={{ position: "absolute", inset: 0, display: "block", "--bb-m": p.bodyAnim, "--bb-e": p.eyeAnim, "--bb-bl": p.blinkAnim, "--bb-el": p.eyeLAnim, "--bb-er": p.eyeRAnim, "--bb-d1": p.d1, "--bb-d2": p.d2, "--bb-o": p.o }}>
         <BosBlobShape p={p} animate={animate} dark={dark} />
       </svg>
     </div>
