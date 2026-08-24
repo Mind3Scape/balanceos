@@ -326,7 +326,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
                     // Фон иллюминатора напрямую по dark (Вселенная — портал вне .theme-dark,
                     // var не дотянется); клип круга на всякий случай оставлен.
                     const bbg = dark ? ((typeof BOS_BLOB_BG_D !== "undefined") ? BOS_BLOB_BG_D : "#282930") : ((typeof BOS_BLOB_BG_L !== "undefined") ? BOS_BLOB_BG_L : "#EDEEF2");
-                    return <g clipPath="url(#orbAvClip)"><circle cx="0" cy="0" r="16" fill={bbg} /><g transform="scale(0.32)"><BosBlobShape p={bp} /></g></g>; })()
+                    return <g clipPath="url(#orbAvClip)"><circle cx="0" cy="0" r="16" fill={bbg} /><g transform="scale(0.32)"><BosBlobShape p={bp} dark={dark} /></g></g>; })()
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
             <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
             <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />

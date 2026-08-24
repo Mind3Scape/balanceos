@@ -1446,78 +1446,78 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 /* ── тела ── */
 @keyframes bosBodyDreamer {  /* мечтатель: чуть откинулся, глядя ввысь (пара к bosEyesSkyward) */
   0%, 38%, 84%, 100% { transform: rotate(0deg) translateY(0); }
-  46%, 72% { transform: rotate(-3deg) translateY(-1.8px); }
+  46%, 72% { transform: rotate(-6deg) translateY(-3.6px); }
 }
 @keyframes bosBodyCurious {  /* любопытный: подаётся в сторону взгляда (пара к bosEyesDart) */
   0%, 15%, 42%, 58%, 85%, 100% { transform: rotate(0deg); }
-  21%, 37% { transform: rotate(2.8deg); }
-  63%, 79% { transform: rotate(-2.8deg); }
+  21%, 37% { transform: rotate(5.5deg); }
+  63%, 79% { transform: rotate(-5.5deg); }
 }
 @keyframes bosBodyHop {      /* попрыгун: долго сидит — потом прыжок с приседом и плюхом */
   0%, 54%, 86%, 100% { transform: translateY(0) scale(1, 1); }
-  58% { transform: translateY(1.4px) scale(1.07, 0.92); }
-  65% { transform: translateY(-5.2px) scale(0.94, 1.08); }
-  71% { transform: translateY(0.5px) scale(1.06, 0.93); }
-  77% { transform: translateY(-1.5px) scale(0.99, 1.02); }
+  58% { transform: translateY(2.6px) scale(1.12, 0.86); }
+  65% { transform: translateY(-9px) scale(0.92, 1.1); }
+  71% { transform: translateY(1px) scale(1.1, 0.88); }
+  77% { transform: translateY(-2.6px) scale(0.98, 1.04); }
 }
 @keyframes bosBodyBreath {   /* соня/наблюдатель: глубокое медленное дыхание */
   0%, 100% { transform: scale(1, 1) translateY(0); }
-  50% { transform: scale(1.035, 0.972) translateY(0.7px); }
+  50% { transform: scale(1.055, 0.955) translateY(1.2px); }
 }
 @keyframes bosBodySway {     /* танцор: маятник (глаза противоходом — bosEyesCounter) */
-  0%, 100% { transform: rotate(-3.4deg); }
-  50% { transform: rotate(3.4deg); }
+  0%, 100% { transform: rotate(-6.5deg); }
+  50% { transform: rotate(6.5deg); }
 }
 @keyframes bosBodyJelly {    /* желе: волна упругости, потом покой */
   0%, 62%, 100% { transform: scale(1, 1); }
-  10% { transform: scale(1.07, 0.94); }
-  22% { transform: scale(0.95, 1.06); }
-  34% { transform: scale(1.04, 0.97); }
-  46% { transform: scale(0.98, 1.02); }
+  10% { transform: scale(1.11, 0.9); }
+  22% { transform: scale(0.92, 1.09); }
+  34% { transform: scale(1.06, 0.95); }
+  46% { transform: scale(0.97, 1.03); }
 }
 @keyframes bosBodyFloat {    /* парящий: плывёт (глаза в противофазе — bosEyesParallax) */
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3.6px); }
+  50% { transform: translateY(-6.5px); }
 }
 @keyframes bosBodyShiver {   /* встрёпа: сидит смирно — и вдруг короткая встряска */
   0%, 70%, 84%, 100% { transform: rotate(0deg); }
-  72% { transform: rotate(2.2deg); }
-  74% { transform: rotate(-2.2deg); }
-  76% { transform: rotate(1.6deg); }
-  78% { transform: rotate(-1.2deg); }
-  80% { transform: rotate(0.6deg); }
+  72% { transform: rotate(4.5deg); }
+  74% { transform: rotate(-4.5deg); }
+  76% { transform: rotate(3.4deg); }
+  78% { transform: rotate(-2.4deg); }
+  80% { transform: rotate(1.2deg); }
 }
 @keyframes bosBodyShy {      /* скромняга: чуть склонился, отводя взгляд (пара к bosEyesShy) */
   0%, 40%, 78%, 100% { transform: rotate(0deg) translateY(0); }
-  48%, 70% { transform: rotate(2deg) translateY(0.8px); }
+  48%, 70% { transform: rotate(4deg) translateY(1.6px); }
 }
 /* ── взгляды ── */
 @keyframes bosEyesSkyward {  /* ГРОК-ВЗГЛЯД: ввысь-вбок, замер — и мягко назад */
   0%, 38%, 84%, 100% { transform: translate(0, 0); }
-  46%, 72% { transform: translate(3.8px, -5.2px); }
+  46%, 72% { transform: translate(7px, -9.5px); }
 }
 @keyframes bosEyesDart {     /* стрельба глазами с паузами */
   0%, 15%, 42%, 58%, 85%, 100% { transform: translateX(0); }
-  21%, 37% { transform: translateX(4px); }
-  63%, 79% { transform: translateX(-4px); }
+  21%, 37% { transform: translateX(7.5px); }
+  63%, 79% { transform: translateX(-7.5px); }
 }
 @keyframes bosEyesCounter {  /* противоход маятнику тела — взгляд держит горизонт */
-  0%, 100% { transform: translateX(1.7px); }
-  50% { transform: translateX(-1.7px); }
+  0%, 100% { transform: translateX(3.6px); }
+  50% { transform: translateX(-3.6px); }
 }
 @keyframes bosEyesParallax { /* противофаза парению — ощущение глубины */
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(1.9px); }
+  50% { transform: translateY(3.8px); }
 }
 @keyframes bosEyesScan {     /* медленно осматривает углы */
   0%, 20%, 72%, 100% { transform: translate(0, 0); }
-  27%, 37% { transform: translate(-3.6px, -2px); }
-  44%, 54% { transform: translate(3.6px, -2px); }
-  60%, 66% { transform: translate(2.4px, 2.2px); }
+  27%, 37% { transform: translate(-6.5px, -3.6px); }
+  44%, 54% { transform: translate(6.5px, -3.6px); }
+  60%, 66% { transform: translate(4.4px, 4px); }
 }
 @keyframes bosEyesShy {      /* смущённо вниз-вбок */
   0%, 40%, 78%, 100% { transform: translate(0, 0); }
-  48%, 70% { transform: translate(3.2px, 3.6px); }
+  48%, 70% { transform: translate(6px, 6.6px); }
 }
 /* ── моргания ── */
 @keyframes bosBlink {
@@ -1539,7 +1539,7 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 /* ПОСТОЯННОЕ ДЫХАНИЕ на корне svg — никто никогда не заморожен (жесты характеров поверх). */
 @keyframes bosBlobIdle {
   0%, 100% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1.014, 0.988) translateY(0.5px); }
+  50% { transform: scale(1.028, 0.976) translateY(1px); }
 }
 .bos-blob-anim { animation: bosBlobIdle var(--bb-d2, 5s) ease-in-out var(--bb-o, 0s) infinite; }
 .bos-blob-anim .bb-m {
@@ -1557,5 +1557,14 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 @media (prefers-reduced-motion: reduce) {
   .bos-blob-anim, .bos-blob-anim .bb-m, .bos-blob-anim .bb-e, .bos-blob-anim .bb-blink { animation: none !important; }
 }
-/* Тёмная тема: фон иллюминатора существ (тело всегда чернильное). */
-.theme-dark, .bos-sheet.is-dark { --blob-bg: #282930; }
+/* Тёмная тема: фон иллюминатора + тёмные стопы фирменных градиентов тел (пилюли David,
+   тёмный вариант). Вне .theme-dark (Вселенная-портал) те же значения приходят prop'ом dark. */
+.theme-dark, .bos-sheet.is-dark {
+  --blob-bg: #282930;
+  --bbg-0-a: #F3E3F7; --bbg-0-b: #FCF6DD;  --bbg-1-a: #F6C3AE; --bbg-1-b: #FCEFC9;
+  --bbg-2-a: #F0AC5C; --bbg-2-b: #FBF2C4;  --bbg-3-a: #BFF8EF; --bbg-3-b: #E7FDF2;
+  --bbg-4-a: #AAC4F8; --bbg-4-b: #DCEDFC;  --bbg-5-a: #BDB4FB; --bbg-5-b: #CBC5FD;
+  --bbg-6-a: #F9587F; --bbg-6-b: #F5A469;  --bbg-7-a: #C316CB; --bbg-7-b: #E09A76;
+  --bbg-8-a: #272A6E; --bbg-8-b: #C08272;  --bbg-9-a: #1D4EDC; --bbg-9-b: #3F6EE0;
+  --bbg-10-a: #0F1B4D; --bbg-10-b: #182A66;  --bbg-11-a: #220F33; --bbg-11-b: #3D1247;
+}

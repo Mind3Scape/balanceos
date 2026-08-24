@@ -1033,8 +1033,24 @@ function BosOrbFace({ avatar, size, tint, style }) {
    эпизодами с паузами, тело и глаза синхронизированы одной длительностью. Чистый CSS-transform
    (проверенный паттерн: 300 существ = 121fps, 0 long tasks). Вписано в круги приложения. */
 function bosBlobHash(s) { s = "" + (s || "x"); var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; } return h; }
-var BOS_BLOB_INKBODY = "#17181C";                 // тело — чернила (единое, направление А)
 var BOS_BLOB_BG_L = "#EDEEF2", BOS_BLOB_BG_D = "#282930";  // фон иллюминатора: свет / тьма
+/* Тела — ФИРМЕННЫЕ ГРАДИЕНТЫ приложения (скриншоты David 2026-08-24: пилюли свет/тьма,
+   вертикально сверху вниз). У каждой пары свои стопы для светлой (la→lb) и тёмной (da→db)
+   темы; ink — цвет глаз: чернила на светлых телах, белые на тёмных (иначе не читаются). */
+var BOS_BLOB_GRADS = [
+  { la: "#F8B5F1", lb: "#FCF2D9", da: "#F3E3F7", db: "#FCF6DD", ink: "#262230" },  // розовый рассвет
+  { la: "#F79B85", lb: "#FCEFC5", da: "#F6C3AE", db: "#FCEFC9", ink: "#262230" },  // персик
+  { la: "#F1AB4D", lb: "#FBF2C3", da: "#F0AC5C", db: "#FBF2C4", ink: "#262230" },  // янтарь
+  { la: "#98F5E5", lb: "#C7FDF1", da: "#BFF8EF", db: "#E7FDF2", ink: "#262230" },  // мята
+  { la: "#93AFF4", lb: "#C5E4FB", da: "#AAC4F8", db: "#DCEDFC", ink: "#262230" },  // небо
+  { la: "#B7A8F8", lb: "#C2BDFC", da: "#BDB4FB", db: "#CBC5FD", ink: "#262230" },  // лаванда
+  { la: "#FA35DF", lb: "#F7C4C4", da: "#F9587F", db: "#F5A469", ink: "#262230" },  // фуксия-закат
+  { la: "#A814C8", lb: "#E39763", da: "#C316CB", db: "#E09A76", ink: "#FFFFFF" },  // пурпур-закат
+  { la: "#3A1795", lb: "#9C59CF", da: "#272A6E", db: "#C08272", ink: "#FFFFFF" },  // индиго-сумерки
+  { la: "#1A1D9E", lb: "#2B2FE3", da: "#1D4EDC", db: "#3F6EE0", ink: "#FFFFFF" },  // ультрамарин
+  { la: "#260B58", lb: "#3B1DC9", da: "#0F1B4D", db: "#182A66", ink: "#FFFFFF" },  // глубокая ночь
+  { la: "#240A46", lb: "#2F0D55", da: "#220F33", db: "#3D1247", ink: "#FFFFFF" },  // чернильный фиолет
+];
 // Сглаженный замкнутый контур по точкам (Catmull-Rom → кубические Безье).
 function bosBlobSmooth(pts) {
   var N = pts.length;
@@ -1079,38 +1095,40 @@ function bosBlobParams(seed) {
   var rnd = function () { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
   var pick = function (a, b) { return a + (b - a) * rnd(); };
   var wpick = function (table) { return table[Math.floor(rnd() * table.length) % table.length]; };
+  var pal = Math.floor(rnd() * 12) % 12;   // фирменный градиент тела
   // ФОРМА — мягкий blob-словарь bloub (без углов: треугольники/шестиугольники Grok'у чужие).
+  // Тела на ~10% меньше v4: запас, чтобы размашистые жесты (прыжок -9) не резались о круг.
   var shape = wpick(["circle", "circle", "pebble", "pebble", "pebble", "squircle", "squircle", "capsule", "cloud", "cloud", "drop", "egg"]);
   var sx = pick(0.95, 1.06), sy = pick(0.95, 1.06);
   var path = "", faceDY = 1, dxMax = 15.5, R;
   if (shape === "circle") {
-    R = pick(38, 41);
+    R = pick(34.5, 37);
     path = bosBlobPolar(function () { return R; }, 24, sx, sy);
   } else if (shape === "egg") {
-    R = pick(36, 39);
+    R = pick(32.5, 35);
     path = bosBlobPolar(function (th) { return R * (1 - 0.12 * Math.sin(th)); }, 26, sx * 0.94, sy * 1.04);
   } else if (shape === "squircle") {
-    R = pick(37, 40);
+    R = pick(33.5, 36);
     var nn = pick(3.2, 4.2);
     path = bosBlobPolar(function (th) {
       var c = Math.abs(Math.cos(th)), si = Math.abs(Math.sin(th));
       return R / Math.pow(Math.pow(c, nn) + Math.pow(si, nn), 1 / nn);
     }, 36, sx * 0.96, sy * 0.96);
   } else if (shape === "pebble") {
-    R = pick(35, 38);
+    R = pick(31.5, 34);
     var a1 = pick(0.05, 0.08), a2 = pick(0.025, 0.05), p1 = pick(0, 6.28), p2 = pick(0, 6.28);
     var k1 = 2 + Math.floor(rnd() * 2), k2 = 4 + Math.floor(rnd() * 2);
     path = bosBlobPolar(function (th) { return R * (1 + a1 * Math.sin(k1 * th + p1) + a2 * Math.sin(k2 * th + p2)); }, 26, sx * 0.97, sy * 0.97);
   } else if (shape === "capsule") {
-    var cw = pick(27, 30), chh = pick(38, 42);
+    var cw = pick(24.5, 27), chh = pick(34.5, 38);
     path = "M" + (-cw) + " " + (chh - cw) + "L" + (-cw) + " " + (-(chh - cw)) + "A" + cw + " " + cw + " 0 0 1 " + cw + " " + (-(chh - cw)) + "L" + cw + " " + (chh - cw) + "A" + cw + " " + cw + " 0 0 1 " + (-cw) + " " + (chh - cw) + "Z";
     faceDY = -2; dxMax = cw - 12;
   } else if (shape === "cloud") {
-    R = pick(35, 38);
+    R = pick(31.5, 34);
     var bph = pick(0, 6.28), bA = pick(0.09, 0.13);
     path = bosBlobPolar(function (th) { return R * (1 + bA * Math.abs(Math.sin(2.5 * th + bph)) - bA * 0.35); }, 30, sx, sy);
   } else { // drop — капля с мягким кончиком вверх
-    R = pick(33, 35);
+    R = pick(30, 32);
     var sg = pick(0.42, 0.55), amp = pick(0.16, 0.22);
     path = bosBlobPolar(function (th) {
       var d0 = Math.atan2(Math.sin(th - (-Math.PI / 2)), Math.cos(th - (-Math.PI / 2)));
@@ -1129,14 +1147,16 @@ function bosBlobParams(seed) {
   var d1 = pick(ch.d[0], ch.d[1]).toFixed(2) + "s";
   var d2 = (ch.bl === "bosBlinkSlow" ? pick(6, 9) : pick(4.2, 7)).toFixed(2) + "s";
   var o = "-" + pick(0, 8).toFixed(2) + "s";
-  return { shape: shape, path: path, charName: charName, eyes: eyes, eyeS: s2, eyeDX: dx, faceY: faceY,
+  return { pal: pal, shape: shape, path: path, charName: charName, eyes: eyes, eyeS: s2, eyeDX: dx, faceY: faceY,
     bodyAnim: ch.m, eyeAnim: ch.e, blinkAnim: ch.bl, d1: d1, d2: d2, o: o,
-    gid: "bbg" + (bosBlobHash(seed) % 1000000) };
+    gid: "bbg" + (bosBlobHash(seed) % 1000000) + "_" + pal };
 }
 // Внутренность существа (viewBox -50..50): чернильное тело с еле заметным верхним светом +
 // белые глаза. Используется и standalone (BosBlob), и внутри чужого SVG (планеты OrbitField).
-function BosBlobShape({ p, animate }) {
-  var fy = p.faceY, s = p.eyeS, dx = p.eyeDX, W = "#FFFFFF";
+function BosBlobShape({ p, animate, dark }) {
+  var G = BOS_BLOB_GRADS[p.pal] || BOS_BLOB_GRADS[0];
+  var W = G.ink;
+  var fy = p.faceY, s = p.eyeS, dx = p.eyeDX;
   var eye = function (side) {
     var x = dx * side;
     if (p.eyes === "dots") return <circle key={side} cx={x} cy={fy} r={6.4 * s} fill={W} />;
@@ -1144,15 +1164,22 @@ function BosBlobShape({ p, animate }) {
     if (p.eyes === "sleepy") return <rect key={side} x={x - 5.3 * s} y={fy - 2.3 * s} width={10.6 * s} height={5 * s} rx={2.5 * s} fill={W} />;
     return <rect key={side} x={x - 3.5 * s} y={fy - 7.4 * s} width={7 * s} height={14.8 * s} rx={3.5 * s} fill={W} />;
   };
+  // Стопы градиента: в приложении — через CSS-переменные (тёмная тема перебивает в styles.css);
+  // dark напрямую — для мест вне .theme-dark (Вселенная-портал, SVG орбит).
+  var stopA = dark ? G.da : "var(--bbg-" + p.pal + "-a, " + G.la + ")";
+  var stopB = dark ? G.db : "var(--bbg-" + p.pal + "-b, " + G.lb + ")";
+  // dark-суффикс id: один и тот же человек может быть в документе и светлым (страница), и
+  // тёмным (Вселенная-портал) — одинаковый id склеил бы их в один градиент.
+  var gid = p.gid + (dark ? "d" : "");
   return (
     <g className={animate ? "bb-m" : undefined}>
       <defs>
-        <linearGradient id={p.gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#2B2C31" />
-          <stop offset="1" stopColor={BOS_BLOB_INKBODY} />
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style={{ stopColor: stopA }} />
+          <stop offset="1" style={{ stopColor: stopB }} />
         </linearGradient>
       </defs>
-      <path d={p.path} fill={"url(#" + p.gid + ")"} />
+      <path d={p.path} fill={"url(#" + gid + ")"} />
       <g className={animate ? "bb-e" : undefined}>
         <g className={animate ? "bb-blink" : undefined}>{eye(-1)}{eye(1)}</g>
       </g>
@@ -1171,7 +1198,7 @@ function BosBlob({ seed, size, animate, bare, style, dark }) {
     <div style={base} aria-hidden>
       <svg className={"bos-blob" + (animate ? " bos-blob-anim" : "")} viewBox="-50 -50 100 100" width={size} height={size}
         style={{ position: "absolute", inset: 0, display: "block", "--bb-m": p.bodyAnim, "--bb-e": p.eyeAnim, "--bb-bl": p.blinkAnim, "--bb-d1": p.d1, "--bb-d2": p.d2, "--bb-o": p.o }}>
-        <BosBlobShape p={p} animate={animate} />
+        <BosBlobShape p={p} animate={animate} dark={dark} />
       </svg>
     </div>
   );
