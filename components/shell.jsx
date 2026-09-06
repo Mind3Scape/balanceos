@@ -1076,31 +1076,32 @@ function bosBlobPolar(rfn, n, sx, sy) {
 /* ХАРАКТЕРЫ: имя → [анимация тела, анимация глаз, вид моргания, [длит. от, до], уклон глаз].
    Тело и глаза живут ОДНОЙ длительностью (--bb-d1) — жест синхронный («посмотрел и подался»),
    моргание своей (--bb-d2). eyeBias подбирает форму глаз под характер (соня всегда с веками). */
-var BOS_BLOB_CHARS = {
-  // имя: [тело, взгляд, веки, [длит.], левый глаз, правый глаз, предпочтения формы глаз]
-  dreamer:    { m: "bosBodyDreamer",  e: "bosEyesSkyward", bl: "bosBlink",      d: [5.5, 8],  eyes: ["pills", "pills", "dots"] },
-  spinner:    { m: "bosBodySpin",     e: "none",           bl: "bosBlink",      d: [5.5, 8],  eyes: ["dots", "pills"] },
-  startled:   { m: "bosBodyJolt",     e: "none",           bl: "bosLidsWiden",  d: [5.5, 8],  eyes: ["dots"] },
-  suspicious: { m: "bosBodyTiltSm",   e: "none",           bl: "bosLidsSquint", d: [6, 9],    eyes: ["dots", "pills"] },
-  puppy:      { m: "bosBodyTilt",     e: "none",           bl: "bosBlink",      d: [6, 9],    er: "bosEyeGrow", eyes: ["dots", "dots", "pills"] },
-  winker:     { m: "bosBodyBreath",   e: "none",           bl: "bosBlink",      d: [5, 7.5],  er: "bosEyeWink", eyes: ["dots", "pills"] },
-  nodder:     { m: "bosBodyNod",      e: "none",           bl: "bosBlink",      d: [5, 7.5],  eyes: ["happy", "dots"] },
-  shaker:     { m: "bosBodyNo",       e: "none",           bl: "bosBlink",      d: [5.5, 8],  eyes: ["dots", "pills"] },
-  sleepy:     { m: "bosBodyDroop",    e: "none",           bl: "bosBlinkSlow",  d: [5.5, 8],  eyes: ["sleepy"] },
-  pulse:      { m: "bosBodyPulse",    e: "none",           bl: "bosBlink",      d: [4.5, 6.5], eyes: ["dots", "pills"] },
-  stretcher:  { m: "bosBodyStretch",  e: "none",           bl: "bosBlinkSlow",  d: [6, 8.5],  eyes: ["sleepy", "dots"] },
-  peeker:     { m: "bosBodyPeek",     e: "bosEyesPeek",    bl: "bosBlink",      d: [6, 8.5],  eyes: ["dots", "pills"] },
-  curious:    { m: "bosBodyCurious",  e: "bosEyesDart",    bl: "bosBlinkDouble", d: [5, 7.5], eyes: ["dots", "dots", "pills"] },
-  hopper:     { m: "bosBodyHop",      e: "none",           bl: "bosBlink",      d: [3.2, 4.2], eyes: ["happy", "dots", "dots"] },
-  dancer:     { m: "bosBodySway",     e: "bosEyesCounter", bl: "bosBlink",      d: [3.4, 4.8], eyes: ["happy", "pills", "dots"] },
-  jelly:      { m: "bosBodyJelly",    e: "none",           bl: "bosBlinkDouble", d: [3.2, 4.4], eyes: ["dots", "dots", "pills"] },
-  floaty:     { m: "bosBodyFloat",    e: "bosEyesParallax", bl: "bosBlink",     d: [4.5, 6.5], eyes: ["pills", "dots"] },
-  shiver:     { m: "bosBodyShiver",   e: "bosEyesScan",    bl: "bosBlinkDouble", d: [5, 7],   eyes: ["dots", "pills"] },
-  shy:        { m: "bosBodyShy",      e: "bosEyesShy",     bl: "bosBlink",      d: [6, 9],    eyes: ["dots", "dots", "sleepy"] },
-  scanner:    { m: "bosBodyBreath",   e: "bosEyesScan",    bl: "bosBlink",      d: [6.5, 9],  eyes: ["pills", "dots"] },
+/* ── ПОВЕДЕНЧЕСКИЙ ДВИЖОК v7 (2026-09-06, David: «не целостные персонажи, нет эмоций — как будто
+   просто внутри что-то анимируется»). Вместо CSS-петель с одним трюком — СЕКВЕНСОР ПОВЕДЕНИЯ:
+   у существа есть ПЕРСОНА (веса актов, темп, амплитуда, базовое выражение), из которой на лету
+   собираются цепочки актов с паузами разной длины: «удивился → осмыслил → успокоился»,
+   «заскучал → задремал → клюнул носом → вздрогнул». ЭМОЦИИ БЕЗ РТА — через ВЕКИ: нижние веки вверх =
+   улыбка глазами, верхние наружу-вниз = грусть, оба к центру = прищур, убраны + зрачки шире =
+   удивление, верхние падают = дремота. Целостность = follow-through: глаза реагируют первыми, тело
+   догоняет с задержкой и пружинкой. Механика: JS редко ставит целевую ПОЗУ, переход едет CSS-transition
+   на transform (композитор) — дёшево даже на 300 существ Вселенной. */
+var BOS_BLOB_EASE = { soft: "cubic-bezier(.45,.05,.35,1)", snap: "cubic-bezier(.2,.8,.25,1.25)", spring: "cubic-bezier(.34,1.56,.64,1)", glide: "cubic-bezier(.4,0,.2,1)" };
+// ПЕРСОНЫ: acts — веса актов, tempo — скорость жизни (>1 быстрее), amp — размах, lids — базовые
+// верхние веки (0 открыт … 1 закрыт), blink — средний интервал моргания, сек.
+var BOS_BLOB_PERSONAS = {
+  dreamer:    { acts: { dreamUp: 5, think: 3, settle: 2, glance: 1, proud: 1 },              tempo: 0.8,  amp: 1.0,  lids: 0.18, blink: 5 },
+  joyful:     { acts: { delight: 4, wiggle: 3, spin: 1, glance: 2, nod: 1, surprise: 1 },    tempo: 1.3,  amp: 1.2,  lids: 0,    blink: 4 },
+  curious:    { acts: { tilt: 4, look: 3, peek: 2, surprise: 2, glance: 2 },                 tempo: 1.1,  amp: 1.05, lids: 0,    blink: 4 },
+  sleepy:     { acts: { doze: 5, bored: 3, yawn: 2, settle: 2 },                             tempo: 0.65, amp: 0.9,  lids: 0.42, blink: 7 },
+  skeptic:    { acts: { squint: 4, glance: 3, bored: 2, shake: 1, settle: 1 },               tempo: 0.9,  amp: 0.85, lids: 0.22, blink: 5 },
+  shy:        { acts: { shyLook: 4, peek: 2, settle: 3, scare: 1, glance: 1 },               tempo: 1.0,  amp: 0.75, lids: 0.12, blink: 4 },
+  proud:      { acts: { proud: 4, nod: 2, dreamUp: 2, settle: 2 },                           tempo: 0.8,  amp: 1.15, lids: 0.28, blink: 6 },
+  melancholy: { acts: { sad: 4, bored: 3, think: 2, dreamUp: 1, settle: 1 },                 tempo: 0.7,  amp: 0.9,  lids: 0.3,  blink: 5 },
+  nervous:    { acts: { scare: 3, surprise: 2, glance: 4, shiver: 2, settle: 2 },            tempo: 1.4,  amp: 1.0,  lids: 0,    blink: 3 },
+  thinker:    { acts: { think: 5, nod: 2, dreamUp: 2, tilt: 1, settle: 2 },                  tempo: 0.85, amp: 0.95, lids: 0.15, blink: 5 },
 };
-var BOS_BLOB_CHAR_TABLE = ["dreamer", "dreamer", "spinner", "startled", "suspicious", "puppy", "winker", "nodder", "shaker", "sleepy", "pulse", "stretcher", "peeker", "curious", "hopper", "dancer", "jelly", "floaty", "shiver", "shy", "scanner", "spinner", "startled", "dreamer"];
-// Все параметры существа из seed'а. Свой xorshift на базе FNV — Math.random запрещён (детерминизм).
+var BOS_BLOB_PERSONA_TABLE = ["dreamer", "dreamer", "joyful", "joyful", "curious", "curious", "sleepy", "skeptic", "shy", "proud", "melancholy", "nervous", "thinker", "thinker", "joyful", "curious"];
+// Все параметры существа из seed'а (личность детерминирована; ЖИЗНЬ — спонтанна).
 function bosBlobParams(seed) {
   var h = bosBlobHash(seed) || 1;
   var rnd = function () { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
@@ -1147,43 +1148,42 @@ function bosBlobParams(seed) {
     }, 30, sx, sy);
     faceDY = 5;
   }
-  // ХАРАКТЕР — суть индивидуальности (David: «у одного одна анимация, у другого другая»).
-  var charName = wpick(BOS_BLOB_CHAR_TABLE);
-  var ch = BOS_BLOB_CHARS[charName];
-  // ЛИЦО: большие белые глаза БЕЗ НАКЛОНА, форма — под характер (соня всегда с веками).
-  var eyes = wpick(ch.eyes);
-  var s2 = pick(1.0, 1.28), dx = Math.min(pick(10.5, 14.5), dxMax);
+  var persona = wpick(BOS_BLOB_PERSONA_TABLE);
+  var P = BOS_BLOB_PERSONAS[persona];
+  // ЛИЦО: два вида глаз (точки/капсулы), всё остальное выражают веки. Строго без наклона.
+  var eyes = rnd() < 0.45 ? "pills" : "dots";
+  var s2 = pick(1.0, 1.26), dx = Math.min(pick(10.5, 14.5), dxMax);
   var faceY = faceDY + pick(-4, 2);
-  // Тайминги: тело+глаза одной длительностью (жест синхронный), моргание своей, всё в рассинхроне.
-  var d1 = pick(ch.d[0], ch.d[1]).toFixed(2) + "s";
-  var d2 = (ch.bl === "bosBlinkSlow" ? pick(6, 9) : pick(4.2, 7)).toFixed(2) + "s";
-  var o = "-" + pick(0, 8).toFixed(2) + "s";
-  return { pal: pal, shape: shape, path: path, charName: charName, eyes: eyes, eyeS: s2, eyeDX: dx, faceY: faceY,
-    bodyAnim: ch.m, eyeAnim: ch.e, blinkAnim: ch.bl, eyeLAnim: ch.el || "none", eyeRAnim: ch.er || "none", d1: d1, d2: d2, o: o,
-    gid: "bbg" + (bosBlobHash(seed) % 1000000) + "_" + pal };
+  var eyeW = eyes === "pills" ? 7 * s2 : 12.8 * s2, eyeH = eyes === "pills" ? 14.8 * s2 : 12.8 * s2;
+  // Индивидуальные модификаторы поверх персоны: темп, размах, базовый наклон, базовые веки.
+  var tempo = P.tempo * pick(0.85, 1.2), amp = P.amp * pick(0.85, 1.2);
+  var baseRx = pick(-3, 3), baseLids = Math.max(0, Math.min(0.6, P.lids + pick(-0.06, 0.08)));
+  var hid = bosBlobHash(seed) % 1000000;
+  return { pal: pal, shape: shape, path: path, persona: persona, eyes: eyes, eyeS: s2, eyeDX: dx, faceY: faceY,
+    eyeW: eyeW, eyeH: eyeH, tempo: tempo, amp: amp, baseRx: baseRx, baseLids: baseLids,
+    gid: "bbg" + hid + "_" + pal, cid: "bbc" + hid };
 }
-// Внутренность существа (viewBox -50..50): чернильное тело с еле заметным верхним светом +
-// белые глаза. Используется и standalone (BosBlob), и внутри чужого SVG (планеты OrbitField).
+/* Внутренность существа (viewBox -50..50): тело-градиент + два глаза. ВЕКИ = сжатие самого глаза
+   от нужного края (сверху — дремота, снизу — улыбка глазами, с двух сторон — прищур, поворот —
+   грусть): без накладных элементов, без клипов, без расхождений градиента. data-bb — ручки
+   секвенсора; в статике (планеты орбит, reduced-motion) — базовые веки персоны атрибутом. */
 function BosBlobShape({ p, animate, dark }) {
   var G = BOS_BLOB_GRADS[p.pal] || BOS_BLOB_GRADS[0];
-  var W = G.ink;
-  var fy = p.faceY, s = p.eyeS, dx = p.eyeDX;
-  var eye = function (side) {
-    var x = dx * side;
-    if (p.eyes === "dots") return <circle key={side} cx={x} cy={fy} r={6.4 * s} fill={W} />;
-    if (p.eyes === "happy") return <path key={side} d={"M " + (x - 5.3 * s) + " " + (fy + 2) + " Q " + x + " " + (fy - 5.5 * s) + " " + (x + 5.3 * s) + " " + (fy + 2)} fill="none" stroke={W} strokeWidth={3.5 * s} strokeLinecap="round" />;
-    if (p.eyes === "sleepy") return <rect key={side} x={x - 5.3 * s} y={fy - 2.3 * s} width={10.6 * s} height={5 * s} rx={2.5 * s} fill={W} />;
-    return <rect key={side} x={x - 3.5 * s} y={fy - 7.4 * s} width={7 * s} height={14.8 * s} rx={3.5 * s} fill={W} />;
-  };
-  // Стопы градиента: в приложении — через CSS-переменные (тёмная тема перебивает в styles.css);
-  // dark напрямую — для мест вне .theme-dark (Вселенная-портал, SVG орбит).
+  var INK = G.ink;
+  var fy = p.faceY, dx = p.eyeDX, W = p.eyeW, H = p.eyeH;
   var stopA = dark ? G.da : "var(--bbg-" + p.pal + "-a, " + G.la + ")";
   var stopB = dark ? G.db : "var(--bbg-" + p.pal + "-b, " + G.lb + ")";
-  // dark-суффикс id: один и тот же человек может быть в документе и светлым (страница), и
-  // тёмным (Вселенная-портал) — одинаковый id склеил бы их в один градиент.
   var gid = p.gid + (dark ? "d" : "");
+  var k = animate ? 1 : Math.max(0.08, 1 - p.baseLids);
+  var y0 = fy + H / 2;   // статика: верхнее веко падает → сжатие к нижнему краю глаза
+  var st = animate ? undefined : "translate(0 " + (y0 * (1 - k)).toFixed(2) + ") scale(1 " + k.toFixed(3) + ")";
+  var eye = function (side) {
+    var x = dx * side, key = side < 0 ? "el" : "er";
+    if (p.eyes === "pills") return <rect key={key} data-bb={key} x={x - W / 2} y={fy - H / 2} width={W} height={H} rx={W / 2} fill={INK} transform={st} />;
+    return <circle key={key} data-bb={key} cx={x} cy={fy} r={W / 2} fill={INK} transform={st} />;
+  };
   return (
-    <g className={animate ? "bb-m" : undefined}>
+    <g data-bb="body">
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" style={{ stopColor: stopA }} />
@@ -1191,28 +1191,139 @@ function BosBlobShape({ p, animate, dark }) {
         </linearGradient>
       </defs>
       <path d={p.path} fill={"url(#" + gid + ")"} />
-      <g className={animate ? "bb-e" : undefined}>
-        <g className={animate ? "bb-blink" : undefined}>
-          <g className={animate ? "bb-eL" : undefined}>{eye(-1)}</g>
-          <g className={animate ? "bb-eR" : undefined}>{eye(1)}</g>
-        </g>
+      <g data-bb="eyes">
+        <g data-bb="pup">{eye(-1)}{eye(1)}</g>
       </g>
     </g>
   );
 }
-// Готовый круглый аватар-существо. bare=true — без фона (на планете/орбе); dark — для мест
-// ВНЕ обёртки .theme-dark (Вселенная — портал в body): фон напрямую.
+/* ── СЕКВЕНСОР: один тикер на всех живых существ (пауза в фоне). ── */
+var _bbReg = new Set(), _bbTimer = null;
+function _bbRand(a, b) { return a + (b - a) * Math.random(); }
+function _bbTick() {
+  if (typeof document !== "undefined" && document.hidden) return;
+  var now = performance.now();
+  _bbReg.forEach(function (c) {
+    if (now >= c.nextAt) _bbAdvance(c, now);
+    if (now >= c.nextBlink) _bbBlink(c, now);
+  });
+}
+function _bbRegister(c) { _bbReg.add(c); if (_bbTimer == null) _bbTimer = setInterval(_bbTick, 90); }
+function _bbUnregister(c) { _bbReg.delete(c); if (!_bbReg.size && _bbTimer != null) { clearInterval(_bbTimer); _bbTimer = null; } }
+// Полная поза = база персоны + акт (амплитуда масштабирует движение, веки — нет).
+function _bbApply(c, pose, dur, ease, instant) {
+  var a = c.p.amp, E = c.els, e = BOS_BLOB_EASE[ease || "soft"] || BOS_BLOB_EASE.soft;
+  var q = pose || {};
+  var rx = c.p.baseRx + (q.rx || 0) * a, tx = (q.tx || 0) * a, ty = (q.ty || 0) * a;
+  var sx = 1 + ((q.sx == null ? 1 : q.sx) - 1) * a, sy = 1 + ((q.sy == null ? 1 : q.sy) - 1) * a;
+  var ex = (q.ex || 0) * a, ey = (q.ey || 0) * a, es = q.es == null ? 1 : q.es;
+  var ul = q.ul == null ? c.p.baseLids : q.ul, ur = q.ur == null ? ul : q.ur;
+  var ll = q.ll || 0, lr = q.lr == null ? ll : q.lr, tl = q.tl || 0, tr = q.tr == null ? -tl : q.tr;
+  var T = function (ms, delay) { return instant ? "none" : "transform " + Math.round(ms) + "ms " + e + (delay ? " " + Math.round(delay) + "ms" : ""); };
+  // Follow-through: глаза первыми, тело догоняет с задержкой (ощущение массы).
+  E.body.style.transition = T(dur * 1.25, dur * 0.1);
+  E.body.style.transform = "translate(" + tx.toFixed(2) + "px," + ty.toFixed(2) + "px) rotate(" + rx.toFixed(2) + "deg) scale(" + sx.toFixed(3) + "," + sy.toFixed(3) + ")";
+  E.eyes.style.transition = T(dur * 0.7);
+  E.eyes.style.transform = "translate(" + ex.toFixed(2) + "px," + ey.toFixed(2) + "px)";
+  E.pup.style.transition = T(dur * 0.6);
+  E.pup.style.transform = "scale(" + es.toFixed(3) + ")";
+  c.cur = { ul: ul, ur: ur, ll: ll, lr: lr, tl: tl, tr: tr };
+  _bbLids(c, c.cur, dur * 0.8, e, instant);
+}
+function _bbLids(c, L, dur, e, instant) {
+  var E = c.els;
+  var T = instant ? "none" : "transform " + Math.round(dur) + "ms " + e + ", transform-origin " + Math.round(dur) + "ms " + e;
+  var one = function (el, up, lo, tilt) {
+    var open = Math.max(0.06, 1 - up - lo);
+    var o = (up + lo) > 0 ? up / (up + lo) : 0.5;   // точка сжатия: 0 = верх (падает верхнее веко) … 1 = низ
+    el.style.transition = T;
+    el.style.transformOrigin = "50% " + (o * 100).toFixed(1) + "%";
+    el.style.transform = "rotate(" + tilt.toFixed(1) + "deg) scaleY(" + open.toFixed(3) + ")";
+  };
+  one(E.el, L.ul, L.ll, L.tl);
+  one(E.er, L.ur, L.lr, L.tr);
+}
+function _bbBlink(c, now) {
+  var P = BOS_BLOB_PERSONAS[c.p.persona];
+  c.nextBlink = now + P.blink * 1000 * _bbRand(0.55, 1.5);
+  if (c.cur.ul > 0.85 || c.busyLids) return;   // спит или веки заняты актом
+  var closed = { ul: 1, ur: 1, ll: c.cur.ll, lr: c.cur.lr, tl: 0, tr: 0 };
+  var restore = function () { _bbLids(c, c.cur, 130, BOS_BLOB_EASE.soft); };
+  _bbLids(c, closed, 70, BOS_BLOB_EASE.glide);
+  setTimeout(restore, 110);
+  if (Math.random() < 0.22) { setTimeout(function () { _bbLids(c, closed, 60, BOS_BLOB_EASE.glide); }, 260); setTimeout(restore, 350); }
+}
+/* АКТЫ — глаголы поведения. Каждый = цепочка шагов {pose, dur, hold, ease}; d — случайная сторона.
+   Позы в «нормальных» единицах (юниты viewBox 100), амплитуда персоны масштабирует. */
+var BOS_BLOB_ACTS = {
+  settle:  function () { return [{ pose: {}, dur: 600, hold: _bbRand(900, 2600) }]; },
+  glance:  function (d) { return [{ pose: { ex: 7 * d, ey: -1, rx: 2 * d }, dur: 220, hold: _bbRand(500, 1300), ease: "snap" }, { pose: {}, dur: 380, hold: _bbRand(600, 1800) }]; },
+  look:    function (d) { var ex = _bbRand(3, 8) * d, ey = _bbRand(-6, 4); return [{ pose: { ex: ex, ey: ey, rx: ex * 0.45 }, dur: 320, hold: _bbRand(800, 2200), ease: "snap" }, { pose: {}, dur: 420, hold: _bbRand(500, 1500) }]; },
+  dreamUp: function (d) { return [{ pose: { ex: 6 * d, ey: -9, rx: -3.5 * d, ty: -1.5, ul: 0.14 }, dur: 900, hold: _bbRand(2600, 5200), ease: "soft" }, { pose: {}, dur: 750, hold: _bbRand(700, 1600) }]; },
+  think:   function (d) { return [{ pose: { ex: 5 * d, ey: -7, rx: 2 * d, ul: 0.1 }, dur: 600, hold: _bbRand(1300, 2600) }, { pose: { ex: -5 * d, ey: -6, rx: -2 * d, ul: 0.1 }, dur: 650, hold: _bbRand(1100, 2400) }, { pose: { ex: 1 * d, ey: -2, ul: 0.05 }, dur: 450, hold: _bbRand(500, 1200) }]; },
+  surprise:function () { return [{ pose: { es: 1.35, ul: 0, ll: 0, ty: -5, sx: 0.94, sy: 1.08 }, dur: 140, hold: _bbRand(700, 1500), ease: "snap" }, { pose: { es: 1.08, ty: 0 }, dur: 420, hold: _bbRand(500, 900) }, { pose: {}, dur: 520, hold: _bbRand(600, 1400) }]; },
+  delight: function (d) { var sm = { ll: 0.62 }; return [{ pose: { ll: 0.62, ty: -4.5, sx: 0.95, sy: 1.06 }, dur: 200, hold: 100, ease: "snap" }, { pose: { ll: 0.62, ty: 0.5, sx: 1.05, sy: 0.95 }, dur: 170, hold: 80 }, { pose: { ll: 0.62, rx: 5 * d }, dur: 260, hold: 260 }, { pose: { ll: 0.62, rx: -5 * d }, dur: 260, hold: 260 }, { pose: sm, dur: 320, hold: _bbRand(900, 1800) }, { pose: {}, dur: 500, hold: _bbRand(600, 1400) }]; },
+  wiggle:  function (d) { var st = []; for (var i = 0; i < 4; i++) st.push({ pose: { rx: 6.5 * d * (i % 2 ? -1 : 1), ll: 0.4 }, dur: 140, hold: 30 }); st.push({ pose: {}, dur: 380, hold: _bbRand(900, 2000) }); return st; },
+  tilt:    function (d) { return [{ pose: { rx: 12 * d, es: 1.12 }, dur: 520, hold: _bbRand(1800, 3400), ease: "spring" }, { pose: {}, dur: 520, hold: _bbRand(700, 1500) }]; },
+  peek:    function (d) { return [{ pose: { ex: 8 * d, rx: 6 * d, tx: 3 * d }, dur: 380, hold: _bbRand(900, 1700) }, { pose: {}, dur: 240, hold: _bbRand(500, 1200), ease: "snap" }]; },
+  bored:   function (d) { return [{ pose: { ex: 6 * d, ey: 3, ul: 0.36, sy: 0.97, ty: 1.5 }, dur: 1400, hold: _bbRand(2000, 3600) }, { pose: { ex: -4 * d, ey: 3, ul: 0.42, sy: 0.97, ty: 1.5 }, dur: 1600, hold: _bbRand(1500, 3000) }, { pose: {}, dur: 800, hold: _bbRand(600, 1200) }]; },
+  sad:     function () { return [{ pose: { ul: 0.42, tl: 17, ey: 4, ty: 2, sy: 0.97 }, dur: 1200, hold: _bbRand(2600, 4800) }, { pose: { ul: 0.3, tl: 10, ey: 2, ty: 1 }, dur: 900, hold: _bbRand(700, 1400) }, { pose: {}, dur: 900, hold: _bbRand(700, 1500) }]; },
+  doze:    function (d) { return [{ pose: { ul: 0.55, ey: 2 }, dur: 1500, hold: 1200 }, { pose: { ul: 0.88, rx: 7 * d, ty: 2.5, ey: 3 }, dur: 1800, hold: _bbRand(900, 1900) }, { pose: { ul: 0, rx: -3 * d, ty: -1.5, es: 1.15 }, dur: 130, hold: 520, ease: "snap" }, { pose: {}, dur: 600, hold: _bbRand(900, 1800) }]; },
+  yawn:    function () { return [{ pose: { sy: 1.1, sx: 0.94, ty: -2, ul: 0.95, rx: -3 }, dur: 700, hold: 900 }, { pose: { sy: 0.96, sx: 1.03, ty: 1, ul: 0.2 }, dur: 500, hold: 220 }, { pose: {}, dur: 420, hold: _bbRand(800, 1600) }]; },
+  squint:  function (d) { return [{ pose: { ul: 0.36, ll: 0.26, ex: 5 * d, rx: -4 * d, tx: -1.5 * d }, dur: 700, hold: _bbRand(2000, 3600) }, { pose: {}, dur: 520, hold: _bbRand(700, 1400) }]; },
+  proud:   function () { return [{ pose: { sy: 1.06, sx: 0.97, ty: -2, ul: 0.3, ey: -2, rx: -2 }, dur: 800, hold: _bbRand(2200, 4000) }, { pose: {}, dur: 640, hold: _bbRand(700, 1500) }]; },
+  shyLook: function (d) { return [{ pose: { ex: 5 * d, ey: 5, rx: 3 * d, ul: 0.2 }, dur: 700, hold: _bbRand(1500, 3000) }, { pose: { ex: 2 * d, ey: 4, rx: -2 * d, ul: 0.2 }, dur: 900, hold: _bbRand(800, 1500) }, { pose: {}, dur: 600, hold: _bbRand(700, 1500) }]; },
+  scare:   function (d) { var st = [{ pose: { sx: 1.1, sy: 0.88, ty: 3, es: 0.78, ul: 0 }, dur: 120, hold: 80, ease: "snap" }]; for (var i = 0; i < 4; i++) st.push({ pose: { sx: 1.1, sy: 0.88, ty: 3, es: 0.78, ul: 0, rx: 2.2 * (i % 2 ? -1 : 1) }, dur: 80, hold: 30 }); st.push({ pose: { es: 0.95 }, dur: 380, hold: 400 }); st.push({ pose: {}, dur: 500, hold: _bbRand(1000, 2200) }); return st; },
+  shiver:  function () { var st = []; for (var i = 0; i < 5; i++) st.push({ pose: { rx: 3.2 * (i % 2 ? -1 : 1) }, dur: 75, hold: 20 }); st.push({ pose: {}, dur: 300, hold: _bbRand(1200, 2600) }); return st; },
+  nod:     function () { return [{ pose: { ty: 2.5, rx: 3 }, dur: 220, hold: 70 }, { pose: {}, dur: 220, hold: 70 }, { pose: { ty: 2.5, rx: 3 }, dur: 220, hold: 70 }, { pose: {}, dur: 320, hold: _bbRand(800, 1800) }]; },
+  shake:   function () { return [{ pose: { rx: -7 }, dur: 150, hold: 30 }, { pose: { rx: 7 }, dur: 150, hold: 30 }, { pose: { rx: -5 }, dur: 140, hold: 30 }, { pose: { rx: 4 }, dur: 140, hold: 30 }, { pose: {}, dur: 280, hold: _bbRand(800, 1800) }]; },
+  spin:    function (d) { return [{ pose: { rx: 360 * d, ll: 0.3 }, dur: 950, hold: 120, ease: "glide" }, { pose: {}, dur: 0, hold: 40, instant: true }, { pose: { ll: 0.5 }, dur: 260, hold: 700, ease: "spring" }, { pose: {}, dur: 400, hold: _bbRand(1200, 2600) }]; },
+};
+function _bbPickAct(c) {
+  var P = BOS_BLOB_PERSONAS[c.p.persona], keys = Object.keys(P.acts), tot = 0, i;
+  for (i = 0; i < keys.length; i++) if (keys[i] !== c.last) tot += P.acts[keys[i]];
+  var r = Math.random() * tot;
+  for (i = 0; i < keys.length; i++) { if (keys[i] === c.last) continue; r -= P.acts[keys[i]]; if (r <= 0) return keys[i]; }
+  return keys[0];
+}
+function _bbAdvance(c, now) {
+  if (!c.queue.length) {
+    var name = _bbPickAct(c); c.last = name;
+    c.queue = BOS_BLOB_ACTS[name](Math.random() < 0.5 ? -1 : 1);
+    // Микро-жизнь: иногда между актами — лишь едва заметный сдвиг взгляда.
+    if (Math.random() < 0.3) c.queue.unshift({ pose: { ex: _bbRand(-2.5, 2.5), ey: _bbRand(-1.5, 1.5) }, dur: 500, hold: _bbRand(400, 1200) });
+  }
+  var st = c.queue.shift();
+  var k = 1 / c.p.tempo;
+  _bbApply(c, st.pose, st.dur * k, st.ease, st.instant);
+  c.nextAt = now + (st.dur + st.hold) * k;
+}
+// Готовый круглый аватар-существо. animate — живёт (секвенсор); bare — без фона (на планете/орбе);
+// dark — для мест вне .theme-dark (Вселенная-портал): фон и стопы напрямую.
 function BosBlob({ seed, size, animate, bare, style, dark }) {
   size = size || 44;
   var p = bosBlobParams(seed);
+  var ref = React.useRef(null);
+  var live = !!animate && !(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  React.useEffect(function () {
+    if (!live || !ref.current) return;
+    var root = ref.current, q = function (k) { return root.querySelector('[data-bb="' + k + '"]'); };
+    var els = { body: q("body"), eyes: q("eyes"), pup: q("pup"), el: q("el"), er: q("er") };
+    if (!els.body || !els.el || !els.er) return;
+    var c = { p: p, els: els, queue: [], last: null, cur: { ul: p.baseLids, ur: p.baseLids, ll: 0, lr: 0, tl: 0, tr: 0 },
+      nextAt: performance.now() + _bbRand(200, 2500), nextBlink: performance.now() + _bbRand(600, 4000) };
+    _bbApply(c, {}, 0, "soft", true);   // базовая поза без перехода
+    _bbRegister(c);
+    return function () { _bbUnregister(c); };
+  }, [seed, live]);
   var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden",
     background: bare ? "transparent" : (dark ? BOS_BLOB_BG_D : "var(--blob-bg, " + BOS_BLOB_BG_L + ")"),
-    boxShadow: bare ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.06)" }, style || {})
+    boxShadow: bare ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.06)" }, style || {});
   return (
     <div style={base} aria-hidden>
-      <svg className={"bos-blob" + (animate ? " bos-blob-anim" : "")} viewBox="-50 -50 100 100" width={size} height={size}
-        style={{ position: "absolute", inset: 0, display: "block", "--bb-m": p.bodyAnim, "--bb-e": p.eyeAnim, "--bb-bl": p.blinkAnim, "--bb-el": p.eyeLAnim, "--bb-er": p.eyeRAnim, "--bb-d1": p.d1, "--bb-d2": p.d2, "--bb-o": p.o }}>
-        <BosBlobShape p={p} animate={animate} dark={dark} />
+      <svg ref={ref} className={"bos-blob" + (live ? " bos-blob-anim" : "")} viewBox="-50 -50 100 100" width={size} height={size}
+        style={{ position: "absolute", inset: 0, display: "block", "--bb-o": "-" + (bosBlobHash(seed) % 5000) + "ms" }}>
+        <BosBlobShape p={p} animate={live} dark={dark} />
       </svg>
     </div>
   );
