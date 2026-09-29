@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Существа v8 — лаборатория BalanceOS</title>
+<style>
+  :root { --bg: #F4F4F7; --card: #FFFFFF; --text: #141418; --sub: #777783; --chip: #E7E7ED; --on: #141418; --onText: #FFFFFF; --line: rgba(0,0,0,0.06); }
+  body.dark { --bg: #0B0B0E; --card: #151519; --text: #F2F2F6; --sub: #8C8C98; --chip: #24242B; --on: #F2F2F6; --onText: #141418; --line: rgba(255,255,255,0.06); }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; transition: background .3s; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 80px; }
+  h1 { font-size: 30px; letter-spacing: -0.6px; margin: 4px 0 6px; }
+  .lead { color: var(--sub); font-size: 15px; line-height: 1.5; max-width: 700px; margin: 0 0 18px; }
+  .bar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 0; background: var(--bg); }
+  .seg { display: inline-flex; background: var(--chip); border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--sub); font: 600 13px/1 inherit; font-family: inherit; padding: 8px 13px; border-radius: 999px; cursor: pointer; }
+  .seg button.on { background: var(--on); color: var(--onText); }
+  .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: var(--sub); margin-right: -6px; }
+  section { margin-top: 34px; }
+  h2 { font-size: 20px; letter-spacing: -0.3px; margin: 0 0 4px; }
+  .note { color: var(--sub); font-size: 13.5px; line-height: 1.5; margin: 0 0 14px; max-width: 760px; }
+  .card { background: var(--card); border-radius: 26px; padding: 20px; box-shadow: 0 1px 0 var(--line); }
+  .hero { display: flex; justify-content: center; align-items: center; gap: clamp(14px, 5vw, 56px); padding: 34px 12px 26px; }
+  .hint { text-align: center; color: var(--sub); font-size: 13.5px; margin-top: 4px; }
+  .grid { display: grid; gap: 16px 10px; justify-items: center; }
+  .emo { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
+  .per { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 22px 12px; }
+  .crowd { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 12px 6px; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+  .cell b { font-size: 13px; font-weight: 650; }
+  .cell span { font-size: 11.5px; color: var(--sub); line-height: 1.35; max-width: 150px; }
+  .sizes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--sub); font-size: 12.5px; line-height: 1.6; }
+  .stats { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Существа v8</h1>
+  <p class="lead">Новый движок живых аватаров. Глаза лежат на объёмном теле и поворачиваются в перспективе, эмоции показываются веками, у каждого свой характер и своя «физика» тела. Существа замечают твой палец и друг друга. <b>Проведи пальцем или мышкой по странице, нажми на любое существо.</b></p>
+
+  <div class="bar">
+    <span class="lbl">Цвет</span><div class="seg" data-k="color"><button data-v="brand" class="on">Градиенты</button><button data-v="ink">Чернила</button></div>
+    <span class="lbl">Материал</span><div class="seg" data-k="material"><button data-v="volume" class="on">Объём</button><button data-v="flat">Плоско</button></div>
+    <span class="lbl">Фон</span><div class="seg" data-k="bg"><button data-v="tint" class="on">В тон</button><button data-v="neutral">Нейтральный</button></div>
+    <span class="lbl">Тема</span><div class="seg" data-k="dark"><button data-v="0" class="on">Светлая</button><button data-v="1">Тёмная</button></div>
+  </div>
+
+  <section>
+    <div class="card"><div class="hero" id="hero"></div><div class="hint">Поводи рядом — следят взглядом. Нажми — каждый отреагирует по-своему.</div></div>
+  </section>
+
+  <section>
+    <h2>Эмоции без рта</h2>
+    <p class="note">Одно и то же существо, только веки: верхнее веко, нижнее (арка = улыбка глазами), наклон (грусть или сосредоточенность), размер глаз и асимметрия. При этом существо продолжает жить: моргает, водит глазами, дышит.</p>
+    <div class="card"><div class="grid emo" id="emo"></div></div>
+  </section>
+
+  <section>
+    <h2>Характеры</h2>
+    <p class="note">У каждого свои привычки И своя физика тела: желейка долго колышется после движения, тревожный дёргается резко, соня тянется медленно. Одно и то же действие у разных существ выглядит по-разному.</p>
+    <div class="card"><div class="grid per" id="per"></div></div>
+  </section>
+
+  <section>
+    <h2>Толпа — каждый уникален</h2>
+    <p class="note">Так существа выглядят в списках и во Вселенной. Иногда они переглядываются: один посмотрит на соседа, тот может посмотреть в ответ.</p>
+    <div class="card"><div class="grid crowd" id="crowd"></div></div>
+  </section>
+
+  <section>
+    <h2>Мелкие размеры</h2>
+    <p class="note">44 и 32 пикселя, как в стопках лиц и в строках чатов.</p>
+    <div class="card"><div class="sizes" id="s44"></div><div class="sizes" id="s32" style="margin-top:12px"></div></div>
+  </section>
+
+  <div class="foot">Движок: чистый SVG и один общий цикл анимации. Спящие и невидимые существа не считаются, при перегрузке мелкие обновляются реже. Личность определяется id человека (одно лицо навсегда), а поведение каждый раз новое. <span class="stats" id="stats"></span></div>
+</div>
+
+<script src="creatures-engine.js?v=2"></script>
+<script>
+(function () {
+  var S = { color: "brand", material: "volume", bg: "tint", dark: false };
+  var handles = [];
+  var qs = new URLSearchParams(location.search);
+  var CROWD = parseInt(qs.get("crowd") || "48", 10);
+  function mount(parent, seed, size, extra, label, about) {
+    var cell = document.createElement("div"); cell.className = "cell";
+    var host = document.createElement("div"); cell.appendChild(host);
+    if (label) { var b = document.createElement("b"); b.textContent = label; cell.appendChild(b); }
+    if (about) { var s = document.createElement("span"); s.textContent = about; cell.appendChild(s); }
+    parent.appendChild(cell);
+    var o = { size: size, animate: true, dark: S.dark, color: S.color, material: S.material, bg: S.bg };
+    for (var k in extra) o[k] = extra[k];
+    handles.push(Creatures.mount(host, seed, o));
+  }
+  var EMOS = [["calm","Спокойствие"],["happy","Радость"],["laugh","Смех"],["surprised","Удивление"],["curious","Интерес"],["dreamy","Мечтательность"],["proud","Гордость"],["focused","Сосредоточенность"],["suspicious","Подозрение"],["shy","Смущение"],["sad","Грусть"],["sleepy","Сонливость"],["bored","Скука"],["scared","Испуг"]];
+  function renderAll() {
+    handles.forEach(function (h) { h.destroy(); }); handles = [];
+    ["hero","emo","per","crowd","s44","s32"].forEach(function (id) { document.getElementById(id).innerHTML = ""; });
+    document.body.classList.toggle("dark", S.dark);
+    var hero = document.getElementById("hero");
+    var big = Math.min(150, Math.floor((Math.min(window.innerWidth, 1040) - 90) / 3));
+    mount(hero, "hero-dreamer-0", big, { persona: "dreamer" });
+    mount(hero, "hero-joyful-6", big, { persona: "joyful" });
+    mount(hero, "hero-curious-1", big, { persona: "curious" });
+    var emo = document.getElementById("emo");
+    EMOS.forEach(function (e) { mount(emo, "emo-40", 104, { emotion: e[0], persona: "thinker", noAttention: false }, e[1]); });
+    var per = document.getElementById("per"), P = Creatures.PERSONAS;
+    Object.keys(P).forEach(function (k, i) { mount(per, "persona-" + k + "-" + i, 104, { persona: k }, P[k].name, P[k].about); });
+    var crowd = document.getElementById("crowd");
+    for (var i = 0; i < CROWD; i++) mount(crowd, "user-" + i, 56, {});
+    for (i = 0; i < 16; i++) mount(document.getElementById("s44"), "small-" + i, 44, {});
+    for (i = 0; i < 20; i++) mount(document.getElementById("s32"), "tiny-" + i, 32, {});
+  }
+  document.querySelectorAll(".seg").forEach(function (seg) {
+    seg.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      seg.querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); });
+      var k = seg.getAttribute("data-k"), v = b.getAttribute("data-v");
+      S[k] = k === "dark" ? v === "1" : v;
+      renderAll();
+    });
+  });
+  renderAll();
+  setInterval(function () { var s = Creatures.stats(); document.getElementById("stats").textContent = "Сейчас: " + s.total + " существ, двигаются " + s.awake + ", кадр " + s.costMs + " мс."; }, 1000);
+})();
+</script>
+</body>
+</html>
