@@ -130,6 +130,12 @@ function bosOrbGlyph(node, ink) {
   return <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{e}</text>;
 }
 
+var _bosOrbCreatureCache = {};
+function bosOrbCreatureMarkup(seed, dark) {
+  var k = (dark ? "d:" : "l:") + seed;
+  if (!_bosOrbCreatureCache[k]) _bosOrbCreatureCache[k] = Creatures.staticMarkup(seed, { size: 30, dark: !!dark, disc: true, color: "brand", material: "volume" });
+  return _bosOrbCreatureCache[k];
+}
 function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open, minimal = false, spinT, hideLevelRing = false, centerMood }) {
   // hideLevelRing (Вселенная): скрыть золотое КОЛЬЦО-прогресс вокруг центра (David: «перегружает»),
   // цифра уровня остаётся. Геометрия (inset под кольцо) не меняется → стык диск↔орбита не плывёт.
@@ -309,9 +315,9 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           );
         }
         const av = n.avatar, isEmoji = av && ("" + av).indexOf("emoji:") === 0, isMemoji = /^m\d+$/.test(av || "");
-        // Капля на орбите: явный "blob:", либо пусто/сфера при известном seed (id/имя человека).
-        // Рисуем СТАТИКОЙ прямо в этом svg (масштаб 16/50 от родного холста капли) — планет
-        // может быть много и они перерисовываются вращением, анимациям тут не место.
+        // Существо на орбите: явный "blob:", либо пусто/сфера при известном seed (id человека).
+        // Статичная разметка движка, закэшированная по seed+теме: орбита перерисовывается на
+        // каждом тике вращения, строить SVG заново нельзя.
         const pBlobSeed = (typeof bosBlobSeed === "function") ? bosBlobSeed(av, n.seed) : null;
         const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
         const pOp = (n.lit === false ? 0.5 : 1) * op; // dim members not active today (lit opt-in; profile passes none → full)
@@ -321,14 +327,10 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
             {isEmoji
               ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
-              : pBlobSeed && typeof BosBlobShape === "function"
-                ? (() => { const bp = bosBlobParams(pBlobSeed);
-                    // Фон иллюминатора напрямую по dark (Вселенная — портал вне .theme-dark,
-                    // var не дотянется); клип круга на всякий случай оставлен.
-                    const bbg = dark ? ((typeof BOS_BLOB_BG_D !== "undefined") ? BOS_BLOB_BG_D : "#282930") : ((typeof BOS_BLOB_BG_L !== "undefined") ? BOS_BLOB_BG_L : "#EDEEF2");
-                    return <g clipPath="url(#orbAvClip)"><circle cx="0" cy="0" r="16" fill={bbg} /><g transform="scale(0.32)"><BosBlobShape p={bp} dark={dark} /></g></g>; })()
+              : pBlobSeed && typeof Creatures !== "undefined"
+                ? <g clipPath="url(#orbAvClip)"><g transform="scale(0.32)" dangerouslySetInnerHTML={{ __html: bosOrbCreatureMarkup(pBlobSeed, dark) }} /></g>
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
-            <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
+            {!pBlobSeed && <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />}
             <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />
             {n.lit === true && (
               <g transform="translate(11 11)">

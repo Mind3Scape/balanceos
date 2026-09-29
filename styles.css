@@ -1433,24 +1433,4 @@ button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
 .fig-rail::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .fig-month { animation: none !important; } }
 
-/* ── ЖИВЫЕ КАПЛИ v7 — поведенческий движок (секвенсор в shell.jsx ставит позы, переходы едут
-   CSS-transition на transform). Здесь только геометрия точек вращения и постоянное дыхание. */
-.bos-blob [data-bb] { transform-box: fill-box; transform-origin: 50% 50%; }
-/* Постоянное тихое дыхание на корне svg — никто никогда не заморожен. */
-@keyframes bosBlobIdle {
-  0%, 100% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1.024, 0.98) translateY(0.8px); }
-}
-.bos-blob-anim { animation: bosBlobIdle 4.6s ease-in-out var(--bb-o, 0s) infinite; }
-@media (prefers-reduced-motion: reduce) { .bos-blob-anim { animation: none !important; } }
-/* Тёмная тема: фон иллюминатора + тёмные стопы фирменных градиентов тел (пилюли David,
-   тёмный вариант). Вне .theme-dark (Вселенная-портал) те же значения приходят prop'ом dark. */
-.theme-dark, .bos-sheet.is-dark {
-  --blob-bg: #282930;
-  --bbg-0-a: #F3E3F7; --bbg-0-b: #FCF6DD;  --bbg-1-a: #F6C3AE; --bbg-1-b: #FCEFC9;
-  --bbg-2-a: #F0AC5C; --bbg-2-b: #FBF2C4;  --bbg-3-a: #BFF8EF; --bbg-3-b: #E7FDF2;
-  --bbg-4-a: #AAC4F8; --bbg-4-b: #DCEDFC;  --bbg-5-a: #BDB4FB; --bbg-5-b: #CBC5FD;
-  --bbg-6-a: #F9587F; --bbg-6-b: #F5A469;  --bbg-7-a: #C316CB; --bbg-7-b: #E09A76;
-  --bbg-8-a: #272A6E; --bbg-8-b: #C08272;  --bbg-9-a: #1D4EDC; --bbg-9-b: #3F6EE0;
-  --bbg-10-a: #0F1B4D; --bbg-10-b: #182A66;  --bbg-11-a: #220F33; --bbg-11-b: #3D1247;
-}
+/* Живые аватары «Существа v8»: стили дыхания движок вставляет сам (components/creatures.jsx). */
